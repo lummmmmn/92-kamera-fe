@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react";
 import * as THREE from "three";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from "recharts";
-import { storage } from "./supabase.js";
+import { storage, subscribeToChanges } from "./supabase.js";
 
 // ── HELPERS ──
 let _orderNum = 4;
@@ -1846,6 +1846,41 @@ export default function App() {
   // NOTE: page-sync effect removed — all state lives in App (single source of truth).
   // Reloading from storage on page change caused race conditions:
   // new orders (seen:false) and newly added cameras were overwritten by stale storage reads.
+
+  // ── Realtime sync: lắng nghe thay đổi từ Supabase (admin sửa → khách thấy ngay) ──
+  useEffect(() => {
+    const KEYS = {
+      [STORE_KEYS.accessories]: (v) => _setAccessories(v),
+      [STORE_KEYS.site]: (v) => _setSiteContent(v),
+      [STORE_KEYS.orders]: (v) => {
+        _setOrders(prev => {
+          // Merge: giữ đơn mới chưa kịp lưu
+          const storageIds = new Set(v.map(o => o.id));
+          const fresh = prev.filter(o => !storageIds.has(o.id) && !ORDERS_INIT.find(x => x.id === o.id));
+          return [...fresh, ...v];
+        });
+      },
+      [STORE_KEYS.cameras]: async () => {
+        // Camera có ảnh riêng → load đầy đủ
+        const cams = await loadCamerasFromStorage();
+        if (cams) _setCameras(cams);
+      },
+    };
+
+    const unsub = subscribeToChanges((key, value) => {
+      const handler = KEYS[key];
+      if (handler) handler(value);
+      // Xử lý key ảnh camera riêng lẻ (k92img_xxx)
+      if (key.startsWith("k92img_")) {
+        const camId = parseInt(key.replace("k92img_", ""));
+        _setCameras(prev => prev.map(c =>
+          c.id === camId ? { ...c, images: value } : c
+        ));
+      }
+    });
+
+    return unsub;
+  }, []);
 
   const handleNewOrder = useCallback((order) => {
     // Always ensure seen:false so admin badge shows the notification
