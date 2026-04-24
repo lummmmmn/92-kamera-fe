@@ -59,3 +59,29 @@ export const storage = {
     }
   },
 };
+
+// ── REALTIME SYNC ──
+// Gọi hàm này 1 lần trong App để lắng nghe thay đổi từ Supabase
+// callback(key, value) được gọi mỗi khi có INSERT/UPDATE trên kv_store
+export function subscribeToChanges(callback) {
+  const channel = supabase
+    .channel("kv_store_changes")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "kv_store" },
+      (payload) => {
+        const { new: row } = payload;
+        if (row?.key && row?.value) {
+          try {
+            callback(row.key, JSON.parse(row.value));
+          } catch {
+            callback(row.key, row.value);
+          }
+        }
+      }
+    )
+    .subscribe();
+
+  // Trả về hàm unsubscribe để cleanup
+  return () => supabase.removeChannel(channel);
+}
