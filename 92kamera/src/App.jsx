@@ -2789,43 +2789,51 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
 // ── STORAGE HELPERS ──
 const STORE_KEYS = { cameras: "k92_cameras_v2", accessories: "k92_accessories_v2", orders: "k92_orders_v2", site: "k92_site_v2", photos: "k92_photos_v1", feedbacks: "k92_feedbacks_v1", users: "k92_users_v1" };
 
+// ── STORAGE: localStorage (works on Vercel/any hosting) ──
 async function storageGet(key) {
-  try { const r = await window.storage.get(key); return r ? JSON.parse(r.value) : null; } catch { return null; }
+  try {
+    const r = localStorage.getItem(key);
+    return r ? JSON.parse(r) : null;
+  } catch { return null; }
 }
 async function storageSet(key, val) {
-  try { await window.storage.set(key, JSON.stringify(val)); } catch (e) { console.warn("[92K storage] set failed:", key, e); }
+  try {
+    localStorage.setItem(key, JSON.stringify(val));
+  } catch (e) {
+    // localStorage full (images too large) → try without images
+    if (e.name === "QuotaExceededError" && Array.isArray(val)) {
+      try { localStorage.setItem(key, JSON.stringify(val.map(item => ({ ...item, images: [] })))); } catch {}
+    }
+    console.warn("[92K storage] set failed:", key, e);
+  }
 }
 
-// Store cameras: metadata in k92_cameras_v2 (no images), images per-camera key
+// Store cameras: split images per-camera key to avoid localStorage 5MB limit
 async function saveCamerasToStorage(cams) {
   try {
-    // 1. Save metadata (no images) first
     const meta = cams.map(c => ({ ...c, images: [] }));
-    await window.storage.set(STORE_KEYS.cameras, JSON.stringify(meta));
-    // 2. Save images one by one sequentially to avoid race conditions
+    localStorage.setItem(STORE_KEYS.cameras, JSON.stringify(meta));
     for (const c of cams) {
       try {
-        await window.storage.set("k92img_" + c.id, JSON.stringify(c.images || []));
-      } catch { /* image too large, skip */ }
+        localStorage.setItem("k92img_" + c.id, JSON.stringify(c.images || []));
+      } catch { localStorage.removeItem("k92img_" + c.id); }
     }
   } catch (e) { console.warn("saveCameras failed", e); }
 }
 
 async function loadCamerasFromStorage() {
   try {
-    const r = await window.storage.get(STORE_KEYS.cameras);
-    if (!r) return null;
-    const meta = JSON.parse(r.value);
-    const result = [];
-    for (const c of meta) {
+    const raw = localStorage.getItem(STORE_KEYS.cameras);
+    if (!raw) return null;
+    const meta = JSON.parse(raw);
+    return meta.map(c => {
       try {
-        const ir = await window.storage.get("k92img_" + c.id);
-        result.push({ ...c, images: ir ? JSON.parse(ir.value) : [] });
+        const imgs = localStorage.getItem("k92img_" + c.id);
+        return { ...c, images: imgs ? JSON.parse(imgs) : [] };
       } catch {
-        result.push({ ...c, images: [] });
+        return { ...c, images: [] };
       }
-    }
-    return result;
+    });
   } catch { return null; }
 }
 
