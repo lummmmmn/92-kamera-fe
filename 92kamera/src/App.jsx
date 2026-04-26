@@ -1621,17 +1621,20 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
   const [avatarLoading, setAvatarLoading] = useState(false);
   const adminAvatarRef = useRef();
 
-  // Use app-level usersMap if provided, else local fallback
-  const users = usersMap || localUsers;
+  // Merge localUsers (storage-backed, always loaded) + usersMap (App state).
+  // localUsers fills the gap when usersMap is still {} due to async race on mount.
+  // usersMap wins for same keys after App storage load completes (latest source of truth).
+  const users = { ...localUsers, ...(usersMap || {}) };
   const saveUsers = (u) => {
+    setLocalUsers(u); // always keep local copy in sync (fixes race condition)
     if (setUsersMap) { setUsersMap(u); }
-    else { setLocalUsers(u); storageSet("k92_users_v1", u); }
+    else { storageSet("k92_users_v1", u); }
   };
 
+  // ALWAYS load from storage on mount — covers race condition where App-level usersMap
+  // is still {} (empty) because the async storage load hasn't completed yet.
   useEffect(() => {
-    if (!usersMap) {
-      storageGet("k92_users_v1").then(d => { if (d) setLocalUsers(d); });
-    }
+    storageGet("k92_users_v1").then(d => { if (d) setLocalUsers(d); });
   }, []);
 
   // Avatar upload for AdminLogin panel
