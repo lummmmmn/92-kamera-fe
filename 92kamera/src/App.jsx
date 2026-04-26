@@ -1886,20 +1886,47 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   // Track new unseen orders
   const unseenCount = orders.filter(o => !o.seen).length;
 
-  // Poll storage every 10s → catch orders placed in other tabs/sessions
+  // Poll storage every 8s — sync orders, photos, feedbacks across browser tabs
   useEffect(() => {
     const poll = setInterval(async () => {
-      const ords = await storageGet(STORE_KEYS.orders);
-      if (!ords) return;
-      setOrders(prev => {
-        const prevIds = new Set(prev.map(o => o.id));
-        const newOnes = ords.filter(o => !prevIds.has(o.id));
-        if (newOnes.length === 0) return prev;
-        return [...newOnes.map(o => ({ ...o, seen: false })), ...prev];
-      });
-    }, 10000);
+      const [ords, phs, fbs] = await Promise.all([
+        storageGet(STORE_KEYS.orders),
+        storageGet(STORE_KEYS.photos),
+        storageGet(STORE_KEYS.feedbacks),
+      ]);
+
+      // Orders: merge new ones (not yet in this tab's state)
+      if (ords) {
+        setOrders(prev => {
+          const prevIds = new Set(prev.map(o => o.id));
+          const newOnes = ords.filter(o => !prevIds.has(o.id));
+          if (newOnes.length === 0) return prev;
+          return [...newOnes.map(o => ({ ...o, seen: false })), ...prev];
+        });
+      }
+
+      // Photos: merge new uploads from customer tab
+      if (phs) {
+        setPhotos(prev => {
+          const prevIds = new Set(prev.map(p => p.id));
+          const newOnes = phs.filter(p => !prevIds.has(p.id));
+          if (newOnes.length === 0) return prev;
+          return [...newOnes.map(p => ({ ...p, seen: false })), ...prev];
+        });
+      }
+
+      // Feedbacks: merge new submissions from customer tab
+      if (fbs) {
+        setFeedbacks(prev => {
+          const prevIds = new Set(prev.map(f => f.id));
+          const newOnes = fbs.filter(f => !prevIds.has(f.id));
+          if (newOnes.length === 0) return prev;
+          return [...newOnes.map(f => ({ ...f, seen: false })), ...prev];
+        });
+      }
+    }, 8000);
     return () => clearInterval(poll);
-  }, [setOrders]);
+  }, [setOrders, setPhotos, setFeedbacks]);
 
   // Mark orders as seen when entering orders tab
   useEffect(() => {
@@ -2933,8 +2960,24 @@ export default function App() {
       ]);
       if (cams) _setCameras(cams);
       if (accs) _setAccessories(accs);
-      if (phs) _setPhotos(phs);
-      if (fbs) _setFeedbacks(fbs);
+      // Photos: merge to avoid overwriting items added before storage resolved
+      if (phs) {
+        _setPhotos(prev => {
+          const storageIds = new Set(phs.map(p => p.id));
+          const fresh = prev.filter(p => !storageIds.has(p.id));
+          return [...fresh, ...phs];
+        });
+      }
+      // Feedbacks: merge to avoid overwriting items added before storage resolved
+      if (fbs) {
+        _setFeedbacks(prev => {
+          const storageIds = new Set(fbs.map(f => f.id));
+          const fresh = prev.filter(f => !storageIds.has(f.id));
+          const merged = [...fresh, ...fbs];
+          if (fresh.length > 0) setTimeout(() => storageSet(STORE_KEYS.feedbacks, merged), 0);
+          return merged;
+        });
+      }
       if (usrs) _setUsers(usrs);
       if (ords) {
         // ── FIX 1: Sync _orderNum to avoid duplicate order IDs across sessions ──
