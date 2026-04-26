@@ -2912,55 +2912,61 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   );
 }
 
-// ── STORAGE HELPERS ──
+// ── STORAGE HELPERS — Supabase Cloud (sync mọi thiết bị) ──
 const STORE_KEYS = { cameras: "k92_cameras_v2", accessories: "k92_accessories_v2", orders: "k92_orders_v2", site: "k92_site_v2", photos: "k92_photos_v1", feedbacks: "k92_feedbacks_v1", users: "k92_users_v1" };
 
-// ── STORAGE: localStorage (works on Vercel/any hosting) ──
+const SB_URL = "https://gtgjixgcillbjwnnkavx.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Z2ppeGdjaWxsYmp3bm5rYXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5OTg4MzMsImV4cCI6MjA5MjU3NDgzM30.iFh0KP4vrTZUDMrakW1a9nM8naJScP-D1WqJKrH0hiI";
+const SB_TABLE = "kv_store";
+const SB_HEADERS = { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Content-Type": "application/json", "Prefer": "resolution=merge-duplicates" };
+
+// GET từ Supabase, fallback localStorage nếu offline
 async function storageGet(key) {
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/${SB_TABLE}?key=eq.${encodeURIComponent(key)}&select=value`, {
+      headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` }
+    });
+    if (res.ok) {
+      const rows = await res.json();
+      if (rows.length > 0) {
+        const parsed = JSON.parse(rows[0].value);
+        // Cache vào localStorage để dùng khi offline
+        try { localStorage.setItem(key, rows[0].value); } catch {}
+        return parsed;
+      }
+    }
+  } catch {}
+  // Fallback: localStorage (offline / lỗi mạng)
   try {
     const r = localStorage.getItem(key);
     return r ? JSON.parse(r) : null;
   } catch { return null; }
 }
+
+// SET lên Supabase + cache localStorage
 async function storageSet(key, val) {
+  const value = JSON.stringify(val);
+  // Upsert lên Supabase
   try {
-    localStorage.setItem(key, JSON.stringify(val));
+    await fetch(`${SB_URL}/rest/v1/${SB_TABLE}`, {
+      method: "POST",
+      headers: SB_HEADERS,
+      body: JSON.stringify({ key, value, updated_at: new Date().toISOString() })
+    });
   } catch (e) {
-    // localStorage full (images too large) → try without images
-    if (e.name === "QuotaExceededError" && Array.isArray(val)) {
-      try { localStorage.setItem(key, JSON.stringify(val.map(item => ({ ...item, images: [] })))); } catch {}
-    }
-    console.warn("[92K storage] set failed:", key, e);
+    console.warn("[92K supabase] set failed:", key, e);
   }
+  // Cache localStorage
+  try { localStorage.setItem(key, value); } catch {}
 }
 
-// Store cameras: split images per-camera key to avoid localStorage 5MB limit
+// Cameras: lưu cả ảnh lên Supabase (text column không giới hạn size)
 async function saveCamerasToStorage(cams) {
-  try {
-    const meta = cams.map(c => ({ ...c, images: [] }));
-    localStorage.setItem(STORE_KEYS.cameras, JSON.stringify(meta));
-    for (const c of cams) {
-      try {
-        localStorage.setItem("k92img_" + c.id, JSON.stringify(c.images || []));
-      } catch { localStorage.removeItem("k92img_" + c.id); }
-    }
-  } catch (e) { console.warn("saveCameras failed", e); }
+  await storageSet(STORE_KEYS.cameras, cams);
 }
 
 async function loadCamerasFromStorage() {
-  try {
-    const raw = localStorage.getItem(STORE_KEYS.cameras);
-    if (!raw) return null;
-    const meta = JSON.parse(raw);
-    return meta.map(c => {
-      try {
-        const imgs = localStorage.getItem("k92img_" + c.id);
-        return { ...c, images: imgs ? JSON.parse(imgs) : [] };
-      } catch {
-        return { ...c, images: [] };
-      }
-    });
-  } catch { return null; }
+  return await storageGet(STORE_KEYS.cameras);
 }
 
 // ── ROOT ──
