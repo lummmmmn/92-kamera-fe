@@ -407,12 +407,53 @@ function MobileBackground() {
   );
 }
 
+// ── FEEDBACK CARD (dùng chung cho cả mobile & desktop) ──
+function FeedbackCard({ c, hov, onEnter, onLeave }) {
+  return (
+    <div
+      onMouseEnter={onEnter}
+      onMouseLeave={onLeave}
+      style={{ width: 240, flexShrink: 0, background: CARD, borderRadius: 14, overflow: "hidden", border: `1px solid ${hov ? G + "55" : BR}`, transition: "all .3s", transform: hov ? "translateY(-6px) scale(1.02)" : "none", boxShadow: hov ? `0 16px 40px rgba(201,168,76,0.1)` : "none" }}>
+      <div style={{ position: "relative" }}>
+        {c.hasImg ? (
+          <img src={c.img} alt="" style={{ width: "100%", height: 180, objectFit: "cover", display: "block" }} loading="lazy" />
+        ) : (
+          <div style={{ width: "100%", height: 140, background: `linear-gradient(135deg,#0d0b00,#1a1400)`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <div style={{ fontSize: 36 }}>📷</div>
+            <div style={{ color: G + "66", fontSize: 10, fontFamily: "system-ui,sans-serif", letterSpacing: 1 }}>92 KAMERA</div>
+          </div>
+        )}
+        <div style={{ position: "absolute", top: 10, left: 10, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", borderRadius: 99, padding: "3px 10px", fontSize: 11 }}>
+          <span style={{ color: G }}>{"★".repeat(c.rating)}</span><span style={{ color: "#333" }}>{"★".repeat(5 - c.rating)}</span>
+        </div>
+        {c.extraImages > 0 && (
+          <div style={{ position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.8)", color: G, borderRadius: 99, padding: "3px 9px", fontSize: 10, fontFamily: "system-ui,sans-serif", fontWeight: 700 }}>+{c.extraImages}</div>
+        )}
+        {c.type === "feedback" && (
+          <div style={{ position: "absolute", bottom: 10, right: 10, background: G + "cc", color: "#000", borderRadius: 99, padding: "2px 8px", fontSize: 9, fontFamily: "system-ui,sans-serif", fontWeight: 700, letterSpacing: .5 }}>ĐÃ THUÊ ✓</div>
+        )}
+      </div>
+      <div style={{ padding: "14px 16px" }}>
+        {c.text ? (
+          <div style={{ color: TXT, fontSize: 12, lineHeight: 1.6, marginBottom: 8, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", fontStyle: "italic" }}>"{c.text}"</div>
+        ) : !c.hasImg ? (
+          <div style={{ color: MUT, fontSize: 12, lineHeight: 1.6, marginBottom: 8, fontStyle: "italic" }}>Khách hàng hài lòng 😊</div>
+        ) : null}
+        <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif" }}>📷 {c.camera}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+          <div style={{ color: "#5a5a5a", fontSize: 10, fontFamily: "system-ui,sans-serif", fontWeight: 600 }}>{c.userName}</div>
+          <div style={{ color: "#3a3a3a", fontSize: 9, fontFamily: "system-ui,sans-serif" }}>{c.date}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── FEEDBACK MARQUEE (homepage social proof — shows approved photos + order feedbacks) ──
-function FeedbackMarquee({ photos, feedbacks }) {
+function FeedbackMarquee({ photos, feedbacks, isMobile }) {
   const [paused, setPaused] = useState(false);
   const [hovCard, setHovCard] = useState(null);
 
-  // Build unified card list — ✅ ALL approved feedbacks show, with OR without images
   const approvedPhotos = (photos || []).filter(p => p.status === "approved").map(p => ({
     key: "ph_" + p.id, img: p.url, hasImg: true, rating: p.rating || 5,
     text: p.caption, userName: p.userName, camera: p.cameraUsed || "Máy ảnh", date: p.date, type: "photo", extraImages: 0
@@ -427,10 +468,10 @@ function FeedbackMarquee({ photos, feedbacks }) {
   }));
 
   const all = [...approvedPhotos, ...approvedFeedbacks];
+  const avgRating = all.length ? (all.reduce((s, c) => s + c.rating, 0) / all.length).toFixed(1) : "5.0";
 
-  // Luôn show section để nav scroll hoạt động
-  if (all.length === 0) return (
-    <div id="feedback" style={{ padding: "72px 0 64px", borderTop: `1px solid ${BR}`, background: "linear-gradient(180deg,#060606 0%,#080700 50%,#060606 100%)" }}>
+  const emptySection = (
+    <div id="feedback" style={{ padding: "72px 16px 64px", borderTop: `1px solid ${BR}`, background: "linear-gradient(180deg,#060606 0%,#080700 50%,#060606 100%)" }}>
       <div style={{ textAlign: "center" }}>
         <div style={{ fontSize: 9, letterSpacing: 7, color: MUT, fontFamily: "system-ui,sans-serif", marginBottom: 14 }}>SOCIAL PROOF</div>
         <h2 style={{ fontSize: 30, fontWeight: 400, letterSpacing: 2, margin: "0 0 6px", color: TXT, fontFamily: '"Times New Roman",Georgia,serif' }}>Feedback Khách Hàng</h2>
@@ -440,93 +481,81 @@ function FeedbackMarquee({ photos, feedbacks }) {
     </div>
   );
 
-  // Đủ item để fill marquee — nhân bản cho đủ 2 vòng lặp liên tục
+  if (all.length === 0) return emptySection;
+
+  // ── HEADER dùng chung ──
+  const header = (
+    <div style={{ textAlign: "center", marginBottom: 32, position: "relative", zIndex: 2, padding: "0 16px" }}>
+      <div style={{ fontSize: 9, letterSpacing: 7, color: MUT, fontFamily: "system-ui,sans-serif", marginBottom: 14 }}>SOCIAL PROOF</div>
+      <h2 style={{ fontSize: isMobile ? 24 : 30, fontWeight: 400, letterSpacing: 2, margin: "0 0 6px", color: TXT, fontFamily: '"Times New Roman",Georgia,serif' }}>Feedback Khách Hàng</h2>
+      <div style={{ width: 36, height: 1, background: G, margin: "14px auto 12px" }} />
+      <div style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "#0e0e0e", border: `1px solid ${G}33`, borderRadius: 99, padding: "6px 20px", marginBottom: 18 }}>
+        <span style={{ color: G, fontSize: 16 }}>{"★".repeat(Math.round(parseFloat(avgRating)))}</span>
+        <span style={{ color: G, fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif" }}>{avgRating}</span>
+        <span style={{ color: MUT, fontSize: 11, fontFamily: "system-ui,sans-serif" }}>· {all.length} đánh giá</span>
+      </div>
+    </div>
+  );
+
+  // ── MOBILE: scroll ngang tay, snap từng card ──
+  if (isMobile) {
+    return (
+      <div id="feedback" style={{ padding: "56px 0 52px", borderTop: `1px solid ${BR}`, background: "linear-gradient(180deg,#060606 0%,#080700 50%,#060606 100%)" }}>
+        <style>{`
+          .fb-scroll::-webkit-scrollbar{display:none}
+          .fb-scroll{-ms-overflow-style:none;scrollbar-width:none;}
+        `}</style>
+        {header}
+        <div
+          className="fb-scroll"
+          style={{
+            display: "flex", gap: 16, overflowX: "auto", overflowY: "visible",
+            scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch",
+            paddingLeft: 20, paddingRight: 20, paddingBottom: 8,
+            touchAction: "pan-x",
+          }}
+        >
+          {all.map((c) => (
+            <div key={c.key} style={{ scrollSnapAlign: "start", flexShrink: 0 }}>
+              <FeedbackCard c={c} hov={false} onEnter={() => {}} onLeave={() => {}} />
+            </div>
+          ))}
+        </div>
+        <div style={{ textAlign: "center", marginTop: 16, color: MUT, fontSize: 10, letterSpacing: 1.5, fontFamily: "system-ui,sans-serif" }}>← VUỐT ĐỂ XEM THÊM →</div>
+      </div>
+    );
+  }
+
+  // ── DESKTOP: marquee animation ──
   const minItems = 8;
   let combined = [...all];
   while (combined.length < minItems) combined = [...combined, ...all];
-  combined = [...combined, ...combined]; // 2x for seamless loop
+  combined = [...combined, ...combined];
   const dur = Math.max(30, combined.length * 3.5);
-
-  const avgRating = all.length ? (all.reduce((s, c) => s + c.rating, 0) / all.length).toFixed(1) : "5.0";
 
   return (
     <div id="feedback" style={{ padding: "72px 0 64px", borderTop: `1px solid ${BR}`, overflow: "hidden", background: "linear-gradient(180deg,#060606 0%,#080700 50%,#060606 100%)", position: "relative" }}>
       <style>{`
         @keyframes scrollFeed{0%{transform:translateX(-50%)}100%{transform:translateX(0)}}
-        @keyframes fbCardHov{0%{transform:scale(1)}100%{transform:scale(1.03)}}
       `}</style>
-
-      {/* Background glow */}
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 600, height: 300, background: `radial-gradient(ellipse,${G}06,transparent 70%)`, pointerEvents: "none" }} />
 
-      <div style={{ textAlign: "center", marginBottom: 32, position: "relative", zIndex: 2 }}>
-        <div style={{ fontSize: 9, letterSpacing: 7, color: MUT, fontFamily: "system-ui,sans-serif", marginBottom: 14 }}>SOCIAL PROOF</div>
-        <h2 style={{ fontSize: 30, fontWeight: 400, letterSpacing: 2, margin: "0 0 6px", color: TXT, fontFamily: '"Times New Roman",Georgia,serif' }}>Feedback Khách Hàng</h2>
-        <div style={{ width: 36, height: 1, background: G, margin: "14px auto 12px" }} />
-        {/* Rating summary */}
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "#0e0e0e", border: `1px solid ${G}33`, borderRadius: 99, padding: "6px 20px", marginBottom: 18 }}>
-          <span style={{ color: G, fontSize: 16 }}>{"★".repeat(Math.round(parseFloat(avgRating)))}</span>
-          <span style={{ color: G, fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif" }}>{avgRating}</span>
-          <span style={{ color: MUT, fontSize: 11, fontFamily: "system-ui,sans-serif" }}>· {all.length} đánh giá</span>
-        </div>
-        <div>
-          <button onClick={() => setPaused(p => !p)}
-            style={{ background: paused ? G + "22" : "none", border: `1px solid ${paused ? G : BR}`, color: paused ? G : MUT, padding: "6px 22px", borderRadius: 99, fontSize: 10, cursor: "pointer", fontFamily: "system-ui,sans-serif", letterSpacing: 1.5, transition: "all .3s" }}>
-            {paused ? "▶ TIẾP TỤC" : "⏸ DỪNG"}
-          </button>
-        </div>
+      {header}
+      <div style={{ textAlign: "center", marginBottom: 16 }}>
+        <button onClick={() => setPaused(p => !p)}
+          style={{ background: paused ? G + "22" : "none", border: `1px solid ${paused ? G : BR}`, color: paused ? G : MUT, padding: "6px 22px", borderRadius: 99, fontSize: 10, cursor: "pointer", fontFamily: "system-ui,sans-serif", letterSpacing: 1.5, transition: "all .3s" }}>
+          {paused ? "▶ TIẾP TỤC" : "⏸ DỪNG"}
+        </button>
       </div>
 
       <div style={{ overflow: "hidden", position: "relative" }}>
-        {/* Edge fades */}
         <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 120, background: "linear-gradient(to right,#060606,transparent)", zIndex: 2, pointerEvents: "none" }} />
         <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 120, background: "linear-gradient(to left,#060606,transparent)", zIndex: 2, pointerEvents: "none" }} />
-
         <div style={{ display: "flex", gap: 20, width: "max-content", animation: `scrollFeed ${dur}s linear infinite`, animationPlayState: paused ? "paused" : "running", paddingLeft: 20 }}>
           {combined.map((c, i) => (
-            <div key={c.key + "_" + i}
-              onMouseEnter={() => { setHovCard(i); setPaused(true); }}
-              onMouseLeave={() => { setHovCard(null); setPaused(false); }}
-              style={{ width: 240, flexShrink: 0, background: CARD, borderRadius: 14, overflow: "hidden", border: `1px solid ${hovCard === i ? G + "55" : BR}`, transition: "all .3s", transform: hovCard === i ? "translateY(-6px) scale(1.02)" : "none", boxShadow: hovCard === i ? `0 16px 40px rgba(201,168,76,0.1)` : "none", cursor: "default" }}>
-              <div style={{ position: "relative" }}>
-                {/* ✅ Nếu có ảnh thì hiện ảnh, không thì hiện placeholder */}
-                {c.hasImg ? (
-                  <img src={c.img} alt="" style={{ width: "100%", height: 180, objectFit: "cover" }} loading="lazy" />
-                ) : (
-                  <div style={{ width: "100%", height: 140, background: `linear-gradient(135deg,#0d0b00,#1a1400)`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                    <div style={{ fontSize: 36 }}>📷</div>
-                    <div style={{ color: G + "66", fontSize: 10, fontFamily: "system-ui,sans-serif", letterSpacing: 1 }}>92 KAMERA</div>
-                  </div>
-                )}
-                {/* Star overlay */}
-                <div style={{ position: "absolute", top: 10, left: 10, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", borderRadius: 99, padding: "3px 10px", fontSize: 11 }}>
-                  <span style={{ color: G }}>{"★".repeat(c.rating)}</span><span style={{ color: "#333" }}>{"★".repeat(5 - c.rating)}</span>
-                </div>
-                {/* Multiple images badge */}
-                {c.extraImages > 0 && (
-                  <div style={{ position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.8)", color: G, borderRadius: 99, padding: "3px 9px", fontSize: 10, fontFamily: "system-ui,sans-serif", fontWeight: 700 }}>
-                    +{c.extraImages}
-                  </div>
-                )}
-                {/* Type badge */}
-                {c.type === "feedback" && (
-                  <div style={{ position: "absolute", bottom: 10, right: 10, background: G + "cc", color: "#000", borderRadius: 99, padding: "2px 8px", fontSize: 9, fontFamily: "system-ui,sans-serif", fontWeight: 700, letterSpacing: .5 }}>ĐÃ THUÊ ✓</div>
-                )}
-              </div>
-              <div style={{ padding: "14px 16px" }}>
-                {c.text && (
-                  <div style={{ color: TXT, fontSize: 12, lineHeight: 1.6, marginBottom: 8, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", fontStyle: "italic" }}>"{c.text}"</div>
-                )}
-                {!c.text && !c.hasImg && (
-                  <div style={{ color: MUT, fontSize: 12, lineHeight: 1.6, marginBottom: 8, fontStyle: "italic" }}>Khách hàng hài lòng 😊</div>
-                )}
-                <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif" }}>📷 {c.camera}</div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-                  <div style={{ color: "#5a5a5a", fontSize: 10, fontFamily: "system-ui,sans-serif", fontWeight: 600 }}>{c.userName}</div>
-                  <div style={{ color: "#3a3a3a", fontSize: 9, fontFamily: "system-ui,sans-serif" }}>{c.date}</div>
-                </div>
-              </div>
-            </div>
+            <FeedbackCard key={c.key + "_" + i} c={c} hov={hovCard === i}
+              onEnter={() => { setHovCard(i); setPaused(true); }}
+              onLeave={() => { setHovCard(null); setPaused(false); }} />
           ))}
         </div>
       </div>
@@ -629,34 +658,47 @@ function CustomerPhotoUpload({ loggedUser, cameras, setPhotos, onClose }) {
 
 // ── FEEDBACK MODAL (post-order rating — only for completed orders) ──
 function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) {
-  const [rating, setRating] = useState(5);
-  const [text, setText] = useState("");
-  const [images, setImages] = useState([]);
+  // Tìm feedback đã gửi cho đơn này (nếu có)
+  const existingFb = feedbacks.find(f => f.orderId === order?.id && f.phone === loggedUser?.phone);
+  // Cho phép edit nếu chưa admin xử lý (pending), không cho edit nếu đã approved/rejected
+  const isEditing = !!existingFb && existingFb.status === "pending";
+  const isLocked = !!existingFb && existingFb.status !== "pending";
+
+  const [rating, setRating] = useState(existingFb?.rating || 5);
+  const [text, setText] = useState(existingFb?.text || "");
+  const [images, setImages] = useState(existingFb?.images || []);
   const [done, setDone] = useState(false);
   const [hovStar, setHovStar] = useState(0);
-
-  // Check if already submitted
-  const alreadySubmitted = feedbacks.some(f => f.orderId === order?.id && f.phone === loggedUser?.phone);
 
   const starLabels = ["", "Tệ 😞", "Tạm 😐", "Ổn 🙂", "Tốt 😊", "Xuất sắc 🤩"];
 
   const handleSubmit = () => {
     if (!loggedUser || !order) return;
-    const fb = {
-      id: "fb_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
-      orderId: order.id,
-      cameraName: order.cameraName,
-      rating,
-      text,
-      images,
-      userName: loggedUser.name,
-      phone: loggedUser.phone,
-      date: todayStr(),
-      status: "pending",
-      hidden: false,
-      seen: false,
-    };
-    setFeedbacks(prev => [fb, ...prev]);
+    if (isEditing && existingFb) {
+      // CẬP NHẬT feedback cũ (status → pending lại để admin duyệt lại)
+      setFeedbacks(prev => prev.map(f =>
+        f.id === existingFb.id
+          ? { ...f, rating, text, images, date: todayStr(), status: "pending", hidden: false, seen: false }
+          : f
+      ));
+    } else {
+      // TẠO MỚI feedback
+      const fb = {
+        id: "fb_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+        orderId: order.id,
+        cameraName: order.cameraName,
+        rating,
+        text,
+        images,
+        userName: loggedUser.name,
+        phone: loggedUser.phone,
+        date: todayStr(),
+        status: "pending",
+        hidden: false,
+        seen: false,
+      };
+      setFeedbacks(prev => [fb, ...prev]);
+    }
     setDone(true);
   };
 
@@ -668,24 +710,33 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
         <button onClick={onClose} style={{ position: "absolute", top: 14, right: 16, background: "none", border: "none", color: MUT, fontSize: 18, cursor: "pointer" }}>✕</button>
         <Logo size={0.72} />
 
-        {alreadySubmitted ? (
+        {/* Đã được admin xử lý → không cho edit */}
+        {isLocked ? (
           <div style={{ textAlign: "center", padding: "28px 0" }}>
-            <div style={{ fontSize: 52, marginBottom: 14 }}>✅</div>
-            <div style={{ color: G, fontSize: 17, fontWeight: 700, fontFamily: "system-ui,sans-serif", marginBottom: 8 }}>Bạn đã gửi đánh giá!</div>
-            <div style={{ color: MUT, fontSize: 13, fontFamily: "system-ui,sans-serif", lineHeight: 1.7 }}>Cảm ơn bạn đã chia sẻ.<br />Đánh giá đang chờ admin duyệt.</div>
+            <div style={{ fontSize: 52, marginBottom: 14 }}>{existingFb.status === "approved" ? "🌟" : "😔"}</div>
+            <div style={{ color: G, fontSize: 17, fontWeight: 700, fontFamily: "system-ui,sans-serif", marginBottom: 8 }}>
+              {existingFb.status === "approved" ? "Đánh giá đã được duyệt!" : "Đánh giá đã bị từ chối"}
+            </div>
+            <div style={{ color: MUT, fontSize: 13, fontFamily: "system-ui,sans-serif", lineHeight: 1.7 }}>
+              {existingFb.status === "approved"
+                ? "Đánh giá của bạn đang hiển thị trên trang chủ."
+                : "Admin đã từ chối đánh giá này. Liên hệ Zalo nếu cần hỗ trợ."}
+            </div>
             <button onClick={onClose} style={{ marginTop: 20, padding: "10px 32px", background: G, color: "#000", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>Đóng</button>
           </div>
         ) : done ? (
           <div style={{ textAlign: "center", padding: "28px 0" }}>
             <div style={{ fontSize: 52, marginBottom: 14 }}>🌟</div>
-            <div style={{ color: G, fontSize: 18, fontWeight: 700, fontFamily: "system-ui,sans-serif", marginBottom: 8 }}>Cảm ơn bạn! 💛</div>
-            <div style={{ color: MUT, fontSize: 13, fontFamily: "system-ui,sans-serif", lineHeight: 1.7, marginBottom: 24 }}>Đánh giá đang chờ duyệt.<br />Ảnh đẹp của bạn sẽ sớm xuất hiện trên trang chủ!</div>
+            <div style={{ color: G, fontSize: 18, fontWeight: 700, fontFamily: "system-ui,sans-serif", marginBottom: 8 }}>{isEditing ? "Đã cập nhật đánh giá! 💛" : "Cảm ơn bạn! 💛"}</div>
+            <div style={{ color: MUT, fontSize: 13, fontFamily: "system-ui,sans-serif", lineHeight: 1.7, marginBottom: 24 }}>Đánh giá đang chờ admin duyệt.<br />Ảnh đẹp của bạn sẽ sớm xuất hiện trên trang chủ!</div>
             <button onClick={onClose} style={{ padding: "11px 36px", background: G, color: "#000", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>Đóng</button>
           </div>
         ) : (
           <>
             <div style={{ margin: "20px 0 24px" }}>
-              <div style={{ fontSize: 15, color: TXT, fontWeight: 700, fontFamily: "system-ui,sans-serif", marginBottom: 4 }}>⭐ Đánh giá đơn thuê</div>
+              <div style={{ fontSize: 15, color: TXT, fontWeight: 700, fontFamily: "system-ui,sans-serif", marginBottom: 4 }}>
+                {isEditing ? "✏️ Chỉnh sửa đánh giá" : "⭐ Đánh giá đơn thuê"}
+              </div>
               <div style={{ fontSize: 11, color: MUT, fontFamily: "system-ui,sans-serif", lineHeight: 1.6 }}>
                 <span style={{ color: G }}>📷 {order?.cameraName}</span> · Mã đơn: <span style={{ color: "#777" }}>{order?.id}</span>
               </div>
@@ -719,9 +770,11 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
 
             <button onClick={handleSubmit}
               style={{ width: "100%", padding: 14, background: G, color: "#000", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif", boxShadow: `0 0 24px ${G}44` }}>
-              🌟 Gửi đánh giá
+              {isEditing ? "✏️ Cập nhật đánh giá" : "🌟 Gửi đánh giá"}
             </button>
-            <div style={{ color: "#333", fontSize: 11, textAlign: "center", marginTop: 10, fontFamily: "system-ui,sans-serif" }}>Ảnh & nhận xét sẽ chờ admin duyệt trước khi công khai</div>
+            <div style={{ color: "#333", fontSize: 11, textAlign: "center", marginTop: 10, fontFamily: "system-ui,sans-serif" }}>
+              {isEditing ? "⚠️ Cập nhật sẽ gửi lại để admin duyệt" : "Ảnh & nhận xét sẽ chờ admin duyệt trước khi công khai"}
+            </div>
           </>
         )}
       </div>
@@ -909,7 +962,8 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, feedbacks, setFeedbac
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {filteredOrders.map(o => {
                   const hasFeedback = feedbacks.some(f => f.orderId === o.id && f.phone === loggedUser?.phone);
-                  const canFeedback = o.status === "completed" && !hasFeedback;
+                  const fbStatus = feedbacks.find(f => f.orderId === o.id && f.phone === loggedUser?.phone)?.status;
+                  const canFeedback = o.status === "completed"; // Luôn cho phép đánh giá đơn hoàn thành
                   return (
                     <div key={o.id} style={{ background: CARD, border: `1px solid ${o.status === "active" ? "#f59e0b33" : o.status === "completed" ? "#22c55e22" : BR}`, borderRadius: 12, padding: "16px 20px" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
@@ -932,16 +986,27 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, feedbacks, setFeedbac
                         </div>
                       )}
                       {/* Feedback actions */}
-                      <div style={{ borderTop: `1px solid ${BR}`, paddingTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        {canFeedback && (
+                      <div style={{ borderTop: `1px solid ${BR}`, paddingTop: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                        {canFeedback && !hasFeedback && (
                           <button onClick={() => setFbOrder(o)}
                             style={{ padding: "8px 20px", background: G, color: "#000", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 700, fontSize: 12, fontFamily: "system-ui,sans-serif", boxShadow: `0 0 16px ${G}33` }}>
                             ⭐ Đánh giá
                           </button>
                         )}
-                        {hasFeedback && (
+                        {hasFeedback && fbStatus === "pending" && (
+                          <button onClick={() => setFbOrder(o)}
+                            style={{ padding: "8px 20px", background: "#1a1000", color: G, border: `1px solid ${G}55`, borderRadius: 6, cursor: "pointer", fontWeight: 700, fontSize: 12, fontFamily: "system-ui,sans-serif" }}>
+                            ✏️ Sửa đánh giá
+                          </button>
+                        )}
+                        {hasFeedback && fbStatus === "approved" && (
                           <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 14px", background: "#22c55e15", color: "#22c55e", border: "1px solid #22c55e33", borderRadius: 6, fontSize: 11, fontWeight: 600, fontFamily: "system-ui,sans-serif" }}>
-                            ✓ Đã đánh giá
+                            🌟 Đã được duyệt
+                          </span>
+                        )}
+                        {hasFeedback && fbStatus === "rejected" && (
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 14px", background: "#ef444415", color: "#ef4444", border: "1px solid #ef444433", borderRadius: 6, fontSize: 11, fontWeight: 600, fontFamily: "system-ui,sans-serif" }}>
+                            ✕ Bị từ chối
                           </span>
                         )}
                         {o.status === "pending" && (
@@ -970,7 +1035,16 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, feedbacks, setFeedbac
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {myFeedbacks.map(f => (
+                {myFeedbacks.map(f => {
+                  const canDeleteImg = f.status === "pending"; // Chỉ xoá ảnh khi chưa admin duyệt
+                  const handleDeleteImg = (imgIdx) => {
+                    setFeedbacks(prev => prev.map(fb =>
+                      fb.id === f.id
+                        ? { ...fb, images: fb.images.filter((_, i) => i !== imgIdx), seen: false }
+                        : fb
+                    ));
+                  };
+                  return (
                   <div key={f.id} style={{ background: CARD, border: `1px solid ${f.status === "approved" ? "#22c55e33" : f.status === "rejected" ? "#ef444433" : BR}`, borderRadius: 12, padding: "18px 20px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                       <div>
@@ -987,18 +1061,40 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, feedbacks, setFeedbac
                       </span>
                     </div>
                     {f.text && <div style={{ color: TXT, fontSize: 13, lineHeight: 1.6, marginBottom: 12, fontStyle: "italic" }}>"{f.text}"</div>}
+                    {/* ── ẢNH: xem và xoá (chỉ khi chưa duyệt) ── */}
                     {f.images?.length > 0 && (
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        {f.images.map((img, i) => (
-                          <img key={i} src={img} alt="" style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8, border: `1px solid ${BR}` }} loading="lazy" />
-                        ))}
+                      <div style={{ marginBottom: 10 }}>
+                        <div style={{ fontSize: 10, color: MUT, letterSpacing: 1, marginBottom: 8, fontFamily: "system-ui,sans-serif" }}>
+                          ẢNH ĐÃ TẢI LÊN ({f.images.length}) {canDeleteImg && <span style={{ color: "#ef444488" }}>· Nhấn ✕ để xoá</span>}
+                        </div>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          {f.images.map((img, i) => (
+                            <div key={i} style={{ position: "relative" }}>
+                              <img src={img} alt="" style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 8, border: `1px solid ${BR}`, display: "block" }} loading="lazy" />
+                              {canDeleteImg && (
+                                <button
+                                  onClick={() => handleDeleteImg(i)}
+                                  title="Xoá ảnh này"
+                                  style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: "50%", background: "#ef4444", color: "#fff", border: "2px solid #060606", cursor: "pointer", fontSize: 9, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, lineHeight: 1, padding: 0 }}>
+                                  ✕
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                     {f.status === "approved" && !f.hidden && (
                       <div style={{ marginTop: 10, fontSize: 10, color: "#22c55e66", fontFamily: "system-ui,sans-serif" }}>✨ Đang hiển thị trên trang chủ</div>
                     )}
+                    {canDeleteImg && (
+                      <div style={{ marginTop: 10, fontSize: 10, color: MUT, fontFamily: "system-ui,sans-serif" }}>
+                        ✏️ Chờ admin duyệt · <button onClick={() => { const o = myOrders.find(ord => ord.id === f.orderId); if (o) setFbOrder(o); }} style={{ background: "none", border: "none", color: G, cursor: "pointer", fontSize: 10, fontFamily: "system-ui,sans-serif", padding: 0, fontWeight: 700, textDecoration: "underline" }}>Sửa đánh giá</button>
+                      </div>
+                    )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1504,7 +1600,7 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
       </div>
 
       {/* CUSTOMER PHOTO FEED */}
-      <FeedbackMarquee photos={photos || []} feedbacks={feedbacks || []} />
+      <FeedbackMarquee photos={photos || []} feedbacks={feedbacks || []} isMobile={isMobile} />
 
       {/* CAMERAS */}
       <div id="cameras" style={{ padding: isMobile ? "72px 16px 56px" : "110px 60px 80px", maxWidth: 1280, margin: "0 auto" }}>
