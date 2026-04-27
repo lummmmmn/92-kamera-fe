@@ -15,6 +15,8 @@ const CARD2 = "#0d0d0d", BR2 = "#1a1a1a";
 
 // ── GOOGLE OAUTH ──
 const GOOGLE_CLIENT_ID = "338403275162-fa55lm8g53eu1h6ursqpd714ce1qre8m.apps.googleusercontent.com";
+// Flag: chỉ gọi google.accounts.id.initialize 1 lần mỗi phiên để tránh loop
+let _gsiInitialized = false;
 function decodeGoogleJWT(token) {
   try {
     const payload = token.split(".")[1];
@@ -680,7 +682,6 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
 
   const [rating, setRating] = useState(existingFb?.rating || 5);
   const [text, setText] = useState(existingFb?.text || "");
-  const [images, setImages] = useState(existingFb?.images || []);
   const [done, setDone] = useState(false);
   const [hovStar, setHovStar] = useState(0);
 
@@ -692,7 +693,7 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
       // CẬP NHẬT feedback cũ (status → pending lại để admin duyệt lại)
       setFeedbacks(prev => prev.map(f =>
         f.id === existingFb.id
-          ? { ...f, rating, text, images, date: todayStr(), status: "pending", hidden: false, seen: false }
+          ? { ...f, rating, text, date: todayStr(), status: "pending", hidden: false, seen: false }
           : f
       ));
     } else {
@@ -703,7 +704,7 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
         cameraName: order.cameraName,
         rating,
         text,
-        images,
+        images: [],
         userName: loggedUser.displayName || loggedUser.name,
         phone: loggedUser.phone || "",
         email: loggedUser.email || "",
@@ -743,7 +744,7 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
           <div style={{ textAlign: "center", padding: "28px 0" }}>
             <div style={{ fontSize: 52, marginBottom: 14 }}>🌟</div>
             <div style={{ color: G, fontSize: 18, fontWeight: 700, fontFamily: "system-ui,sans-serif", marginBottom: 8 }}>{isEditing ? "Đã cập nhật đánh giá! 💛" : "Cảm ơn bạn! 💛"}</div>
-            <div style={{ color: MUT, fontSize: 13, fontFamily: "system-ui,sans-serif", lineHeight: 1.7, marginBottom: 24 }}>Đánh giá đang chờ admin duyệt.<br />Ảnh đẹp của bạn sẽ sớm xuất hiện trên trang chủ!</div>
+            <div style={{ color: MUT, fontSize: 13, fontFamily: "system-ui,sans-serif", lineHeight: 1.7, marginBottom: 24 }}>Đánh giá đang chờ admin duyệt.<br />Cảm ơn bạn đã chia sẻ trải nghiệm! 💛</div>
             <button onClick={onClose} style={{ padding: "11px 36px", background: G, color: "#000", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>Đóng</button>
           </div>
         ) : (
@@ -774,13 +775,6 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
               <div style={{ fontSize: 10, color: MUT, letterSpacing: 1, marginBottom: 6, fontFamily: "system-ui,sans-serif" }}>NHẬN XÉT CỦA BẠN</div>
               <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Bạn cảm thấy thế nào? Máy có như kỳ vọng không? Dịch vụ ra sao?..."
                 style={{ ...inpS, resize: "vertical", minHeight: 90, lineHeight: 1.6 }} />
-            </div>
-
-            {/* Photo upload */}
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ fontSize: 10, color: MUT, letterSpacing: 1, marginBottom: 6, fontFamily: "system-ui,sans-serif" }}>ẢNH CHỤP BẰNG MÁY ĐÃ THUÊ (tùy chọn — tối đa 6 ảnh)</div>
-              <div style={{ fontSize: 10, color: "#444", marginBottom: 10, fontFamily: "system-ui,sans-serif" }}>Ảnh đẹp sẽ hiện trên trang chủ nếu được duyệt 📸</div>
-              <ImageUploader images={images} onChange={setImages} max={6} />
             </div>
 
             <button onClick={handleSubmit}
@@ -1868,39 +1862,47 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
   useEffect(() => {
     if (!gsiReady || loggedUser || !googleBtnRef.current) return;
     try {
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: (res) => {
-          const info = decodeGoogleJWT(res.credential);
-          if (!info) { setGsiErr(true); return; }
-          // ── Dùng ref để tránh stale closure ──
-          const currentMap = usersMapRef.current || {};
-          const savedProfile = currentMap[info.email] || {};
-          const user = {
-            name: info.name,
-            displayName: savedProfile.displayName || info.name,
-            email: info.email,
-            picture: info.picture,
-            googleId: info.googleId,
-            avatar: savedProfile.avatar || null,
-            phone: savedProfile.phone || "",
-            zalo: savedProfile.zalo || "",
-            address: savedProfile.address || "",
-          };
-          setLoggedUser(user);
-          // ── Functional update: merge vào state hiện tại, không overwrite users khác ──
-          if (setUsersMap) {
-            setUsersMap(prev => {
-              const latest = prev || {};
-              const existing = latest[info.email] || {};
-              const updated = { ...latest, [info.email]: { ...existing, name: info.name, picture: info.picture, googleId: info.googleId, joinDate: existing.joinDate || todayStr() } };
-              storageSet("k92_users_v1", updated);
-              return updated;
-            });
-          }
-        },
-        use_fedcm_for_prompt: false,
-      });
+      // ── Chỉ initialize 1 lần — tránh One Tap loop trên desktop Chrome ──
+      if (!_gsiInitialized) {
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: (res) => {
+            const info = decodeGoogleJWT(res.credential);
+            if (!info) { setGsiErr(true); return; }
+            // Ngăn One Tap tự bật lại sau khi đã đăng nhập
+            try { window.google.accounts.id.disableAutoSelect(); } catch {}
+            // ── Dùng ref để tránh stale closure ──
+            const currentMap = usersMapRef.current || {};
+            const savedProfile = currentMap[info.email] || {};
+            const user = {
+              name: info.name,
+              displayName: savedProfile.displayName || info.name,
+              email: info.email,
+              picture: info.picture,
+              googleId: info.googleId,
+              avatar: savedProfile.avatar || null,
+              phone: savedProfile.phone || "",
+              zalo: savedProfile.zalo || "",
+              address: savedProfile.address || "",
+            };
+            setLoggedUser(user);
+            // ── Functional update: merge vào state hiện tại, không overwrite users khác ──
+            if (setUsersMap) {
+              setUsersMap(prev => {
+                const latest = prev || {};
+                const existing = latest[info.email] || {};
+                const updated = { ...latest, [info.email]: { ...existing, name: info.name, picture: info.picture, googleId: info.googleId, joinDate: existing.joinDate || todayStr() } };
+                storageSet("k92_users_v1", updated);
+                return updated;
+              });
+            }
+          },
+          use_fedcm_for_prompt: false,
+          auto_select: false,           // ← tắt tự đăng nhập, ngăn vòng lặp
+          cancel_on_tap_outside: true,  // ← đóng popup khi click ra ngoài
+        });
+        _gsiInitialized = true;
+      }
       window.google.accounts.id.renderButton(googleBtnRef.current, {
         theme: "filled_black",
         size: "large",
@@ -2093,7 +2095,6 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
 // ── ADMIN DASHBOARD ──
 function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orders, setOrders, siteContent, setSiteContent, photos, setPhotos, feedbacks, setFeedbacks, users, setUsers, onBack, isMobile }) {
   const [tab, setTab] = useState("overview");
-  const [mediaSubTab, setMediaSubTab] = useState("photos");
   const [editCam, setEditCam] = useState(null);
   const [addCamOpen, setAddCamOpen] = useState(false);
   const [nc, setNc] = useState({ name: "", price: "", desc: "", qty: 1, status: "available", icon: "📷", images: [] });
@@ -2176,12 +2177,15 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
         });
       }
       if (key === STORE_KEYS.feedbacks) {
+        let count = 0;
         setFeedbacks(prev => {
           const prevIds = new Set(prev.map(f => f.id));
           const newOnes = data.filter(f => !prevIds.has(f.id));
+          count = newOnes.length;
           if (newOnes.length === 0) return prev;
           return [...newOnes.map(f => ({ ...f, seen: false })), ...prev];
         });
+        return count;
       }
       return 0;
     };
@@ -2220,6 +2224,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
           const parsed = JSON.parse(rec.value);
           const newCount = mergeData(rec.key, parsed);
           if (rec.key === STORE_KEYS.orders && newCount > 0) playNotif();
+          if (rec.key === STORE_KEYS.feedbacks && newCount > 0) playNotif();
         } catch {}
       };
 
@@ -2235,7 +2240,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
 
     connect();
 
-    // Fallback poll 30s — đề phòng WebSocket miss event
+    // Fallback poll 5s — đề phòng WebSocket miss event (nhanh ngang mobile)
     const poll = setInterval(async () => {
       const [ords, phs, fbs] = await Promise.all([
         storageGet(STORE_KEYS.orders),
@@ -2245,8 +2250,9 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
       const newCount = mergeData(STORE_KEYS.orders, ords);
       if (newCount > 0) playNotif();
       mergeData(STORE_KEYS.photos, phs);
-      mergeData(STORE_KEYS.feedbacks, fbs);
-    }, 30000);
+      const newFbCount = mergeData(STORE_KEYS.feedbacks, fbs);
+      if (newFbCount > 0) playNotif();
+    }, 5000);
 
     return () => {
       dead = true;
@@ -2312,7 +2318,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
     { k: "cameras", l: "📷 Máy ảnh" },
     { k: "accessories", l: "🎒 Phụ kiện" },
     { k: "orders", l: "📋 Đơn thuê", badge: unseenCount },
-    { k: "media", l: "📸 Ảnh & Feedback", badge: unseenPhotosCount + unseenFeedbackCount },
+    { k: "media", l: "⭐ Feedback", badge: unseenFeedbackCount },
     { k: "users", l: "👥 Khách hàng" },
     { k: "inventory", l: "📦 Tồn kho" },
     { k: "content", l: "✏️ Nội dung web" },
@@ -2689,107 +2695,12 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
           </div>
         )}
 
-        {/* PHOTOS & REVIEWS */}
+        {/* FEEDBACK — chỉ còn mục feedback, đã bỏ ảnh khách */}
         {tab === "media" && (
           <div>
-            {/* Sub-tab selector */}
-            <div style={{ display: "flex", gap: 0, marginBottom: 24, background: "#111", borderRadius: 8, padding: 3 }}>
-              {[["photos", "📸 Ảnh khách"], ["feedbacks", "⭐ Feedback đơn thuê"]].map(([k, l]) => (
-                <button key={k} onClick={() => setMediaSubTab(k)}
-                  style={{ flex: 1, padding: "9px 0", background: mediaSubTab === k ? "#1a1a1a" : "none", border: "none", color: mediaSubTab === k ? TXT : MUT, borderRadius: 6, cursor: "pointer", fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: mediaSubTab === k ? 700 : 400 }}>
-                  {l}
-                  {k === "photos" && unseenPhotosCount > 0 && <span style={{ marginLeft: 6, background: "#ef4444", color: "#fff", borderRadius: 99, padding: "1px 7px", fontSize: 9 }}>{unseenPhotosCount}</span>}
-                  {k === "feedbacks" && unseenFeedbackCount > 0 && <span style={{ marginLeft: 6, background: "#ef4444", color: "#fff", borderRadius: 99, padding: "1px 7px", fontSize: 9 }}>{unseenFeedbackCount}</span>}
-                </button>
-              ))}
-            </div>
-
-            {/* ── Ảnh khách ── */}
-            {mediaSubTab === "photos" && (() => {
-              const pending = (photos || []).filter(p => p.status === "pending").sort((a, b) => new Date(b.date) - new Date(a.date));
-              const approved = (photos || []).filter(p => p.status === "approved").sort((a, b) => new Date(b.date) - new Date(a.date));
-              const rejected = (photos || []).filter(p => p.status === "rejected").sort((a, b) => new Date(b.date) - new Date(a.date));
-              const approvePhoto = (id) => setPhotos(prev => prev.map(p => p.id === id ? { ...p, status: "approved", seen: true } : p));
-              const rejectPhoto = (id) => setPhotos(prev => prev.map(p => p.id === id ? { ...p, status: "rejected", seen: true } : p));
-              const deletePhoto = (id) => setPhotos(prev => prev.filter(p => p.id !== id));
-              const PhotoCard = ({ p, actions }) => (
-                <div style={{ background: CARD, border: `1px solid ${BR}`, borderRadius: 12, overflow: "hidden" }}>
-                  <img src={p.url} alt="" style={{ width: "100%", height: 180, objectFit: "cover" }} loading="lazy" />
-                  <div style={{ padding: "14px 16px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-                      <div>
-                        <div style={{ color: TXT, fontWeight: 600, fontSize: 13 }}>{p.userName}</div>
-                        <div style={{ color: MUT, fontSize: 11, marginTop: 1 }}>📞 {p.phone}</div>
-                      </div>
-                      <div style={{ color: G, fontSize: 13 }}>{"★".repeat(p.rating || 5)}</div>
-                    </div>
-                    {p.cameraUsed && <div style={{ color: MUT, fontSize: 11, marginBottom: 5 }}>📷 {p.cameraUsed}</div>}
-                    {p.caption && <div style={{ color: TXT, fontSize: 12, lineHeight: 1.6, marginBottom: 10, background: "#111", padding: "8px 10px", borderRadius: 6, fontStyle: "italic" }}>"{p.caption}"</div>}
-                    <div style={{ color: "#2a2a2a", fontSize: 10, marginBottom: 10 }}>{p.date}</div>
-                    {actions}
-                  </div>
-                </div>
-              );
-              return (
-                <>
-                  <STitle c={`Ảnh khách (${(photos||[]).length})`} />
-                  <div style={{ marginBottom: 32 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                      <div style={{ color: TXT, fontWeight: 700, fontSize: 14 }}>⏳ Chờ duyệt</div>
-                      {pending.length > 0 && <span style={{ background: "#ef444422", color: "#ef4444", border: "1px solid #ef444444", borderRadius: 99, padding: "2px 10px", fontSize: 11 }}>{pending.length}</span>}
-                    </div>
-                    {pending.length === 0 ? <div style={{ color: MUT, fontSize: 13, padding: "20px 0", textAlign: "center" }}>Không có ảnh chờ duyệt</div> : (
-                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: 16 }}>
-                        {pending.map(p => (
-                          <PhotoCard key={p.id} p={p} actions={
-                            <div style={{ display: "flex", gap: 8 }}>
-                              <button onClick={() => approvePhoto(p.id)} style={{ flex: 1, padding: "8px 0", background: "#052210", border: "1px solid #22c55e44", color: "#22c55e", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>✓ Duyệt</button>
-                              <button onClick={() => rejectPhoto(p.id)} style={{ flex: 1, padding: "8px 0", background: "#160505", border: "1px solid #ef444433", color: "#ef4444", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>✕ Từ chối</button>
-                            </div>
-                          } />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ marginBottom: 32 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                      <div style={{ color: TXT, fontWeight: 700, fontSize: 14 }}>✅ Đã duyệt — hiển thị trang chủ</div>
-                      {approved.length > 0 && <span style={{ background: "#22c55e22", color: "#22c55e", border: "1px solid #22c55e44", borderRadius: 99, padding: "2px 10px", fontSize: 11 }}>{approved.length}</span>}
-                    </div>
-                    {approved.length === 0 ? <div style={{ color: MUT, fontSize: 13, padding: "20px 0", textAlign: "center" }}>Chưa có ảnh nào được duyệt</div> : (
-                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: 16 }}>
-                        {approved.map(p => (
-                          <PhotoCard key={p.id} p={p} actions={
-                            <div style={{ display: "flex", gap: 8 }}>
-                              <button onClick={() => rejectPhoto(p.id)} style={{ flex: 1, padding: "7px 0", background: "#160505", border: "1px solid #ef444433", color: "#ef4444", borderRadius: 6, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>Gỡ khỏi trang</button>
-                              <button onClick={() => deletePhoto(p.id)} style={{ padding: "7px 12px", background: "none", border: `1px solid ${BR}`, color: MUT, borderRadius: 6, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>Xoá</button>
-                            </div>
-                          } />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {rejected.length > 0 && (
-                    <div>
-                      <div style={{ color: MUT, fontWeight: 700, fontSize: 13, marginBottom: 12 }}>✕ Đã từ chối ({rejected.length})</div>
-                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: 16 }}>
-                        {rejected.map(p => (
-                          <PhotoCard key={p.id} p={p} actions={
-                            <div style={{ display: "flex", gap: 8 }}>
-                              <button onClick={() => approvePhoto(p.id)} style={{ flex: 1, padding: "7px 0", background: "#052210", border: "1px solid #22c55e44", color: "#22c55e", borderRadius: 6, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>Duyệt lại</button>
-                              <button onClick={() => deletePhoto(p.id)} style={{ padding: "7px 12px", background: "none", border: `1px solid ${BR}`, color: MUT, borderRadius: 6, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>Xoá</button>
-                            </div>
-                          } />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              );
-            })()}
 
             {/* ── Feedback đơn thuê ── */}
-            {mediaSubTab === "feedbacks" && (() => {
+            {(() => {
               const fb = feedbacks || [];
               const pending = fb.filter(f => f.status === "pending");
               const approved = fb.filter(f => f.status === "approved");
