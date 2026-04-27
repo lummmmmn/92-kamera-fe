@@ -2133,46 +2133,126 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   // Track new unseen orders
   const unseenCount = orders.filter(o => !o.seen).length;
 
-  // Poll storage every 8s — sync orders, photos, feedbacks across browser tabs
+  // ── REALTIME SYNC — Supabase WebSocket (instant) + fallback poll 30s ──
   useEffect(() => {
+    // Âm thanh thông báo đơn mới
+    const playNotif = () => {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        [[880,0,0.01,0.18],[1100,0.15,0.01,0.22],[1320,0.32,0.01,0.28]].forEach(([freq,delay,atk,rel]) => {
+          const osc = ctx.createOscillator(), g = ctx.createGain();
+          osc.connect(g); g.connect(ctx.destination);
+          osc.type = "sine"; osc.frequency.value = freq;
+          g.gain.setValueAtTime(0, ctx.currentTime + delay);
+          g.gain.linearRampToValueAtTime(0.22, ctx.currentTime + delay + atk);
+          g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + atk + rel);
+          osc.start(ctx.currentTime + delay);
+          osc.stop(ctx.currentTime + delay + atk + rel + 0.05);
+        });
+      } catch {}
+    };
+
+    // Merge data vào state, trả về số item mới
+    const mergeData = (key, data) => {
+      if (!data) return 0;
+      if (key === STORE_KEYS.orders) {
+        let count = 0;
+        setOrders(prev => {
+          const prevIds = new Set(prev.map(o => o.id));
+          const newOnes = data.filter(o => !prevIds.has(o.id));
+          count = newOnes.length;
+          if (count === 0) return prev;
+          setNewOrderIds(ids => new Set([...ids, ...newOnes.map(o => o.id)]));
+          return [...newOnes.map(o => ({ ...o, seen: false })), ...prev];
+        });
+        return count;
+      }
+      if (key === STORE_KEYS.photos) {
+        setPhotos(prev => {
+          const prevIds = new Set(prev.map(p => p.id));
+          const newOnes = data.filter(p => !prevIds.has(p.id));
+          if (newOnes.length === 0) return prev;
+          return [...newOnes.map(p => ({ ...p, seen: false })), ...prev];
+        });
+      }
+      if (key === STORE_KEYS.feedbacks) {
+        setFeedbacks(prev => {
+          const prevIds = new Set(prev.map(f => f.id));
+          const newOnes = data.filter(f => !prevIds.has(f.id));
+          if (newOnes.length === 0) return prev;
+          return [...newOnes.map(f => ({ ...f, seen: false })), ...prev];
+        });
+      }
+      return 0;
+    };
+
+    // ── Supabase Realtime WebSocket ──
+    const WS_URL = SB_URL.replace("https://", "wss://") + "/realtime/v1/websocket?apikey=" + SB_KEY + "&vsn=1.0.0";
+    let ws, hb, retryT, dead = false, retryDelay = 2000;
+
+    const connect = () => {
+      if (dead) return;
+      try { ws = new WebSocket(WS_URL); } catch { return; }
+
+      ws.onopen = () => {
+        retryDelay = 2000;
+        ws.send(JSON.stringify({
+          topic: "realtime:public:kv_store",
+          event: "phx_join",
+          payload: {
+            access_token: SB_KEY,
+            config: { postgres_changes: [{ event: "*", schema: "public", table: "kv_store" }] }
+          },
+          ref: "1",
+          join_ref: "1"
+        }));
+        hb = setInterval(() => {
+          if (ws.readyState === 1) ws.send(JSON.stringify({ topic: "phoenix", event: "heartbeat", payload: {}, ref: null }));
+        }, 25000);
+      };
+
+      ws.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg.event !== "postgres_changes") return;
+          const rec = msg.payload?.data?.record;
+          if (!rec?.key || !rec?.value) return;
+          const parsed = JSON.parse(rec.value);
+          const newCount = mergeData(rec.key, parsed);
+          if (rec.key === STORE_KEYS.orders && newCount > 0) playNotif();
+        } catch {}
+      };
+
+      ws.onclose = () => {
+        clearInterval(hb);
+        if (!dead) {
+          retryT = setTimeout(connect, retryDelay);
+          retryDelay = Math.min(retryDelay * 1.5, 30000);
+        }
+      };
+      ws.onerror = () => ws.close();
+    };
+
+    connect();
+
+    // Fallback poll 30s — đề phòng WebSocket miss event
     const poll = setInterval(async () => {
       const [ords, phs, fbs] = await Promise.all([
         storageGet(STORE_KEYS.orders),
         storageGet(STORE_KEYS.photos),
         storageGet(STORE_KEYS.feedbacks),
       ]);
+      const newCount = mergeData(STORE_KEYS.orders, ords);
+      if (newCount > 0) playNotif();
+      mergeData(STORE_KEYS.photos, phs);
+      mergeData(STORE_KEYS.feedbacks, fbs);
+    }, 30000);
 
-      // Orders: merge new ones (not yet in this tab's state)
-      if (ords) {
-        setOrders(prev => {
-          const prevIds = new Set(prev.map(o => o.id));
-          const newOnes = ords.filter(o => !prevIds.has(o.id));
-          if (newOnes.length === 0) return prev;
-          return [...newOnes.map(o => ({ ...o, seen: false })), ...prev];
-        });
-      }
-
-      // Photos: merge new uploads from customer tab
-      if (phs) {
-        setPhotos(prev => {
-          const prevIds = new Set(prev.map(p => p.id));
-          const newOnes = phs.filter(p => !prevIds.has(p.id));
-          if (newOnes.length === 0) return prev;
-          return [...newOnes.map(p => ({ ...p, seen: false })), ...prev];
-        });
-      }
-
-      // Feedbacks: merge new submissions from customer tab
-      if (fbs) {
-        setFeedbacks(prev => {
-          const prevIds = new Set(prev.map(f => f.id));
-          const newOnes = fbs.filter(f => !prevIds.has(f.id));
-          if (newOnes.length === 0) return prev;
-          return [...newOnes.map(f => ({ ...f, seen: false })), ...prev];
-        });
-      }
-    }, 8000);
-    return () => clearInterval(poll);
+    return () => {
+      dead = true;
+      clearInterval(hb); clearInterval(poll); clearTimeout(retryT);
+      if (ws) ws.close();
+    };
   }, [setOrders, setPhotos, setFeedbacks]);
 
   // Mark orders as seen when entering orders tab
@@ -2262,6 +2342,8 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
         select option{background:#111;color:#f0e8d0}
         input[type=date]{color-scheme:dark}
         @keyframes pulseIn{0%{transform:scale(0.7);opacity:0}100%{transform:scale(1);opacity:1}}
+        @keyframes newOrderIn{0%{background:#c9a84c18;box-shadow:0 0 0 2px #c9a84c88}60%{background:#c9a84c08;box-shadow:0 0 0 1px #c9a84c33}100%{background:transparent;box-shadow:none}}
+        .new-order-flash{animation:newOrderIn 2.8s ease forwards}
       `}</style>
 
       {/* ADMIN HEADER */}
@@ -2561,7 +2643,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {filteredOrders.length === 0 && <div style={{ color: MUT, textAlign: "center", padding: 40, fontSize: 14 }}>Không tìm thấy đơn nào</div>}
               {filteredOrders.map(o => (
-                <div key={o.id} style={{ background: CARD2, border: `1px solid ${!o.seen ? "#60a5fa33" : BR2}`, borderRadius: 10, overflow: "hidden" }}>
+                <div key={o.id} className={newOrderIds.has(o.id) ? "new-order-flash" : ""} style={{ background: CARD2, border: `1px solid ${!o.seen ? "#60a5fa33" : BR2}`, borderRadius: 10, overflow: "hidden" }}>
                   {/* Order header */}
                   <div onClick={() => setExpandedOrder(expandedOrder === o.id ? null : o.id)}
                     style={{ padding: "14px 18px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
@@ -3106,26 +3188,22 @@ async function storageGet(key) {
   } catch { return null; }
 }
 
-// SET lên Supabase + cache localStorage
-async function storageSet(key, val) {
+// SET — ghi localStorage TRƯỚC (sync), Supabase chạy ngầm không block
+function storageSet(key, val) {
   const value = JSON.stringify(val);
-  // Upsert lên Supabase
-  try {
-    await fetch(`${SB_URL}/rest/v1/${SB_TABLE}`, {
-      method: "POST",
-      headers: SB_HEADERS,
-      body: JSON.stringify({ key, value, updated_at: new Date().toISOString() })
-    });
-  } catch (e) {
-    console.warn("[92K supabase] set failed:", key, e);
-  }
-  // Cache localStorage
+  // 1. localStorage TRƯỚC — sync, không mất data khi thoát trang mobile
   try { localStorage.setItem(key, value); } catch {}
+  // 2. Supabase background — fire and forget, sync đa thiết bị
+  fetch(`${SB_URL}/rest/v1/${SB_TABLE}`, {
+    method: "POST",
+    headers: SB_HEADERS,
+    body: JSON.stringify({ key, value, updated_at: new Date().toISOString() })
+  }).catch(e => console.warn("[92K supabase] set failed:", key, e));
 }
 
 // Cameras: lưu cả ảnh lên Supabase (text column không giới hạn size)
-async function saveCamerasToStorage(cams) {
-  await storageSet(STORE_KEYS.cameras, cams);
+function saveCamerasToStorage(cams) {
+  storageSet(STORE_KEYS.cameras, cams);
 }
 
 async function loadCamerasFromStorage() {
