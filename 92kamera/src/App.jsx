@@ -3162,7 +3162,23 @@ function AppRoot() {
   const [photos, _setPhotos] = useState([]);
   const [feedbacks, _setFeedbacks] = useState([]);
   const [users, _setUsers] = useState({});
-  const [loggedUser, setLoggedUser] = useState(null);
+
+  // ── loggedUser: load từ localStorage khi mở trang, lưu lại mỗi khi thay đổi ──
+  // Khách sẽ ở trạng thái đăng nhập cho đến khi tự bấm "Đăng xuất" hoặc xoá bộ nhớ
+  const [loggedUser, _setLoggedUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem("k92_session");
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  });
+  const setLoggedUser = useCallback((u) => {
+    _setLoggedUser(u);
+    try {
+      if (u) localStorage.setItem("k92_session", JSON.stringify(u));
+      else localStorage.removeItem("k92_session");
+    } catch {}
+  }, []);
+
   const [loginOpen, setLoginOpen] = useState(false);
 
   // ── Wrapped setters: update state AND persist to storage ──
