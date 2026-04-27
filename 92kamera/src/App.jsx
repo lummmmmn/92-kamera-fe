@@ -682,6 +682,7 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
 
   const [rating, setRating] = useState(existingFb?.rating || 5);
   const [text, setText] = useState(existingFb?.text || "");
+  const [images, setImages] = useState(existingFb?.images || []);
   const [done, setDone] = useState(false);
   const [hovStar, setHovStar] = useState(0);
 
@@ -693,7 +694,7 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
       // CẬP NHẬT feedback cũ (status → pending lại để admin duyệt lại)
       setFeedbacks(prev => prev.map(f =>
         f.id === existingFb.id
-          ? { ...f, rating, text, date: todayStr(), status: "pending", hidden: false, seen: false }
+          ? { ...f, rating, text, images, date: todayStr(), status: "pending", hidden: false, seen: false }
           : f
       ));
     } else {
@@ -704,7 +705,7 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
         cameraName: order.cameraName,
         rating,
         text,
-        images: [],
+        images,
         userName: loggedUser.displayName || loggedUser.name,
         phone: loggedUser.phone || "",
         email: loggedUser.email || "",
@@ -744,7 +745,7 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
           <div style={{ textAlign: "center", padding: "28px 0" }}>
             <div style={{ fontSize: 52, marginBottom: 14 }}>🌟</div>
             <div style={{ color: G, fontSize: 18, fontWeight: 700, fontFamily: "system-ui,sans-serif", marginBottom: 8 }}>{isEditing ? "Đã cập nhật đánh giá! 💛" : "Cảm ơn bạn! 💛"}</div>
-            <div style={{ color: MUT, fontSize: 13, fontFamily: "system-ui,sans-serif", lineHeight: 1.7, marginBottom: 24 }}>Đánh giá đang chờ admin duyệt.<br />Cảm ơn bạn đã chia sẻ trải nghiệm! 💛</div>
+            <div style={{ color: MUT, fontSize: 13, fontFamily: "system-ui,sans-serif", lineHeight: 1.7, marginBottom: 24 }}>Đánh giá đang chờ admin duyệt.<br />Ảnh đẹp của bạn sẽ sớm xuất hiện trên trang chủ!</div>
             <button onClick={onClose} style={{ padding: "11px 36px", background: G, color: "#000", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>Đóng</button>
           </div>
         ) : (
@@ -775,6 +776,13 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
               <div style={{ fontSize: 10, color: MUT, letterSpacing: 1, marginBottom: 6, fontFamily: "system-ui,sans-serif" }}>NHẬN XÉT CỦA BẠN</div>
               <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Bạn cảm thấy thế nào? Máy có như kỳ vọng không? Dịch vụ ra sao?..."
                 style={{ ...inpS, resize: "vertical", minHeight: 90, lineHeight: 1.6 }} />
+            </div>
+
+            {/* Photo upload — ảnh đính kèm feedback */}
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 10, color: MUT, letterSpacing: 1, marginBottom: 6, fontFamily: "system-ui,sans-serif" }}>ẢNH CHỤP BẰNG MÁY ĐÃ THUÊ (tùy chọn — tối đa 6 ảnh)</div>
+              <div style={{ fontSize: 10, color: "#444", marginBottom: 10, fontFamily: "system-ui,sans-serif" }}>Ảnh đẹp sẽ hiện trên trang chủ nếu được duyệt 📸</div>
+              <ImageUploader images={images} onChange={setImages} max={6} />
             </div>
 
             <button onClick={handleSubmit}
