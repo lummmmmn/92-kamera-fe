@@ -595,7 +595,7 @@ function CustomerPhotoUpload({ loggedUser, cameras, setPhotos, onClose }) {
 
   const handleSubmit = () => {
     if (!img) return;
-    const photo = { id: "photo_" + Date.now(), phone: loggedUser.phone || "", email: loggedUser.email || "", userName: loggedUser.name, url: img, caption, rating, cameraUsed, date: todayStr(), status: "pending", seen: false };
+    const photo = { id: "photo_" + Date.now(), phone: loggedUser.phone || "", email: loggedUser.email || "", userName: loggedUser.displayName || loggedUser.name, url: img, caption, rating, cameraUsed, date: todayStr(), status: "pending", seen: false };
     setPhotos(prev => [photo, ...prev]);
     setDone(true);
   };
@@ -700,7 +700,7 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
         rating,
         text,
         images,
-        userName: loggedUser.name,
+        userName: loggedUser.displayName || loggedUser.name,
         phone: loggedUser.phone || "",
         email: loggedUser.email || "",
         date: todayStr(),
@@ -1625,7 +1625,7 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
               <div style={{ width: 26, height: 26, borderRadius: "50%", background: G + "33", border: `1px solid ${G}55`, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}>
                 {loggedUser.avatar ? <img src={loggedUser.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : loggedUser.name?.[0]?.toUpperCase()}
               </div>
-              <span style={{ maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{loggedUser.name}</span>
+              <span style={{ maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{loggedUser.displayName || loggedUser.name}</span>
             </button>
           ) : (
             <button onClick={onOpenLogin} style={{ color: MUT, fontSize: 11, background: "none", border: `1px solid ${BR}`, padding: "7px 16px", borderRadius: 3, cursor: "pointer", letterSpacing: 2, transition: "all .2s", fontFamily: "system-ui,sans-serif" }}>ĐĂNG NHẬP</button>
@@ -1965,7 +1965,7 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
                       ? <img src={loggedUser.avatar || loggedUser.picture} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} referrerPolicy="no-referrer" />
                       : <span>{loggedUser.name?.[0]?.toUpperCase() || "👤"}</span>}
                   </div>
-                  <div style={{ color: G, fontWeight: 700, fontSize: 16 }}>{loggedUser.name}</div>
+                  <div style={{ color: G, fontWeight: 700, fontSize: 16 }}>{loggedUser.displayName || loggedUser.name}</div>
                   <div style={{ color: MUT, fontSize: 12, marginTop: 2 }}>✉️ {loggedUser.email}</div>
                 </div>
 
