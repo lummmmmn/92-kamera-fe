@@ -801,6 +801,41 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, feedbacks, setFeedbac
   const avatarRef = useRef();
   const [avatarLoading, setAvatarLoading] = useState(false);
 
+  // ── Settings state ──
+  const [settingsForm, setSettingsForm] = useState({
+    displayName: loggedUser?.displayName || loggedUser?.name || "",
+    phone: loggedUser?.phone || "",
+    zalo: loggedUser?.zalo || "",
+    address: loggedUser?.address || "",
+  });
+  const [settingsSaved, setSettingsSaved] = useState(false);
+
+  const handleSaveSettings = () => {
+    const key = loggedUser.email || loggedUser.phone;
+    const updated = {
+      ...loggedUser,
+      displayName: settingsForm.displayName || loggedUser.name,
+      phone: settingsForm.phone,
+      zalo: settingsForm.zalo,
+      address: settingsForm.address,
+    };
+    setLoggedUser(updated);
+    if (setUsers) {
+      setUsers(prev => ({
+        ...prev,
+        [key]: {
+          ...(prev[key] || {}),
+          displayName: settingsForm.displayName || loggedUser.name,
+          phone: settingsForm.phone,
+          zalo: settingsForm.zalo,
+          address: settingsForm.address,
+        }
+      }));
+    }
+    setSettingsSaved(true);
+    setTimeout(() => setSettingsSaved(false), 2500);
+  };
+
   const normPhone = (p) => (p || "").replace(/[^0-9]/g, "");
   const myPhone = normPhone(loggedUser?.phone);
   const myEmail = (loggedUser?.email || "").toLowerCase();
@@ -867,7 +902,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, feedbacks, setFeedbac
       <div style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(6,6,6,0.97)", backdropFilter: "blur(20px)", borderBottom: `1px solid ${BR}`, padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 24, overflowX: "auto", WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
           <div style={{ marginRight: 8, flexShrink: 0 }}><Logo size={0.65} /></div>
-          {[["dashboard","📊 Dashboard"],["orders","📋 Đơn thuê"],["feedbacks","⭐ Feedback"],["badges","🏅 Huy hiệu"]].map(([k,l]) => (
+          {[["dashboard","📊 Dashboard"],["orders","📋 Đơn thuê"],["feedbacks","⭐ Feedback"],["badges","🏅 Huy hiệu"],["settings","⚙️ Cài đặt"]].map(([k,l]) => (
             <button key={k} onClick={() => setTab(k)} style={tabStyle(k)}>{l}</button>
           ))}
         </div>
@@ -882,7 +917,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, feedbacks, setFeedbac
           <div style={{ position: "relative", flexShrink: 0 }} onClick={() => avatarRef.current?.click()} title="Đổi ảnh đại diện">
             <div style={{ width: 64, height: 64, borderRadius: "50%", background: G + "22", border: `2px solid ${G}55`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, overflow: "hidden", cursor: "pointer", transition: "border-color .2s" }}>
               {(loggedUser?.avatar || loggedUser?.picture)
-                ? <img src={loggedUser.avatar || loggedUser.picture} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ? <img src={loggedUser.avatar || loggedUser.picture} alt="avatar" referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 : <span>{loggedUser?.name?.[0]?.toUpperCase() || "👤"}</span>}
             </div>
             {/* Camera icon overlay */}
@@ -893,7 +928,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, feedbacks, setFeedbac
               onChange={e => { if (e.target.files[0]) handleAvatarChange(e.target.files[0]); e.target.value = ""; }} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: G, fontWeight: 700, fontSize: 17 }}>{loggedUser?.name}</div>
+            <div style={{ color: G, fontWeight: 700, fontSize: 17 }}>{loggedUser?.displayName || loggedUser?.name}</div>
             <div style={{ color: MUT, fontSize: 12, marginTop: 3 }}>{loggedUser?.email ? `✉️ ${loggedUser.email}` : `📞 ${loggedUser?.phone}`}</div>
             <div style={{ color: "#333", fontSize: 10, marginTop: 2, fontFamily: "system-ui,sans-serif" }}>Bấm ảnh đại diện để thay đổi</div>
             {badges.length > 0 && (
@@ -1167,6 +1202,68 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, feedbacks, setFeedbac
         )}
       </div>
 
+        {/* ── SETTINGS TAB ── */}
+        {tab === "settings" && (
+          <div>
+            <div style={{ color: TXT, fontWeight: 700, fontSize: 17, marginBottom: 4 }}>Cài đặt hồ sơ</div>
+            <div style={{ width: 30, height: 2, background: G, marginBottom: 22 }} />
+
+            <div style={{ background: CARD, border: `1px solid ${BR}`, borderRadius: 14, padding: "24px 22px", maxWidth: 520 }}>
+              {/* Avatar section */}
+              <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 18 }}>
+                <div style={{ position: "relative", flexShrink: 0 }} onClick={() => avatarRef.current?.click()} title="Đổi ảnh đại diện">
+                  <div style={{ width: 72, height: 72, borderRadius: "50%", background: G + "22", border: `2px solid ${G}55`, overflow: "hidden", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30 }}>
+                    {(loggedUser?.avatar || loggedUser?.picture)
+                      ? <img src={loggedUser.avatar || loggedUser.picture} alt="avatar" referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      : <span>{loggedUser?.name?.[0]?.toUpperCase() || "👤"}</span>}
+                  </div>
+                  <div style={{ position: "absolute", bottom: 0, right: 0, width: 22, height: 22, borderRadius: "50%", background: G, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, border: "2px solid #060606", cursor: "pointer" }}>
+                    {avatarLoading ? "⏳" : "📷"}
+                  </div>
+                  <input ref={avatarRef} type="file" accept="image/*" style={{ display: "none" }}
+                    onChange={e => { if (e.target.files[0]) handleAvatarChange(e.target.files[0]); e.target.value = ""; }} />
+                </div>
+                <div>
+                  <div style={{ color: TXT, fontWeight: 600, fontSize: 14, marginBottom: 4 }}>Ảnh đại diện</div>
+                  <div style={{ color: MUT, fontSize: 12 }}>Bấm vào ảnh để thay đổi<br />Ảnh được lưu vào hồ sơ của bạn</div>
+                </div>
+              </div>
+
+              {/* Form fields */}
+              {[
+                { key: "displayName", label: "Tên hiển thị", type: "text", placeholder: loggedUser?.name || "Tên của bạn", hint: "Tên này sẽ tự điền khi đặt máy" },
+                { key: "phone", label: "Số điện thoại", type: "tel", placeholder: "0901 234 567", hint: "Tự điền SĐT khi đặt máy" },
+                { key: "zalo", label: "Zalo", type: "tel", placeholder: "Số Zalo (nếu khác SĐT)", hint: "Dùng để xác nhận đơn qua Zalo" },
+                { key: "address", label: "Địa chỉ nhận máy", type: "text", placeholder: "Số nhà, đường, phường...", hint: "Tự điền địa chỉ khi đặt máy" },
+              ].map(({ key, label, type, placeholder, hint }) => (
+                <div key={key} style={{ marginBottom: 16 }}>
+                  <div style={{ color: MUT, fontSize: 10, letterSpacing: 1, marginBottom: 5, fontFamily: "system-ui,sans-serif" }}>{label.toUpperCase()}</div>
+                  <input
+                    type={type}
+                    value={settingsForm[key]}
+                    onChange={e => setSettingsForm(p => ({ ...p, [key]: e.target.value }))}
+                    placeholder={placeholder}
+                    style={{ padding: "10px 13px", background: "#111", border: `1px solid ${BR}`, borderRadius: 8, color: TXT, fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "system-ui,sans-serif" }}
+                  />
+                  <div style={{ color: "#333", fontSize: 10, marginTop: 4, fontFamily: "system-ui,sans-serif" }}>{hint}</div>
+                </div>
+              ))}
+
+              {/* Google info (readonly) */}
+              <div style={{ background: "#0a0a0a", border: `1px solid ${BR}`, borderRadius: 8, padding: "12px 14px", marginBottom: 20 }}>
+                <div style={{ color: MUT, fontSize: 10, letterSpacing: 1, marginBottom: 8 }}>TÀI KHOẢN GOOGLE</div>
+                <div style={{ color: TXT, fontSize: 13 }}>✉️ {loggedUser?.email}</div>
+                <div style={{ color: "#333", fontSize: 11, marginTop: 4 }}>Tên Google: {loggedUser?.name}</div>
+              </div>
+
+              <button onClick={handleSaveSettings}
+                style={{ width: "100%", padding: "12px 0", background: settingsSaved ? "#022" : G, color: settingsSaved ? "#22c55e" : "#000", border: settingsSaved ? "1px solid #22c55e44" : "none", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif", transition: "all .3s" }}>
+                {settingsSaved ? "✓ Đã lưu hồ sơ!" : "💾 Lưu cài đặt"}
+              </button>
+            </div>
+          </div>
+        )}
+
       {/* Feedback Modal */}
       {fbOrder && (
         <FeedbackModal
@@ -1190,7 +1287,7 @@ function BookingModal({ cameras, accessories, siteContent, onClose, onSubmit, lo
   const [pickDate, setPickDate] = useState(todayStr());
   // selAcc: { [accName]: qty }
   const [selAcc, setSelAcc] = useState({});
-  const [info, setInfo] = useState({ name: loggedUser?.name || "", phone: loggedUser?.phone || loggedUser?.email || "", zalo: loggedUser?.phone || "", address: "", note: "" });
+  const [info, setInfo] = useState({ name: loggedUser?.displayName || loggedUser?.name || "", phone: loggedUser?.phone || "", zalo: loggedUser?.zalo || loggedUser?.phone || "", address: loggedUser?.address || "", note: "" });
   const [done, setDone] = useState(false);
   const [orderId, setOrderId] = useState("");
 
@@ -1757,10 +1854,22 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
         callback: (res) => {
           const info = decodeGoogleJWT(res.credential);
           if (!info) { setGsiErr(true); return; }
-          const user = { name: info.name, email: info.email, picture: info.picture, googleId: info.googleId, avatar: null };
+          // Merge với profile đã lưu (nếu có)
+          const savedProfile = (usersMap || {})[info.email] || {};
+          const user = {
+            name: info.name,
+            displayName: savedProfile.displayName || info.name,
+            email: info.email,
+            picture: info.picture,
+            googleId: info.googleId,
+            avatar: savedProfile.avatar || null,
+            phone: savedProfile.phone || "",
+            zalo: savedProfile.zalo || "",
+            address: savedProfile.address || "",
+          };
           setLoggedUser(user);
-          // Lưu vào users storage (key = email)
-          const updated = { ...(usersMap || {}), [info.email]: { name: info.name, picture: info.picture, googleId: info.googleId, joinDate: todayStr() } };
+          // Lưu vào users storage (key = email), giữ lại profile đã chỉnh
+          const updated = { ...(usersMap || {}), [info.email]: { ...savedProfile, name: info.name, picture: info.picture, googleId: info.googleId, joinDate: savedProfile.joinDate || todayStr() } };
           if (setUsersMap) setUsersMap(updated);
           storageSet("k92_users_v1", updated);
         },
