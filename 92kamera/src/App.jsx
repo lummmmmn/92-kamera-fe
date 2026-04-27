@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react";
+import { useState, useEffect, useRef, useCallback, lazy, Suspense, Component } from "react";
 import * as THREE from "three";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from "recharts";
 
@@ -1844,6 +1844,9 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
   const googleBtnRef = useRef();
   const [gsiReady, setGsiReady] = useState(false);
   const [gsiErr, setGsiErr] = useState(false);
+  // ── FIX: ref luôn trỏ đến usersMap mới nhất để callback không bị stale closure ──
+  const usersMapRef = useRef(usersMap);
+  useEffect(() => { usersMapRef.current = usersMap; }, [usersMap]);
 
   // Load Google GSI script
   useEffect(() => {
@@ -1870,8 +1873,9 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
         callback: (res) => {
           const info = decodeGoogleJWT(res.credential);
           if (!info) { setGsiErr(true); return; }
-          // Merge với profile đã lưu (nếu có)
-          const savedProfile = (usersMap || {})[info.email] || {};
+          // ── Dùng ref để tránh stale closure ──
+          const currentMap = usersMapRef.current || {};
+          const savedProfile = currentMap[info.email] || {};
           const user = {
             name: info.name,
             displayName: savedProfile.displayName || info.name,
@@ -1884,10 +1888,16 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
             address: savedProfile.address || "",
           };
           setLoggedUser(user);
-          // Lưu vào users storage (key = email), giữ lại profile đã chỉnh
-          const updated = { ...(usersMap || {}), [info.email]: { ...savedProfile, name: info.name, picture: info.picture, googleId: info.googleId, joinDate: savedProfile.joinDate || todayStr() } };
-          if (setUsersMap) setUsersMap(updated);
-          storageSet("k92_users_v1", updated);
+          // ── Functional update: merge vào state hiện tại, không overwrite users khác ──
+          if (setUsersMap) {
+            setUsersMap(prev => {
+              const latest = prev || {};
+              const existing = latest[info.email] || {};
+              const updated = { ...latest, [info.email]: { ...existing, name: info.name, picture: info.picture, googleId: info.googleId, joinDate: existing.joinDate || todayStr() } };
+              storageSet("k92_users_v1", updated);
+              return updated;
+            });
+          }
         },
         use_fedcm_for_prompt: false,
       });
@@ -3122,8 +3132,33 @@ async function loadCamerasFromStorage() {
   return await storageGet(STORE_KEYS.cameras);
 }
 
+// ── ERROR BOUNDARY — bắt mọi lỗi render, hiện fallback thay vì màn hình trắng ──
+class AppErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { err: null }; }
+  static getDerivedStateFromError(e) { return { err: e }; }
+  componentDidCatch(e, info) { console.error("[92K] Render error:", e, info); }
+  render() {
+    if (!this.state.err) return this.props.children;
+    return (
+      <div style={{ minHeight: "100vh", background: "#060606", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "system-ui,sans-serif", padding: 24 }}>
+        <div style={{ maxWidth: 420, textAlign: "center" }}>
+          <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
+          <div style={{ color: "#c9a84c", fontSize: 18, fontWeight: 700, marginBottom: 8, letterSpacing: 1 }}>92 KA MÊ RA</div>
+          <div style={{ color: "#888", fontSize: 13, marginBottom: 24, lineHeight: 1.7 }}>Đã xảy ra lỗi giao diện.<br />Vui lòng tải lại trang.</div>
+          <div style={{ color: "#333", fontSize: 11, fontFamily: "monospace", background: "#111", border: "1px solid #222", borderRadius: 6, padding: "10px 14px", marginBottom: 20, textAlign: "left", wordBreak: "break-all" }}>
+            {this.state.err?.message || String(this.state.err)}
+          </div>
+          <button onClick={() => window.location.reload()} style={{ padding: "10px 28px", background: "#c9a84c", color: "#000", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
+            🔄 Tải lại trang
+          </button>
+        </div>
+      </div>
+    );
+  }
+}
+
 // ── ROOT ──
-export default function App() {
+function AppRoot() {
   const [page, setPage] = useState("home");
   const [booking, setBooking] = useState(false);
   const [adminAuth, setAdminAuth] = useState(false);
@@ -3397,5 +3432,13 @@ export default function App() {
         />
       )}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AppErrorBoundary>
+      <AppRoot />
+    </AppErrorBoundary>
   );
 }
