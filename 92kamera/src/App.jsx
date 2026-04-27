@@ -13,6 +13,16 @@ const todayStr = () => new Date().toISOString().split("T")[0];
 const G = "#c9a84c", BG = "#060606", CARD = "#0d0d0d", BR = "#1d1d1d", TXT = "#f0e8d0", MUT = "#666", RED = "#cc3333";
 const CARD2 = "#0d0d0d", BR2 = "#1a1a1a";
 
+// ── GOOGLE OAUTH ──
+const GOOGLE_CLIENT_ID = "338403275162-fa55lm8g53eu1h6ursqpd714ce1qre8m.apps.googleusercontent.com";
+function decodeGoogleJWT(token) {
+  try {
+    const payload = token.split(".")[1];
+    const decoded = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+    return { googleId: decoded.sub, email: decoded.email, name: decoded.name, picture: decoded.picture };
+  } catch { return null; }
+}
+
 // ── RESPONSIVE HOOK ──
 function useMobile() {
   const [m, setM] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
@@ -585,7 +595,7 @@ function CustomerPhotoUpload({ loggedUser, cameras, setPhotos, onClose }) {
 
   const handleSubmit = () => {
     if (!img) return;
-    const photo = { id: "photo_" + Date.now(), phone: loggedUser.phone, userName: loggedUser.name, url: img, caption, rating, cameraUsed, date: todayStr(), status: "pending", seen: false };
+    const photo = { id: "photo_" + Date.now(), phone: loggedUser.phone || "", email: loggedUser.email || "", userName: loggedUser.name, url: img, caption, rating, cameraUsed, date: todayStr(), status: "pending", seen: false };
     setPhotos(prev => [photo, ...prev]);
     setDone(true);
   };
@@ -691,7 +701,8 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
         text,
         images,
         userName: loggedUser.name,
-        phone: loggedUser.phone,
+        phone: loggedUser.phone || "",
+        email: loggedUser.email || "",
         date: todayStr(),
         status: "pending",
         hidden: false,
@@ -792,8 +803,17 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, feedbacks, setFeedbac
 
   const normPhone = (p) => (p || "").replace(/[^0-9]/g, "");
   const myPhone = normPhone(loggedUser?.phone);
-  const myOrders = loggedUser ? orders.filter(o => normPhone(o.phone) === myPhone || normPhone(o.userPhone) === myPhone) : [];
-  const myFeedbacks = loggedUser ? feedbacks.filter(f => normPhone(f.phone) === myPhone) : [];
+  const myEmail = (loggedUser?.email || "").toLowerCase();
+  const myOrders = loggedUser ? orders.filter(o => {
+    if (myEmail && (o.userEmail?.toLowerCase() === myEmail)) return true;
+    if (myPhone && (normPhone(o.phone) === myPhone || normPhone(o.userPhone) === myPhone)) return true;
+    return false;
+  }) : [];
+  const myFeedbacks = loggedUser ? feedbacks.filter(f => {
+    if (myEmail && f.email === myEmail) return true;
+    if (myPhone && normPhone(f.phone) === myPhone) return true;
+    return false;
+  }) : [];
   const totalSpent = myOrders.filter(o => o.status !== "cancelled").reduce((s, o) => s + o.total, 0);
   const totalDays = myOrders.filter(o => o.status !== "cancelled").reduce((s, o) => s + (o.days || 0), 0);
   const usedCameras = [...new Set(myOrders.filter(o => o.status !== "cancelled").map(o => o.cameraName))];
@@ -809,9 +829,10 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, feedbacks, setFeedbac
       setLoggedUser(updated);
       // Persist avatar to users map
       if (setUsers) {
+        const key = loggedUser.email || loggedUser.phone;
         setUsers(prev => ({
           ...prev,
-          [loggedUser.phone]: { ...(prev[loggedUser.phone] || {}), avatar: compressed }
+          [key]: { ...(prev[key] || {}), avatar: compressed }
         }));
       }
     } finally {
@@ -860,8 +881,8 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, feedbacks, setFeedbac
           {/* Clickable avatar */}
           <div style={{ position: "relative", flexShrink: 0 }} onClick={() => avatarRef.current?.click()} title="Đổi ảnh đại diện">
             <div style={{ width: 64, height: 64, borderRadius: "50%", background: G + "22", border: `2px solid ${G}55`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, overflow: "hidden", cursor: "pointer", transition: "border-color .2s" }}>
-              {loggedUser?.avatar
-                ? <img src={loggedUser.avatar} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              {(loggedUser?.avatar || loggedUser?.picture)
+                ? <img src={loggedUser.avatar || loggedUser.picture} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 : <span>{loggedUser?.name?.[0]?.toUpperCase() || "👤"}</span>}
             </div>
             {/* Camera icon overlay */}
@@ -873,7 +894,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, feedbacks, setFeedbac
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ color: G, fontWeight: 700, fontSize: 17 }}>{loggedUser?.name}</div>
-            <div style={{ color: MUT, fontSize: 12, marginTop: 3 }}>📞 {loggedUser?.phone}</div>
+            <div style={{ color: MUT, fontSize: 12, marginTop: 3 }}>{loggedUser?.email ? `✉️ ${loggedUser.email}` : `📞 ${loggedUser?.phone}`}</div>
             <div style={{ color: "#333", fontSize: 10, marginTop: 2, fontFamily: "system-ui,sans-serif" }}>Bấm ảnh đại diện để thay đổi</div>
             {badges.length > 0 && (
               <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
@@ -919,9 +940,9 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, feedbacks, setFeedbac
             )}
 
             {/* Quick action */}
-            {completedOrders.filter(o => !feedbacks.some(f => f.orderId === o.id && f.phone === loggedUser?.phone)).length > 0 && (
+            {completedOrders.filter(o => !feedbacks.some(f => f.orderId === o.id && (f.email === loggedUser?.email || f.phone === loggedUser?.phone))).length > 0 && (
               <div style={{ background: "#0a0900", border: `1px solid ${G}44`, borderRadius: 12, padding: "18px 22px", marginBottom: 20 }}>
-                <div style={{ color: G, fontWeight: 700, fontSize: 14, marginBottom: 6 }}>⭐ Bạn có {completedOrders.filter(o => !feedbacks.some(f => f.orderId === o.id && f.phone === loggedUser?.phone)).length} đơn chưa đánh giá!</div>
+                <div style={{ color: G, fontWeight: 700, fontSize: 14, marginBottom: 6 }}>⭐ Bạn có {completedOrders.filter(o => !feedbacks.some(f => f.orderId === o.id && (f.email === loggedUser?.email || f.phone === loggedUser?.phone))).length} đơn chưa đánh giá!</div>
                 <div style={{ color: MUT, fontSize: 12, marginBottom: 14 }}>Chia sẻ trải nghiệm để giúp cộng đồng và nhận huy hiệu Creator.</div>
                 <button onClick={() => setTab("orders")} style={{ padding: "9px 22px", background: G, color: "#000", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 700, fontSize: 12, fontFamily: "system-ui,sans-serif" }}>Đánh giá ngay →</button>
               </div>
@@ -1169,7 +1190,7 @@ function BookingModal({ cameras, accessories, siteContent, onClose, onSubmit, lo
   const [pickDate, setPickDate] = useState(todayStr());
   // selAcc: { [accName]: qty }
   const [selAcc, setSelAcc] = useState({});
-  const [info, setInfo] = useState({ name: loggedUser?.name || "", phone: loggedUser?.phone || "", zalo: loggedUser?.phone || "", address: "", note: "" });
+  const [info, setInfo] = useState({ name: loggedUser?.name || "", phone: loggedUser?.phone || loggedUser?.email || "", zalo: loggedUser?.phone || "", address: "", note: "" });
   const [done, setDone] = useState(false);
   const [orderId, setOrderId] = useState("");
 
@@ -1223,7 +1244,7 @@ function BookingModal({ cameras, accessories, siteContent, onClose, onSubmit, lo
       cameras: selectedCamList.map(c => ({ id: c.id, name: c.name, qty: selCams[c.id], price: c.price })),
       accessories: accNames,
       accessoriesDetail: Object.entries(selAcc).map(([name, qty]) => ({ name, qty })),
-      days, total, ...info, status: "pending", date: pickDate, seen: false, userPhone: loggedUser?.phone || info.phone
+      days, total, ...info, status: "pending", date: pickDate, seen: false, userPhone: loggedUser?.phone || info.phone, userEmail: loggedUser?.email || ""
     });
     setDone(true);
   };
@@ -1689,10 +1710,9 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
   );
 }
 
-// ── LOGIN MODAL (Khách hàng + Quản trị) ──
+// ── LOGIN MODAL (Khách hàng Google OAuth + Quản trị) ──
 function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", loggedUser, setLoggedUser, photos = [], setPhotos, cameras = [], setPage, usersMap, setUsersMap, siteContent }) {
   const [tab, setTab] = useState(defaultTab);
-  // uploadOpen removed — photo/feedback only allowed via CustomerPage after completed order
 
   // ── Tab Quản trị ──
   const [pw, setPw] = useState("");
@@ -1707,75 +1727,67 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
     else { setErr(true); setShake(true); setTimeout(() => { setErr(false); setShake(false); }, 2000); }
   };
 
-  // ── Tab Khách hàng ──
-  const [cusMode, setCusMode] = useState(loggedUser ? "profile" : "login");
-  const [phone, setPhone] = useState("");
-  const [name, setName] = useState("");
-  const [cusPw, setCusPw] = useState("");
-  const [cusErr, setCusErr] = useState("");
-  const [forgotPhone, setForgotPhone] = useState("");
-  const [forgotResult, setForgotResult] = useState(null);
-  const [localUsers, setLocalUsers] = useState({});
-  const [avatarLoading, setAvatarLoading] = useState(false);
-  const adminAvatarRef = useRef();
+  // ── Tab Khách hàng — Google OAuth ──
+  const googleBtnRef = useRef();
+  const [gsiReady, setGsiReady] = useState(false);
+  const [gsiErr, setGsiErr] = useState(false);
 
-  // Merge localUsers (storage-backed, always loaded) + usersMap (App state).
-  // localUsers fills the gap when usersMap is still {} due to async race on mount.
-  // usersMap wins for same keys after App storage load completes (latest source of truth).
-  const users = { ...localUsers, ...(usersMap || {}) };
-  const saveUsers = (u) => {
-    setLocalUsers(u); // always keep local copy in sync (fixes race condition)
-    if (setUsersMap) { setUsersMap(u); }
-    else { storageSet("k92_users_v1", u); }
-  };
-
-  // ALWAYS load from storage on mount — covers race condition where App-level usersMap
-  // is still {} (empty) because the async storage load hasn't completed yet.
+  // Load Google GSI script
   useEffect(() => {
-    storageGet("k92_users_v1").then(d => { if (d) setLocalUsers(d); });
-  }, []);
+    if (loggedUser) return;
+    if (window.google?.accounts?.id) { setGsiReady(true); return; }
+    const existing = document.getElementById("gsi-script-92k");
+    if (existing) { existing.addEventListener("load", () => setGsiReady(true)); return; }
+    const script = document.createElement("script");
+    script.id = "gsi-script-92k";
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = () => setGsiReady(true);
+    script.onerror = () => setGsiErr(true);
+    document.head.appendChild(script);
+  }, [loggedUser]);
 
-  // Avatar upload for AdminLogin panel
-  const handleAvatarChangeAdmin = async (file) => {
-    if (!file || !file.type.startsWith("image/") || !loggedUser) return;
-    setAvatarLoading(true);
+  // Render Google button
+  useEffect(() => {
+    if (!gsiReady || loggedUser || !googleBtnRef.current) return;
     try {
-      const compressed = await compressImage(file, 400, 0.82);
-      const updatedUser = { ...loggedUser, avatar: compressed };
-      setLoggedUser(updatedUser);
-      saveUsers({ ...users, [loggedUser.phone]: { ...(users[loggedUser.phone] || {}), avatar: compressed } });
-    } finally {
-      setAvatarLoading(false);
-    }
-  };
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: (res) => {
+          const info = decodeGoogleJWT(res.credential);
+          if (!info) { setGsiErr(true); return; }
+          const user = { name: info.name, email: info.email, picture: info.picture, googleId: info.googleId, avatar: null };
+          setLoggedUser(user);
+          // Lưu vào users storage (key = email)
+          const updated = { ...(usersMap || {}), [info.email]: { name: info.name, picture: info.picture, googleId: info.googleId, joinDate: todayStr() } };
+          if (setUsersMap) setUsersMap(updated);
+          storageSet("k92_users_v1", updated);
+        },
+        use_fedcm_for_prompt: false,
+      });
+      window.google.accounts.id.renderButton(googleBtnRef.current, {
+        theme: "filled_black",
+        size: "large",
+        shape: "rectangular",
+        width: Math.min(320, window.innerWidth - 100),
+        text: "signin_with",
+        logo_alignment: "left",
+      });
+    } catch { setGsiErr(true); }
+  }, [gsiReady, loggedUser]);
 
-  const handleRegister = () => {
-    if (phone.replace(/\D/g, "").length < 9) { setCusErr("Số điện thoại không hợp lệ"); return; }
-    if (cusPw.length < 4) { setCusErr("Mật khẩu tối thiểu 4 ký tự"); return; }
-    if (users[phone]) { setCusErr("Số điện thoại này đã đăng ký rồi. Vui lòng đăng nhập."); return; }
-    const updated = { ...users, [phone]: { name, pw: cusPw, joinDate: todayStr() } };
-    saveUsers(updated);
-    setLoggedUser({ phone, name });
-    setCusMode("profile");
-  };
-
-  const handleLogin = () => {
-    setCusErr("");
-    if (!phone || !cusPw) { setCusErr("Vui lòng điền số điện thoại và mật khẩu"); return; }
-    const u = users[phone];
-    if (!u) { setCusErr("Số điện thoại chưa được đăng ký"); return; }
-    if (u.pw !== cusPw) { setCusErr("Sai mật khẩu"); return; }
-    // Restore avatar if saved
-    setLoggedUser({ phone, name: u.name, avatar: u.avatar || null });
-    setCusMode("profile");
-  };
-
-  const _normP = (p) => (p || "").replace(/[^0-9]/g, ""); const _myPh = _normP(loggedUser?.phone);
-  const myOrders = loggedUser ? orders.filter(o => _normP(o.phone) === _myPh || _normP(o.userPhone) === _myPh) : [];
+  // Order filtering — hỗ trợ cả email (Google) và phone (đơn cũ)
+  const _myEmail = (loggedUser?.email || "").toLowerCase();
+  const _normP = (p) => (p || "").replace(/[^0-9]/g, "");
+  const _myPh = _normP(loggedUser?.phone);
+  const myOrders = loggedUser ? orders.filter(o => {
+    if (_myEmail && o.userEmail?.toLowerCase() === _myEmail) return true;
+    if (_myPh && (_normP(o.phone) === _myPh || _normP(o.userPhone) === _myPh)) return true;
+    return false;
+  }) : [];
   const totalSpent = myOrders.filter(o => o.status !== "cancelled").reduce((s, o) => s + o.total, 0);
-  const myPhotos = loggedUser ? photos.filter(p => p.phone === loggedUser.phone) : [];
 
-  const inpS = { width: "100%", padding: "12px 14px", background: "#111", border: `1px solid ${BR}`, borderRadius: 8, color: TXT, fontSize: 14, outline: "none", boxSizing: "border-box", fontFamily: "system-ui,sans-serif", marginBottom: 10, transition: "border .2s" };
   const tabBtn = (k, label) => (
     <button onClick={() => setTab(k)} style={{ flex: 1, padding: "11px 0", background: "none", border: "none", borderBottom: `2px solid ${tab === k ? G : "transparent"}`, color: tab === k ? G : MUT, fontWeight: tab === k ? 700 : 400, fontSize: 13, cursor: "pointer", fontFamily: "system-ui,sans-serif", transition: "all .2s" }}>{label}</button>
   );
@@ -1796,36 +1808,56 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
         {/* ── Tab khách hàng ── */}
         {tab === "customer" && (
           <div style={{ marginTop: 24, textAlign: "left" }}>
-            {cusMode !== "profile" && cusMode !== "forgot" && (
-              <div style={{ display: "flex", gap: 0, marginBottom: 20, background: "#111", borderRadius: 8, padding: 3 }}>
-                <button onClick={() => { setCusMode("login"); setCusErr(""); }} style={{ flex: 1, padding: "8px 0", background: cusMode === "login" ? "#1a1a1a" : "none", border: "none", color: cusMode === "login" ? TXT : MUT, borderRadius: 6, cursor: "pointer", fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: cusMode === "login" ? 700 : 400 }}>Đăng nhập</button>
-                <button onClick={() => { setCusMode("register"); setCusErr(""); }} style={{ flex: 1, padding: "8px 0", background: cusMode === "register" ? "#1a1a1a" : "none", border: "none", color: cusMode === "register" ? TXT : MUT, borderRadius: 6, cursor: "pointer", fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: cusMode === "register" ? 700 : 400 }}>Tạo tài khoản</button>
+
+            {/* Chưa đăng nhập — hiện Google button */}
+            {!loggedUser && (
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>📷</div>
+                <div style={{ color: TXT, fontSize: 16, fontWeight: 600, fontFamily: "Georgia,serif", letterSpacing: 0.5, marginBottom: 6 }}>Đăng nhập để đặt máy</div>
+                <div style={{ color: MUT, fontSize: 12, fontFamily: "system-ui,sans-serif", lineHeight: 1.7, marginBottom: 28 }}>
+                  Theo dõi đơn thuê · Gửi đánh giá<br />Không cần tạo tài khoản riêng
+                </div>
+
+                {/* Google button container */}
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+                  {gsiErr ? (
+                    <div style={{ color: "#ef4444", fontSize: 12, fontFamily: "system-ui,sans-serif", padding: "12px 0" }}>
+                      ❌ Không tải được Google Sign-In.<br />
+                      <span style={{ color: MUT, fontSize: 11 }}>Kiểm tra kết nối mạng và thử lại.</span>
+                    </div>
+                  ) : !gsiReady ? (
+                    <div style={{ color: MUT, fontSize: 12, fontFamily: "system-ui,sans-serif", padding: "12px 0" }}>
+                      ⏳ Đang tải Google Sign-In...
+                    </div>
+                  ) : (
+                    <div ref={googleBtnRef} style={{ minHeight: 44 }} />
+                  )}
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "8px 0 16px" }}>
+                  <div style={{ flex: 1, height: 1, background: BR }} />
+                  <span style={{ color: "#2a2a2a", fontSize: 10, fontFamily: "system-ui,sans-serif" }}>BẢO MẬT BỞI GOOGLE</span>
+                  <div style={{ flex: 1, height: 1, background: BR }} />
+                </div>
+                <div style={{ color: "#2a2a2a", fontSize: 10, fontFamily: "system-ui,sans-serif", lineHeight: 1.6 }}>
+                  92 KA MÊ RA chỉ nhận tên và email.<br />Không đọc dữ liệu Google Drive hay Gmail.
+                </div>
               </div>
             )}
 
-            {cusMode === "profile" && loggedUser && (() => {
+            {/* Đã đăng nhập — hiện profile */}
+            {loggedUser && (() => {
               const completedOrders = myOrders.filter(o => o.status === "completed");
-              const pendingFeedback = completedOrders; // FeedbackModal handles duplicate check inside CustomerPage
               return (
               <div>
                 <div style={{ textAlign: "center", marginBottom: 20 }}>
-                  {/* Clickable avatar */}
-                  <div style={{ position: "relative", display: "inline-block", marginBottom: 10 }}
-                    onClick={() => adminAvatarRef.current?.click()} title="Bấm để đổi ảnh đại diện">
-                    <div style={{ width: 76, height: 76, borderRadius: "50%", background: G + "22", border: `2px solid ${G}55`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, overflow: "hidden", cursor: "pointer", margin: "0 auto" }}>
-                      {loggedUser?.avatar
-                        ? <img src={loggedUser.avatar} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        : <span>{loggedUser?.name?.[0]?.toUpperCase() || "👤"}</span>}
-                    </div>
-                    <div style={{ position: "absolute", bottom: 0, right: "calc(50% - 38px - 4px)", width: 24, height: 24, borderRadius: "50%", background: G, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, border: "2px solid #060606", cursor: "pointer", boxShadow: `0 0 8px ${G}66` }}>
-                      {avatarLoading ? "⏳" : "📷"}
-                    </div>
-                    <input ref={adminAvatarRef} type="file" accept="image/*" style={{ display: "none" }}
-                      onChange={e => { if (e.target.files[0]) handleAvatarChangeAdmin(e.target.files[0]); e.target.value = ""; }} />
+                  <div style={{ width: 76, height: 76, borderRadius: "50%", background: G + "22", border: `2px solid ${G}55`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, overflow: "hidden", margin: "0 auto 10px" }}>
+                    {(loggedUser.picture || loggedUser.avatar)
+                      ? <img src={loggedUser.avatar || loggedUser.picture} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} referrerPolicy="no-referrer" />
+                      : <span>{loggedUser.name?.[0]?.toUpperCase() || "👤"}</span>}
                   </div>
-                  <div style={{ color: "#333", fontSize: 10, fontFamily: "system-ui,sans-serif", marginBottom: 8 }}>Bấm để đổi ảnh đại diện</div>
                   <div style={{ color: G, fontWeight: 700, fontSize: 16 }}>{loggedUser.name}</div>
-                  <div style={{ color: MUT, fontSize: 12, marginTop: 2 }}>📞 {loggedUser.phone}</div>
+                  <div style={{ color: MUT, fontSize: 12, marginTop: 2 }}>✉️ {loggedUser.email}</div>
                 </div>
 
                 {/* Stats */}
@@ -1868,17 +1900,6 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
                   </div>
                 )}
 
-                {/* No completed orders notice */}
-                {completedOrders.length === 0 && myOrders.length > 0 && (
-                  <div style={{ background: "#0e0e0e", border: `1px solid ${BR}`, borderRadius: 8, padding: "12px 14px", marginBottom: 12, textAlign: "center" }}>
-                    <div style={{ fontSize: 20, marginBottom: 6 }}>🔒</div>
-                    <div style={{ color: MUT, fontSize: 12, fontFamily: "system-ui,sans-serif", lineHeight: 1.6 }}>
-                      Chỉ đơn <span style={{ color: "#22c55e", fontWeight: 700 }}>Hoàn thành</span> mới được gửi đánh giá.<br />
-                      Đơn đang xử lý: <span style={{ color: G, fontWeight: 700 }}>{myOrders.filter(o => ["pending","confirmed","active"].includes(o.status)).length}</span>
-                    </div>
-                  </div>
-                )}
-
                 {/* Customer Dashboard link */}
                 {setPage && (
                   <button onClick={() => { setPage("customer"); onBack(); }} style={{ width: "100%", padding: "11px 0", background: G + "15", border: `1px solid ${G}44`, color: G, borderRadius: 8, cursor: "pointer", fontSize: 13, fontFamily: "system-ui,sans-serif", fontWeight: 700, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
@@ -1905,69 +1926,17 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
                   <div style={{ textAlign: "center", color: MUT, fontSize: 13, padding: "16px 0" }}>Chưa có đơn thuê nào</div>
                 )}
 
-                <button onClick={() => { setLoggedUser(null); setCusMode("login"); setPhone(""); setCusPw(""); }} style={{ width: "100%", padding: 10, background: "none", color: MUT, border: `1px solid ${BR}`, borderRadius: 8, cursor: "pointer", fontSize: 12, fontFamily: "system-ui,sans-serif", marginTop: 10 }}>Đăng xuất</button>
+                <button onClick={() => {
+                  setLoggedUser(null);
+                  try { window.google?.accounts?.id?.disableAutoSelect(); } catch {}
+                }} style={{ width: "100%", padding: 10, background: "none", color: MUT, border: `1px solid ${BR}`, borderRadius: 8, cursor: "pointer", fontSize: 12, fontFamily: "system-ui,sans-serif", marginTop: 10 }}>Đăng xuất Google</button>
               </div>
             );
             })()}
-
-            {/* ── Quên mật khẩu ── */}
-            {cusMode === "forgot" && (
-              <div>
-                <div style={{ textAlign: "center", marginBottom: 18 }}>
-                  <div style={{ fontSize: 32, marginBottom: 8 }}>🔑</div>
-                  <div style={{ color: TXT, fontSize: 15, fontWeight: 700, fontFamily: "Georgia,serif", letterSpacing: 0.5, marginBottom: 6 }}>Quên mật khẩu</div>
-                  <div style={{ color: MUT, fontSize: 12, fontFamily: "system-ui,sans-serif", lineHeight: 1.6 }}>Nhập số điện thoại đã đăng ký để xác minh</div>
-                </div>
-                <input style={inpS} placeholder="Số điện thoại đã đăng ký" value={forgotPhone} onChange={e => { setForgotPhone(e.target.value); setForgotResult(null); }} type="tel" onKeyDown={e => { if (e.key === "Enter") { const p = forgotPhone.replace(/\D/g,""); if (p.length < 9) { setForgotResult("invalid"); return; } setForgotResult(Object.keys(users).some(k => k.replace(/\D/g,"") === p) ? "found" : "notfound"); } }} />
-                {forgotResult === "invalid" && <div style={{ color: "#ef4444", fontSize: 12, marginBottom: 8, fontFamily: "system-ui,sans-serif" }}>❌ Số điện thoại không hợp lệ</div>}
-                {forgotResult === "notfound" && <div style={{ color: "#ef4444", fontSize: 12, marginBottom: 8, fontFamily: "system-ui,sans-serif" }}>❌ Số điện thoại chưa đăng ký tài khoản</div>}
-                {forgotResult !== "found" && (
-                  <button onClick={() => { const p = forgotPhone.replace(/\D/g,""); if (p.length < 9) { setForgotResult("invalid"); return; } setForgotResult(Object.keys(users).some(k => k.replace(/\D/g,"") === p) ? "found" : "notfound"); }} style={{ width: "100%", padding: 12, background: G, color: "#000", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif", boxShadow: `0 0 20px ${G}44`, marginBottom: 10 }}>
-                    Xác minh số điện thoại
-                  </button>
-                )}
-                {forgotResult === "found" && (() => {
-                  const zaloNum = ((siteContent || {}).zalo || "0855471202").replace(/\s/g, "");
-                  return (
-                    <div style={{ background: "#0a1a0a", border: "1px solid #22c55e44", borderRadius: 10, padding: "16px 18px", marginBottom: 12 }}>
-                      <div style={{ color: "#22c55e", fontWeight: 700, fontSize: 13, fontFamily: "system-ui,sans-serif", marginBottom: 8 }}>✓ Tìm thấy tài khoản!</div>
-                      <div style={{ color: TXT, fontSize: 12, fontFamily: "system-ui,sans-serif", lineHeight: 1.8, marginBottom: 14 }}>
-                        Liên hệ admin qua Zalo để đặt lại mật khẩu. Vui lòng nhắn:<br />
-                        <span style={{ color: G, fontWeight: 700 }}>SĐT: {forgotPhone}</span> + tên tài khoản
-                      </div>
-                      <a href={`https://zalo.me/${zaloNum}`} target="_blank" rel="noreferrer"
-                        style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: "11px 0", background: "#0068ff", color: "#fff", borderRadius: 8, fontWeight: 700, fontSize: 13, fontFamily: "system-ui,sans-serif", textDecoration: "none", boxSizing: "border-box" }}>
-                        <span style={{ fontSize: 18 }}>💬</span> Nhắn Zalo Admin ngay
-                      </a>
-                    </div>
-                  );
-                })()}
-                <button onClick={() => { setCusMode("login"); setCusErr(""); setForgotPhone(""); setForgotResult(null); }} style={{ width: "100%", padding: 10, background: "none", color: MUT, border: `1px solid ${BR}`, borderRadius: 8, cursor: "pointer", fontSize: 12, fontFamily: "system-ui,sans-serif" }}>← Quay lại đăng nhập</button>
-              </div>
-            )}
-
-            {cusMode !== "profile" && cusMode !== "forgot" && (
-              <div>
-                {cusMode === "register" && (
-                  <input style={inpS} placeholder="Họ và tên" value={name} onChange={e => setName(e.target.value)} />
-                )}
-                <input style={inpS} placeholder="Số điện thoại" value={phone} onChange={e => setPhone(e.target.value)} type="tel" />
-                <input style={inpS} placeholder="Mật khẩu" value={cusPw} onChange={e => setCusPw(e.target.value)} type="password" onKeyDown={e => e.key === "Enter" && (cusMode === "login" ? handleLogin() : handleRegister())} />
-                {cusErr && <div style={{ color: "#ef4444", fontSize: 12, marginBottom: 8, fontFamily: "system-ui,sans-serif" }}>❌ {cusErr}</div>}
-                <button onClick={cusMode === "login" ? handleLogin : handleRegister} style={{ width: "100%", padding: 13, background: G, color: "#000", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif", boxShadow: `0 0 20px ${G}44` }}>
-                  {cusMode === "login" ? "Đăng nhập" : "Tạo tài khoản"}
-                </button>
-                {cusMode === "login" && (
-                  <button onClick={() => { setCusMode("forgot"); setCusErr(""); setForgotPhone(""); setForgotResult(null); }} style={{ background: "none", border: "none", color: MUT, fontSize: 11, cursor: "pointer", fontFamily: "system-ui,sans-serif", marginTop: 10, width: "100%", textDecoration: "underline" }}>
-                    Quên mật khẩu?
-                  </button>
-                )}
-              </div>
-            )}
           </div>
         )}
 
-        {/* ── Tab quản trị (giữ nguyên AdminLogin cũ) ── */}
+        {/* ── Tab quản trị ── */}
         {tab === "admin" && (
           <div style={{ marginTop: 28 }}>
             <h3 style={{ color: TXT, fontWeight: 400, marginBottom: 6, fontFamily: "Georgia,serif", fontSize: 18, letterSpacing: 1 }}>Quản trị viên</h3>
@@ -3274,7 +3243,10 @@ export default function App() {
           loggedUser={loggedUser}
           setLoggedUser={(u) => {
             setLoggedUser(u);
-            if (u) {
+            if (u && u.email) {
+              // Google user — key by email
+              setUsers(prev => prev[u.email] ? prev : { ...prev, [u.email]: { name: u.name, picture: u.picture, googleId: u.googleId } });
+            } else if (u && u.phone) {
               setUsers(prev => prev[u.phone] ? prev : { ...prev, [u.phone]: { name: u.name, pw: prev[u.phone]?.pw || "" } });
             }
           }}
