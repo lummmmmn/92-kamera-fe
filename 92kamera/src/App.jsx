@@ -668,8 +668,12 @@ function CustomerPhotoUpload({ loggedUser, cameras, setPhotos, onClose }) {
 
 // ── FEEDBACK MODAL (post-order rating — only for completed orders) ──
 function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) {
-  // Tìm feedback đã gửi cho đơn này (nếu có)
-  const existingFb = feedbacks.find(f => f.orderId === order?.id && f.phone === loggedUser?.phone);
+  // Tìm feedback đã gửi cho đơn này — match bằng email (Google) hoặc phone
+  const _normP = (p) => (p || "").replace(/[^0-9]/g, "");
+  const _matchOwner = (f) =>
+    (loggedUser?.email && f.email === loggedUser.email) ||
+    (loggedUser?.phone && _normP(f.phone) === _normP(loggedUser.phone));
+  const existingFb = feedbacks.find(f => f.orderId === order?.id && _matchOwner(f));
   // Cho phép edit nếu chưa admin xử lý (pending), không cho edit nếu đã approved/rejected
   const isEditing = !!existingFb && existingFb.status === "pending";
   const isLocked = !!existingFb && existingFb.status !== "pending";
@@ -975,13 +979,21 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, feedbacks, setFeedbac
             )}
 
             {/* Quick action */}
-            {completedOrders.filter(o => !feedbacks.some(f => f.orderId === o.id && (f.email === loggedUser?.email || f.phone === loggedUser?.phone))).length > 0 && (
-              <div style={{ background: "#0a0900", border: `1px solid ${G}44`, borderRadius: 12, padding: "18px 22px", marginBottom: 20 }}>
-                <div style={{ color: G, fontWeight: 700, fontSize: 14, marginBottom: 6 }}>⭐ Bạn có {completedOrders.filter(o => !feedbacks.some(f => f.orderId === o.id && (f.email === loggedUser?.email || f.phone === loggedUser?.phone))).length} đơn chưa đánh giá!</div>
-                <div style={{ color: MUT, fontSize: 12, marginBottom: 14 }}>Chia sẻ trải nghiệm để giúp cộng đồng và nhận huy hiệu Creator.</div>
-                <button onClick={() => setTab("orders")} style={{ padding: "9px 22px", background: G, color: "#000", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 700, fontSize: 12, fontFamily: "system-ui,sans-serif" }}>Đánh giá ngay →</button>
-              </div>
-            )}
+            {(() => {
+              const unreviewed = completedOrders.filter(o => !feedbacks.some(f =>
+                f.orderId === o.id && (
+                  (myEmail && f.email === myEmail) ||
+                  (myPhone && normPhone(f.phone) === myPhone)
+                )
+              ));
+              return unreviewed.length > 0 && (
+                <div style={{ background: "#0a0900", border: `1px solid ${G}44`, borderRadius: 12, padding: "18px 22px", marginBottom: 20 }}>
+                  <div style={{ color: G, fontWeight: 700, fontSize: 14, marginBottom: 6 }}>⭐ Bạn có {unreviewed.length} đơn chưa đánh giá!</div>
+                  <div style={{ color: MUT, fontSize: 12, marginBottom: 14 }}>Chia sẻ trải nghiệm để giúp cộng đồng và nhận huy hiệu Creator.</div>
+                  <button onClick={() => setTab("orders")} style={{ padding: "9px 22px", background: G, color: "#000", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 700, fontSize: 12, fontFamily: "system-ui,sans-serif" }}>Đánh giá ngay →</button>
+                </div>
+              );
+            })()}
 
             {/* CTA book more */}
             {onOpenBooking && (
@@ -1017,8 +1029,12 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, feedbacks, setFeedbac
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {filteredOrders.map(o => {
-                  const hasFeedback = feedbacks.some(f => f.orderId === o.id && f.phone === loggedUser?.phone);
-                  const fbStatus = feedbacks.find(f => f.orderId === o.id && f.phone === loggedUser?.phone)?.status;
+                  const _matchFb = (f) => f.orderId === o.id && (
+                    (myEmail && f.email === myEmail) ||
+                    (myPhone && normPhone(f.phone) === myPhone)
+                  );
+                  const hasFeedback = feedbacks.some(_matchFb);
+                  const fbStatus = feedbacks.find(_matchFb)?.status;
                   const canFeedback = o.status === "completed"; // Luôn cho phép đánh giá đơn hoàn thành
                   return (
                     <div key={o.id} style={{ background: CARD, border: `1px solid ${o.status === "active" ? "#f59e0b33" : o.status === "completed" ? "#22c55e22" : BR}`, borderRadius: 12, padding: "16px 20px" }}>
