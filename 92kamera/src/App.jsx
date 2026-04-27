@@ -1690,7 +1690,7 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
 }
 
 // ── LOGIN MODAL (Khách hàng + Quản trị) ──
-function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", loggedUser, setLoggedUser, photos = [], setPhotos, cameras = [], setPage, usersMap, setUsersMap }) {
+function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", loggedUser, setLoggedUser, photos = [], setPhotos, cameras = [], setPage, usersMap, setUsersMap, siteContent }) {
   const [tab, setTab] = useState(defaultTab);
   // uploadOpen removed — photo/feedback only allowed via CustomerPage after completed order
 
@@ -1713,6 +1713,8 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
   const [name, setName] = useState("");
   const [cusPw, setCusPw] = useState("");
   const [cusErr, setCusErr] = useState("");
+  const [forgotPhone, setForgotPhone] = useState("");
+  const [forgotResult, setForgotResult] = useState(null);
   const [localUsers, setLocalUsers] = useState({});
   const [avatarLoading, setAvatarLoading] = useState(false);
   const adminAvatarRef = useRef();
@@ -1794,7 +1796,7 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
         {/* ── Tab khách hàng ── */}
         {tab === "customer" && (
           <div style={{ marginTop: 24, textAlign: "left" }}>
-            {cusMode !== "profile" && (
+            {cusMode !== "profile" && cusMode !== "forgot" && (
               <div style={{ display: "flex", gap: 0, marginBottom: 20, background: "#111", borderRadius: 8, padding: 3 }}>
                 <button onClick={() => { setCusMode("login"); setCusErr(""); }} style={{ flex: 1, padding: "8px 0", background: cusMode === "login" ? "#1a1a1a" : "none", border: "none", color: cusMode === "login" ? TXT : MUT, borderRadius: 6, cursor: "pointer", fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: cusMode === "login" ? 700 : 400 }}>Đăng nhập</button>
                 <button onClick={() => { setCusMode("register"); setCusErr(""); }} style={{ flex: 1, padding: "8px 0", background: cusMode === "register" ? "#1a1a1a" : "none", border: "none", color: cusMode === "register" ? TXT : MUT, borderRadius: 6, cursor: "pointer", fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: cusMode === "register" ? 700 : 400 }}>Tạo tài khoản</button>
@@ -1908,7 +1910,43 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
             );
             })()}
 
-            {cusMode !== "profile" && (
+            {/* ── Quên mật khẩu ── */}
+            {cusMode === "forgot" && (
+              <div>
+                <div style={{ textAlign: "center", marginBottom: 18 }}>
+                  <div style={{ fontSize: 32, marginBottom: 8 }}>🔑</div>
+                  <div style={{ color: TXT, fontSize: 15, fontWeight: 700, fontFamily: "Georgia,serif", letterSpacing: 0.5, marginBottom: 6 }}>Quên mật khẩu</div>
+                  <div style={{ color: MUT, fontSize: 12, fontFamily: "system-ui,sans-serif", lineHeight: 1.6 }}>Nhập số điện thoại đã đăng ký để xác minh</div>
+                </div>
+                <input style={inpS} placeholder="Số điện thoại đã đăng ký" value={forgotPhone} onChange={e => { setForgotPhone(e.target.value); setForgotResult(null); }} type="tel" onKeyDown={e => { if (e.key === "Enter") { const p = forgotPhone.replace(/\D/g,""); if (p.length < 9) { setForgotResult("invalid"); return; } setForgotResult(Object.keys(users).some(k => k.replace(/\D/g,"") === p) ? "found" : "notfound"); } }} />
+                {forgotResult === "invalid" && <div style={{ color: "#ef4444", fontSize: 12, marginBottom: 8, fontFamily: "system-ui,sans-serif" }}>❌ Số điện thoại không hợp lệ</div>}
+                {forgotResult === "notfound" && <div style={{ color: "#ef4444", fontSize: 12, marginBottom: 8, fontFamily: "system-ui,sans-serif" }}>❌ Số điện thoại chưa đăng ký tài khoản</div>}
+                {forgotResult !== "found" && (
+                  <button onClick={() => { const p = forgotPhone.replace(/\D/g,""); if (p.length < 9) { setForgotResult("invalid"); return; } setForgotResult(Object.keys(users).some(k => k.replace(/\D/g,"") === p) ? "found" : "notfound"); }} style={{ width: "100%", padding: 12, background: G, color: "#000", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif", boxShadow: `0 0 20px ${G}44`, marginBottom: 10 }}>
+                    Xác minh số điện thoại
+                  </button>
+                )}
+                {forgotResult === "found" && (() => {
+                  const zaloNum = ((siteContent || {}).zalo || "0855471202").replace(/\s/g, "");
+                  return (
+                    <div style={{ background: "#0a1a0a", border: "1px solid #22c55e44", borderRadius: 10, padding: "16px 18px", marginBottom: 12 }}>
+                      <div style={{ color: "#22c55e", fontWeight: 700, fontSize: 13, fontFamily: "system-ui,sans-serif", marginBottom: 8 }}>✓ Tìm thấy tài khoản!</div>
+                      <div style={{ color: TXT, fontSize: 12, fontFamily: "system-ui,sans-serif", lineHeight: 1.8, marginBottom: 14 }}>
+                        Liên hệ admin qua Zalo để đặt lại mật khẩu. Vui lòng nhắn:<br />
+                        <span style={{ color: G, fontWeight: 700 }}>SĐT: {forgotPhone}</span> + tên tài khoản
+                      </div>
+                      <a href={`https://zalo.me/${zaloNum}`} target="_blank" rel="noreferrer"
+                        style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: "11px 0", background: "#0068ff", color: "#fff", borderRadius: 8, fontWeight: 700, fontSize: 13, fontFamily: "system-ui,sans-serif", textDecoration: "none", boxSizing: "border-box" }}>
+                        <span style={{ fontSize: 18 }}>💬</span> Nhắn Zalo Admin ngay
+                      </a>
+                    </div>
+                  );
+                })()}
+                <button onClick={() => { setCusMode("login"); setCusErr(""); setForgotPhone(""); setForgotResult(null); }} style={{ width: "100%", padding: 10, background: "none", color: MUT, border: `1px solid ${BR}`, borderRadius: 8, cursor: "pointer", fontSize: 12, fontFamily: "system-ui,sans-serif" }}>← Quay lại đăng nhập</button>
+              </div>
+            )}
+
+            {cusMode !== "profile" && cusMode !== "forgot" && (
               <div>
                 {cusMode === "register" && (
                   <input style={inpS} placeholder="Họ và tên" value={name} onChange={e => setName(e.target.value)} />
@@ -1919,6 +1957,11 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
                 <button onClick={cusMode === "login" ? handleLogin : handleRegister} style={{ width: "100%", padding: 13, background: G, color: "#000", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif", boxShadow: `0 0 20px ${G}44` }}>
                   {cusMode === "login" ? "Đăng nhập" : "Tạo tài khoản"}
                 </button>
+                {cusMode === "login" && (
+                  <button onClick={() => { setCusMode("forgot"); setCusErr(""); setForgotPhone(""); setForgotResult(null); }} style={{ background: "none", border: "none", color: MUT, fontSize: 11, cursor: "pointer", fontFamily: "system-ui,sans-serif", marginTop: 10, width: "100%", textDecoration: "underline" }}>
+                    Quên mật khẩu?
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -1944,8 +1987,9 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
 }
 
 // ── ADMIN DASHBOARD ──
-function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orders, setOrders, siteContent, setSiteContent, photos, setPhotos, feedbacks, setFeedbacks, users, onBack, isMobile }) {
+function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orders, setOrders, siteContent, setSiteContent, photos, setPhotos, feedbacks, setFeedbacks, users, setUsers, onBack, isMobile }) {
   const [tab, setTab] = useState("overview");
+  const [mediaSubTab, setMediaSubTab] = useState("photos");
   const [editCam, setEditCam] = useState(null);
   const [addCamOpen, setAddCamOpen] = useState(false);
   const [nc, setNc] = useState({ name: "", price: "", desc: "", qty: 1, status: "available", icon: "📷", images: [] });
@@ -1958,6 +2002,9 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   const [pwNew, setPwNew] = useState("");
   const [pwConfirm, setPwConfirm] = useState("");
   const [pwMsg, setPwMsg] = useState(null); // { type: "ok"|"err", text }
+  const [resetTarget, setResetTarget] = useState(null); // phone being reset
+  const [resetPwVal, setResetPwVal] = useState(""); // new password value
+  const [resetPwMsg, setResetPwMsg] = useState(null); // { type, text }
   const [adminPw, setAdminPw] = useState("admin92");
   useEffect(() => {
     storageGet("k92_admin_pw").then(d => { if (d) setAdminPw(d); });
@@ -2029,10 +2076,8 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
     if (tab === "orders") {
       setOrders(prev => prev.map(o => ({ ...o, seen: true })));
     }
-    if (tab === "photos") {
+    if (tab === "media") {
       setPhotos(prev => prev.map(p => ({ ...p, seen: true })));
-    }
-    if (tab === "feedbacks") {
       setFeedbacks(prev => prev.map(f => ({ ...f, seen: true })));
     }
   }, [tab]);
@@ -2083,8 +2128,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
     { k: "cameras", l: "📷 Máy ảnh" },
     { k: "accessories", l: "🎒 Phụ kiện" },
     { k: "orders", l: "📋 Đơn thuê", badge: unseenCount },
-    { k: "photos", l: "📸 Ảnh khách", badge: unseenPhotosCount },
-    { k: "feedbacks", l: "⭐ Feedback", badge: unseenFeedbackCount },
+    { k: "media", l: "📸 Ảnh & Feedback", badge: unseenPhotosCount + unseenFeedbackCount },
     { k: "users", l: "👥 Khách hàng" },
     { k: "inventory", l: "📦 Tồn kho" },
     { k: "content", l: "✏️ Nội dung web" },
@@ -2460,11 +2504,22 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
         )}
 
         {/* PHOTOS & REVIEWS */}
-        {tab === "photos" && (
+        {tab === "media" && (
           <div>
-            <STitle c="Ảnh & Đánh giá từ khách" />
-            {/* Pending */}
-            {(() => {
+            {/* Sub-tab selector */}
+            <div style={{ display: "flex", gap: 0, marginBottom: 24, background: "#111", borderRadius: 8, padding: 3 }}>
+              {[["photos", "📸 Ảnh khách"], ["feedbacks", "⭐ Feedback đơn thuê"]].map(([k, l]) => (
+                <button key={k} onClick={() => setMediaSubTab(k)}
+                  style={{ flex: 1, padding: "9px 0", background: mediaSubTab === k ? "#1a1a1a" : "none", border: "none", color: mediaSubTab === k ? TXT : MUT, borderRadius: 6, cursor: "pointer", fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: mediaSubTab === k ? 700 : 400 }}>
+                  {l}
+                  {k === "photos" && unseenPhotosCount > 0 && <span style={{ marginLeft: 6, background: "#ef4444", color: "#fff", borderRadius: 99, padding: "1px 7px", fontSize: 9 }}>{unseenPhotosCount}</span>}
+                  {k === "feedbacks" && unseenFeedbackCount > 0 && <span style={{ marginLeft: 6, background: "#ef4444", color: "#fff", borderRadius: 99, padding: "1px 7px", fontSize: 9 }}>{unseenFeedbackCount}</span>}
+                </button>
+              ))}
+            </div>
+
+            {/* ── Ảnh khách ── */}
+            {mediaSubTab === "photos" && (() => {
               const pending = (photos || []).filter(p => p.status === "pending").sort((a, b) => new Date(b.date) - new Date(a.date));
               const approved = (photos || []).filter(p => p.status === "approved").sort((a, b) => new Date(b.date) - new Date(a.date));
               const rejected = (photos || []).filter(p => p.status === "rejected").sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -2482,24 +2537,22 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                       </div>
                       <div style={{ color: G, fontSize: 13 }}>{"★".repeat(p.rating || 5)}</div>
                     </div>
-                    {p.cameraUsed && <div style={{ color: MUT, fontSize: 11, marginBottom: 5, fontFamily: "system-ui,sans-serif" }}>📷 {p.cameraUsed}</div>}
+                    {p.cameraUsed && <div style={{ color: MUT, fontSize: 11, marginBottom: 5 }}>📷 {p.cameraUsed}</div>}
                     {p.caption && <div style={{ color: TXT, fontSize: 12, lineHeight: 1.6, marginBottom: 10, background: "#111", padding: "8px 10px", borderRadius: 6, fontStyle: "italic" }}>"{p.caption}"</div>}
-                    <div style={{ color: "#2a2a2a", fontSize: 10, fontFamily: "system-ui,sans-serif", marginBottom: 10 }}>{p.date}</div>
+                    <div style={{ color: "#2a2a2a", fontSize: 10, marginBottom: 10 }}>{p.date}</div>
                     {actions}
                   </div>
                 </div>
               );
               return (
                 <>
-                  {/* Pending */}
+                  <STitle c={`Ảnh khách (${(photos||[]).length})`} />
                   <div style={{ marginBottom: 32 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                      <div style={{ color: TXT, fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif" }}>⏳ Chờ duyệt</div>
-                      {pending.length > 0 && <span style={{ background: "#ef444422", color: "#ef4444", border: "1px solid #ef444444", borderRadius: 99, padding: "2px 10px", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>{pending.length}</span>}
+                      <div style={{ color: TXT, fontWeight: 700, fontSize: 14 }}>⏳ Chờ duyệt</div>
+                      {pending.length > 0 && <span style={{ background: "#ef444422", color: "#ef4444", border: "1px solid #ef444444", borderRadius: 99, padding: "2px 10px", fontSize: 11 }}>{pending.length}</span>}
                     </div>
-                    {pending.length === 0 ? (
-                      <div style={{ color: MUT, fontSize: 13, padding: "20px 0", textAlign: "center", fontFamily: "system-ui,sans-serif" }}>Không có ảnh chờ duyệt</div>
-                    ) : (
+                    {pending.length === 0 ? <div style={{ color: MUT, fontSize: 13, padding: "20px 0", textAlign: "center" }}>Không có ảnh chờ duyệt</div> : (
                       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: 16 }}>
                         {pending.map(p => (
                           <PhotoCard key={p.id} p={p} actions={
@@ -2512,16 +2565,12 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                       </div>
                     )}
                   </div>
-
-                  {/* Approved */}
                   <div style={{ marginBottom: 32 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                      <div style={{ color: TXT, fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif" }}>✅ Đã duyệt — hiển thị trang chủ</div>
-                      {approved.length > 0 && <span style={{ background: "#22c55e22", color: "#22c55e", border: "1px solid #22c55e44", borderRadius: 99, padding: "2px 10px", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>{approved.length}</span>}
+                      <div style={{ color: TXT, fontWeight: 700, fontSize: 14 }}>✅ Đã duyệt — hiển thị trang chủ</div>
+                      {approved.length > 0 && <span style={{ background: "#22c55e22", color: "#22c55e", border: "1px solid #22c55e44", borderRadius: 99, padding: "2px 10px", fontSize: 11 }}>{approved.length}</span>}
                     </div>
-                    {approved.length === 0 ? (
-                      <div style={{ color: MUT, fontSize: 13, padding: "20px 0", textAlign: "center", fontFamily: "system-ui,sans-serif" }}>Chưa có ảnh nào được duyệt</div>
-                    ) : (
+                    {approved.length === 0 ? <div style={{ color: MUT, fontSize: 13, padding: "20px 0", textAlign: "center" }}>Chưa có ảnh nào được duyệt</div> : (
                       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: 16 }}>
                         {approved.map(p => (
                           <PhotoCard key={p.id} p={p} actions={
@@ -2534,11 +2583,9 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                       </div>
                     )}
                   </div>
-
-                  {/* Rejected */}
                   {rejected.length > 0 && (
                     <div>
-                      <div style={{ color: MUT, fontWeight: 700, fontSize: 13, fontFamily: "system-ui,sans-serif", marginBottom: 12 }}>✕ Đã từ chối ({rejected.length})</div>
+                      <div style={{ color: MUT, fontWeight: 700, fontSize: 13, marginBottom: 12 }}>✕ Đã từ chối ({rejected.length})</div>
                       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: 16 }}>
                         {rejected.map(p => (
                           <PhotoCard key={p.id} p={p} actions={
@@ -2554,24 +2601,17 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                 </>
               );
             })()}
-          </div>
-        )}
 
-        {/* FEEDBACKS (order-linked reviews) */}
-        {tab === "feedbacks" && (
-          <div>
-            <STitle c={`Feedback đơn thuê (${(feedbacks || []).length})`} />
-            {(() => {
+            {/* ── Feedback đơn thuê ── */}
+            {mediaSubTab === "feedbacks" && (() => {
               const fb = feedbacks || [];
               const pending = fb.filter(f => f.status === "pending");
               const approved = fb.filter(f => f.status === "approved");
               const rejected = fb.filter(f => f.status === "rejected");
-
               const approveFb = (id) => setFeedbacks(prev => prev.map(f => f.id === id ? { ...f, status: "approved", seen: true } : f));
               const rejectFb = (id) => setFeedbacks(prev => prev.map(f => f.id === id ? { ...f, status: "rejected", seen: true } : f));
               const toggleHide = (id) => setFeedbacks(prev => prev.map(f => f.id === id ? { ...f, hidden: !f.hidden } : f));
               const deleteFb = (id) => setFeedbacks(prev => prev.filter(f => f.id !== id));
-
               const FbCard = ({ f, actions }) => (
                 <div style={{ background: CARD, border: `1px solid ${f.status === "approved" ? "#22c55e33" : f.status === "rejected" ? "#ef444433" : BR}`, borderRadius: 12, padding: 18 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
@@ -2588,18 +2628,15 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                   {f.text && <div style={{ color: TXT, fontSize: 12, lineHeight: 1.6, marginBottom: 12, background: "#111", padding: "8px 10px", borderRadius: 6, fontStyle: "italic" }}>"{f.text}"</div>}
                   {f.images?.length > 0 && (
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-                      {f.images.map((img, i) => (
-                        <img key={i} src={img} alt="" style={{ width: 70, height: 70, objectFit: "cover", borderRadius: 8, border: `1px solid ${BR}` }} loading="lazy" />
-                      ))}
+                      {f.images.map((img, i) => <img key={i} src={img} alt="" style={{ width: 70, height: 70, objectFit: "cover", borderRadius: 8, border: `1px solid ${BR}` }} loading="lazy" />)}
                     </div>
                   )}
                   {actions}
                 </div>
               );
-
               return (
                 <>
-                  {/* Pending */}
+                  <STitle c={`Feedback đơn thuê (${fb.length})`} />
                   <div style={{ marginBottom: 28 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
                       <div style={{ color: TXT, fontWeight: 700, fontSize: 14 }}>⏳ Chờ duyệt</div>
@@ -2619,8 +2656,6 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                       </div>
                     )}
                   </div>
-
-                  {/* Approved */}
                   <div style={{ marginBottom: 28 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
                       <div style={{ color: TXT, fontWeight: 700, fontSize: 14 }}>✅ Đã duyệt — hiện trang chủ</div>
@@ -2642,8 +2677,6 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                       </div>
                     )}
                   </div>
-
-                  {/* Rejected */}
                   {rejected.length > 0 && (
                     <div>
                       <div style={{ color: MUT, fontWeight: 700, fontSize: 13, marginBottom: 12 }}>✕ Từ chối ({rejected.length})</div>
@@ -2678,15 +2711,13 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                   const userFeedbacks = (feedbacks || []).filter(f => f.phone === phone);
                   const totalSpent = userOrders.filter(o => o.status !== "cancelled").reduce((s, o) => s + o.total, 0);
                   const totalDays = userOrders.filter(o => o.status !== "cancelled").reduce((s, o) => s + (o.days || 0), 0);
-
-                  // Badge
                   let badge = null;
                   if (userOrders.length >= 5) badge = { icon: "🥇", label: "Khách Vàng", col: G };
                   else if (userOrders.length >= 3) badge = { icon: "🥈", label: "Khách Bạc", col: "#aaa" };
                   else if (userOrders.length >= 1) badge = { icon: "🥉", label: "Khách Đồng", col: "#cd7f32" };
-
                   return (
                     <div key={phone} style={{ background: CARD2, border: `1px solid ${BR2}`, borderRadius: 10, padding: "16px 20px" }}>
+                      {/* Header: tên + stats + nút */}
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
                         <div>
                           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
@@ -2694,8 +2725,13 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                             {badge && <span style={{ background: badge.col + "22", color: badge.col, border: `1px solid ${badge.col}44`, borderRadius: 99, padding: "2px 8px", fontSize: 10, fontWeight: 700 }}>{badge.icon} {badge.label}</span>}
                           </div>
                           <div style={{ color: MUT, fontSize: 11 }}>📞 {phone}</div>
+                          {/* Hiện mật khẩu để admin nhắn Zalo */}
+                          <div style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 8, background: "#0e0e00", border: `1px solid ${G}22`, borderRadius: 6, padding: "4px 10px" }}>
+                            <span style={{ color: MUT, fontSize: 10 }}>🔑 Mật khẩu:</span>
+                            <span style={{ color: G, fontSize: 11, fontWeight: 700, fontFamily: "monospace", letterSpacing: 1 }}>{u.pw || "—"}</span>
+                          </div>
                         </div>
-                        <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+                        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
                           {[
                             { l: "Đơn", v: userOrders.length, c: "#60a5fa" },
                             { l: "Ngày thuê", v: totalDays, c: "#a78bfa" },
@@ -2707,9 +2743,32 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                               <div style={{ color: MUT, fontSize: 9, marginTop: 2 }}>{s.l}</div>
                             </div>
                           ))}
+                          <button onClick={() => { setResetTarget(phone === resetTarget ? null : phone); setResetPwVal(""); setResetPwMsg(null); }}
+                            style={{ padding: "5px 12px", background: resetTarget === phone ? "#0a1a0a" : "#160b0b", border: `1px solid ${resetTarget === phone ? "#22c55e44" : "#ef444430"}`, color: resetTarget === phone ? "#22c55e" : "#ef4444", borderRadius: 6, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", fontWeight: 700, whiteSpace: "nowrap" }}>
+                            {resetTarget === phone ? "✕ Đóng" : "🔑 Đổi mật khẩu"}
+                          </button>
                         </div>
                       </div>
-                      {/* Recent orders */}
+                      {/* Đổi mật khẩu inline */}
+                      {resetTarget === phone && (
+                        <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${BR2}` }}>
+                          <div style={{ color: MUT, fontSize: 11, marginBottom: 8, fontFamily: "system-ui,sans-serif" }}>
+                            Mật khẩu mới cho <span style={{ color: TXT, fontWeight: 700 }}>{u.name}</span>
+                            <span style={{ color: MUT, fontSize: 10 }}> · Sau khi lưu nhắn khách qua Zalo</span>
+                          </div>
+                          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                            <input value={resetPwVal} onChange={e => { setResetPwVal(e.target.value); setResetPwMsg(null); }} placeholder="Nhập mật khẩu mới..." type="text"
+                              style={{ ...inp2, flex: 1, marginBottom: 0, fontFamily: "monospace" }}
+                              onKeyDown={e => { if (e.key === "Enter") { if (resetPwVal.length < 4) { setResetPwMsg({ type: "err", text: "Tối thiểu 4 ký tự" }); return; } const updated = { ...users, [phone]: { ...u, pw: resetPwVal } }; setUsers && setUsers(updated); storageSet("k92_users_v1", updated); setResetPwMsg({ type: "ok", text: `✓ Đã đổi! Nhắn khách: MK mới là "${resetPwVal}"` }); setResetPwVal(""); setTimeout(() => { setResetTarget(null); setResetPwMsg(null); }, 3000); }}} />
+                            <button onClick={() => { if (resetPwVal.length < 4) { setResetPwMsg({ type: "err", text: "Tối thiểu 4 ký tự" }); return; } const updated = { ...users, [phone]: { ...u, pw: resetPwVal } }; setUsers && setUsers(updated); storageSet("k92_users_v1", updated); setResetPwMsg({ type: "ok", text: `✓ Đã đổi! Nhắn khách: MK mới là "${resetPwVal}"` }); setResetPwVal(""); setTimeout(() => { setResetTarget(null); setResetPwMsg(null); }, 3000); }}
+                              style={{ padding: "9px 16px", background: G, color: "#000", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 700, fontSize: 12, fontFamily: "system-ui,sans-serif", whiteSpace: "nowrap" }}>
+                              Lưu
+                            </button>
+                          </div>
+                          {resetPwMsg && <div style={{ marginTop: 8, fontSize: 12, fontFamily: "system-ui,sans-serif", color: resetPwMsg.type === "ok" ? "#22c55e" : "#ef4444", background: resetPwMsg.type === "ok" ? "#0a1a0a" : "#160505", border: `1px solid ${resetPwMsg.type === "ok" ? "#22c55e33" : "#ef444433"}`, borderRadius: 6, padding: "8px 12px" }}>{resetPwMsg.text}</div>}
+                        </div>
+                      )}
+                      {/* Đơn gần đây */}
                       {userOrders.length > 0 && (
                         <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${BR2}`, display: "flex", gap: 8, flexWrap: "wrap" }}>
                           {userOrders.slice(0, 4).map(o => (
@@ -3190,7 +3249,7 @@ export default function App() {
       )}
 
       {page === "admin" && !adminAuth && (
-        <AdminLogin onLogin={() => setAdminAuth(true)} onBack={() => setPage("home")} orders={orders} loggedUser={loggedUser} setLoggedUser={setLoggedUser} photos={photos} setPhotos={setPhotos} cameras={cameras} setPage={setPage} usersMap={users} setUsersMap={(u) => setUsers(u)} />
+        <AdminLogin onLogin={() => setAdminAuth(true)} onBack={() => setPage("home")} orders={orders} loggedUser={loggedUser} setLoggedUser={setLoggedUser} photos={photos} setPhotos={setPhotos} cameras={cameras} setPage={setPage} usersMap={users} setUsersMap={(u) => setUsers(u)} siteContent={siteContent} />
       )}
 
       {page === "admin" && adminAuth && (
@@ -3201,7 +3260,7 @@ export default function App() {
           siteContent={siteContent} setSiteContent={setSiteContent}
           photos={photos} setPhotos={setPhotos}
           feedbacks={feedbacks} setFeedbacks={setFeedbacks}
-          users={users}
+          users={users} setUsers={(u) => setUsers(u)}
           onBack={() => setPage("home")}
           isMobile={isMobile}
         />
@@ -3226,6 +3285,7 @@ export default function App() {
           setPage={setPage}
           usersMap={users}
           setUsersMap={(u) => setUsers(u)}
+          siteContent={siteContent}
         />
       )}
 
