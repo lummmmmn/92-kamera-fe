@@ -902,7 +902,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, feedbacks, setFeedbac
   const orderStatusColor = { pending: "#60a5fa", confirmed: "#a78bfa", active: "#f59e0b", completed: "#22c55e", cancelled: "#6b7280" };
 
   return (
-    <div style={{ minHeight: "100vh", background: BG, fontFamily: "system-ui,sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: BG, fontFamily: "system-ui,sans-serif", position: "relative", zIndex: 1 }}>
       <style>{`*{box-sizing:border-box;} @keyframes pulseIn{0%{transform:scale(0.7);opacity:0}100%{transform:scale(1);opacity:1}}`}</style>
 
       {/* Header */}
@@ -2443,7 +2443,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   }, {});
 
   return (
-    <div style={{ minHeight: "100vh", background: BG, fontFamily: "system-ui,sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: BG, fontFamily: "system-ui,sans-serif", position: "relative", zIndex: 1 }}>
       <style>{`
         *{box-sizing:border-box;}
         input:focus,textarea:focus,select:focus{border-color:#c9a84c55!important;outline:none;}
@@ -3294,14 +3294,12 @@ function FlowBg() {
     resize();
     window.addEventListener("resize", resize, { passive: true });
 
-    // Blob definitions — pastel sáng tươi như web Polaris/Nhật
+    // Blob definitions — tông tối vàng/amber phù hợp theme camera
     const blobs = [
-      { x: 0.08, y: 0.18, r: 0.70, color: "rgba(140,210,245,",  ox: 0.12, oy: 0.10, sx: 0.00028, sy: 0.00020, alpha: 0.38 }, // xanh trời nhạt
-      { x: 0.88, y: 0.20, r: 0.62, color: "rgba(100,230,210,",  ox: 0.13, oy: 0.09, sx: 0.00025, sy: 0.00018, alpha: 0.33 }, // aqua mint
-      { x: 0.50, y: 0.60, r: 0.58, color: "rgba(170,235,190,",  ox: 0.10, oy: 0.13, sx: 0.00019, sy: 0.00030, alpha: 0.30 }, // xanh lá pastel
-      { x: 0.12, y: 0.82, r: 0.52, color: "rgba(245,170,170,",  ox: 0.09, oy: 0.11, sx: 0.00017, sy: 0.00026, alpha: 0.28 }, // hồng đào nhạt
-      { x: 0.80, y: 0.78, r: 0.48, color: "rgba(155,220,240,",  ox: 0.11, oy: 0.12, sx: 0.00032, sy: 0.00022, alpha: 0.30 }, // xanh biển nhạt
-      { x: 0.55, y: 0.12, r: 0.44, color: "rgba(210,245,200,",  ox: 0.14, oy: 0.08, sx: 0.00022, sy: 0.00028, alpha: 0.26 }, // xanh lá vàng nhạt
+      { x: 0.50, y: 0.38, r: 0.65, color: "rgba(201,168,76,",   ox: 0.10, oy: 0.08, sx: 0.00018, sy: 0.00014, alpha: 0.06 }, // gold trung tâm
+      { x: 0.10, y: 0.20, r: 0.55, color: "rgba(200,114,26,",   ox: 0.12, oy: 0.10, sx: 0.00022, sy: 0.00016, alpha: 0.05 }, // amber góc trái
+      { x: 0.85, y: 0.70, r: 0.50, color: "rgba(180,80,20,",    ox: 0.09, oy: 0.12, sx: 0.00016, sy: 0.00024, alpha: 0.04 }, // đỏ cam góc phải
+      { x: 0.20, y: 0.80, r: 0.42, color: "rgba(201,168,76,",   ox: 0.08, oy: 0.09, sx: 0.00014, sy: 0.00020, alpha: 0.04 }, // gold góc dưới
     ];
 
     let t = 0;
@@ -3310,7 +3308,7 @@ function FlowBg() {
       ctx.clearRect(0, 0, W, H);
 
       // Dark base
-      ctx.fillStyle = "#050a07";
+      ctx.fillStyle = "#060606";
       ctx.fillRect(0, 0, W, H);
 
       // Draw each blob as a radial gradient
@@ -3625,7 +3623,7 @@ function AppRoot() {
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
         html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
-        body{background:#050a07;overflow-x:hidden;} canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
+        body{background:#060606;overflow-x:hidden;} canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
         ::-webkit-scrollbar{width:4px;height:4px}
         ::-webkit-scrollbar-track{background:#060606}
         ::-webkit-scrollbar-thumb{background:#222;border-radius:2px}
