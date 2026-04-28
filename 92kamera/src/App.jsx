@@ -906,7 +906,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, feedbacks, setFeedbac
       <style>{`*{box-sizing:border-box;} @keyframes pulseIn{0%{transform:scale(0.7);opacity:0}100%{transform:scale(1);opacity:1}}`}</style>
 
       {/* Header */}
-      <div style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(6,6,6,0.97)", backdropFilter: "blur(20px)", borderBottom: `1px solid ${BR}`, padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(6,6,6,0.55)", backdropFilter: "blur(32px) saturate(160%)", WebkitBackdropFilter: "blur(32px) saturate(160%)", borderBottom: `1px solid rgba(42,42,42,0.6)`, padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "background .3s" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 24, overflowX: "auto", WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
           <div style={{ marginRight: 8, flexShrink: 0 }}><Logo size={0.65} /></div>
           {[["dashboard","📊 Dashboard"],["orders","📋 Đơn thuê"],["feedbacks","⭐ Feedback"],["badges","🏅 Huy hiệu"],["settings","⚙️ Cài đặt"]].map(([k,l]) => (
@@ -1616,28 +1616,38 @@ function BookingModal({ cameras, accessories, siteContent, onClose, onSubmit, lo
 // ── HOMEPAGE ──
 function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile, photos, feedbacks, loggedUser, onOpenLogin, onOpenCustomer }) {
   const [scrollY, setScrollY] = useState(0);
+  const [scrollDir, setScrollDir] = useState("up");
+  const prevScrollY = useRef(0);
   const [hov, setHov] = useState(null);
   const [ticker, setTicker] = useState(0);
   const [logoClick, setLogoClick] = useState(0);
   const handleLogoClick = () => { const n = logoClick + 1; setLogoClick(n); if (n >= 5) { setLogoClick(0); onAdmin(); } };
   useEffect(() => {
-    const h = () => setScrollY(window.scrollY);
+    const h = () => {
+      const curr = window.scrollY;
+      if (curr > prevScrollY.current + 2) setScrollDir("down");
+      else if (curr < prevScrollY.current - 2) setScrollDir("up");
+      prevScrollY.current = curr;
+      setScrollY(curr);
+    };
     window.addEventListener("scroll", h, { passive: true });
     const t = setInterval(() => setTicker(p => (p + 1) % cameras.length), 3000);
     return () => { window.removeEventListener("scroll", h); clearInterval(t); };
   }, [cameras.length]);
+  // navState: "top" | "visible" | "compact"
+  const navState = scrollY < 60 ? "top" : (scrollDir === "up" ? "visible" : "compact");
   const marquee = cameras.map(c => `${c.icon || "📷"} ${c.name}`);
 
   return (
     <div style={{ position: "relative", zIndex: 1, fontFamily: '"Times New Roman",Georgia,serif', color: TXT }}>
       {/* NAV */}
-      <nav className="nav92" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, padding: scrollY > 60 ? "0" : "10px 24px 0" }}>
-        <div className={`nav-inner${scrollY > 60 ? " scrolled" : ""}`}
-          style={{ display: "flex", alignItems: "center", padding: isMobile ? "10px 14px" : "0 20px", height: isMobile ? "auto" : 56, gap: isMobile ? 10 : 0 }}>
+      <nav className="nav92" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, padding: navState === "top" ? "8px 20px 0" : "0" }}>
+        <div className={`nav-inner${navState !== "top" ? " scrolled" : ""}${navState === "compact" ? " compact" : ""}`}
+          style={{ display: "flex", alignItems: "center", padding: isMobile ? "6px 12px" : "0 16px", height: isMobile ? "auto" : (navState === "compact" ? 24 : 34), gap: isMobile ? 8 : 0, overflow: "hidden" }}>
 
           {/* LOGO */}
-          <div onClick={handleLogoClick} style={{ cursor: "default", flexShrink: 0, marginRight: isMobile ? 0 : 28 }}>
-            <Logo size={isMobile ? 0.65 : 0.78} />
+          <div onClick={handleLogoClick} style={{ cursor: "default", flexShrink: 0, marginRight: isMobile ? 0 : 20, transition: "transform .45s cubic-bezier(.4,0,.2,1)", transform: `scale(${navState === "compact" ? 0.82 : 1})`, transformOrigin: "left center" }}>
+            <Logo size={isMobile ? 0.47 : 0.47} />
           </div>
 
           {/* NAV LINKS — desktop only */}
@@ -2455,7 +2465,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
       `}</style>
 
       {/* ADMIN HEADER */}
-      <div style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(6,6,6,0.97)", backdropFilter: "blur(20px)", borderBottom: `1px solid ${BR}`, padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(6,6,6,0.55)", backdropFilter: "blur(32px) saturate(160%)", WebkitBackdropFilter: "blur(32px) saturate(160%)", borderBottom: `1px solid rgba(42,42,42,0.6)`, padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "background .3s" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 24, overflowX: "auto", padding: "0 0 0 0", WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none" }}>
           <div style={{ marginRight: 16, flexShrink: 0 }}><Logo size={0.65} /></div>
           {TABS.map(t => (
@@ -3622,7 +3632,7 @@ function AppRoot() {
       <FlowBg />
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-        html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
+        html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;scroll-padding-top:72px;}
         body{background:#060606;overflow-x:hidden;} canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
         ::-webkit-scrollbar{width:4px;height:4px}
         ::-webkit-scrollbar-track{background:#060606}
@@ -3640,30 +3650,52 @@ function AppRoot() {
 
         /* ── NAV 3D STYLES ── */
         .nav92{
-          transition: all .4s cubic-bezier(.4,0,.2,1);
+          transition: padding .45s cubic-bezier(.4,0,.2,1);
+          will-change: padding;
         }
         .nav-inner{
-          background: linear-gradient(180deg, rgba(14,13,11,0.98) 0%, rgba(10,9,8,0.98) 100%);
-          border: 1px solid rgba(201,168,76,0.18);
-          border-radius: 14px;
+          background: linear-gradient(180deg, rgba(14,13,11,0.55) 0%, rgba(8,7,6,0.52) 100%);
+          border: 1px solid rgba(201,168,76,0.22);
+          border-radius: 12px;
           box-shadow:
-            0 2px 0 rgba(201,168,76,0.12),
-            0 8px 32px rgba(0,0,0,0.7),
-            0 1px 0 rgba(255,255,255,0.04) inset,
-            0 -1px 0 rgba(0,0,0,0.6) inset;
+            0 2px 0 rgba(201,168,76,0.10),
+            0 8px 40px rgba(0,0,0,0.55),
+            0 1px 0 rgba(255,255,255,0.06) inset,
+            0 -1px 0 rgba(0,0,0,0.4) inset;
           transform: perspective(900px) rotateX(1deg);
           transform-origin: top center;
-          backdrop-filter: blur(24px);
-          -webkit-backdrop-filter: blur(24px);
-          transition: all .4s cubic-bezier(.4,0,.2,1);
+          backdrop-filter: blur(32px) saturate(160%);
+          -webkit-backdrop-filter: blur(32px) saturate(160%);
+          transition: height .4s cubic-bezier(.4,0,.2,1),
+                      padding .4s cubic-bezier(.4,0,.2,1),
+                      opacity .4s ease,
+                      border-radius .4s ease,
+                      transform .4s cubic-bezier(.4,0,.2,1),
+                      box-shadow .4s ease,
+                      background .4s ease;
+          overflow: hidden;
         }
         .nav-inner.scrolled{
-          border-radius: 0 0 14px 14px;
+          background: linear-gradient(180deg, rgba(10,9,8,0.72) 0%, rgba(6,6,6,0.68) 100%);
+          border-radius: 0 0 12px 12px;
           transform: perspective(900px) rotateX(0deg);
           box-shadow:
-            0 4px 0 rgba(201,168,76,0.10),
-            0 12px 40px rgba(0,0,0,0.8),
-            0 1px 0 rgba(255,255,255,0.04) inset;
+            0 4px 0 rgba(201,168,76,0.09),
+            0 12px 48px rgba(0,0,0,0.65),
+            0 1px 0 rgba(255,255,255,0.05) inset;
+          backdrop-filter: blur(40px) saturate(180%);
+          -webkit-backdrop-filter: blur(40px) saturate(180%);
+        }
+        .nav-inner.compact{
+          background: linear-gradient(180deg, rgba(8,7,6,0.62) 0%, rgba(5,4,4,0.58) 100%);
+          border-top: none;
+          border-left: none;
+          border-right: none;
+          border-radius: 0;
+          box-shadow: 0 2px 16px rgba(0,0,0,0.5);
+          opacity: 0.82;
+          backdrop-filter: blur(24px) saturate(140%);
+          -webkit-backdrop-filter: blur(24px) saturate(140%);
         }
         .nav-link{
           position: relative;
