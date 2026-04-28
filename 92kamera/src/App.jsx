@@ -3278,11 +3278,102 @@ class AppErrorBoundary extends Component {
 }
 
 // ── ROOT ──
+
+// ── SPLASH SCREEN ──
+function SplashScreen({ onDone }) {
+  const [phase, setPhase] = useState(0); // 0=in, 1=hold, 2=out
+  const isMob = useMobile();
+  useEffect(() => {
+    const t1 = setTimeout(() => setPhase(1), 200);
+    const t2 = setTimeout(() => setPhase(2), 2200);
+    const t3 = setTimeout(() => onDone(), 2800);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, []);
+
+  const logoSize = isMob ? 1.45 : 2.2;
+  const lineW    = isMob ? 120  : 180;
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 9999,
+      background: "#060606",
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      opacity: phase === 2 ? 0 : 1,
+      transition: phase === 2 ? "opacity 0.6s ease-in" : "none",
+      pointerEvents: "none",
+      overflow: "hidden",
+    }}>
+      {/* Ambient glow */}
+      <div style={{
+        position: "absolute", top: "50%", left: "50%",
+        transform: "translate(-50%,-50%)",
+        width: isMob ? 300 : 500, height: isMob ? 200 : 300,
+        background: "radial-gradient(ellipse, rgba(201,168,76,0.07) 0%, transparent 70%)",
+        pointerEvents: "none",
+      }} />
+
+      {/* Top line — draws in */}
+      <div style={{
+        width: phase >= 1 ? lineW : 0,
+        height: 1,
+        background: "linear-gradient(to right, transparent, #c9a84c88, transparent)",
+        marginBottom: isMob ? 22 : 32,
+        transition: "width 0.7s cubic-bezier(.4,0,.2,1)",
+      }} />
+
+      {/* Logo */}
+      <div style={{
+        opacity: phase >= 1 ? 1 : 0,
+        transform: phase >= 1 ? "translateY(0) scale(1)" : "translateY(18px) scale(0.92)",
+        transition: "opacity 0.8s ease, transform 0.8s cubic-bezier(.2,.8,.3,1)",
+        maxWidth: "90vw", overflow: "hidden",
+      }}>
+        <Logo size={logoSize} />
+      </div>
+
+      {/* Red dot pulse */}
+      <div style={{
+        width: 5, height: 5, borderRadius: "50%",
+        background: "radial-gradient(circle at 36% 30%, #ff5555, #bb0000)",
+        boxShadow: "0 0 10px rgba(190,0,0,0.9), 0 0 24px rgba(190,0,0,0.4)",
+        marginTop: isMob ? 12 : 16,
+        opacity: phase >= 1 ? 1 : 0,
+        transition: "opacity 0.5s ease 0.4s",
+        animation: phase >= 1 ? "splashDot 1.4s ease-in-out infinite" : "none",
+      }} />
+
+      {/* Tagline */}
+      <div style={{
+        color: "#555",
+        fontSize: isMob ? 9 : 10,
+        letterSpacing: isMob ? 3 : 5,
+        fontFamily: "system-ui,sans-serif",
+        textTransform: "uppercase",
+        marginTop: isMob ? 16 : 22,
+        opacity: phase >= 1 ? 1 : 0,
+        transition: "opacity 0.7s ease 0.6s",
+        textAlign: "center",
+        padding: "0 16px",
+      }}>Dịch vụ cho thuê máy ảnh</div>
+
+      {/* Bottom line */}
+      <div style={{
+        width: phase >= 1 ? lineW : 0,
+        height: 1,
+        background: "linear-gradient(to right, transparent, #c9a84c55, transparent)",
+        marginTop: isMob ? 20 : 28,
+        transition: "width 0.7s cubic-bezier(.4,0,.2,1) 0.2s",
+      }} />
+    </div>
+  );
+}
+
 function AppRoot() {
   const [page, setPage] = useState("home");
   const [booking, setBooking] = useState(false);
   const [adminAuth, setAdminAuth] = useState(false);
   const [ready, setReady] = useState(false); // prevent flash before storage loads
+  const [splashDone, setSplashDone] = useState(false);
   const isMobile = useMobile();
 
   // 🔑 ALL SHARED STATE — single source of truth
@@ -3444,6 +3535,7 @@ function AppRoot() {
     setOrders(prev => [{ ...order, seen: false }, ...prev]);
   }, [setOrders]);
 
+  if (!splashDone) return <SplashScreen onDone={() => setSplashDone(true)} />;
   if (!ready) return (
     <div style={{ minHeight: "100vh", background: BG, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ textAlign: "center" }}>
@@ -3468,6 +3560,7 @@ function AppRoot() {
         @keyframes shootB{0%{opacity:0;transform:translate(0,0) rotate(-38deg)}4%{opacity:.7}75%{opacity:.3}100%{opacity:0;transform:translate(-340px,340px) rotate(-38deg)}}
         @keyframes shootC{0%{opacity:0;transform:translate(0,0) rotate(-50deg)}4%{opacity:.6}70%{opacity:.2}100%{opacity:0;transform:translate(-260px,260px) rotate(-50deg)}}
         @keyframes twinkle{0%,100%{opacity:.12}50%{opacity:.45}}
+        @keyframes splashDot{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.6);opacity:0.6}}
         select option{background:#111;color:#f0e8d0}
         input[type=date]{color-scheme:dark}
         input:focus,textarea:focus,select:focus{border-color:#c9a84c55!important;outline:none;}
