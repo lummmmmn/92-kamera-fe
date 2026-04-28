@@ -1686,25 +1686,36 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
             </div>
           )}
 
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: isMobile ? 6 : 8, alignItems: "center" }}>
             {/* USER */}
             {loggedUser ? (
               <button onClick={onOpenCustomer || onOpenLogin}
                 style={{ color: G, fontSize: isMobile ? 10 : 11, background: G + "15", border: `1px solid ${G}44`, padding: isMobile ? "4px" : "4px 12px 4px 4px", borderRadius: 99, cursor: "pointer", letterSpacing: 1, fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 7, boxShadow: `0 2px 8px ${G}22` }}>
-                <div style={{ width: isMobile ? 28 : 26, height: isMobile ? 28 : 26, borderRadius: "50%", background: G + "33", border: `1px solid ${G}55`, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}>
+                <div style={{ width: isMobile ? 30 : 26, height: isMobile ? 30 : 26, borderRadius: "50%", background: G + "33", border: `1px solid ${G}55`, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}>
                   {loggedUser.avatar ? <img src={loggedUser.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : loggedUser.name?.[0]?.toUpperCase()}
                 </div>
                 {!isMobile && <span style={{ maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{loggedUser.displayName || loggedUser.name}</span>}
               </button>
             ) : (
-              !isMobile && <button onClick={onOpenLogin}
-                style={{ color: MUT, fontSize: 10, background: "rgba(255,255,255,0.03)", border: `1px solid rgba(255,255,255,0.08)`, padding: "7px 14px", borderRadius: 6, cursor: "pointer", letterSpacing: 2, transition: "all .2s", fontFamily: "system-ui,sans-serif", boxShadow: "0 2px 4px rgba(0,0,0,0.3)" }}
-                onMouseEnter={e => { e.currentTarget.style.color = TXT; e.currentTarget.style.borderColor = `${G}55`; e.currentTarget.style.background = `${G}10`; }}
-                onMouseLeave={e => { e.currentTarget.style.color = MUT; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}>ĐĂNG NHẬP</button>
+              isMobile ? (
+                /* Mobile: icon button */
+                <button onClick={onOpenLogin}
+                  style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.04)", border: `1px solid rgba(255,255,255,0.1)`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={MUT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </button>
+              ) : (
+                <button onClick={onOpenLogin}
+                  style={{ color: MUT, fontSize: 10, background: "rgba(255,255,255,0.03)", border: `1px solid rgba(255,255,255,0.08)`, padding: "7px 14px", borderRadius: 6, cursor: "pointer", letterSpacing: 2, transition: "all .2s", fontFamily: "system-ui,sans-serif", boxShadow: "0 2px 4px rgba(0,0,0,0.3)" }}
+                  onMouseEnter={e => { e.currentTarget.style.color = TXT; e.currentTarget.style.borderColor = `${G}55`; e.currentTarget.style.background = `${G}10`; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = MUT; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}>ĐĂNG NHẬP</button>
+              )
             )}
 
             {/* 3D CTA BUTTON */}
-            <button className="btn-3d" onClick={onBook}>THUÊ NGAY</button>
+            <button className="btn-3d" onClick={onBook} style={{ fontSize: isMobile ? 10 : undefined, padding: isMobile ? "0 14px" : undefined, letterSpacing: isMobile ? 2 : undefined }}>THUÊ NGAY</button>
           </div>
         </div>
       </nav>
