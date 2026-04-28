@@ -56,8 +56,9 @@ const ORDERS_INIT = [
   { id: "#92K0002", cameraName: "Sony ZV-E10", cameraId: 2, accessories: [], days: 7, total: 1260000, name: "Trần Thị Bình", phone: "0912345678", zalo: "0912345678", address: "45 Lê Lợi, Hội An", note: "Cần thêm pin", status: "completed", date: "2026-04-10", seen: true },
   { id: "#92K0003", cameraName: "GoPro Hero 12", cameraId: 5, accessories: ["Mic thu âm", "Pin dự phòng"], days: 1, total: 360000, name: "Lê Văn Cường", phone: "0923456789", zalo: "0923456789", address: "78 Nguyễn Huệ, Tam Kỳ", note: "", status: "confirmed", date: "2026-04-20", seen: true },
 ];
-const SITE_INIT = { zalo: "0855 471 202", address: "Xã Tam Mỹ - Thành Phố Đà Nẵng", tagline: "Trải nghiệm máy ảnh · Bắt giữ khoảnh khắc", desc: "Chúng tôi cung cấp dịch vụ cho thuê máy ảnh khu vực Núi Thành - Tam Kỳ.", phone: "0855 471 202", slogan: "Dịch vụ cho thuê máy ảnh · Núi Thành - Tam Kỳ", stats: [["📸", "50+", "Lượt thuê / tháng"], ["🎬", "10+", "Loại thiết bị"], ["⭐", "98%", "Khách hài lòng"]], zaloLink: "", zaloQR: "" };
+const SITE_INIT = { zalo: "0855 471 202", address: "Xã Tam Mỹ - Thành Phố Đà Nẵng", tagline: "Trải nghiệm máy ảnh · Bắt giữ khoảnh khắc", desc: "Chúng tôi cung cấp dịch vụ cho thuê máy ảnh khu vực Núi Thành - Tam Kỳ.", phone: "0855 471 202", slogan: "Dịch vụ cho thuê máy ảnh · Núi Thành - Tam Kỳ", stats: [["📸", "50+", "Lượt thuê / tháng"], ["🎬", "10+", "Loại thiết bị"], ["⭐", "98%", "Khách hài lòng"]], zaloLink: "", zaloQR: "", socialLinks: { youtube: "", facebook: "", tiktok: "", instagram: "" } };
 const DURATIONS = [{ label: "1 ngày", days: 1 }, { label: "3 ngày", days: 3 }, { label: "7 ngày", days: 7 }, { label: "1 tháng", days: 30 }];
+const QR_CODE = "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnN2Zz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZlcnNpb249IjEuMSIgdmlld0JveD0iLTIgLTIgNzAgNzAiPjxnIGNsYXNzPSJsYXllciI+CiAgPHRpdGxlPkxheWVyIDE8L3RpdGxlPjxwYXRoIGQ9Ik0xIDE2YTEsMSAwIDAsMSAxLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwxIC0xLC0xYTEsMSAwIDAsMSAxLC0xTTEgMjJhMSwxIDAgMCwxIDEsMXYydjJhMSwxIDAgMCwwIDEsMWExLDEgMCAwLDAgMSwtMXYtMnYtMmExLDEgMCAwLDAgLTEsLTFhMSwxIDAgMCwxIC0xLC0xdi0yYTEsMSAwIDAsMSAxLC0xYTEsMSAwIDAsMSAxLDFhMSwxIDAgMCwwIDEsMWExLDEgMCAwLDEgMSwxdjJhMSwxIDAgMCwwIDEsMWExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMCAtMSwxYTEsMSAwIDAsMCAxLDFhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDEgLTEsMWgtMmExLDEgMCAwLDAgLTEsMWExLDEgMCAwLDEgLTEsMWgtMmExLDEgMCAwLDEgLTEsLTF2LTJ2LTJ2LTJ2LTJhMSwxIDAgMCwxIDEsLTFNMSAzNGExLDEgMCAwLDEgMSwxdjJhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwxIC0xLC0xdi0yYTEsMSAwIDAsMSAxLC0xTTEgNDJhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwxIDEsLTFNMSA0OGExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU0zIDQwaDJoMmExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxaC0yaC0yYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU0zIDQ2YTEsMSAwIDAsMSAxLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwxIC0xLC0xYTEsMSAwIDAsMSAxLC0xTTUgMTZoMmExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxaC0yYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU01IDM0YTEsMSAwIDAsMSAxLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwxIC0xLC0xYTEsMSAwIDAsMSAxLC0xTTUgNDRhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwxIDEsLTFNNSA0OGExLDEgMCAwLDAgMSwtMWExLDEgMCAwLDEgMSwtMWExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMCAxLDFoMmgyYTEsMSAwIDAsMSAxLDFhMSwxIDAgMCwxIC0xLDFoLTJoLTJoLTJoLTJhMSwxIDAgMCwxIC0xLC0xYTEsMSAwIDAsMSAxLC0xTTkgMThhMSwxIDAgMCwwIDEsLTFhMSwxIDAgMCwxIDEsLTFoMmgyYTEsMSAwIDAsMSAxLDF2MmExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwwIC0xLC0xYTEsMSAwIDAsMCAtMSwxYTEsMSAwIDAsMCAxLDFhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDAgLTEsMWExLDEgMCAwLDEgLTEsMWgtMmExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwxIDEsLTFhMSwxIDAgMCwwIDEsLTFhMSwxIDAgMCwwIC0xLC0xYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU05IDI2YTEsMSAwIDAsMSAxLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwxIC0xLC0xYTEsMSAwIDAsMSAxLC0xTTkgMzRhMSwxIDAgMCwwIDEsLTFhMSwxIDAgMCwxIDEsLTFoMmExLDEgMCAwLDAgMSwtMWExLDEgMCAwLDAgLTEsLTFoLTJhMSwxIDAgMCwxIC0xLC0xYTEsMSAwIDAsMSAxLC0xaDJoMmExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMCAxLDFhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDAgLTEsMXYyYTEsMSAwIDAsMCAxLDFhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDEgLTEsMWgtMmgtMmExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwxIDEsLTFhMSwxIDAgMCwwIDEsLTFhMSwxIDAgMCwwIC0xLC0xYTEsMSAwIDAsMCAtMSwxYTEsMSAwIDAsMSAtMSwxaC0yYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU05IDM4aDJhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDEgLTEsMWgtMmExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwxIDEsLTFNOSA0MmExLDEgMCAwLDEgMSwxdjJhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwxIC0xLC0xdi0yYTEsMSAwIDAsMSAxLC0xTTEzIDI0YTEsMSAwIDAsMCAxLC0xYTEsMSAwIDAsMSAxLC0xaDJhMSwxIDAgMCwwIDEsLTF2LTJ2LTJhMSwxIDAgMCwwIC0xLC0xYTEsMSAwIDAsMSAtMSwtMXYtMmExLDEgMCAwLDEgMSwtMWExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMCAxLDFhMSwxIDAgMCwwIDEsLTFhMSwxIDAgMCwxIDEsLTFhMSwxIDAgMCwxIDEsMXYyYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMCAtMSwxYTEsMSAwIDAsMCAxLDFhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDAgLTEsMXYyYTEsMSAwIDAsMSAtMSwxaC0yYTEsMSAwIDAsMCAtMSwxYTEsMSAwIDAsMSAtMSwxaC0yYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU0xMyA0MGExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU0xMyA0NGExLDEgMCAwLDAgMSwtMWExLDEgMCAwLDEgMSwtMWExLDEgMCAwLDAgMSwtMWExLDEgMCAwLDEgMSwtMWExLDEgMCAwLDAgMSwtMWExLDEgMCAwLDEgMSwtMWExLDEgMCAwLDEgMSwxdjJhMSwxIDAgMCwwIDEsMWExLDEgMCAwLDAgMSwtMWExLDEgMCAwLDEgMSwtMWExLDEgMCAwLDAgMSwtMXYtMmExLDEgMCAwLDEgMSwtMWgyYTEsMSAwIDAsMCAxLC0xYTEsMSAwIDAsMSAxLC0xaDJhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDAgMSwxYTEsMSAwIDAsMSAxLDFhMSwxIDAgMCwxIC0xLDFoLTJhMSwxIDAgMCwwIC0xLDFhMSwxIDAgMCwxIC0xLDFoLTJhMSwxIDAgMCwwIC0xLDF2MmExLDEgMCAwLDEgLTEsMWgtMmgtMmgtMmgtMmExLDEgMCAwLDAgLTEsMWExLDEgMCAwLDEgLTEsMWgtMmExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwxIDEsLTFNMTcgMGExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMCAxLDFhMSwxIDAgMCwwIDEsLTFhMSwxIDAgMCwxIDEsLTFoMmgyYTEsMSAwIDAsMSAxLDFhMSwxIDAgMCwxIC0xLDFoLTJhMSwxIDAgMCwwIC0xLDF2MmExLDEgMCAwLDAgMSwxYTEsMSAwIDAsMCAxLC0xYTEsMSAwIDAsMSAxLC0xaDJhMSwxIDAgMCwwIDEsLTFhMSwxIDAgMCwxIDEsLTFhMSwxIDAgMCwxIDEsMXYyYTEsMSAwIDAsMSAtMSwxaC0yYTEsMSAwIDAsMCAtMSwxYTEsMSAwIDAsMCAxLDFhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDAgMSwxaDJhMSwxIDAgMCwwIDEsLTFhMSwxIDAgMCwxIDEsLTFhMSwxIDAgMCwwIDEsLTFhMSwxIDAgMCwxIDEsLTFhMSwxIDAgMCwxIDEsMXYydjJhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwwIC0xLDFhMSwxIDAgMCwwIDEsMWExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMCAxLDFhMSwxIDAgMCwwIDEsLTFhMSwxIDAgMCwxIDEsLTFhMSwxIDAgMCwwIDEsLTFhMSwxIDAgMCwwIC0xLC0xYTEsMSAwIDAsMSAtMSwtMXYtMnYtMmExLDEgMCAwLDEgMSwtMWExLDEgMCAwLDEgMSwxdjJhMSwxIDAgMCwwIDEsMWgyaDJhMSwxIDAgMCwxIDEsMXYyYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDAgLTEsLTFhMSwxIDAgMCwwIC0xLDF2MmExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDAgLTEsMXYyYTEsMSAwIDAsMSAtMSwxaC0yYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDAgLTEsLTFhMSwxIDAgMCwxIC0xLC0xYTEsMSAwIDAsMCAtMSwtMWExLDEgMCAwLDAgLTEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTF2LTJhMSwxIDAgMCwxIDEsLTFhMSwxIDAgMCwwIDEsLTFhMSwxIDAgMCwwIC0xLC0xYTEsMSAwIDAsMCAtMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDAgLTEsLTFhMSwxIDAgMCwxIC0xLC0xYTEsMSAwIDAsMCAtMSwtMWgtMmgtMmExLDEgMCAwLDAgLTEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTF2LTJhMSwxIDAgMCwxIDEsLTFhMSwxIDAgMCwwIDEsLTFhMSwxIDAgMCwwIC0xLC0xYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDAgLTEsLTFhMSwxIDAgMCwxIC0xLC0xdi0yYTEsMSAwIDAsMSAxLC0xTTE3IDZhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwxIDEsLTFNMTcgNTBoMmgyYTEsMSAwIDAsMSAxLDFhMSwxIDAgMCwwIDEsMWExLDEgMCAwLDAgMSwtMWExLDEgMCAwLDEgMSwtMWExLDEgMCAwLDEgMSwxdjJhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwwIC0xLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwxIC0xLC0xYTEsMSAwIDAsMCAtMSwtMWExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwwIC0xLC0xYTEsMSAwIDAsMCAtMSwxdjJhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwxIC0xLC0xdi0ydi0yYTEsMSAwIDAsMSAxLC0xTTE3IDU4YTEsMSAwIDAsMCAxLC0xYTEsMSAwIDAsMSAxLC0xYTEsMSAwIDAsMSAxLDF2MmExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDAgLTEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTF2LTJhMSwxIDAgMCwxIDEsLTFNMTcgNjRhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwxIDEsLTFNMTkgMjhhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwxIDEsLTFNMTkgMzJoMmgyaDJhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDAgLTEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwwIC0xLC0xYTEsMSAwIDAsMCAtMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMXYtMmExLDEgMCAwLDEgMSwtMU0xOSA0NmExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU0yMSAyNGExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMCAxLDFhMSwxIDAgMCwxIDEsMXYyYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDAgLTEsLTFhMSwxIDAgMCwxIC0xLC0xdi0yYTEsMSAwIDAsMSAxLC0xTTIxIDM2YTEsMSAwIDAsMSAxLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwxIC0xLC0xYTEsMSAwIDAsMSAxLC0xTTIzIDE2YTEsMSAwIDAsMSAxLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwxIC0xLC0xYTEsMSAwIDAsMSAxLC0xTTIzIDQ4YTEsMSAwIDAsMSAxLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwxIC0xLC0xYTEsMSAwIDAsMSAxLC0xTTIzIDU4YTEsMSAwIDAsMCAxLC0xYTEsMSAwIDAsMSAxLC0xYTEsMSAwIDAsMCAxLC0xYTEsMSAwIDAsMSAxLC0xYTEsMSAwIDAsMSAxLDF2MmExLDEgMCAwLDAgMSwxYTEsMSAwIDAsMSAxLDFhMSwxIDAgMCwxIC0xLDFoLTJoLTJhMSwxIDAgMCwwIC0xLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwxIC0xLC0xdi0yYTEsMSAwIDAsMSAxLC0xTTIzIDY0aDJhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDEgLTEsMWgtMmExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwxIDEsLTFNMjUgMTJhMSwxIDAgMCwxIDEsMXYyYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMXYtMmExLDEgMCAwLDEgMSwtMU0yNSAyMmExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU0yNyAxOGgyYTEsMSAwIDAsMSAxLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwwIC0xLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwxIC0xLC0xdi0yYTEsMSAwIDAsMSAxLC0xTTI3IDQ0YTEsMSAwIDAsMSAxLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwxIC0xLC0xYTEsMSAwIDAsMSAxLC0xTTI3IDYyaDJhMSwxIDAgMCwwIDEsLTFhMSwxIDAgMCwxIDEsLTFhMSwxIDAgMCwwIDEsLTFhMSwxIDAgMCwxIDEsLTFhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDAgMSwxYTEsMSAwIDAsMCAxLC0xYTEsMSAwIDAsMSAxLC0xYTEsMSAwIDAsMSAxLDF2MmExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDAgLTEsMXYyYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMXYtMmExLDEgMCAwLDAgLTEsLTFhMSwxIDAgMCwwIC0xLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwwIC0xLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwxIC0xLC0xYTEsMSAwIDAsMCAtMSwtMWExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwxIDEsLTFNMjkgMjRoMmExLDEgMCAwLDAgMSwtMXYtMmExLDEgMCAwLDEgMSwtMWgyYTEsMSAwIDAsMSAxLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwwIC0xLDFhMSwxIDAgMCwwIDEsMWExLDEgMCAwLDEgMSwxdjJ2MmExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTF2LTJhMSwxIDAgMCwwIC0xLC0xaC0yYTEsMSAwIDAsMCAtMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMXYtMmExLDEgMCAwLDEgMSwtMU0yOSA0OGExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU0yOSA1MmExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU0zMSAzMGExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU0zMSA0MmExLDEgMCAwLDAgMSwtMWExLDEgMCAwLDEgMSwtMWExLDEgMCAwLDAgMSwtMWExLDEgMCAwLDEgMSwtMWExLDEgMCAwLDAgMSwtMWExLDEgMCAwLDEgMSwtMWExLDEgMCAwLDEgMSwxdjJhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwwIC0xLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwwIC0xLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwwIC0xLDF2MmExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTF2LTJ2LTJhMSwxIDAgMCwxIDEsLTFNMzEgNTBhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwxIDEsLTFNMzEgNTRhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwxIDEsLTFNMzMgNGExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU0zMyA0OGgyYTEsMSAwIDAsMSAxLDF2MmExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwwIC0xLC0xYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU0zNSAyYTEsMSAwIDAsMCAxLC0xYTEsMSAwIDAsMSAxLC0xaDJoMmExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxaC0yYTEsMSAwIDAsMCAtMSwxdjJhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwxIC0xLC0xYTEsMSAwIDAsMCAtMSwtMWExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwxIDEsLTFNMzUgNDRoMmExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxaC0yYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU0zNyAxMmExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU0zNyAyMmExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU0zNyAzMGExLDEgMCAwLDAgMSwtMXYtMmExLDEgMCAwLDEgMSwtMWExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMCAxLDFhMSwxIDAgMCwwIDEsLTFhMSwxIDAgMCwxIDEsLTFoMmExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMCAtMSwxdjJhMSwxIDAgMCwwIDEsMWExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMCAxLDFoMmExLDEgMCAwLDAgMSwtMWExLDEgMCAwLDAgLTEsLTFhMSwxIDAgMCwxIC0xLC0xYTEsMSAwIDAsMSAxLC0xaDJhMSwxIDAgMCwwIDEsLTFhMSwxIDAgMCwxIDEsLTFhMSwxIDAgMCwxIDEsMXYydjJ2MmExLDEgMCAwLDAgMSwxYTEsMSAwIDAsMCAxLC0xdi0yYTEsMSAwIDAsMSAxLC0xaDJhMSwxIDAgMCwwIDEsLTFhMSwxIDAgMCwwIC0xLC0xYTEsMSAwIDAsMSAtMSwtMXYtMmExLDEgMCAwLDAgLTEsLTFhMSwxIDAgMCwxIC0xLC0xYTEsMSAwIDAsMSAxLC0xYTEsMSAwIDAsMCAxLC0xYTEsMSAwIDAsMCAtMSwtMWExLDEgMCAwLDAgLTEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwwIC0xLC0xYTEsMSAwIDAsMSAtMSwtMXYtMnYtMmExLDEgMCAwLDEgMSwtMWExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMCAxLDFhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDAgMSwxYTEsMSAwIDAsMCAxLC0xdi0yYTEsMSAwIDAsMSAxLC0xYTEsMSAwIDAsMSAxLDFhMSwxIDAgMCwwIDEsMWExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMCAtMSwxdjJ2MnYyYTEsMSAwIDAsMCAxLDFhMSwxIDAgMCwxIDEsMXYydjJhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwwIC0xLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwwIC0xLDF2MmExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwwIC0xLC0xYTEsMSAwIDAsMCAtMSwxYTEsMSAwIDAsMSAtMSwxaC0yYTEsMSAwIDAsMCAtMSwxdjJhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwwIC0xLDFhMSwxIDAgMCwxIC0xLDFoLTJhMSwxIDAgMCwxIC0xLC0xYTEsMSAwIDAsMSAxLC0xYTEsMSAwIDAsMCAxLC0xdi0yYTEsMSAwIDAsMSAxLC0xYTEsMSAwIDAsMCAxLC0xdi0yYTEsMSAwIDAsMCAtMSwtMWExLDEgMCAwLDAgLTEsMWExLDEgMCAwLDEgLTEsMWgtMmExLDEgMCAwLDAgLTEsMWExLDEgMCAwLDAgMSwxYTEsMSAwIDAsMSAxLDF2MmExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwwIC0xLC0xYTEsMSAwIDAsMCAtMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMXYtMmExLDEgMCAwLDEgMSwtMWExLDEgMCAwLDAgMSwtMXYtMnYtMmExLDEgMCAwLDEgMSwtMWExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMCAxLDFhMSwxIDAgMCwwIDEsLTFhMSwxIDAgMCwwIC0xLC0xYTEsMSAwIDAsMSAtMSwtMXYtMmExLDEgMCAwLDAgLTEsLTFhMSwxIDAgMCwwIC0xLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwwIC0xLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwxIC0xLC0xdi0yYTEsMSAwIDAsMSAxLC0xTTM3IDUyYTEsMSAwIDAsMCAxLC0xYTEsMSAwIDAsMSAxLC0xYTEsMSAwIDAsMSAxLDFhMSwxIDAgMCwwIDEsMWExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMCAxLDFhMSwxIDAgMCwwIDEsLTFhMSwxIDAgMCwxIDEsLTFhMSwxIDAgMCwwIDEsLTFhMSwxIDAgMCwxIDEsLTFhMSwxIDAgMCwwIDEsLTFhMSwxIDAgMCwxIDEsLTFhMSwxIDAgMCwwIDEsLTF2LTJhMSwxIDAgMCwxIDEsLTFhMSwxIDAgMCwxIDEsMXYyYTEsMSAwIDAsMCAxLDFoMmExLDEgMCAwLDAgMSwtMWExLDEgMCAwLDEgMSwtMWExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMCAxLDFhMSwxIDAgMCwxIDEsMXYyYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMCAtMSwxYTEsMSAwIDAsMCAxLDFoMmExLDEgMCAwLDAgMSwtMXYtMmExLDEgMCAwLDEgMSwtMWExLDEgMCAwLDEgMSwxdjJ2MmExLDEgMCAwLDAgMSwxYTEsMSAwIDAsMSAxLDF2MmExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwwIC0xLC0xaC0yYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDAgLTEsLTFhMSwxIDAgMCwwIC0xLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwwIC0xLDF2MmExLDEgMCAwLDAgMSwxYTEsMSAwIDAsMSAxLDF2MmExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwwIC0xLC0xaC0yYTEsMSAwIDAsMSAtMSwtMXYtMmExLDEgMCAwLDEgMSwtMWExLDEgMCAwLDAgMSwtMWExLDEgMCAwLDAgLTEsLTFoLTJoLTJhMSwxIDAgMCwwIC0xLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwwIC0xLDF2MnYyYTEsMSAwIDAsMSAtMSwxaC0yYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMWExLDEgMCAwLDAgMSwtMWExLDEgMCAwLDAgLTEsLTFhMSwxIDAgMCwwIC0xLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwxIC0xLC0xdi0yYTEsMSAwIDAsMSAxLC0xaDJhMSwxIDAgMCwwIDEsLTFhMSwxIDAgMCwwIC0xLC0xYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDAgLTEsLTFhMSwxIDAgMCwwIC0xLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwxIC0xLC0xdi0yYTEsMSAwIDAsMCAtMSwtMWExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwxIDEsLTFNMzkgNjRhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwxIDEsLTFNNDEgNGExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU00MSAyMGExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU00MSA0NmExLDEgMCAwLDEgMSwxdjJhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwxIC0xLC0xdi0yYTEsMSAwIDAsMSAxLC0xTTQzIDE2aDJhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDAgLTEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTF2LTJhMSwxIDAgMCwxIDEsLTFNNDUgMGgyYTEsMSAwIDAsMSAxLDF2MmExLDEgMCAwLDEgLTEsMWgtMmExLDEgMCAwLDEgLTEsLTF2LTJhMSwxIDAgMCwxIDEsLTFNNDUgNmExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU00NSA0OGExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU00NyAxOGExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMCAxLDFhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDAgLTEsMXYyYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMXYtMnYtMnYtMmExLDEgMCAwLDEgMSwtMU00OSA0YTEsMSAwIDAsMSAxLDF2MmExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTF2LTJhMSwxIDAgMCwxIDEsLTFNNDkgMTBhMSwxIDAgMCwxIDEsMXYyYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMXYtMmExLDEgMCAwLDEgMSwtMU00OSAxNmExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU00OSA2MmExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU01MSAyMmExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU01MSA1NmgyaDJhMSwxIDAgMCwwIDEsLTF2LTJ2LTJhMSwxIDAgMCwwIC0xLC0xaC0yaC0yYTEsMSAwIDAsMCAtMSwxdjJ2MmExLDEgMCAwLDAgMSwxTTUzIDQyYTEsMSAwIDAsMSAxLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwxIC0xLC0xYTEsMSAwIDAsMSAxLC0xTTUzIDUyYTEsMSAwIDAsMSAxLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwxIC0xLC0xYTEsMSAwIDAsMSAxLC0xTTU1IDQ0YTEsMSAwIDAsMSAxLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwxIC0xLC0xYTEsMSAwIDAsMSAxLC0xTTU5IDQwaDJhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDAgLTEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTF2LTJhMSwxIDAgMCwxIDEsLTFNNTkgNThhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwxIDEsLTFNNjEgMzZhMSwxIDAgMCwwIDEsLTFhMSwxIDAgMCwxIDEsLTFoMmExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMCAtMSwxYTEsMSAwIDAsMSAtMSwxaC0yYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU02MSA2MGExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU02MSA2NGExLDEgMCAwLDEgMSwxYTEsMSAwIDAsMSAtMSwxYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMU02MyAxNmgyYTEsMSAwIDAsMSAxLDF2MnYyYTEsMSAwIDAsMSAtMSwxaC0yYTEsMSAwIDAsMSAtMSwtMWExLDEgMCAwLDEgMSwtMWExLDEgMCAwLDAgMSwtMWExLDEgMCAwLDAgLTEsLTFhMSwxIDAgMCwxIC0xLC0xYTEsMSAwIDAsMSAxLC0xTTYzIDI2YTEsMSAwIDAsMSAxLDFhMSwxIDAgMCwxIC0xLDFhMSwxIDAgMCwxIC0xLC0xYTEsMSAwIDAsMSAxLC0xTTYzIDQ0YTEsMSAwIDAsMCAxLC0xYTEsMSAwIDAsMSAxLC0xYTEsMSAwIDAsMSAxLDF2MmExLDEgMCAwLDEgLTEsMWgtMmExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwxIDEsLTFNNjUgNDhhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwxIDEsLTFNNjUgNjJhMSwxIDAgMCwxIDEsMWExLDEgMCAwLDEgLTEsMWExLDEgMCAwLDEgLTEsLTFhMSwxIDAgMCwxIDEsLTEiIGZpbGwtcnVsZT0iZXZlbm9kZCIgZmlsbD0iI2ZmZmZmZiIgaWQ9InN2Z18xIiAvPjwvZz48cGF0aCBkPSJNMywwaDhhMywzIDAgMCwxIDMsM3Y4YTMsMyAwIDAsMSAtMywzaC04YTMsMyAwIDAsMSAtMywtM3YtOGEzLDMgMCAwLDEgMywtM3pNNC4xLDJhMi4wOTk5OTk5OTk5OTk5OTk2LDIuMDk5OTk5OTk5OTk5OTk5NiAwIDAsMCAtMi4wOTk5OTk5OTk5OTk5OTk2LDIuMDk5OTk5OTk5OTk5OTk5NnY1LjgwMDAwMDAwMDAwMDAwMWEyLjA5OTk5OTk5OTk5OTk5OTYsMi4wOTk5OTk5OTk5OTk5OTk2IDAgMCwwIDIuMDk5OTk5OTk5OTk5OTk5NiwyLjA5OTk5OTk5OTk5OTk5OTZoNS44MDAwMDAwMDAwMDAwMDFhMi4wOTk5OTk5OTk5OTk5OTk2LDIuMDk5OTk5OTk5OTk5OTk5NiAwIDAsMCAyLjA5OTk5OTk5OTk5OTk5OTYsLTIuMDk5OTk5OTk5OTk5OTk5NnYtNS44MDAwMDAwMDAwMDAwMDFhMi4wOTk5OTk5OTk5OTk5OTk2LDIuMDk5OTk5OTk5OTk5OTk5NiAwIDAsMCAtMi4wOTk5OTk5OTk5OTk5OTk2LC0yLjA5OTk5OTk5OTk5OTk5OTZoLTUuODAwMDAwMDAwMDAwMDAxek01LjUsNGgzYTEuNSwxLjUgMCAwLDEgMS41LDEuNXYzYTEuNSwxLjUgMCAwLDEgLTEuNSwxLjVoLTNhMS41LDEuNSAwIDAsMSAtMS41LC0xLjV2LTNhMS41LDEuNSAwIDAsMSAxLjUsLTEuNXoiIGZpbGw9IiNmZmZmZmYiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPgo8cGF0aCBkPSJNNTUsMGg4YTMsMyAwIDAsMSAzLDN2OGEzLDMgMCAwLDEgLTMsM2gtOGEzLDMgMCAwLDEgLTMsLTN2LThhMywzIDAgMCwxIDMsLTN6TTU2LjEsMmEyLjA5OTk5OTk5OTk5OTk5OTYsMi4wOTk5OTk5OTk5OTk5OTk2IDAgMCwwIC0yLjA5OTk5OTk5OTk5OTk5OTYsMi4wOTk5OTk5OTk5OTk5OTk2djUuODAwMDAwMDAwMDAwMDAxYTIuMDk5OTk5OTk5OTk5OTk5NiwyLjA5OTk5OTk5OTk5OTk5OTYgMCAwLDAgMi4wOTk5OTk5OTk5OTk5OTk2LDIuMDk5OTk5OTk5OTk5OTk5Nmg1LjgwMDAwMDAwMDAwMDAwMWEyLjA5OTk5OTk5OTk5OTk5OTYsMi4wOTk5OTk5OTk5OTk5OTk2IDAgMCwwIDIuMDk5OTk5OTk5OTk5OTk5NiwtMi4wOTk5OTk5OTk5OTk5OTk2di01LjgwMDAwMDAwMDAwMDAwMWEyLjA5OTk5OTk5OTk5OTk5OTYsMi4wOTk5OTk5OTk5OTk5OTk2IDAgMCwwIC0yLjA5OTk5OTk5OTk5OTk5OTYsLTIuMDk5OTk5OTk5OTk5OTk5NmgtNS44MDAwMDAwMDAwMDAwMDF6TTU3LjUsNGgzYTEuNSwxLjUgMCAwLDEgMS41LDEuNXYzYTEuNSwxLjUgMCAwLDEgLTEuNSwxLjVoLTNhMS41LDEuNSAwIDAsMSAtMS41LC0xLjV2LTNhMS41LDEuNSAwIDAsMSAxLjUsLTEuNXoiIGZpbGw9IiNmZmZmZmYiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPgo8cGF0aCBkPSJNMyw1Mmg4YTMsMyAwIDAsMSAzLDN2OGEzLDMgMCAwLDEgLTMsM2gtOGEzLDMgMCAwLDEgLTMsLTN2LThhMywzIDAgMCwxIDMsLTN6TTQuMSw1NGEyLjA5OTk5OTk5OTk5OTk5OTYsMi4wOTk5OTk5OTk5OTk5OTk2IDAgMCwwIC0yLjA5OTk5OTk5OTk5OTk5OTYsMi4wOTk5OTk5OTk5OTk5OTk2djUuODAwMDAwMDAwMDAwMDAxYTIuMDk5OTk5OTk5OTk5OTk5NiwyLjA5OTk5OTk5OTk5OTk5OTYgMCAwLDAgMi4wOTk5OTk5OTk5OTk5OTk2LDIuMDk5OTk5OTk5OTk5OTk5Nmg1LjgwMDAwMDAwMDAwMDAwMWEyLjA5OTk5OTk5OTk5OTk5OTYsMi4wOTk5OTk5OTk5OTk5OTk2IDAgMCwwIDIuMDk5OTk5OTk5OTk5OTk5NiwtMi4wOTk5OTk5OTk5OTk5OTk2di01LjgwMDAwMDAwMDAwMDAwMWEyLjA5OTk5OTk5OTk5OTk5OTYsMi4wOTk5OTk5OTk5OTk5OTk2IDAgMCwwIC0yLjA5OTk5OTk5OTk5OTk5OTYsLTIuMDk5OTk5OTk5OTk5OTk5NmgtNS44MDAwMDAwMDAwMDAwMDF6TTUuNSw1NmgzYTEuNSwxLjUgMCAwLDEgMS41LDEuNXYzYTEuNSwxLjUgMCAwLDEgLTEuNSwxLjVoLTNhMS41LDEuNSAwIDAsMSAtMS41LC0xLjV2LTNhMS41LDEuNSAwIDAsMSAxLjUsLTEuNXoiIGZpbGw9IiNmZmZmZmYiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPm51bGw8L3N2Zz4=";
 const REV_DATA = [{ m: "T1", v: 3200000 }, { m: "T2", v: 4800000 }, { m: "T3", v: 3900000 }, { m: "T4", v: 5500000 }, { m: "T5 (dự)", v: 6200000 }];
 const STATUS_CFG = {
   available: { label: "Còn máy", color: "#22c55e" },
@@ -1630,34 +1631,81 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
   return (
     <div style={{ position: "relative", zIndex: 1, fontFamily: '"Times New Roman",Georgia,serif', color: TXT }}>
       {/* NAV */}
-      <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, padding: isMobile ? "12px 16px" : "16px 60px", display: "flex", alignItems: "center", justifyContent: "space-between", background: scrollY > 60 ? "rgba(4,4,4,0.97)" : "transparent", backdropFilter: scrollY > 60 ? "blur(28px)" : "none", borderBottom: scrollY > 60 ? `1px solid ${BR}` : "none", transition: "all .4s" }}>
-        <div onClick={handleLogoClick} style={{ cursor: "default" }}><Logo size={isMobile ? 0.68 : 0.82} /></div>
-        <div style={{ display: "flex", gap: isMobile ? 10 : 24, alignItems: "center" }}>
-          {!isMobile && [["MÁY ẢNH", "cameras"], ["PHỤ KIỆN", "accessories"], ["FEEDBACK", "feedback"], ["VỀ CHÚNG TÔI", "about"]].map(([t, id]) => (
-            <button key={t} onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
-              style={{ color: MUT, fontSize: 11, background: "none", border: "none", cursor: "pointer", letterSpacing: 2.5, transition: "color .2s", fontFamily: "system-ui,sans-serif", padding: 0 }}
-              onMouseEnter={e => e.currentTarget.style.color = TXT} onMouseLeave={e => e.currentTarget.style.color = MUT}>{t}</button>
-          ))}
-          {!isMobile && (loggedUser ? (
-            <button onClick={onOpenCustomer || onOpenLogin} style={{ color: G, fontSize: 11, background: G + "15", border: `1px solid ${G}44`, padding: "5px 14px 5px 5px", borderRadius: 99, cursor: "pointer", letterSpacing: 1, fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 26, height: 26, borderRadius: "50%", background: G + "33", border: `1px solid ${G}55`, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}>
-                {loggedUser.avatar ? <img src={loggedUser.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : loggedUser.name?.[0]?.toUpperCase()}
-              </div>
-              <span style={{ maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{loggedUser.displayName || loggedUser.name}</span>
-            </button>
-          ) : (
-            <button onClick={onOpenLogin} style={{ color: MUT, fontSize: 11, background: "none", border: `1px solid ${BR}`, padding: "7px 16px", borderRadius: 3, cursor: "pointer", letterSpacing: 2, transition: "all .2s", fontFamily: "system-ui,sans-serif" }}>ĐĂNG NHẬP</button>
-          ))}
-          <button onClick={onBook} style={{ background: G, color: "#000", border: "none", padding: isMobile ? "8px 16px" : "9px 22px", borderRadius: 3, cursor: "pointer", fontWeight: 700, fontSize: 11, letterSpacing: 2, fontFamily: "system-ui,sans-serif", boxShadow: `0 0 20px ${G}44` }}>THUÊ NGAY</button>
-          {isMobile && (loggedUser ? (
-            <button onClick={onOpenCustomer || onOpenLogin} style={{ color: G, fontSize: 10, background: G + "15", border: `1px solid ${G}44`, padding: "4px", borderRadius: 99, cursor: "pointer", fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center" }}>
-              <div style={{ width: 28, height: 28, borderRadius: "50%", background: G + "33", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>
-                {loggedUser.avatar ? <img src={loggedUser.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : loggedUser.name?.[0]?.toUpperCase()}
-              </div>
-            </button>
-          ) : (
-            <button onClick={onOpenLogin} style={{ color: MUT, fontSize: 10, background: "none", border: `1px solid ${BR}`, padding: "6px 10px", borderRadius: 3, cursor: "pointer", letterSpacing: 1, fontFamily: "system-ui,sans-serif" }}>ĐĂNG NHẬP</button>
-          ))}
+      <nav className="nav92" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, padding: scrollY > 60 ? "0" : "10px 24px 0" }}>
+        <div className={`nav-inner${scrollY > 60 ? " scrolled" : ""}`}
+          style={{ display: "flex", alignItems: "center", padding: isMobile ? "10px 14px" : "0 20px", height: isMobile ? "auto" : 56, gap: isMobile ? 10 : 0 }}>
+
+          {/* LOGO */}
+          <div onClick={handleLogoClick} style={{ cursor: "default", flexShrink: 0, marginRight: isMobile ? 0 : 28 }}>
+            <Logo size={isMobile ? 0.65 : 0.78} />
+          </div>
+
+          {/* NAV LINKS — desktop only */}
+          {!isMobile && (
+            <>
+              <div className="nav-div" style={{ marginRight: 20 }} />
+              {[["MÁY ẢNH", "cameras"], ["PHỤ KIỆN", "accessories"], ["FEEDBACK", "feedback"], ["VỀ CHÚNG TÔI", "about"]].map(([t, id]) => (
+                <button key={t} className="nav-link"
+                  onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                  style={{ marginRight: 20 }}>{t}</button>
+              ))}
+              <div className="nav-div" />
+            </>
+          )}
+
+          {/* SPACER */}
+          <div style={{ flex: 1 }} />
+
+          {/* SOCIAL ICONS — desktop */}
+          {!isMobile && (
+            <div style={{ display: "flex", gap: 6, marginRight: 12 }}>
+              {/* YouTube */}
+              <button className="nav-social" title="YouTube"
+                onClick={() => { const u = siteContent.socialLinks?.youtube; if (u) window.open(u, "_blank"); }}
+                style={{ opacity: siteContent.socialLinks?.youtube ? 1 : 0.32, cursor: siteContent.socialLinks?.youtube ? "pointer" : "default" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 00-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 001.46 6.42 29 29 0 001 12a29 29 0 00.46 5.58 2.78 2.78 0 001.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 001.95-1.96A29 29 0 0023 12a29 29 0 00-.46-5.58zM9.75 15.02V8.98L15.5 12l-5.75 3.02z"/></svg>
+              </button>
+              {/* Facebook */}
+              <button className="nav-social" title="Facebook"
+                onClick={() => { const u = siteContent.socialLinks?.facebook; if (u) window.open(u, "_blank"); }}
+                style={{ opacity: siteContent.socialLinks?.facebook ? 1 : 0.32, cursor: siteContent.socialLinks?.facebook ? "pointer" : "default" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>
+              </button>
+              {/* TikTok */}
+              <button className="nav-social" title="TikTok"
+                onClick={() => { const u = siteContent.socialLinks?.tiktok; if (u) window.open(u, "_blank"); }}
+                style={{ opacity: siteContent.socialLinks?.tiktok ? 1 : 0.32, cursor: siteContent.socialLinks?.tiktok ? "pointer" : "default" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.79a4.85 4.85 0 01-1.01-.1z"/></svg>
+              </button>
+              {/* Instagram */}
+              <button className="nav-social" title="Instagram"
+                onClick={() => { const u = siteContent.socialLinks?.instagram; if (u) window.open(u, "_blank"); }}
+                style={{ opacity: siteContent.socialLinks?.instagram ? 1 : 0.32, cursor: siteContent.socialLinks?.instagram ? "pointer" : "default" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+              </button>
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {/* USER */}
+            {loggedUser ? (
+              <button onClick={onOpenCustomer || onOpenLogin}
+                style={{ color: G, fontSize: isMobile ? 10 : 11, background: G + "15", border: `1px solid ${G}44`, padding: isMobile ? "4px" : "4px 12px 4px 4px", borderRadius: 99, cursor: "pointer", letterSpacing: 1, fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 7, boxShadow: `0 2px 8px ${G}22` }}>
+                <div style={{ width: isMobile ? 28 : 26, height: isMobile ? 28 : 26, borderRadius: "50%", background: G + "33", border: `1px solid ${G}55`, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}>
+                  {loggedUser.avatar ? <img src={loggedUser.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : loggedUser.name?.[0]?.toUpperCase()}
+                </div>
+                {!isMobile && <span style={{ maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{loggedUser.displayName || loggedUser.name}</span>}
+              </button>
+            ) : (
+              !isMobile && <button onClick={onOpenLogin}
+                style={{ color: MUT, fontSize: 10, background: "rgba(255,255,255,0.03)", border: `1px solid rgba(255,255,255,0.08)`, padding: "7px 14px", borderRadius: 6, cursor: "pointer", letterSpacing: 2, transition: "all .2s", fontFamily: "system-ui,sans-serif", boxShadow: "0 2px 4px rgba(0,0,0,0.3)" }}
+                onMouseEnter={e => { e.currentTarget.style.color = TXT; e.currentTarget.style.borderColor = `${G}55`; e.currentTarget.style.background = `${G}10`; }}
+                onMouseLeave={e => { e.currentTarget.style.color = MUT; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}>ĐĂNG NHẬP</button>
+            )}
+
+            {/* 3D CTA BUTTON */}
+            <button className="btn-3d" onClick={onBook}>THUÊ NGAY</button>
+          </div>
         </div>
       </nav>
 
@@ -1684,7 +1732,7 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
         {!isMobile && <div style={{ position: "absolute", right: 48, top: "50%", width: 1, height: 120, background: `linear-gradient(to bottom,transparent,${G}55,transparent)`, transform: "translateY(-50%)" }} />}
 
         {/* ── Slogan ── */}
-        <div style={{ fontSize: 10, letterSpacing: 8, color: "#444", marginBottom: 22, fontFamily: "system-ui,sans-serif", textTransform: "uppercase" }}>{siteContent.slogan}</div>
+        <div style={{ fontSize: 10, letterSpacing: 8, color: "#888", marginBottom: 22, fontFamily: "system-ui,sans-serif", textTransform: "uppercase" }}>{siteContent.slogan}</div>
 
         {/* ── Logo — vừa phải, centered ── */}
         <Logo size={isMobile ? 1.3 : 1.8} />
@@ -1697,7 +1745,7 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
         </div>
 
         {/* ── Tagline ── */}
-        <div style={{ fontSize: 13, color: "#4a4a4a", letterSpacing: 3.5, fontStyle: "italic", marginBottom: 8 }}>{siteContent.tagline}</div>
+        <div style={{ fontSize: 13, color: "#7a7570", letterSpacing: 3.5, fontStyle: "italic", marginBottom: 8 }}>{siteContent.tagline}</div>
 
         {/* ── Camera ticker ── */}
         <div style={{ marginTop: 14, padding: "6px 20px", background: "rgba(14,14,14,0.8)", border: `1px solid ${BR}`, borderRadius: 99, fontSize: 12, color: MUT, letterSpacing: 1, minWidth: 220, textAlign: "center", backdropFilter: "blur(8px)" }}>{marquee[ticker % marquee.length]}</div>
@@ -1818,9 +1866,45 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
       {/* FOOTER */}
       <footer style={{ borderTop: `1px solid ${BR}`, padding: isMobile ? "20px 16px" : "28px 60px", display: "flex", flexWrap: "wrap", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 10 : 16 }}>
         <Logo size={0.7} />
-        <div style={{ color: "#333", fontSize: 12, fontFamily: "system-ui,sans-serif", letterSpacing: 1 }}>Zalo: {siteContent.zalo} · {siteContent.address}</div>
-        <div style={{ color: "#222", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>© 2026 92 KA MÊ RA</div>
+        <div style={{ color: "#666", fontSize: 12, fontFamily: "system-ui,sans-serif", letterSpacing: 1 }}>Zalo: {siteContent.zalo} · {siteContent.address}</div>
+        <div style={{ color: "#444", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>© 2026 92 KA MÊ RA</div>
       </footer>
+
+      {/* QR góc phải — hover để phóng to */}
+      <style>{`
+        .qr-corner{ position:fixed; bottom:20px; right:20px; z-index:999; cursor:pointer; }
+        .qr-wrap{
+          display:flex; flex-direction:column; align-items:center; gap:6px;
+          transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+          transform-origin: bottom right;
+          transform: scale(1);
+        }
+        .qr-corner:hover .qr-wrap{ transform: scale(3.2); }
+        .qr-box{
+          width:44px; height:44px; padding:3px;
+          background: transparent;
+          border-radius:5px;
+          box-shadow: 0 0 0 1px rgba(201,168,76,0.25);
+          line-height:0;
+          transition: box-shadow .3s;
+        }
+        .qr-corner:hover .qr-box{ box-shadow: 0 0 0 2px rgba(201,168,76,0.6), 0 4px 20px rgba(0,0,0,0.7); }
+        .qr-label{
+          font-size:6px; letter-spacing:1.5px; color:#555;
+          font-family:system-ui,sans-serif;
+          white-space:nowrap;
+          transition: color .3s;
+        }
+        .qr-corner:hover .qr-label{ color:#c9a84c; }
+      `}</style>
+      <div className="qr-corner">
+        <div className="qr-wrap">
+          <div className="qr-box">
+            <img src={QR_CODE} alt="QR Zalo" style={{ width:"100%", height:"100%", display:"block", imageRendering:"pixelated" }} />
+          </div>
+          <div className="qr-label">QR LIÊN HỆ</div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -2964,6 +3048,34 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
               </div>
 
               <div>
+                {/* SOCIAL LINKS */}
+                <div style={{ background: CARD2, border: `1px solid ${BR2}`, borderRadius: 10, padding: 22, marginBottom: 14 }}>
+                  <div style={{ color: TXT, fontWeight: 600, marginBottom: 6, fontSize: 13 }}>🔗 Link mạng xã hội (4 logo đầu trang)</div>
+                  <div style={{ color: MUT, fontSize: 11, marginBottom: 16, lineHeight: 1.6 }}>Dán link vào ô tương ứng. Logo nào có link sẽ sáng lên và click được. Để trống = mờ, không click.</div>
+                  {[
+                    { k: "youtube", label: "YouTube", icon: "▶", ph: "https://youtube.com/@kenh-cua-ban" },
+                    { k: "facebook", label: "Facebook", icon: "f", ph: "https://facebook.com/page-cua-ban" },
+                    { k: "tiktok", label: "TikTok", icon: "♪", ph: "https://tiktok.com/@tenban" },
+                    { k: "instagram", label: "Instagram", icon: "◎", ph: "https://instagram.com/tenban" },
+                  ].map(({ k, label, icon, ph }) => (
+                    <div key={k} style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 6, background: siteContent.socialLinks?.[k] ? `${G}22` : "#111", border: `1px solid ${siteContent.socialLinks?.[k] ? G + "55" : BR2}`, display: "flex", alignItems: "center", justifyContent: "center", color: siteContent.socialLinks?.[k] ? G : MUT, fontSize: 12, flexShrink: 0, fontWeight: 700 }}>{icon}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ color: MUT, fontSize: 10, marginBottom: 3, letterSpacing: 1 }}>{label.toUpperCase()}</div>
+                        <input
+                          style={{ ...inp2, fontSize: 11 }}
+                          value={siteContent.socialLinks?.[k] || ""}
+                          placeholder={ph}
+                          onChange={e => setSiteContent(p => ({ ...p, socialLinks: { ...(p.socialLinks || {}), [k]: e.target.value } }))}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  <button onClick={saveSiteContent} style={{ ...btn("gold") }}>
+                    {saved ? "✓ Đã lưu!" : "💾 Lưu link mạng xã hội"}
+                  </button>
+                </div>
+
                 {/* ZALO CONFIG */}
                 <div style={{ background: CARD2, border: `1px solid #06c75530`, borderRadius: 10, padding: 22, marginBottom: 14 }}>
                   <div style={{ color: TXT, fontWeight: 600, marginBottom: 6, fontSize: 13 }}>💬 Cấu hình Zalo thanh toán</div>
@@ -3348,6 +3460,134 @@ function AppRoot() {
         select option{background:#111;color:#f0e8d0}
         input[type=date]{color-scheme:dark}
         input:focus,textarea:focus,select:focus{border-color:#c9a84c55!important;outline:none;}
+
+        /* ── NAV 3D STYLES ── */
+        .nav92{
+          transition: all .4s cubic-bezier(.4,0,.2,1);
+        }
+        .nav-inner{
+          background: linear-gradient(180deg, rgba(14,13,11,0.98) 0%, rgba(10,9,8,0.98) 100%);
+          border: 1px solid rgba(201,168,76,0.18);
+          border-radius: 14px;
+          box-shadow:
+            0 2px 0 rgba(201,168,76,0.12),
+            0 8px 32px rgba(0,0,0,0.7),
+            0 1px 0 rgba(255,255,255,0.04) inset,
+            0 -1px 0 rgba(0,0,0,0.6) inset;
+          transform: perspective(900px) rotateX(1deg);
+          transform-origin: top center;
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
+          transition: all .4s cubic-bezier(.4,0,.2,1);
+        }
+        .nav-inner.scrolled{
+          border-radius: 0 0 14px 14px;
+          transform: perspective(900px) rotateX(0deg);
+          box-shadow:
+            0 4px 0 rgba(201,168,76,0.10),
+            0 12px 40px rgba(0,0,0,0.8),
+            0 1px 0 rgba(255,255,255,0.04) inset;
+        }
+        .nav-link{
+          position: relative;
+          color: #666;
+          font-size: 10px;
+          background: none;
+          border: none;
+          cursor: pointer;
+          letter-spacing: 2.5px;
+          padding: 6px 2px;
+          font-family: system-ui,sans-serif;
+          transition: color .2s;
+        }
+        .nav-link::after{
+          content:'';
+          position: absolute;
+          bottom: 0; left: 50%; right: 50%;
+          height: 1px;
+          background: #c9a84c;
+          transition: left .25s, right .25s;
+        }
+        .nav-link:hover{ color: #f0e8d0; }
+        .nav-link:hover::after{ left: 0; right: 0; }
+
+        /* 3D gold CTA button */
+        .btn-3d{
+          position: relative;
+          background: linear-gradient(180deg, #d4b060 0%, #c9a84c 40%, #b8922e 100%);
+          color: #0a0800;
+          border: none;
+          padding: 10px 22px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 800;
+          font-size: 11px;
+          letter-spacing: 2px;
+          font-family: system-ui,sans-serif;
+          box-shadow:
+            0 1px 0 rgba(255,220,120,0.5) inset,
+            0 -3px 0 rgba(0,0,0,0.4) inset,
+            0 4px 0 #7a5c10,
+            0 6px 16px rgba(201,168,76,0.4);
+          transform: translateY(0);
+          transition: transform .1s, box-shadow .1s;
+        }
+        .btn-3d:hover{
+          transform: translateY(-1px);
+          box-shadow:
+            0 1px 0 rgba(255,220,120,0.5) inset,
+            0 -3px 0 rgba(0,0,0,0.4) inset,
+            0 5px 0 #7a5c10,
+            0 8px 22px rgba(201,168,76,0.5);
+        }
+        .btn-3d:active{
+          transform: translateY(3px);
+          box-shadow:
+            0 1px 0 rgba(255,220,120,0.3) inset,
+            0 -1px 0 rgba(0,0,0,0.4) inset,
+            0 1px 0 #7a5c10,
+            0 2px 8px rgba(201,168,76,0.3);
+        }
+
+        /* Social icon buttons */
+        .nav-social{
+          width: 30px; height: 30px;
+          border-radius: 6px;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.07);
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer;
+          color: #555;
+          transition: all .2s;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.04) inset;
+        }
+        .nav-social:hover{
+          background: rgba(201,168,76,0.12);
+          border-color: rgba(201,168,76,0.3);
+          color: #c9a84c;
+          box-shadow: 0 3px 8px rgba(201,168,76,0.2), 0 1px 0 rgba(255,255,255,0.06) inset;
+          transform: translateY(-1px);
+        }
+
+        /* phone number */
+        .nav-phone{
+          font-size: 11px;
+          letter-spacing: 1.5px;
+          color: #888;
+          font-family: system-ui,sans-serif;
+          padding: 6px 12px;
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.07);
+          border-radius: 6px;
+          white-space: nowrap;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          transition: all .2s;
+        }
+        .nav-phone:hover{ color: #c9a84c; border-color: rgba(201,168,76,0.25); }
+
+        /* divider */
+        .nav-div{ width:1px; height:20px; background: rgba(255,255,255,0.08); flex-shrink:0; }
+
         @media(max-width:767px){
           input,select,textarea{font-size:16px!important;}
           ::-webkit-scrollbar{display:none}
