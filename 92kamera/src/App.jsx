@@ -10,7 +10,7 @@ const newCamId = () => _camIdNum++;
 const fmtVND = (n) => new Intl.NumberFormat("vi-VN").format(n || 0) + " ₫";
 const todayStr = () => new Date().toISOString().split("T")[0];
 
-const G = "#c9a84c", BG = "#060606", CARD = "#0d0d0d", BR = "#1d1d1d", TXT = "#f0e8d0", MUT = "#666", RED = "#cc3333";
+const G = "#c9a84c", BG = "#060606", CARD = "#161410", BR = "#2a2a2a", TXT = "#f0e8d0", MUT = "#666", RED = "#cc3333";
 const CARD2 = "#0d0d0d", BR2 = "#1a1a1a";
 
 // ── GOOGLE OAUTH ──
@@ -1763,28 +1763,10 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
 
         {/* ── CTA Buttons — all handlers preserved ── */}
         <div style={{ marginTop: 36, display: "flex", gap: 12 }}>
-          <button onClick={onBook} style={{ padding: "13px 40px", background: G, color: "#000", border: "none", borderRadius: 2, cursor: "pointer", fontWeight: 700, fontSize: 12, letterSpacing: 2.5, fontFamily: "system-ui,sans-serif", boxShadow: `0 4px 28px ${G}55` }}>THUÊ NGAY</button>
-          <button onClick={() => document.getElementById("cameras")?.scrollIntoView({ behavior: "smooth", block: "start" })} style={{ padding: "13px 40px", background: "transparent", color: TXT, border: `1px solid ${BR}`, borderRadius: 2, fontSize: 12, letterSpacing: 2.5, fontFamily: "system-ui,sans-serif", cursor: "pointer" }}>XEM MÁY ẢNH</button>
+          <button onClick={onBook} style={{ padding: "7px 20px", background: G, color: "#000", border: "none", borderRadius: 2, cursor: "pointer", fontWeight: 700, fontSize: 10, letterSpacing: 2.5, fontFamily: "system-ui,sans-serif", boxShadow: `0 4px 28px ${G}55` }}>THUÊ NGAY</button>
+          <button onClick={() => document.getElementById("cameras")?.scrollIntoView({ behavior: "smooth", block: "start" })} style={{ padding: "7px 20px", background: "transparent", color: TXT, border: `1px solid ${BR}`, borderRadius: 2, fontSize: 10, letterSpacing: 2.5, fontFamily: "system-ui,sans-serif", cursor: "pointer" }}>XEM MÁY ẢNH</button>
         </div>
 
-        {/* ── USP badges — 2 items only ── */}
-        <div style={{ marginTop: 26, display: "inline-flex", border: `1px solid ${BR}`, borderRadius: 6, overflow: "hidden", background: "rgba(6,6,6,0.55)", backdropFilter: "blur(12px)" }}>
-          <div style={{ padding: "11px 28px", display: "flex", alignItems: "center", gap: 10 }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
-            <div style={{ textAlign: "left" }}>
-              <div style={{ fontSize: 8.5, letterSpacing: 2, color: G, fontFamily: "system-ui,sans-serif", fontWeight: 700, lineHeight: 1.4 }}>THỦ TỤC</div>
-              <div style={{ fontSize: 8.5, letterSpacing: 2, color: TXT, fontFamily: "system-ui,sans-serif", fontWeight: 600, lineHeight: 1.4 }}>NHANH GỌN</div>
-            </div>
-          </div>
-          <div style={{ width: 1, background: BR, margin: "10px 0" }} />
-          <div style={{ padding: "11px 28px", display: "flex", alignItems: "center", gap: 10 }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
-            <div style={{ textAlign: "left" }}>
-              <div style={{ fontSize: 8.5, letterSpacing: 2, color: G, fontFamily: "system-ui,sans-serif", fontWeight: 700, lineHeight: 1.4 }}>HỖ TRỢ</div>
-              <div style={{ fontSize: 8.5, letterSpacing: 2, color: TXT, fontFamily: "system-ui,sans-serif", fontWeight: 600, lineHeight: 1.4 }}>24 / 7</div>
-            </div>
-          </div>
-        </div>
 
       </div>
 
@@ -1855,6 +1837,23 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
           <h2 style={{ fontSize: 36, fontWeight: 400, letterSpacing: 2, margin: "0 0 10px" }}>Không cần đăng ký tài khoản</h2>
           <p style={{ color: MUT, fontSize: 14, marginBottom: 32, letterSpacing: 1 }}>Chọn máy → Chọn ngày → Chốt Zalo. Đơn giản vậy thôi.</p>
           <button onClick={onBook} style={{ padding: "16px 56px", background: G, color: "#000", border: "none", borderRadius: 2, cursor: "pointer", fontWeight: 700, fontSize: 13, letterSpacing: 3, fontFamily: "system-ui,sans-serif", boxShadow: `0 4px 40px ${G}55` }}>BẮT ĐẦU ĐẶT THUÊ</button>
+          <div style={{ marginTop: 28, display: "flex", justifyContent: "center" }}><div style={{ display: "inline-flex", border: `1px solid ${BR}`, borderRadius: 6, overflow: "hidden", background: "rgba(6,6,6,0.55)", backdropFilter: "blur(12px)" }}>
+            <div style={{ padding: "11px 28px", display: "flex", alignItems: "center", gap: 10 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontSize: 8.5, letterSpacing: 2, color: G, fontFamily: "system-ui,sans-serif", fontWeight: 700, lineHeight: 1.4 }}>THỦ TỤC</div>
+                <div style={{ fontSize: 8.5, letterSpacing: 2, color: TXT, fontFamily: "system-ui,sans-serif", fontWeight: 600, lineHeight: 1.4 }}>NHANH GỌN</div>
+              </div>
+            </div>
+            <div style={{ width: 1, background: BR, margin: "10px 0" }} />
+            <div style={{ padding: "11px 28px", display: "flex", alignItems: "center", gap: 10 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontSize: 8.5, letterSpacing: 2, color: G, fontFamily: "system-ui,sans-serif", fontWeight: 700, lineHeight: 1.4 }}>HỖ TRỢ</div>
+                <div style={{ fontSize: 8.5, letterSpacing: 2, color: TXT, fontFamily: "system-ui,sans-serif", fontWeight: 600, lineHeight: 1.4 }}>24 / 7</div>
+              </div>
+            </div>
+          </div></div>
         </div>
       </div>
 
@@ -3279,6 +3278,81 @@ class AppErrorBoundary extends Component {
 
 // ── ROOT ──
 
+// ── FLOW BACKGROUND (aurora blobs) ──
+function FlowBg() {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    let raf;
+
+    const resize = () => {
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resize();
+    window.addEventListener("resize", resize, { passive: true });
+
+    // Blob definitions — pastel sáng tươi như web Polaris/Nhật
+    const blobs = [
+      { x: 0.08, y: 0.18, r: 0.70, color: "rgba(140,210,245,",  ox: 0.12, oy: 0.10, sx: 0.00028, sy: 0.00020, alpha: 0.38 }, // xanh trời nhạt
+      { x: 0.88, y: 0.20, r: 0.62, color: "rgba(100,230,210,",  ox: 0.13, oy: 0.09, sx: 0.00025, sy: 0.00018, alpha: 0.33 }, // aqua mint
+      { x: 0.50, y: 0.60, r: 0.58, color: "rgba(170,235,190,",  ox: 0.10, oy: 0.13, sx: 0.00019, sy: 0.00030, alpha: 0.30 }, // xanh lá pastel
+      { x: 0.12, y: 0.82, r: 0.52, color: "rgba(245,170,170,",  ox: 0.09, oy: 0.11, sx: 0.00017, sy: 0.00026, alpha: 0.28 }, // hồng đào nhạt
+      { x: 0.80, y: 0.78, r: 0.48, color: "rgba(155,220,240,",  ox: 0.11, oy: 0.12, sx: 0.00032, sy: 0.00022, alpha: 0.30 }, // xanh biển nhạt
+      { x: 0.55, y: 0.12, r: 0.44, color: "rgba(210,245,200,",  ox: 0.14, oy: 0.08, sx: 0.00022, sy: 0.00028, alpha: 0.26 }, // xanh lá vàng nhạt
+    ];
+
+    let t = 0;
+    const draw = () => {
+      const W = canvas.width, H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
+
+      // Dark base
+      ctx.fillStyle = "#050a07";
+      ctx.fillRect(0, 0, W, H);
+
+      // Draw each blob as a radial gradient
+      blobs.forEach(b => {
+        const cx = (b.x + Math.sin(t * b.sx * 1000) * b.ox) * W;
+        const cy = (b.y + Math.cos(t * b.sy * 1000) * b.oy) * H;
+        const radius = b.r * Math.max(W, H);
+
+        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+        grad.addColorStop(0,   b.color + b.alpha + ")");
+        grad.addColorStop(0.4, b.color + (b.alpha * 0.5) + ")");
+        grad.addColorStop(1,   b.color + "0)");
+
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+      });
+
+      // Subtle vignette — nhẹ để màu pastel nổi
+      const vig = ctx.createRadialGradient(W/2, H/2, H*0.2, W/2, H/2, H*0.85);
+      vig.addColorStop(0, "rgba(0,0,0,0)");
+      vig.addColorStop(1, "rgba(0,0,0,0.30)");
+      ctx.fillStyle = vig;
+      ctx.fillRect(0, 0, W, H);
+
+      t += 1;
+      raf = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", resize);
+    };
+  }, []);
+
+  return (
+    <canvas ref={canvasRef} style={{
+      position: "fixed", inset: 0, zIndex: 0,
+      pointerEvents: "none", display: "block",
+    }} />
+  );
+}
+
 // ── SPLASH SCREEN ──
 function SplashScreen({ onDone }) {
   const [phase, setPhase] = useState(0); // 0=in, 1=hold, 2=out
@@ -3546,11 +3620,12 @@ function AppRoot() {
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: BG }}>
+    <div style={{ minHeight: "100vh", background: BG, position: "relative" }}>
+      <FlowBg />
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
         html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
-        body{background:#060606;overflow-x:hidden;}
+        body{background:#050a07;overflow-x:hidden;} canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
         ::-webkit-scrollbar{width:4px;height:4px}
         ::-webkit-scrollbar-track{background:#060606}
         ::-webkit-scrollbar-thumb{background:#222;border-radius:2px}
