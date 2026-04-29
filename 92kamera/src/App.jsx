@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense, Component } from "react";
-import * as THREE from "three";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from "recharts";
 
 // ── HELPERS ──
@@ -194,230 +193,116 @@ function CamImage({ cam, height = 176 }) {
 }
 
 // ── 3D SCENE (desktop only) ──
-function CameraScene() {
-  const ref = useRef(null);
-  useEffect(() => {
-    const el = ref.current; if (!el) return;
-    const W = el.clientWidth || window.innerWidth, H = el.clientHeight || window.innerHeight;
-    const isMob = window.innerWidth < 768;
-    const SEG = isMob ? 28 : 56; // Geometry segments: half on mobile for better performance
-    const renderer = new THREE.WebGLRenderer({ antialias: !isMob, alpha: true, powerPreference: "low-power" });
-    renderer.setSize(W, H); renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMob ? 1 : 2));
-    el.appendChild(renderer.domElement);
-    const scene = new THREE.Scene();
-
-    // Camera closer → camera body fills more of the hero like reference
-    const cam3d = new THREE.PerspectiveCamera(40, W / H, 0.1, 100);
-    cam3d.position.set(0, 0.6, 4.0);
-    cam3d.lookAt(0, 0.2, 0);
-
-    scene.fog = new THREE.FogExp2(0x000000, 0.028);
-
-    // ── Lighting (cinematic warm + dramatic like reference) ──
-    scene.add(new THREE.AmbientLight(0x0a0806, 1));
-
-    // Warm amber key — upper-left (the dominant warm glow in reference)
-    const kl = new THREE.DirectionalLight(0xc8721a, 3.8); kl.position.set(-4, 6, 3); scene.add(kl);
-
-    // Back-light — warm orange from behind camera body (creates the halo glow)
-    const backL = new THREE.PointLight(0xb85c08, 5, 14); backL.position.set(0, 2.5, -5); scene.add(backL);
-
-    // Animated warm fill — top-left sweeping light
-    const swingL = new THREE.PointLight(0xc9a84c, 3.5, 16); swingL.position.set(-5, 3, 1); scene.add(swingL);
-
-    // Cool blue rim from right (separation light)
-    const rimL = new THREE.DirectionalLight(0x0d2040, 1.4); rimL.position.set(6, 0, -3); scene.add(rimL);
-
-    // Red accent — pulsing (for the recording dot atmosphere)
-    const redL = new THREE.PointLight(0xcc2200, 2.8, 9); redL.position.set(2.5, -0.5, 3.5); scene.add(redL);
-
-    // Platform/floor up-light — subtle gold from below
-    const floorL = new THREE.PointLight(0xc9a84c, 1.8, 7); floorL.position.set(0, -4, 0.5); scene.add(floorL);
-
-    // ── Materials ──
-    const mBody  = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.10, metalness: 0.98 });
-    const mDark  = new THREE.MeshStandardMaterial({ color: 0x0c0c0c, roughness: 0.14, metalness: 0.95 });
-    const mMid   = new THREE.MeshStandardMaterial({ color: 0x1c1c1c, roughness: 0.22, metalness: 0.92 });
-    const mGold  = new THREE.MeshStandardMaterial({ color: 0xc9a84c, roughness: 0.06, metalness: 1.0 });
-    const mGlass = new THREE.MeshStandardMaterial({ color: 0x020510, roughness: 0.0, metalness: 0.12, transparent: true, opacity: 0.96 });
-    const mGlassDeep = new THREE.MeshStandardMaterial({ color: 0x04080e, roughness: 0.02, metalness: 0.08, transparent: true, opacity: 0.99 });
-    const mRed   = new THREE.MeshStandardMaterial({ color: 0xdd1100, roughness: 0.2, metalness: 0.5, emissive: 0xcc0000, emissiveIntensity: 1.4 });
-    const mGrip  = new THREE.MeshStandardMaterial({ color: 0x070707, roughness: 0.99, metalness: 0.01 });
-    const mSilv  = new THREE.MeshStandardMaterial({ color: 0x777777, roughness: 0.10, metalness: 0.98 });
-    const mPlat  = new THREE.MeshStandardMaterial({ color: 0x090909, roughness: 0.04, metalness: 0.85 });
-    const mRingD = new THREE.MeshStandardMaterial({ color: 0x252525, roughness: 0.08, metalness: 0.94 });
-
-    const GRP = new THREE.Group(); scene.add(GRP);
-    // Scale up significantly so camera fills the hero background like reference
-    GRP.scale.set(1.55, 1.55, 1.55);
-    GRP.position.set(0, 0.25, 0);
-
-    // ── Camera Body ──
-    GRP.add(new THREE.Mesh(new THREE.BoxGeometry(3.0, 2.05, 1.55), mBody));
-
-    // Top viewfinder hump
-    const hump = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.58, 1.35), mMid);
-    hump.position.set(-0.52, 1.32, 0); GRP.add(hump);
-
-    // Grip (right)
-    const grip = new THREE.Mesh(new THREE.BoxGeometry(0.44, 1.82, 0.52), mGrip);
-    grip.position.set(1.32, -0.05, -0.1); GRP.add(grip);
-    // Grip ridges
-    for (let i = 0; i < 9; i++) {
-      const gr = new THREE.Mesh(new THREE.BoxGeometry(0.41, 0.04, 0.5), mDark);
-      gr.position.set(1.32, -0.68 + i * 0.17, -0.1); GRP.add(gr);
-    }
-
-    // Strap lugs both sides
-    [-1.52, 1.52].forEach(x => {
-      const l = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.48, 0.36), mMid);
-      l.position.set(x, 0.62, 0); GRP.add(l);
-      const hole = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.028, 6, 12), mGold);
-      hole.position.set(x, 0.62, 0); hole.rotation.z = Math.PI / 2; GRP.add(hole);
-    });
-
-    // ── Lens System — multi-stage like reference ──
-    // Mounting plate (large base disk)
-    const mountPlate = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.0, 0.07, SEG), mMid);
-    mountPlate.rotation.x = Math.PI / 2; mountPlate.position.set(0, 0, 0.82); GRP.add(mountPlate);
-
-    // Outer chrome mounting ring
-    const mountRing = new THREE.Mesh(new THREE.TorusGeometry(0.98, 0.055, 8, SEG + 16), mSilv);
-    mountRing.position.set(0, 0, 0.86); GRP.add(mountRing);
-
-    // Stage 1 — focus/zoom barrel (outermost, widest)
-    const b1 = new THREE.Mesh(new THREE.CylinderGeometry(0.92, 0.92, 0.75, SEG), mDark);
-    b1.rotation.x = Math.PI / 2; b1.position.set(0, 0, 1.22); GRP.add(b1);
-    // Knurled focus ring on stage 1
-    const focusRingGeo = new THREE.CylinderGeometry(0.94, 0.94, 0.28, SEG);
-    const focusMesh = new THREE.Mesh(focusRingGeo, mRingD);
-    focusMesh.rotation.x = Math.PI / 2; focusMesh.position.set(0, 0, 1.05); GRP.add(focusMesh);
-    for (let i = 0; i < (isMob ? 22 : 44); i++) {
-      const a = (i / (isMob ? 22 : 44)) * Math.PI * 2;
-      const tk = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.29, 0.016), mMid);
-      tk.position.set(Math.cos(a) * 0.94, Math.sin(a) * 0.94, 1.05); tk.rotation.z = a; GRP.add(tk);
-    }
-    // Gold line ring after stage 1
-    const gl1 = new THREE.Mesh(new THREE.TorusGeometry(0.90, 0.022, 6, SEG + 16), mGold);
-    gl1.position.set(0, 0, 1.28); GRP.add(gl1);
-
-    // Stage 2 — aperture barrel
-    const b2 = new THREE.Mesh(new THREE.CylinderGeometry(0.76, 0.76, 0.58, SEG), mDark);
-    b2.rotation.x = Math.PI / 2; b2.position.set(0, 0, 1.55); GRP.add(b2);
-    const gl2r = new THREE.Mesh(new THREE.TorusGeometry(0.74, 0.018, 6, SEG + 16), mGold);
-    gl2r.position.set(0, 0, 1.58); GRP.add(gl2r);
-    const sr1 = new THREE.Mesh(new THREE.TorusGeometry(0.74, 0.016, 6, SEG + 16), mSilv);
-    sr1.position.set(0, 0, 1.76); GRP.add(sr1);
-
-    // Stage 3 — inner barrel
-    const b3 = new THREE.Mesh(new THREE.CylinderGeometry(0.59, 0.59, 0.44, SEG), mDark);
-    b3.rotation.x = Math.PI / 2; b3.position.set(0, 0, 1.80); GRP.add(b3);
-    const gl3 = new THREE.Mesh(new THREE.TorusGeometry(0.57, 0.016, 6, SEG + 16), mGold);
-    gl3.position.set(0, 0, 1.83); GRP.add(gl3);
-
-    // Stage 4 — front element housing
-    const b4 = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.44, 0.30, SEG), mDark);
-    b4.rotation.x = Math.PI / 2; b4.position.set(0, 0, 2.00); GRP.add(b4);
-
-    // Front lens glass (large dark circle)
-    const frontGlass = new THREE.Mesh(new THREE.CircleGeometry(0.42, 72), mGlass);
-    frontGlass.position.set(0, 0, 2.16); GRP.add(frontGlass);
-
-    // Lens internal reflection rings
-    [0.32, 0.21, 0.12].forEach((r, i) => {
-      const lrm = new THREE.Mesh(new THREE.TorusGeometry(r, 0.010 - i * 0.002, 6, 72),
-        new THREE.MeshStandardMaterial({ color: 0x404040 + i * 0x080808, roughness: 0.06, metalness: 0.94 }));
-      lrm.position.set(0, 0, 2.17); GRP.add(lrm);
-    });
-
-    // Deep center glass
-    const glDeep = new THREE.Mesh(new THREE.CircleGeometry(0.10, 48), mGlassDeep);
-    glDeep.position.set(0, 0, 2.18); GRP.add(glDeep);
-
-    // ── Top Controls ──
-    const dial1 = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.18, 22), mMid);
-    dial1.position.set(-0.88, 1.07, 0.3); GRP.add(dial1);
-    const dial2 = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.14, 18), mMid);
-    dial2.position.set(-0.28, 1.07, 0.3); GRP.add(dial2);
-    const shutBase = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.07, 18), mSilv);
-    shutBase.position.set(0.9, 1.07, 0.42); GRP.add(shutBase);
-    const shutBtn = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.12, 0.04, 18), mGold);
-    shutBtn.position.set(0.9, 1.12, 0.42); GRP.add(shutBtn);
-
-    // Red record dot (emissive glow)
-    const rd = new THREE.Mesh(new THREE.SphereGeometry(0.092, 16, 16), mRed);
-    rd.position.set(1.32, 0.80, -0.58); GRP.add(rd);
-
-    // ── Platform / Pedestal (like reference — dark stage under camera) ──
-    const platGRP = new THREE.Group(); scene.add(platGRP);
-
-    // Main platform top surface
-    const platTop = new THREE.Mesh(new THREE.BoxGeometry(6.0, 0.16, 3.6), mPlat);
-    platTop.position.set(0, -2.02, 0); platGRP.add(platTop);
-    // Gold rim edge on platform
-    const platRim = new THREE.Mesh(new THREE.BoxGeometry(6.04, 0.022, 3.64), mGold);
-    platRim.position.set(0, -1.94, 0); platGRP.add(platRim);
-    // Mid tier
-    const platMid = new THREE.Mesh(new THREE.BoxGeometry(5.0, 0.10, 3.0), mPlat);
-    platMid.position.set(0, -2.20, 0); platGRP.add(platMid);
-
-    // Reflective floor plane
-    const refl = new THREE.Mesh(new THREE.PlaneGeometry(16, 10),
-      new THREE.MeshStandardMaterial({ color: 0x040404, roughness: 0.03, metalness: 0.88, transparent: true, opacity: 0.55 }));
-    refl.rotation.x = -Math.PI / 2; refl.position.set(0, -2.32, 0); platGRP.add(refl);
-
-    // ── Particles ──
-    const N = isMob ? 120 : 300; const pPos = new Float32Array(N * 3);
-    for (let i = 0; i < N; i++) {
-      pPos[i * 3]     = (Math.random() - .5) * 28;
-      pPos[i * 3 + 1] = (Math.random() - .5) * 22;
-      pPos[i * 3 + 2] = (Math.random() - .5) * 16;
-    }
-    const pGeo = new THREE.BufferGeometry(); pGeo.setAttribute("position", new THREE.BufferAttribute(pPos, 3));
-    const pts = new THREE.Points(pGeo, new THREE.PointsMaterial({ color: 0xc9a84c, size: 0.055, transparent: true, opacity: 0.38 }));
-    scene.add(pts);
-
-    let mx = 0, my = 0, t = 0, raf;
-    const onMM = (e) => { mx = (e.clientX / W - .5) * 2; my = -(e.clientY / H - .5) * 2; };
-    window.addEventListener("mousemove", onMM, { passive: true });
-    const tick = () => {
-      raf = requestAnimationFrame(tick); t += 0.008;
-      // Slower, stately rotation — mouse follow + gentle auto-spin
-      GRP.rotation.y += (mx * 0.38 - GRP.rotation.y) * 0.026;
-      GRP.rotation.x += (my * 0.10 - GRP.rotation.x) * 0.026;
-      GRP.rotation.y += 0.0022;
-      // Gentle float
-      GRP.position.y = 0.25 + Math.sin(t) * 0.09;
-      // Animated warm swing light
-      swingL.position.x = Math.cos(t * 0.35) * 5 - 1.5;
-      swingL.position.y = Math.sin(t * 0.28) * 2 + 3;
-      // Pulsing red dot atmosphere
-      redL.intensity = 2.4 + Math.sin(t * 2.2) * 0.6;
-      pts.rotation.y += 0.00055;
-      renderer.render(scene, cam3d);
-    };
-    tick();
-    const onR = () => { const w = window.innerWidth, h = window.innerHeight; cam3d.aspect = w / h; cam3d.updateProjectionMatrix(); renderer.setSize(w, h); };
-    window.addEventListener("resize", onR, { passive: true });
-    return () => { cancelAnimationFrame(raf); window.removeEventListener("mousemove", onMM); window.removeEventListener("resize", onR); renderer.dispose(); if (el.contains(renderer.domElement)) el.removeChild(renderer.domElement); };
-  }, []);
-  return <div ref={ref} style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }} />;
-}
-
-// ── MOBILE BACKGROUND (replaces heavy 3D scene) ──
-function MobileBackground() {
+function LensBackground({ isMob }) {
+  const cx = isMob ? "50%" : "72%", cy = "50%";
+  const rings = [
+    { r: 48, w: 1.2, op: 0.55, col: "#c9a84c" },
+    { r: 44, w: 2.5, op: 0.18, col: "#1a1612" },
+    { r: 41, w: 1.0, op: 0.45, col: "#b8924a" },
+    { r: 37, w: 3.5, op: 0.20, col: "#141210" },
+    { r: 33, w: 1.0, op: 0.40, col: "#a07838" },
+    { r: 29, w: 4.0, op: 0.22, col: "#0e0c0a" },
+    { r: 25, w: 0.8, op: 0.35, col: "#906828" },
+    { r: 21, w: 3.5, op: 0.24, col: "#0a0806" },
+    { r: 17, w: 0.7, op: 0.28, col: "#806020" },
+    { r: 13, w: 2.5, op: 0.26, col: "#080604" },
+    { r: 9,  w: 0.6, op: 0.22, col: "#705818" },
+    { r: 5,  w: 1.5, op: 0.28, col: "#060402" },
+  ];
+  // vmin unit: dùng % của min(vw,vh)
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", background: "#060606", overflow: "hidden" }}>
-      {/* Radial gold glow center */}
-      <div style={{ position: "absolute", top: "38%", left: "50%", transform: "translate(-50%,-50%)", width: 340, height: 340, background: "radial-gradient(circle, #c9a84c0d 0%, transparent 70%)", borderRadius: "50%" }} />
-      {/* Warm amber top-left glow */}
-      <div style={{ position: "absolute", top: "-10%", left: "-10%", width: 280, height: 280, background: "radial-gradient(circle, #c8721a0a 0%, transparent 65%)", borderRadius: "50%" }} />
-      {/* Red dot glow bottom-right */}
-      <div style={{ position: "absolute", bottom: "20%", right: "-5%", width: 200, height: 200, background: "radial-gradient(circle, #cc22000a 0%, transparent 70%)", borderRadius: "50%" }} />
-      {/* Subtle scanline texture */}
-      <div style={{ position: "absolute", inset: 0, backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(201,168,76,0.012) 3px, rgba(201,168,76,0.012) 4px)" }} />
+      {/* Lens body — dark circle lớn */}
+      <div style={{
+        position: "absolute",
+        left: cx, top: cy,
+        transform: "translate(-50%,-50%)",
+        width: "96vmin", height: "96vmin",
+        borderRadius: "50%",
+        background: "radial-gradient(circle at 48% 46%, #1a1410 0%, #0c0a08 30%, #060504 60%, #020202 100%)",
+        boxShadow: "0 0 0 3px #2a2218, 0 0 0 6px #1a1410, 0 0 80px 20px rgba(0,0,0,0.9)",
+      }} />
+
+      {/* Warm glow top-left như ảnh mẫu */}
+      <div style={{
+        position: "absolute", top: "-5%", left: isMob ? "10%" : "18%",
+        width: "55vmin", height: "55vmin", borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(180,100,20,0.18) 0%, rgba(140,70,10,0.08) 40%, transparent 70%)",
+        pointerEvents: "none",
+      }} />
+
+      {/* Concentric barrel rings */}
+      {rings.map((rr, i) => (
+        <div key={i} style={{
+          position: "absolute",
+          left: cx, top: cy,
+          transform: "translate(-50%,-50%)",
+          width: `${rr.r * 2}vmin`, height: `${rr.r * 2}vmin`,
+          borderRadius: "50%",
+          border: `${rr.w}px solid ${rr.col}`,
+          opacity: rr.op,
+          boxShadow: i % 2 === 0 ? `0 0 ${4 + i}px rgba(180,130,40,${rr.op * 0.6})` : "none",
+        }} />
+      ))}
+
+      {/* Inner glass reflection — highlight nhỏ */}
+      <div style={{
+        position: "absolute",
+        left: cx, top: cy,
+        transform: `translate(calc(-50% + ${isMob ? "2vmin" : "2vmin"}), calc(-50% - 3vmin))`,
+        width: "3.5vmin", height: "3.5vmin", borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(255,255,220,0.55) 0%, rgba(200,180,100,0.2) 50%, transparent 100%)",
+      }} />
+      <div style={{
+        position: "absolute",
+        left: cx, top: cy,
+        transform: "translate(calc(-50% + 4vmin), calc(-50% - 5vmin))",
+        width: "1.8vmin", height: "1.8vmin", borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(255,255,255,0.35) 0%, transparent 100%)",
+      }} />
+
+      {/* Deep center glass */}
+      <div style={{
+        position: "absolute",
+        left: cx, top: cy,
+        transform: "translate(-50%,-50%)",
+        width: "8vmin", height: "8vmin", borderRadius: "50%",
+        background: "radial-gradient(circle, #050810 0%, #020408 60%, #010204 100%)",
+        boxShadow: "0 0 8px 2px rgba(0,0,50,0.6)",
+      }} />
+
+      {/* Bokeh particles */}
+      {[
+        { x:"78%", y:"22%", s:"1.2vmin", op:0.25 },
+        { x:"85%", y:"38%", s:"0.8vmin", op:0.18 },
+        { x:"62%", y:"15%", s:"0.6vmin", op:0.20 },
+        { x:"90%", y:"60%", s:"1.0vmin", op:0.15 },
+        { x:"58%", y:"80%", s:"0.7vmin", op:0.18 },
+        { x:"92%", y:"75%", s:"0.5vmin", op:0.12 },
+      ].map((p,i) => (
+        <div key={i} style={{
+          position:"absolute", left:p.x, top:p.y,
+          width:p.s, height:p.s, borderRadius:"50%",
+          background:"#c9a84c", opacity:p.op,
+        }} />
+      ))}
+
+      {/* Gradient overlay trái — chữ dễ đọc */}
+      <div style={{ position:"absolute", inset:0, background: isMob
+        ? "linear-gradient(to right, rgba(6,6,6,0.96) 0%, rgba(6,6,6,0.8) 55%, rgba(6,6,6,0.1) 100%)"
+        : "linear-gradient(to right, rgba(6,6,6,0.95) 0%, rgba(6,6,6,0.72) 35%, rgba(6,6,6,0.15) 58%, rgba(6,6,6,0.0) 75%)"
+      }} />
     </div>
   );
+}
+
+function CameraScene() {
+  return <LensBackground isMob={false} />;
+}
+
+
+function MobileBackground() {
+  return <LensBackground isMob={true} />;
 }
 
 // ── FEEDBACK CARD (dùng chung cho cả mobile & desktop) ──
@@ -1731,52 +1616,64 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
       </nav>
 
       {/* HERO */}
-      <div style={{ height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: isMobile ? "0 16px" : "0 24px", userSelect: "none", position: "relative", overflow: "hidden" }}>
+      <div style={{ height: "100vh", position: "relative", overflow: "hidden", userSelect: "none" }}>
+
+        {/* ── Camera specs top-right ── */}
+        {!isMobile && <div style={{ position: "absolute", top: 100, right: 48, textAlign: "right", zIndex: 4 }}>
+          {["4K", "24FPS", "WB 5600K"].map(t => (
+            <div key={t} style={{ fontSize: 11, letterSpacing: 3, color: "#5a5550", fontFamily: "system-ui,sans-serif", lineHeight: 2 }}>{t}</div>
+          ))}
+        </div>}
+
+        {/* ── Battery top-right bottom ── */}
+        {!isMobile && <div style={{ position: "absolute", bottom: 56, right: 48, display: "flex", alignItems: "center", gap: 8, zIndex: 4 }}>
+          <div style={{ fontSize: 11, letterSpacing: 2, color: "#4a4540", fontFamily: "system-ui,sans-serif" }}>87%</div>
+          <div style={{ position: "relative", width: 28, height: 13, border: `1px solid #4a4540`, borderRadius: 3 }}>
+            <div style={{ position: "absolute", right: -4, top: "50%", transform: "translateY(-50%)", width: 3, height: 7, background: "#4a4540", borderRadius: "0 1px 1px 0" }} />
+            <div style={{ margin: 2, height: "calc(100% - 4px)", width: "87%", background: "#5a6a4a", borderRadius: 1 }} />
+          </div>
+        </div>}
+
+        {/* ── Camera specs bottom-left ── */}
+        <div style={{ position: "absolute", bottom: isMobile ? 100 : 56, left: isMobile ? 20 : 48, zIndex: 4 }}>
+          {["ISO 400", "F 1.8", "1/50"].map(t => (
+            <div key={t} style={{ fontSize: 11, letterSpacing: 2, color: "#4a4540", fontFamily: "system-ui,sans-serif", lineHeight: 1.9 }}>{t}</div>
+          ))}
+        </div>
+
+        {/* ── Hero content — left-aligned ── */}
+        <div style={{ position: "absolute", top: "50%", transform: "translateY(-50%)", left: isMobile ? 20 : 60, zIndex: 4, maxWidth: isMobile ? "90%" : 520 }}>
+
+          {/* Label */}
+          <div style={{ fontSize: 9.5, letterSpacing: 5, color: G, fontFamily: "system-ui,sans-serif", marginBottom: 18, opacity: 0.85 }}>
+            DỊCH VỤ CHO THUÊ MÁY ẢNH NÚI THÀNH · TAM KỲ
+          </div>
+
+          {/* Logo dùng component chuẩn */}
+          <Logo size={isMobile ? 1.6 : 2.4} />
+
+          {/* Tagline 2 dòng */}
+          <div style={{ marginTop: 20, marginBottom: 32 }}>
+            <div style={{ fontSize: isMobile ? 12 : 15, letterSpacing: isMobile ? 4 : 6, color: "#7a7570", fontFamily: "system-ui,sans-serif", lineHeight: 2 }}>TRẢI NGHIỆM MÁY ẢNH</div>
+            <div style={{ fontSize: isMobile ? 12 : 15, letterSpacing: isMobile ? 4 : 6, color: "#7a7570", fontFamily: "system-ui,sans-serif", lineHeight: 2 }}>BẮT GIỮ KHOẢNH KHẮC</div>
+          </div>
+
+          {/* CTA Buttons */}
+          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+            <button onClick={onBook} style={{ padding: "11px 28px", background: G, color: "#000", border: "none", borderRadius: 3, cursor: "pointer", fontWeight: 700, fontSize: 11, letterSpacing: 3, fontFamily: "system-ui,sans-serif", boxShadow: `0 4px 28px ${G}55` }}>THUÊ NGAY</button>
+            <button onClick={() => document.getElementById("about")?.scrollIntoView({ behavior: "smooth" })} style={{ display: "flex", alignItems: "center", gap: 12, background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>
+              <div style={{ width: 38, height: 38, borderRadius: "50%", border: `1px solid ${BR}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="10" height="12" viewBox="0 0 10 12" fill={TXT}><polygon points="0,0 10,6 0,12"/></svg>
+              </div>
+              <span style={{ fontSize: 11, letterSpacing: 3, color: TXT, fontFamily: "system-ui,sans-serif" }}>XEM GIỚI THIỆU</span>
+            </button>
+          </div>
+        </div>
 
         {/* ── Shooting stars ── */}
         <div style={{ position: "absolute", top: "8%", right: "18%", width: 120, height: 1.5, background: `linear-gradient(to left, ${G}cc, ${G}44, transparent)`, borderRadius: 2, animation: "shootA 5.5s ease-in 0s infinite", boxShadow: `0 0 6px ${G}88` }} />
         <div style={{ position: "absolute", top: "14%", right: "32%", width: 80, height: 1, background: `linear-gradient(to left, ${G}99, transparent)`, borderRadius: 2, animation: "shootB 7s ease-in 1.8s infinite" }} />
         <div style={{ position: "absolute", top: "6%", right: "8%", width: 55, height: 1, background: `linear-gradient(to left, #c8703388, transparent)`, borderRadius: 2, animation: "shootC 9s ease-in 3.2s infinite" }} />
-        <div style={{ position: "absolute", top: "22%", left: "12%", width: 70, height: 1, background: `linear-gradient(to right, ${G}77, transparent)`, borderRadius: 2, transform: "rotate(40deg)", animation: "shootB 8s ease-in 2.5s infinite" }} />
-
-        {/* ── Ambient particles ── */}
-        {[
-          { left: "8%", top: "30%", s: 2 }, { left: "88%", top: "20%", s: 1.5 },
-          { left: "15%", top: "70%", s: 1 }, { left: "78%", top: "65%", s: 2 },
-          { left: "92%", top: "45%", s: 1.5 }, { left: "4%", top: "55%", s: 1 },
-        ].map((p, i) => (
-          <div key={i} style={{ position: "absolute", left: p.left, top: p.top, width: p.s, height: p.s, borderRadius: "50%", background: G, opacity: .18, animation: `twinkle ${2.8 + i * .7}s ease-in-out ${i * .5}s infinite` }} />
-        ))}
-
-        {/* ── Side accent lines — hidden on mobile ── */}
-        {!isMobile && <div style={{ position: "absolute", left: 48, top: "50%", width: 1, height: 120, background: `linear-gradient(to bottom,transparent,${G}55,transparent)`, transform: "translateY(-50%)" }} />}
-        {!isMobile && <div style={{ position: "absolute", right: 48, top: "50%", width: 1, height: 120, background: `linear-gradient(to bottom,transparent,${G}55,transparent)`, transform: "translateY(-50%)" }} />}
-
-        {/* ── Slogan ── */}
-        <div style={{ fontSize: 10, letterSpacing: 8, color: "#888", marginBottom: 22, fontFamily: "system-ui,sans-serif", textTransform: "uppercase" }}>{siteContent.slogan}</div>
-
-        {/* ── Logo — vừa phải, centered ── */}
-        <Logo size={isMobile ? 1.3 : 1.8} />
-
-        {/* ── Divider ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 18, margin: "24px 0 20px" }}>
-          <div style={{ width: 44, height: 1, background: `linear-gradient(to right,transparent,${G})` }} />
-          <div style={{ width: 5, height: 5, borderRadius: "50%", background: RED, boxShadow: `0 0 6px ${RED}88` }} />
-          <div style={{ width: 44, height: 1, background: `linear-gradient(to left,transparent,${G})` }} />
-        </div>
-
-        {/* ── Tagline ── */}
-        <div style={{ fontSize: 13, color: "#7a7570", letterSpacing: 3.5, fontStyle: "italic", marginBottom: 8 }}>{siteContent.tagline}</div>
-
-        {/* ── Camera ticker ── */}
-        <div style={{ marginTop: 14, padding: "6px 20px", background: "rgba(14,14,14,0.8)", border: `1px solid ${BR}`, borderRadius: 99, fontSize: 12, color: MUT, letterSpacing: 1, minWidth: 220, textAlign: "center", backdropFilter: "blur(8px)" }}>{marquee[ticker % marquee.length]}</div>
-
-        {/* ── CTA Buttons — all handlers preserved ── */}
-        <div style={{ marginTop: 36, display: "flex", gap: 12 }}>
-          <button onClick={onBook} style={{ padding: "7px 20px", background: G, color: "#000", border: "none", borderRadius: 2, cursor: "pointer", fontWeight: 700, fontSize: 10, letterSpacing: 2.5, fontFamily: "system-ui,sans-serif", boxShadow: `0 4px 28px ${G}55` }}>THUÊ NGAY</button>
-          <button onClick={() => document.getElementById("cameras")?.scrollIntoView({ behavior: "smooth", block: "start" })} style={{ padding: "7px 20px", background: "transparent", color: TXT, border: `1px solid ${BR}`, borderRadius: 2, fontSize: 10, letterSpacing: 2.5, fontFamily: "system-ui,sans-serif", cursor: "pointer" }}>XEM MÁY ẢNH</button>
-        </div>
-
 
       </div>
 
