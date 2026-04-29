@@ -421,7 +421,8 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
         const cards = el.querySelectorAll("[data-fbcard]");
         if (!cards.length) return;
         fbIdxRef.current = (fbIdxRef.current + 1) % cards.length;
-        cards[fbIdxRef.current].scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
+        const card = cards[fbIdxRef.current];
+        el.scrollTo({ left: card.offsetLeft - el.offsetLeft, behavior: "smooth" });
       }, 2800);
       const onTouch = () => { fbPausedRef.current = true; setTimeout(() => { fbPausedRef.current = false; }, 5000); };
       el.addEventListener("touchstart", onTouch, { passive: true });
