@@ -193,72 +193,23 @@ function CamImage({ cam, height = 176 }) {
 }
 
 // ── 3D SCENE (desktop only) ──
-// ── METEOR HOOK ──
-function useMeteors(count = 7) {
-  const [meteors, setMeteors] = useState([]);
-  const timerRef = useRef(null);
-
-  const spawnMeteor = useCallback(() => {
-    const id = Math.random().toString(36).slice(2);
-    // Spawn từ góc phải trên, bay xéo xuống góc trái dưới (~225° hoặc 220-230°)
-    const startX = 55 + Math.random() * 50;   // bên phải: 55–105%
-    const startY = -(5 + Math.random() * 20); // trên màn hình
-    const angle = 220 + Math.random() * 10;   // 220–230°: xéo trên-phải → dưới-trái
-    const length = 120 + Math.random() * 180;
-    const dur = 0.9 + Math.random() * 0.8;
-    const opacity = 0.35 + Math.random() * 0.45;
-    const width = 1.2 + Math.random() * 1.6;
-    const color = Math.random() > 0.35 ? "#d4a84c" : "#ffffff";
-
-    const m = { id, startX, startY, angle, length, dur, opacity, width, color };
-    setMeteors(prev => [...prev.slice(-count + 1), m]);
-
-    setTimeout(() => {
-      setMeteors(prev => prev.filter(x => x.id !== id));
-    }, dur * 1000 + 200);
-  }, [count]);
-
-  useEffect(() => {
-    for (let i = 0; i < 3; i++) {
-      setTimeout(spawnMeteor, i * 800 + Math.random() * 600);
-    }
-    const schedule = () => {
-      timerRef.current = setTimeout(() => {
-        spawnMeteor();
-        schedule();
-      }, 900 + Math.random() * 2200);
-    };
-    schedule();
-    return () => clearTimeout(timerRef.current);
-  }, [spawnMeteor]);
-
-  return meteors;
-}
-
 function LensBackground({ isMob }) {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [rawMouse, setRawMouse] = useState({ px: 0.5, py: 0.5 });
-  const [hoverLens, setHoverLens] = useState(false);
   const containerRef = useRef(null);
-  const meteors = useMeteors(8);
 
   useEffect(() => {
     const handleMove = (e) => {
-      const px = e.clientX / window.innerWidth;
-      const py = e.clientY / window.innerHeight;
-      const x = (px - 0.5) * 2;
-      const y = (py - 0.5) * 2;
+      const x = (e.clientX / window.innerWidth - 0.5) * 2;  // -1 to 1
+      const y = (e.clientY / window.innerHeight - 0.5) * 2;
       setMousePos({ x, y });
-      setRawMouse({ px, py });
-      setHoverLens(!isMob && px > 0.42);
     };
     window.addEventListener("mousemove", handleMove, { passive: true });
     return () => window.removeEventListener("mousemove", handleMove);
-  }, [isMob]);
+  }, []);
 
-  const tiltX = isMob ? 0 : mousePos.y * -4;
-  const tiltY = isMob ? 0 : mousePos.x * 6;
-  const shiftX = isMob ? 0 : mousePos.x * -18;
+  const tiltX = isMob ? 0 : mousePos.y * -4;   // tilt vertical
+  const tiltY = isMob ? 0 : mousePos.x * 6;    // tilt horizontal
+  const shiftX = isMob ? 0 : mousePos.x * -18; // parallax shift
   const shiftY = isMob ? 0 : mousePos.y * -10;
 
   return (
@@ -274,9 +225,9 @@ function LensBackground({ isMob }) {
       {/* Ảnh lens — 3D perspective transform theo chuột */}
       <div style={{
         position: "absolute",
-        inset: "-1%",
+        inset: "-8%",
         transformStyle: "preserve-3d",
-        transform: `rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale(0.97)`,
+        transform: `rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale(1.08)`,
         transition: "transform 0.12s cubic-bezier(0.25,0.46,0.45,0.94)",
         willChange: "transform",
       }}>
@@ -289,7 +240,7 @@ function LensBackground({ isMob }) {
             objectFit: "cover",
             objectPosition: isMob ? "center center" : "62% center",
             filter: "brightness(0.88) contrast(1.12) saturate(1.1)",
-            transform: `translate(${shiftX}px, ${shiftY}px) scale(0.95)`,
+            transform: `translate(${shiftX}px, ${shiftY}px) scale(1.05)`,
             transition: "transform 0.18s cubic-bezier(0.25,0.46,0.45,0.94)",
             willChange: "transform",
           }}
@@ -344,82 +295,6 @@ function LensBackground({ isMob }) {
         background: "linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, transparent 18%, transparent 82%, rgba(0,0,0,0.40) 100%)",
         pointerEvents: "none",
       }} />
-
-      {/* Mouse glow — theo con chuột, chỉ vùng lens */}
-      {!isMob && (
-        <div style={{
-          position: "absolute",
-          left: `${rawMouse.px * 100}%`,
-          top: `${rawMouse.py * 100}%`,
-          transform: "translate(-50%,-50%)",
-          width: hoverLens ? "28vmin" : "14vmin",
-          height: hoverLens ? "28vmin" : "14vmin",
-          borderRadius: "50%",
-          background: hoverLens
-            ? "radial-gradient(circle, rgba(212,168,76,0.13) 0%, rgba(180,130,40,0.06) 50%, transparent 80%)"
-            : "radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 75%)",
-          transition: "width 0.4s ease, height 0.4s ease, background 0.4s ease",
-          pointerEvents: "none",
-          mixBlendMode: "screen",
-        }} />
-      )}
-
-      {/* Lens edge glow khi hover */}
-      {!isMob && hoverLens && (
-        <div style={{
-          position: "absolute",
-          left: "62%", top: "50%",
-          transform: `translate(-50%,-50%) translate(${shiftX * 0.5}px, ${shiftY * 0.5}px)`,
-          width: "72vmin", height: "72vmin",
-          borderRadius: "50%",
-          border: "1px solid rgba(212,168,76,0.18)",
-          boxShadow: "0 0 40px 8px rgba(212,168,76,0.08), inset 0 0 40px 8px rgba(212,168,76,0.05)",
-          transition: "opacity 0.4s ease, transform 0.15s ease",
-          pointerEvents: "none",
-          animation: "lensPulse 2.5s ease-in-out infinite",
-        }} />
-      )}
-
-      {/* Sao băng layer — rơi thẳng từ trên xuống */}
-      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden", zIndex: 2 }}>
-        <style>{`
-          /* per-meteor keyframes injected inline */
-          @keyframes lensPulse {
-            0%,100% { opacity: 0.7; }
-            50%     { opacity: 1; }
-          }
-        `}</style>
-        {meteors.map(m => {
-          const rad = (m.angle * Math.PI) / 180;
-          const tx = Math.cos(rad) * (window.innerWidth * 1.5);
-          const ty = Math.sin(rad) * (window.innerWidth * 1.5);
-          return (
-            <div key={m.id} style={{
-              position: "absolute",
-              left: `${m.startX}%`,
-              top: `${m.startY}%`,
-              width: `${m.length}px`,
-              height: `${m.width}px`,
-              borderRadius: "99px",
-              background: `linear-gradient(to right, transparent 0%, ${m.color}55 20%, ${m.color} 55%, ${m.color}dd 80%, transparent 100%)`,
-              opacity: 0,
-              transformOrigin: "left center",
-              transform: `rotate(${m.angle}deg)`,
-              animation: `meteorFly${m.id} ${m.dur}s cubic-bezier(0.25,0,0.6,1) forwards`,
-              filter: `blur(0.5px) drop-shadow(0 0 4px ${m.color}55)`,
-            }}>
-              <style>{`
-                @keyframes meteorFly${m.id} {
-                  0%   { opacity:0; transform: rotate(${m.angle}deg) translateX(0); }
-                  8%   { opacity:${m.opacity}; }
-                  88%  { opacity:${m.opacity * 0.6}; }
-                  100% { opacity:0; transform: rotate(${m.angle}deg) translateX(${tx}px); }
-                }
-              `}</style>
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 }
@@ -1040,7 +915,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, feedbacks, setFeedbac
               <div style={{ textAlign: "center", padding: "48px 0", color: MUT }}>
                 <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
                 <div style={{ fontSize: 14 }}>Chưa có đơn thuê nào</div>
-                {onOpenBooking && <button onClick={onOpenBooking} className="btn-3d" style={{ marginTop: 16, borderRadius: 6 }}>Thuê ngay</button>}
+                {onOpenBooking && <button onClick={onOpenBooking} className="btn-3d" style={{ marginTop: 16, padding: "10px 24px", borderRadius: 6, fontSize: 12, letterSpacing: 2 }}>Thuê ngay</button>}
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -1634,7 +1509,15 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
   const [hov, setHov] = useState(null);
   const [ticker, setTicker] = useState(0);
   const [logoClick, setLogoClick] = useState(0);
-  const handleLogoClick = () => { const n = logoClick + 1; setLogoClick(n); if (n >= 5) { setLogoClick(0); onAdmin(); } };
+  const [logoRipple, setLogoRipple] = useState(false);
+  const handleLogoClick = () => {
+    const n = logoClick + 1;
+    setLogoClick(n);
+    if (n >= 5) { setLogoClick(0); onAdmin(); return; }
+    // Ripple → reload
+    setLogoRipple(true);
+    setTimeout(() => { window.location.reload(); }, 700);
+  };
   useEffect(() => {
     const h = () => {
       const curr = window.scrollY;
@@ -1659,8 +1542,16 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
           style={{ display: "flex", alignItems: "center", padding: isMobile ? "6px 12px" : "0 16px", height: isMobile ? "auto" : (navState === "compact" ? 24 : 34), gap: isMobile ? 8 : 0, overflow: "hidden" }}>
 
           {/* LOGO */}
-          <div onClick={handleLogoClick} style={{ cursor: "default", flexShrink: 0, marginRight: isMobile ? 0 : 20, transition: "transform .45s cubic-bezier(.4,0,.2,1)", transform: `scale(${navState === "compact" ? 0.82 : 1})`, transformOrigin: "left center" }}>
+          <div onClick={handleLogoClick} style={{ cursor: "pointer", flexShrink: 0, marginRight: isMobile ? 0 : 20, transition: "transform .45s cubic-bezier(.4,0,.2,1)", transform: `scale(${navState === "compact" ? 0.82 : 1})`, transformOrigin: "left center", position: "relative" }}>
             <Logo size={isMobile ? 0.47 : 0.47} />
+            {logoRipple && (
+              <div style={{ position: "fixed", inset: 0, zIndex: 9999, pointerEvents: "none", overflow: "hidden", background: "rgba(0,0,0,0)" }}>
+                {/* gold ripple circle expanding from top-left */}
+                <div style={{ position: "absolute", top: 40, left: 80, width: "200vmax", height: "200vmax", borderRadius: "50%", background: `radial-gradient(circle, rgba(201,168,76,0.18) 0%, rgba(201,168,76,0.06) 40%, transparent 70%)`, animation: "logoRipple 0.7s cubic-bezier(.2,0,.4,1) forwards", pointerEvents: "none" }} />
+                {/* dark wash overlay */}
+                <div style={{ position: "absolute", inset: 0, background: "#060606", animation: "pageWash 0.7s ease forwards", pointerEvents: "none" }} />
+              </div>
+            )}
           </div>
 
           {/* NAV LINKS — desktop only */}
@@ -1788,7 +1679,7 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
 
           {/* CTA Buttons */}
           <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-            <button onClick={onBook} className="btn-3d" style={{ borderRadius: 3 }}>THUÊ NGAY</button>
+            <button onClick={onBook} className="btn-3d" style={{ padding: "11px 28px", borderRadius: 3, fontSize: 11, letterSpacing: 3 }}>THUÊ NGAY</button>
             <button onClick={() => document.getElementById("about")?.scrollIntoView({ behavior: "smooth" })} style={{ display: "flex", alignItems: "center", gap: 12, background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>
               <div style={{ width: 38, height: 38, borderRadius: "50%", border: `1px solid ${BR}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <svg width="10" height="12" viewBox="0 0 10 12" fill={TXT}><polygon points="0,0 10,6 0,12"/></svg>
@@ -1836,7 +1727,7 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
                   <span style={{ color: G, fontSize: 17, fontWeight: 700 }}>{fmtVND(c.price)}<span style={{ color: MUT, fontSize: 10 }}>/ngày</span></span>
                   <button onClick={onBook} disabled={c.status !== "available"}
                     className={c.status === "available" ? "btn-3d" : ""}
-                    style={c.status !== "available" ? { padding: "8px 18px", background: "#141414", color: MUT, border: `1px solid ${BR}`, borderRadius: 4, cursor: "not-allowed", fontWeight: 700, fontSize: 11, fontFamily: "system-ui,sans-serif", letterSpacing: 1.5 } : { padding: "8px 16px", fontSize: 10, letterSpacing: 2 }}>
+                    style={{ padding: "8px 18px", ...(c.status !== "available" ? { background: "#141414", color: MUT, border: `1px solid ${BR}`, borderRadius: 4, cursor: "not-allowed", fontWeight: 700, fontSize: 11, fontFamily: "system-ui,sans-serif", letterSpacing: 1.5 } : { borderRadius: 4, fontSize: 11, letterSpacing: 1.5, animation: "none", padding: "8px 18px" }) }}>
                     {c.status === "available" ? "THUÊ NGAY" : "HẾT MÁY"}
                   </button>
                 </div>
@@ -1872,7 +1763,7 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
           <div style={{ fontSize: 10, letterSpacing: 7, color: MUT, marginBottom: 16, fontFamily: "system-ui,sans-serif" }}>ĐẶT THUÊ NGAY HÔM NAY</div>
           <h2 style={{ fontSize: 36, fontWeight: 400, letterSpacing: 2, margin: "0 0 10px" }}>Không cần đăng ký tài khoản</h2>
           <p style={{ color: MUT, fontSize: 14, marginBottom: 32, letterSpacing: 1 }}>Chọn máy → Chọn ngày → Chốt Zalo. Đơn giản vậy thôi.</p>
-          <button onClick={onBook} style={{ padding: "16px 56px", background: G, color: "#000", border: "none", borderRadius: 2, cursor: "pointer", fontWeight: 700, fontSize: 13, letterSpacing: 3, fontFamily: "system-ui,sans-serif", boxShadow: `0 4px 40px ${G}55` }}>BẮT ĐẦU ĐẶT THUÊ</button>
+          <button onClick={onBook} className="btn-3d" style={{ padding: "16px 56px", borderRadius: 2, fontSize: 13, letterSpacing: 3 }}>BẮT ĐẦU ĐẶT THUÊ</button>
           <div style={{ marginTop: 28, display: "flex", justifyContent: "center" }}><div style={{ display: "inline-flex", border: `1px solid ${BR}`, borderRadius: 6, overflow: "hidden", background: "rgba(6,6,6,0.55)", backdropFilter: "blur(12px)" }}>
             <div style={{ padding: "11px 28px", display: "flex", alignItems: "center", gap: 10 }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
@@ -3476,7 +3367,6 @@ function SplashScreen({ onDone }) {
   );
 }
 
-
 function AppRoot() {
   const [page, setPage] = useState("home");
   const [booking, setBooking] = useState(false);
@@ -3671,6 +3561,8 @@ function AppRoot() {
         @keyframes shootC{0%{opacity:0;transform:translate(0,0) rotate(-50deg)}4%{opacity:.6}70%{opacity:.2}100%{opacity:0;transform:translate(-260px,260px) rotate(-50deg)}}
         @keyframes twinkle{0%,100%{opacity:.12}50%{opacity:.45}}
         @keyframes splashDot{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.6);opacity:0.6}}
+        @keyframes logoRipple{0%{transform:translate(-50%,-50%) scale(0);opacity:0.8}100%{transform:translate(-50%,-50%) scale(1);opacity:0}}
+        @keyframes pageWash{0%{opacity:0}35%{opacity:1}100%{opacity:1}}
         select option{background:#111;color:#f0e8d0}
         input[type=date]{color-scheme:dark}
         input:focus,textarea:focus,select:focus{border-color:#c9a84c55!important;outline:none;}
@@ -3747,65 +3639,72 @@ function AppRoot() {
         .nav-link:hover{ color: #f0e8d0; }
         .nav-link:hover::after{ left: 0; right: 0; }
 
-        /* Glass gold CTA button */
+        /* 3D gold CTA button */
+        @keyframes glassShimmer{0%{left:-100%}100%{left:220%}}
+        @keyframes glowPulse{0%,100%{box-shadow:0 0 16px rgba(201,168,76,0.35),0 0 32px rgba(201,168,76,0.15),0 4px 20px rgba(0,0,0,0.5)}50%{box-shadow:0 0 24px rgba(201,168,76,0.55),0 0 48px rgba(201,168,76,0.25),0 4px 20px rgba(0,0,0,0.5)}}
         .btn-3d{
           position: relative;
-          background: linear-gradient(135deg,
-            rgba(212,168,76,0.22) 0%,
-            rgba(201,155,60,0.14) 50%,
-            rgba(180,130,40,0.20) 100%);
-          color: #e8c96a;
-          border: 1px solid rgba(212,168,76,0.55);
-          padding: 11px 24px;
-          border-radius: 5px;
+          overflow: hidden;
+          background: linear-gradient(135deg,rgba(255,228,110,0.13) 0%,rgba(201,168,76,0.07) 50%,rgba(180,140,40,0.12) 100%);
+          color: #f0d878;
+          border: 1px solid rgba(201,168,76,0.6);
+          padding: 10px 22px;
+          border-radius: 6px;
           cursor: pointer;
           font-weight: 800;
           font-size: 11px;
           letter-spacing: 3px;
           font-family: system-ui,sans-serif;
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
+          backdrop-filter: blur(18px) saturate(180%);
+          -webkit-backdrop-filter: blur(18px) saturate(180%);
           box-shadow:
-            0 1px 0 rgba(255,225,130,0.35) inset,
-            0 -1px 0 rgba(0,0,0,0.25) inset,
-            0 0 0 1px rgba(0,0,0,0.15),
-            0 4px 24px rgba(201,168,76,0.22),
-            0 0 40px rgba(201,168,76,0.08);
-          transform: translateY(0);
-          transition: all 0.25s ease;
-          overflow: hidden;
-          text-shadow: 0 0 12px rgba(212,168,76,0.6);
+            0 1px 0 rgba(255,235,120,0.25) inset,
+            0 -1px 0 rgba(0,0,0,0.3) inset,
+            0 0 18px rgba(201,168,76,0.35),
+            0 0 36px rgba(201,168,76,0.12),
+            0 4px 20px rgba(0,0,0,0.5);
+          transform: translateY(0) perspective(400px) rotateX(0deg);
+          transition: transform .15s, box-shadow .15s, background .15s, color .15s, border-color .15s;
+          animation: glowPulse 3s ease-in-out infinite;
+          text-shadow: 0 0 12px rgba(255,220,80,0.6);
         }
         .btn-3d::before{
-          content:"";
+          content:'';
           position:absolute;
-          top:0; left:0; right:0;
-          height: 50%;
-          background: linear-gradient(to bottom, rgba(255,225,130,0.18) 0%, transparent 100%);
-          border-radius: 5px 5px 0 0;
+          top:0;left:-100%;
+          width:55%;height:100%;
+          background:linear-gradient(90deg,transparent,rgba(255,235,120,0.22),transparent);
+          animation:glassShimmer 3.5s ease-in-out infinite;
+          pointer-events:none;
+        }
+        .btn-3d::after{
+          content:'';
+          position:absolute;
+          top:0;left:0;right:0;
+          height:1px;
+          background:linear-gradient(90deg,transparent,rgba(255,240,140,0.5),transparent);
           pointer-events:none;
         }
         .btn-3d:hover{
-          background: linear-gradient(135deg,
-            rgba(212,168,76,0.38) 0%,
-            rgba(201,155,60,0.26) 50%,
-            rgba(180,130,40,0.34) 100%);
-          border-color: rgba(212,168,76,0.85);
-          color: #f5d97a;
-          transform: translateY(-2px);
+          background: linear-gradient(135deg,rgba(255,228,110,0.22) 0%,rgba(201,168,76,0.13) 50%,rgba(180,140,40,0.2) 100%);
+          border-color: rgba(255,210,70,0.85);
+          color: #fff8c0;
+          transform: translateY(-2px) perspective(400px) rotateX(2deg);
           box-shadow:
-            0 1px 0 rgba(255,225,130,0.45) inset,
-            0 -1px 0 rgba(0,0,0,0.2) inset,
-            0 0 0 1px rgba(0,0,0,0.1),
-            0 6px 32px rgba(201,168,76,0.40),
-            0 0 60px rgba(201,168,76,0.18);
-          text-shadow: 0 0 18px rgba(212,168,76,0.9);
+            0 1px 0 rgba(255,235,120,0.35) inset,
+            0 -1px 0 rgba(0,0,0,0.3) inset,
+            0 0 28px rgba(201,168,76,0.6),
+            0 0 56px rgba(201,168,76,0.22),
+            0 8px 28px rgba(0,0,0,0.5);
+          text-shadow: 0 0 18px rgba(255,220,80,0.9);
+          animation: none;
         }
         .btn-3d:active{
-          transform: translateY(0px);
+          transform: translateY(2px) perspective(400px) rotateX(-1deg);
           box-shadow:
-            0 1px 0 rgba(255,225,130,0.25) inset,
-            0 0 20px rgba(201,168,76,0.25);
+            0 0 10px rgba(201,168,76,0.25),
+            0 2px 10px rgba(0,0,0,0.4);
+          animation: none;
         }
 
         /* Social icon buttons */
