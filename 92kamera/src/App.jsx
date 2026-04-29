@@ -193,23 +193,72 @@ function CamImage({ cam, height = 176 }) {
 }
 
 // ── 3D SCENE (desktop only) ──
+// ── METEOR HOOK ──
+function useMeteors(count = 7) {
+  const [meteors, setMeteors] = useState([]);
+  const timerRef = useRef(null);
+
+  const spawnMeteor = useCallback(() => {
+    const id = Math.random().toString(36).slice(2);
+    // Spawn từ góc phải trên, bay xéo xuống góc trái dưới (~225° hoặc 220-230°)
+    const startX = 55 + Math.random() * 50;   // bên phải: 55–105%
+    const startY = -(5 + Math.random() * 20); // trên màn hình
+    const angle = 220 + Math.random() * 10;   // 220–230°: xéo trên-phải → dưới-trái
+    const length = 120 + Math.random() * 180;
+    const dur = 0.9 + Math.random() * 0.8;
+    const opacity = 0.35 + Math.random() * 0.45;
+    const width = 1.2 + Math.random() * 1.6;
+    const color = Math.random() > 0.35 ? "#d4a84c" : "#ffffff";
+
+    const m = { id, startX, startY, angle, length, dur, opacity, width, color };
+    setMeteors(prev => [...prev.slice(-count + 1), m]);
+
+    setTimeout(() => {
+      setMeteors(prev => prev.filter(x => x.id !== id));
+    }, dur * 1000 + 200);
+  }, [count]);
+
+  useEffect(() => {
+    for (let i = 0; i < 3; i++) {
+      setTimeout(spawnMeteor, i * 800 + Math.random() * 600);
+    }
+    const schedule = () => {
+      timerRef.current = setTimeout(() => {
+        spawnMeteor();
+        schedule();
+      }, 900 + Math.random() * 2200);
+    };
+    schedule();
+    return () => clearTimeout(timerRef.current);
+  }, [spawnMeteor]);
+
+  return meteors;
+}
+
 function LensBackground({ isMob }) {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [rawMouse, setRawMouse] = useState({ px: 0.5, py: 0.5 });
+  const [hoverLens, setHoverLens] = useState(false);
   const containerRef = useRef(null);
+  const meteors = useMeteors(8);
 
   useEffect(() => {
     const handleMove = (e) => {
-      const x = (e.clientX / window.innerWidth - 0.5) * 2;  // -1 to 1
-      const y = (e.clientY / window.innerHeight - 0.5) * 2;
+      const px = e.clientX / window.innerWidth;
+      const py = e.clientY / window.innerHeight;
+      const x = (px - 0.5) * 2;
+      const y = (py - 0.5) * 2;
       setMousePos({ x, y });
+      setRawMouse({ px, py });
+      setHoverLens(!isMob && px > 0.42);
     };
     window.addEventListener("mousemove", handleMove, { passive: true });
     return () => window.removeEventListener("mousemove", handleMove);
-  }, []);
+  }, [isMob]);
 
-  const tiltX = isMob ? 0 : mousePos.y * -4;   // tilt vertical
-  const tiltY = isMob ? 0 : mousePos.x * 6;    // tilt horizontal
-  const shiftX = isMob ? 0 : mousePos.x * -18; // parallax shift
+  const tiltX = isMob ? 0 : mousePos.y * -4;
+  const tiltY = isMob ? 0 : mousePos.x * 6;
+  const shiftX = isMob ? 0 : mousePos.x * -18;
   const shiftY = isMob ? 0 : mousePos.y * -10;
 
   return (
@@ -225,9 +274,9 @@ function LensBackground({ isMob }) {
       {/* Ảnh lens — 3D perspective transform theo chuột */}
       <div style={{
         position: "absolute",
-        inset: "-8%",
+        inset: "-1%",
         transformStyle: "preserve-3d",
-        transform: `rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale(1.08)`,
+        transform: `rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale(0.97)`,
         transition: "transform 0.12s cubic-bezier(0.25,0.46,0.45,0.94)",
         willChange: "transform",
       }}>
@@ -240,7 +289,7 @@ function LensBackground({ isMob }) {
             objectFit: "cover",
             objectPosition: isMob ? "center center" : "62% center",
             filter: "brightness(0.88) contrast(1.12) saturate(1.1)",
-            transform: `translate(${shiftX}px, ${shiftY}px) scale(1.05)`,
+            transform: `translate(${shiftX}px, ${shiftY}px) scale(0.95)`,
             transition: "transform 0.18s cubic-bezier(0.25,0.46,0.45,0.94)",
             willChange: "transform",
           }}
@@ -295,6 +344,82 @@ function LensBackground({ isMob }) {
         background: "linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, transparent 18%, transparent 82%, rgba(0,0,0,0.40) 100%)",
         pointerEvents: "none",
       }} />
+
+      {/* Mouse glow — theo con chuột, chỉ vùng lens */}
+      {!isMob && (
+        <div style={{
+          position: "absolute",
+          left: `${rawMouse.px * 100}%`,
+          top: `${rawMouse.py * 100}%`,
+          transform: "translate(-50%,-50%)",
+          width: hoverLens ? "28vmin" : "14vmin",
+          height: hoverLens ? "28vmin" : "14vmin",
+          borderRadius: "50%",
+          background: hoverLens
+            ? "radial-gradient(circle, rgba(212,168,76,0.13) 0%, rgba(180,130,40,0.06) 50%, transparent 80%)"
+            : "radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 75%)",
+          transition: "width 0.4s ease, height 0.4s ease, background 0.4s ease",
+          pointerEvents: "none",
+          mixBlendMode: "screen",
+        }} />
+      )}
+
+      {/* Lens edge glow khi hover */}
+      {!isMob && hoverLens && (
+        <div style={{
+          position: "absolute",
+          left: "62%", top: "50%",
+          transform: `translate(-50%,-50%) translate(${shiftX * 0.5}px, ${shiftY * 0.5}px)`,
+          width: "72vmin", height: "72vmin",
+          borderRadius: "50%",
+          border: "1px solid rgba(212,168,76,0.18)",
+          boxShadow: "0 0 40px 8px rgba(212,168,76,0.08), inset 0 0 40px 8px rgba(212,168,76,0.05)",
+          transition: "opacity 0.4s ease, transform 0.15s ease",
+          pointerEvents: "none",
+          animation: "lensPulse 2.5s ease-in-out infinite",
+        }} />
+      )}
+
+      {/* Sao băng layer — rơi thẳng từ trên xuống */}
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden", zIndex: 2 }}>
+        <style>{`
+          /* per-meteor keyframes injected inline */
+          @keyframes lensPulse {
+            0%,100% { opacity: 0.7; }
+            50%     { opacity: 1; }
+          }
+        `}</style>
+        {meteors.map(m => {
+          const rad = (m.angle * Math.PI) / 180;
+          const tx = Math.cos(rad) * (window.innerWidth * 1.5);
+          const ty = Math.sin(rad) * (window.innerWidth * 1.5);
+          return (
+            <div key={m.id} style={{
+              position: "absolute",
+              left: `${m.startX}%`,
+              top: `${m.startY}%`,
+              width: `${m.length}px`,
+              height: `${m.width}px`,
+              borderRadius: "99px",
+              background: `linear-gradient(to right, transparent 0%, ${m.color}55 20%, ${m.color} 55%, ${m.color}dd 80%, transparent 100%)`,
+              opacity: 0,
+              transformOrigin: "left center",
+              transform: `rotate(${m.angle}deg)`,
+              animation: `meteorFly${m.id} ${m.dur}s cubic-bezier(0.25,0,0.6,1) forwards`,
+              filter: `blur(0.5px) drop-shadow(0 0 4px ${m.color}55)`,
+            }}>
+              <style>{`
+                @keyframes meteorFly${m.id} {
+                  0%   { opacity:0; transform: rotate(${m.angle}deg) translateX(0); }
+                  8%   { opacity:${m.opacity}; }
+                  88%  { opacity:${m.opacity * 0.6}; }
+                  100% { opacity:0; transform: rotate(${m.angle}deg) translateX(${tx}px); }
+                }
+              `}</style>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -915,7 +1040,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, feedbacks, setFeedbac
               <div style={{ textAlign: "center", padding: "48px 0", color: MUT }}>
                 <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
                 <div style={{ fontSize: 14 }}>Chưa có đơn thuê nào</div>
-                {onOpenBooking && <button onClick={onOpenBooking} style={{ marginTop: 16, padding: "10px 24px", background: G, color: "#000", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 700, fontSize: 12, fontFamily: "system-ui,sans-serif" }}>Thuê ngay</button>}
+                {onOpenBooking && <button onClick={onOpenBooking} className="btn-3d" style={{ marginTop: 16, borderRadius: 6 }}>Thuê ngay</button>}
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -1663,7 +1788,7 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
 
           {/* CTA Buttons */}
           <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-            <button onClick={onBook} style={{ padding: "11px 28px", background: G, color: "#000", border: "none", borderRadius: 3, cursor: "pointer", fontWeight: 700, fontSize: 11, letterSpacing: 3, fontFamily: "system-ui,sans-serif", boxShadow: `0 4px 28px ${G}55` }}>THUÊ NGAY</button>
+            <button onClick={onBook} className="btn-3d" style={{ borderRadius: 3 }}>THUÊ NGAY</button>
             <button onClick={() => document.getElementById("about")?.scrollIntoView({ behavior: "smooth" })} style={{ display: "flex", alignItems: "center", gap: 12, background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>
               <div style={{ width: 38, height: 38, borderRadius: "50%", border: `1px solid ${BR}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <svg width="10" height="12" viewBox="0 0 10 12" fill={TXT}><polygon points="0,0 10,6 0,12"/></svg>
@@ -1710,7 +1835,8 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ color: G, fontSize: 17, fontWeight: 700 }}>{fmtVND(c.price)}<span style={{ color: MUT, fontSize: 10 }}>/ngày</span></span>
                   <button onClick={onBook} disabled={c.status !== "available"}
-                    style={{ padding: "8px 18px", background: c.status === "available" ? G : "#141414", color: c.status === "available" ? "#000" : MUT, border: `1px solid ${c.status === "available" ? G : BR}`, borderRadius: 4, cursor: c.status === "available" ? "pointer" : "not-allowed", fontWeight: 700, fontSize: 11, fontFamily: "system-ui,sans-serif", letterSpacing: 1.5 }}>
+                    className={c.status === "available" ? "btn-3d" : ""}
+                    style={c.status !== "available" ? { padding: "8px 18px", background: "#141414", color: MUT, border: `1px solid ${BR}`, borderRadius: 4, cursor: "not-allowed", fontWeight: 700, fontSize: 11, fontFamily: "system-ui,sans-serif", letterSpacing: 1.5 } : { padding: "8px 16px", fontSize: 10, letterSpacing: 2 }}>
                     {c.status === "available" ? "THUÊ NGAY" : "HẾT MÁY"}
                   </button>
                 </div>
@@ -3350,6 +3476,7 @@ function SplashScreen({ onDone }) {
   );
 }
 
+
 function AppRoot() {
   const [page, setPage] = useState("home");
   const [booking, setBooking] = useState(false);
@@ -3620,42 +3747,65 @@ function AppRoot() {
         .nav-link:hover{ color: #f0e8d0; }
         .nav-link:hover::after{ left: 0; right: 0; }
 
-        /* 3D gold CTA button */
+        /* Glass gold CTA button */
         .btn-3d{
           position: relative;
-          background: linear-gradient(180deg, #d4b060 0%, #c9a84c 40%, #b8922e 100%);
-          color: #0a0800;
-          border: none;
-          padding: 10px 22px;
-          border-radius: 6px;
+          background: linear-gradient(135deg,
+            rgba(212,168,76,0.22) 0%,
+            rgba(201,155,60,0.14) 50%,
+            rgba(180,130,40,0.20) 100%);
+          color: #e8c96a;
+          border: 1px solid rgba(212,168,76,0.55);
+          padding: 11px 24px;
+          border-radius: 5px;
           cursor: pointer;
           font-weight: 800;
           font-size: 11px;
-          letter-spacing: 2px;
+          letter-spacing: 3px;
           font-family: system-ui,sans-serif;
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
           box-shadow:
-            0 1px 0 rgba(255,220,120,0.5) inset,
-            0 -3px 0 rgba(0,0,0,0.4) inset,
-            0 4px 0 #7a5c10,
-            0 6px 16px rgba(201,168,76,0.4);
+            0 1px 0 rgba(255,225,130,0.35) inset,
+            0 -1px 0 rgba(0,0,0,0.25) inset,
+            0 0 0 1px rgba(0,0,0,0.15),
+            0 4px 24px rgba(201,168,76,0.22),
+            0 0 40px rgba(201,168,76,0.08);
           transform: translateY(0);
-          transition: transform .1s, box-shadow .1s;
+          transition: all 0.25s ease;
+          overflow: hidden;
+          text-shadow: 0 0 12px rgba(212,168,76,0.6);
+        }
+        .btn-3d::before{
+          content:"";
+          position:absolute;
+          top:0; left:0; right:0;
+          height: 50%;
+          background: linear-gradient(to bottom, rgba(255,225,130,0.18) 0%, transparent 100%);
+          border-radius: 5px 5px 0 0;
+          pointer-events:none;
         }
         .btn-3d:hover{
-          transform: translateY(-1px);
+          background: linear-gradient(135deg,
+            rgba(212,168,76,0.38) 0%,
+            rgba(201,155,60,0.26) 50%,
+            rgba(180,130,40,0.34) 100%);
+          border-color: rgba(212,168,76,0.85);
+          color: #f5d97a;
+          transform: translateY(-2px);
           box-shadow:
-            0 1px 0 rgba(255,220,120,0.5) inset,
-            0 -3px 0 rgba(0,0,0,0.4) inset,
-            0 5px 0 #7a5c10,
-            0 8px 22px rgba(201,168,76,0.5);
+            0 1px 0 rgba(255,225,130,0.45) inset,
+            0 -1px 0 rgba(0,0,0,0.2) inset,
+            0 0 0 1px rgba(0,0,0,0.1),
+            0 6px 32px rgba(201,168,76,0.40),
+            0 0 60px rgba(201,168,76,0.18);
+          text-shadow: 0 0 18px rgba(212,168,76,0.9);
         }
         .btn-3d:active{
-          transform: translateY(3px);
+          transform: translateY(0px);
           box-shadow:
-            0 1px 0 rgba(255,220,120,0.3) inset,
-            0 -1px 0 rgba(0,0,0,0.4) inset,
-            0 1px 0 #7a5c10,
-            0 2px 8px rgba(201,168,76,0.3);
+            0 1px 0 rgba(255,225,130,0.25) inset,
+            0 0 20px rgba(201,168,76,0.25);
         }
 
         /* Social icon buttons */
