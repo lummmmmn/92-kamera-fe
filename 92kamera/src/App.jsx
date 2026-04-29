@@ -1523,9 +1523,12 @@ function BookingModal({ cameras, accessories, siteContent, onClose, onSubmit, lo
 function CameraFeatured({ id, cameras, onBook, isMobile }) {
   const [active, setActive] = useState(0);
   const [hov, setHov] = useState(null);
-  const [slideDir, setSlideDir] = useState(1); // 1=next, -1=prev
+  const [slideDir, setSlideDir] = useState(1);
   const [animKey, setAnimKey] = useState(0);
   const isPaused = useRef(false);
+  const camScrollRef = useRef(null);
+  const camPausedRef = useRef(false);
+  const camIdxRef = useRef(0);
   const total = cameras.length;
 
   const go = useCallback((dir) => {
@@ -1537,21 +1540,91 @@ function CameraFeatured({ id, cameras, onBook, isMobile }) {
   const prev = () => go(-1);
   const next = () => go(1);
 
-  // Auto-play 3.5s, dừng khi hover
+  // Auto-play desktop
   useEffect(() => {
+    if (isMobile) return;
     const t = setInterval(() => { if (!isPaused.current) go(1); }, 3500);
     return () => clearInterval(t);
-  }, [go]);
+  }, [go, isMobile]);
+
+  // Auto-scroll mobile
+  useEffect(() => {
+    if (!isMobile) return;
+    const el = camScrollRef.current;
+    if (!el) return;
+    const t = setInterval(() => {
+      if (camPausedRef.current || !el) return;
+      const cards = el.querySelectorAll("[data-camcard]");
+      if (!cards.length) return;
+      camIdxRef.current = (camIdxRef.current + 1) % cards.length;
+      setActive(camIdxRef.current);
+      el.scrollTo({ left: cards[camIdxRef.current].offsetLeft - 16, behavior: "smooth" });
+    }, 3500);
+    const onTouch = () => { camPausedRef.current = true; setTimeout(() => { camPausedRef.current = false; }, 6000); };
+    el.addEventListener("touchstart", onTouch, { passive: true });
+    return () => { clearInterval(t); el.removeEventListener("touchstart", onTouch); };
+  }, [isMobile, cameras.length]);
+
+  // Mobile: render scroll container
+  if (isMobile) {
+    const parseName = (name) => {
+      const parts = name.split(" ");
+      const brandMap = { fujifilm:"FUJIFILM", sony:"SONY", canon:"CANON", nikon:"NIKON", dji:"DJI", gopro:"GOPRO" };
+      const firstLow = parts[0].toLowerCase();
+      if (brandMap[firstLow]) return { brand: brandMap[firstLow], model: parts.slice(1).join(" ") };
+      return { brand: parts[0].toUpperCase(), model: parts.slice(1).join(" ") };
+    };
+    const shortDesc = (desc) => desc.split(/[,，、]/)[0].trim().toUpperCase();
+    return (
+      <div id={id} style={{ padding: "72px 0 56px", background: BG, overflow: "hidden" }}>
+        <style>{`.cam-scroll::-webkit-scrollbar{display:none}.cam-scroll{-ms-overflow-style:none;scrollbar-width:none;}`}</style>
+        <div style={{ padding: "0 16px 40px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <div>
+            <div style={{ fontSize:9, letterSpacing:7, color:MUT, fontFamily:"system-ui,sans-serif", marginBottom:6 }}>BỘ SƯU TẬP</div>
+            <h2 style={{ fontSize:24, fontWeight:400, letterSpacing:2, margin:0, color:TXT, fontFamily:'var(--font-display)' }}>Máy Ảnh Cho Thuê</h2>
+          </div>
+        </div>
+        <div ref={camScrollRef} className="cam-scroll"
+          style={{ display:"flex", gap:12, overflowX:"auto", scrollSnapType:"x mandatory", WebkitOverflowScrolling:"touch", paddingLeft:16, paddingRight:16, paddingBottom:8 }}>
+          {cameras.map((cam, i) => {
+            const { brand, model } = parseName(cam.name);
+            const isAvail = cam.status === "available";
+            const isAct = i === active;
+            return (
+              <div key={cam.id} data-camcard="1"
+                style={{ scrollSnapAlign:"start", flexShrink:0, width:"calc(100vw - 48px)", height:320, borderRadius:4, overflow:"hidden", border:`1px solid ${isAct ? G+"66" : BR}`, position:"relative", background:"#060606" }}>
+                <div style={{ position:"absolute", inset:0, zIndex:0 }}><CamImage cam={cam} height={320} /></div>
+                <div style={{ position:"absolute", inset:0, zIndex:1, background:"linear-gradient(to top,rgba(6,6,6,0.92) 0%,rgba(6,6,6,0.3) 60%,transparent 100%)", pointerEvents:"none" }} />
+                {!isAvail && <div style={{ position:"absolute",top:14,right:14,zIndex:10,background:"rgba(204,51,51,0.25)",border:"1px solid #cc3333",color:"#ff6666",fontSize:8,fontWeight:700,letterSpacing:2,padding:"4px 10px",fontFamily:"system-ui,sans-serif",borderRadius:2 }}>ĐÃ THUÊ</div>}
+                <div style={{ position:"absolute", bottom:0, left:0, right:0, zIndex:2, padding:"0 20px 20px" }}>
+                  <div style={{ fontSize:8,letterSpacing:4,color:"rgba(255,255,255,0.5)",fontFamily:"system-ui,sans-serif",marginBottom:4,fontWeight:600 }}>{brand}</div>
+                  <div style={{ fontSize:28,fontWeight:700,letterSpacing:0.5,color:"#fff",lineHeight:1,marginBottom:5,fontFamily:"system-ui,sans-serif",textShadow:"0 2px 12px rgba(0,0,0,0.8)" }}>{model}</div>
+                  <div style={{ fontSize:8,letterSpacing:3,color:"rgba(255,255,255,0.45)",fontFamily:"system-ui,sans-serif",marginBottom:14 }}>{shortDesc(cam.desc)}</div>
+                  <div style={{ width:28,height:1,background:G+"88",marginBottom:14 }} />
+                  <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+                    <div>
+                      <span style={{ color:G,fontSize:15,fontWeight:700,fontFamily:"system-ui,sans-serif" }}>{fmtVND(cam.price)}</span>
+                      <span style={{ color:"rgba(255,255,255,0.35)",fontSize:9,marginLeft:4,fontFamily:"system-ui,sans-serif" }}>/ngày</span>
+                    </div>
+                    <button onClick={isAvail ? () => onBook(cam) : undefined} disabled={!isAvail}
+                      className={isAvail ? "btn-3d" : ""}
+                      style={isAvail ? { borderRadius:3,fontSize:9,letterSpacing:2,animation:"none",padding:"7px 15px" } : { background:"none",border:`1px solid #333`,cursor:"not-allowed",color:"#444",fontSize:9,fontFamily:"system-ui,sans-serif",fontWeight:700,letterSpacing:2,padding:"6px 12px",borderRadius:3 }}>
+                      {isAvail ? "THUÊ NGAY" : "HẾT MÁY"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ display:"flex",justifyContent:"center",gap:6,marginTop:20 }}>
+          {cameras.map((_,i) => <div key={i} style={{ width:i===active?22:6,height:5,borderRadius:3,background:i===active?G:BR,transition:"all .3s" }} />)}
+        </div>
+      </div>
+    );
+  }
 
   const getVisible = () => {
-    if (isMobile) {
-      const items = [];
-      for (let d = 0; d <= 1; d++) {
-        const idx = (active + d + total) % total;
-        items.push({ cam: cameras[idx], offset: d, isCenter: d === 0 });
-      }
-      return items;
-    }
     const items = [];
     for (let d = -1; d <= 1; d++) {
       const idx = (active + d + total) % total;
