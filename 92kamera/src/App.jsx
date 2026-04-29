@@ -384,7 +384,6 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
   const emptySection = (
     <div id="feedback" style={{ padding: "72px 16px 64px", borderTop: `1px solid ${BR}`, background: "linear-gradient(180deg,#060606 0%,#080700 50%,#060606 100%)" }}>
       <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 9, letterSpacing: 7, color: MUT, fontFamily: "system-ui,sans-serif", marginBottom: 14 }}>SOCIAL PROOF</div>
         <h2 style={{ fontSize: 30, fontWeight: 400, letterSpacing: 2, margin: "0 0 6px", color: TXT, fontFamily: 'var(--font-display)' }}>Feedback Khách Hàng</h2>
         <div style={{ width: 36, height: 1, background: G, margin: "14px auto 20px" }} />
         <div style={{ color: MUT, fontSize: 13, fontFamily: "system-ui,sans-serif" }}>Chưa có feedback nào được duyệt</div>
@@ -397,7 +396,6 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
   // ── HEADER dùng chung ──
   const header = (
     <div style={{ textAlign: "center", marginBottom: 32, position: "relative", zIndex: 2, padding: "0 16px" }}>
-      <div style={{ fontSize: 9, letterSpacing: 7, color: MUT, fontFamily: "system-ui,sans-serif", marginBottom: 14 }}>SOCIAL PROOF</div>
       <h2 style={{ fontSize: isMobile ? 24 : 30, fontWeight: 400, letterSpacing: 2, margin: "0 0 6px", color: TXT, fontFamily: 'var(--font-display)' }}>Feedback Khách Hàng</h2>
       <div style={{ width: 36, height: 1, background: G, margin: "14px auto 12px" }} />
       <div style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "#0e0e0e", border: `1px solid ${G}33`, borderRadius: 99, padding: "6px 20px", marginBottom: 18 }}>
@@ -1662,123 +1660,68 @@ function CameraFeatured({ id, cameras, onBook, isMobile }) {
     document.head.appendChild(style);
   }, []);
 
+  // Desktop: marquee giống feedback
+  const [cfPaused, setCfPaused] = useState(false);
+  let combined = [...cameras];
+  const minItems = 6;
+  while (combined.length < minItems) combined = [...combined, ...cameras];
+  combined = [...combined, ...combined];
+  const dur = Math.max(30, combined.length * 3.5);
+
   return (
-    <div id={id}
-      onMouseEnter={() => { isPaused.current = true; }}
-      onMouseLeave={() => { isPaused.current = false; }}
-      style={{ padding: isMobile ? "72px 0 56px" : "96px 0 80px", background: BG, overflow: "hidden" }}>
+    <div id={id} style={{ padding: "96px 0 80px", background: BG, overflow: "hidden", position: "relative" }}>
+      <style>{`@keyframes scrollCam{0%{transform:translateX(-50%)}100%{transform:translateX(0)}}`}</style>
+      <div style={{ position:"absolute", top:"50%", left:"50%", transform:"translate(-50%,-50%)", width:600, height:300, background:`radial-gradient(ellipse,${G}06,transparent 70%)`, pointerEvents:"none" }} />
 
-      <style>{`
-        @keyframes cf-slide-in-left { from { opacity:0; transform:translateX(-48px) scale(0.97); } to { opacity:1; transform:translateX(0) scale(1); } }
-        @keyframes cf-slide-in-right { from { opacity:0; transform:translateX(48px) scale(0.97); } to { opacity:1; transform:translateX(0) scale(1); } }
-        @keyframes cf-dot-in { from{opacity:0;transform:scaleX(0.4);} to{opacity:1;transform:scaleX(1);} }
-      `}</style>
-
-      <div style={{ position:"relative", display:"flex", alignItems:"center", justifyContent:"center", padding: isMobile ? "0 20px 40px" : "0 60px 48px", maxWidth: 1280, margin: "0 auto" }}>
-        <div style={{ textAlign:"center" }}>
-          <div style={{ fontSize: 9, letterSpacing: 7, color: MUT, fontFamily: "system-ui,sans-serif", marginBottom: 6 }}>BỘ SƯU TẬP</div>
-          <h2 style={{ fontSize: isMobile ? 24 : 30, fontWeight: 400, letterSpacing: 2, margin: 0, color: TXT, fontFamily: 'var(--font-display)' }}>Máy Ảnh Cho Thuê</h2>
-        </div>
-        <div style={{ position:"absolute", right: isMobile ? 20 : 60, display: "flex", gap: 8 }}>
-          <button onClick={prev} onMouseEnter={e=>{e.currentTarget.style.borderColor=G;e.currentTarget.style.color=G;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=BR;e.currentTarget.style.color=TXT;}}
-            style={{ width:36,height:36,borderRadius:"50%",background:"none",border:`1px solid ${BR}`,color:TXT,cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",transition:"all .2s" }}>‹</button>
-          <button onClick={next} onMouseEnter={e=>{e.currentTarget.style.borderColor=G;e.currentTarget.style.color=G;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=BR;e.currentTarget.style.color=TXT;}}
-            style={{ width:36,height:36,borderRadius:"50%",background:"none",border:`1px solid ${BR}`,color:TXT,cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",transition:"all .2s" }}>›</button>
-        </div>
+      <div style={{ textAlign:"center", marginBottom:32, position:"relative", zIndex:2 }}>
+        <div style={{ fontSize:9, letterSpacing:7, color:MUT, fontFamily:"system-ui,sans-serif", marginBottom:14 }}>BỘ SƯU TẬP</div>
+        <h2 style={{ fontSize:30, fontWeight:400, letterSpacing:2, margin:"0 0 6px", color:TXT, fontFamily:"var(--font-display)" }}>Máy Ảnh Cho Thuê</h2>
+        <div style={{ width:36, height:1, background:G, margin:"14px auto 18px" }} />
+        <button onClick={() => setCfPaused(p => !p)}
+          style={{ background: cfPaused ? G+"22" : "none", border:`1px solid ${cfPaused ? G : BR}`, color: cfPaused ? G : MUT, padding:"6px 22px", borderRadius:99, fontSize:10, cursor:"pointer", fontFamily:"system-ui,sans-serif", letterSpacing:1.5, transition:"all .3s" }}>
+          {cfPaused ? "▶ TIẾP TỤC" : "⏸ DỪNG"}
+        </button>
       </div>
 
-      <div style={{ display:"flex", alignItems:"center", justifyContent: isMobile ? "flex-start" : "center", gap: isMobile ? 12 : 16, padding: isMobile ? "0 16px" : "0 40px", maxWidth:1380, margin:"0 auto", overflowX: isMobile ? "visible" : "visible" }}>
-        {visible.map(({ cam, offset, isCenter }) => {
-          const { brand, model } = parseName(cam.name);
-          const isAvail = cam.status === "available";
-          const isHot = isCenter && isAvail;
-          const cardH = isCenter ? (isMobile ? 320 : 368) : (isMobile ? 290 : 288);
-          const cardW = isCenter ? (isMobile ? "calc(100vw - 72px)" : 304) : (isMobile ? "calc(100vw - 112px)" : 232);
-          // animation: center card slides in from direction, side cards fade
-          const animName = isCenter
-            ? (slideDir === 1 ? "cf-slide-in-right" : "cf-slide-in-left")
-            : (slideDir === 1 ? "cf-slide-in-right" : "cf-slide-in-left");
-          return (
-            <div key={`${cam.id}_${offset}_${animKey}`}
-              onMouseEnter={()=>setHov(cam.id)} onMouseLeave={()=>setHov(null)}
-              onClick={()=>!isCenter && go(offset)}
-              style={{
-                flex:"0 0 auto",
-                width: cardW,
-                height: cardH,
-                borderRadius: 4,
-                overflow: "hidden",
-                border: `1px solid ${isCenter ? G+"66" : BR}`,
-                transform: isCenter ? "scale(1)" : "scale(0.93)",
-                opacity: isCenter ? 1 : 0.6,
-                cursor: isCenter ? "default" : "pointer",
-                position: "relative",
-                boxShadow: isCenter ? `0 0 60px rgba(201,168,76,0.1), 0 0 0 1px ${G}22` : "none",
-                background: "#060606",
-                animation: `${animName} .42s cubic-bezier(.4,0,.2,1) both`,
-              }}>
-
-              {/* ── FULL-CARD IMAGE ── */}
-              <div style={{ position:"absolute", inset:0, zIndex:0 }}>
-                <CamImage cam={cam} height={cardH} />
-              </div>
-
-              {/* ── Overlay ── */}
-              <div style={{
-                position:"absolute", inset:0, zIndex:1,
-                background: isCenter
-                  ? "linear-gradient(to top, rgba(6,6,6,0.92) 0%, rgba(6,6,6,0.45) 45%, rgba(6,6,6,0.15) 100%)"
-                  : "linear-gradient(to top, rgba(6,6,6,0.95) 0%, rgba(6,6,6,0.6) 50%, rgba(6,6,6,0.25) 100%)",
-                pointerEvents:"none",
-              }} />
-
-              {/* ── ĐÃ THUÊ badge ── */}
-              {!isAvail && (
-                <div style={{ position:"absolute",top:14,right:14,zIndex:10,background:"rgba(204,51,51,0.25)",border:"1px solid #cc3333",color:"#ff6666",fontSize:8,fontWeight:700,letterSpacing:2,padding:"4px 10px",fontFamily:"system-ui,sans-serif",borderRadius:2 }}>ĐÃ THUÊ</div>
-              )}
-
-              {/* ── Text overlay (bottom) ── */}
-              <div style={{ position:"absolute", bottom:0, left:0, right:0, zIndex:2, padding: isCenter ? "0 20px 20px" : "0 14px 14px" }}>
-                <div style={{ fontSize:8,letterSpacing:4,color:"rgba(255,255,255,0.5)",fontFamily:"system-ui,sans-serif",marginBottom:4,fontWeight:600 }}>{brand}</div>
-                <div style={{ fontSize: isCenter ? 30 : 21, fontWeight:700, letterSpacing:0.5, color:"#ffffff", lineHeight:1, marginBottom:5, fontFamily:"system-ui,sans-serif", textShadow:"0 2px 12px rgba(0,0,0,0.8)" }}>{model}</div>
-                <div style={{ fontSize:8,letterSpacing:3,color:"rgba(255,255,255,0.45)",fontFamily:"system-ui,sans-serif",marginBottom: isCenter ? 16 : 12 }}>{shortDesc(cam.desc)}</div>
-                <div style={{ width:28, height:1, background: G+"88", marginBottom: isCenter ? 14 : 11 }} />
-                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                  <div>
-                    <span style={{ color:G, fontSize: isCenter ? 15 : 12, fontWeight:700, fontFamily:"system-ui,sans-serif" }}>{fmtVND(cam.price)}</span>
-                    <span style={{ color:"rgba(255,255,255,0.35)", fontSize:9, marginLeft:4, fontFamily:"system-ui,sans-serif" }}>/ngày</span>
+      <div style={{ overflow:"hidden", position:"relative" }}>
+        <div style={{ position:"absolute", left:0, top:0, bottom:0, width:120, background:"linear-gradient(to right,#060606,transparent)", zIndex:2, pointerEvents:"none" }} />
+        <div style={{ position:"absolute", right:0, top:0, bottom:0, width:120, background:"linear-gradient(to left,#060606,transparent)", zIndex:2, pointerEvents:"none" }} />
+        <div style={{ display:"flex", gap:20, width:"max-content", animation:`scrollCam ${dur}s linear infinite`, animationPlayState: cfPaused ? "paused" : "running", paddingLeft:20 }}>
+          {combined.map((cam, i) => {
+            const parts = cam.name.split(" ");
+            const brandMap = { fujifilm:"FUJIFILM", sony:"SONY", canon:"CANON", nikon:"NIKON", dji:"DJI", gopro:"GOPRO" };
+            const b = brandMap[parts[0].toLowerCase()] || parts[0].toUpperCase();
+            const m = parts.slice(1).join(" ");
+            const isAvail = cam.status === "available";
+            return (
+              <div key={cam.id+"_"+i}
+                onMouseEnter={() => setCfPaused(true)}
+                onMouseLeave={() => setCfPaused(false)}
+                style={{ flexShrink:0, width:280, height:360, borderRadius:4, overflow:"hidden", border:`1px solid ${G}44`, position:"relative", background:"#060606", cursor:"pointer" }}
+                onClick={() => isAvail && onBook(cam)}>
+                <div style={{ position:"absolute", inset:0, zIndex:0 }}><CamImage cam={cam} height={360} /></div>
+                <div style={{ position:"absolute", inset:0, zIndex:1, background:"linear-gradient(to top,rgba(6,6,6,0.92) 0%,rgba(6,6,6,0.4) 50%,rgba(6,6,6,0.1) 100%)", pointerEvents:"none" }} />
+                {!isAvail && <div style={{ position:"absolute",top:14,right:14,zIndex:10,background:"rgba(204,51,51,0.25)",border:"1px solid #cc3333",color:"#ff6666",fontSize:8,fontWeight:700,letterSpacing:2,padding:"4px 10px",fontFamily:"system-ui,sans-serif",borderRadius:2 }}>ĐÃ THUÊ</div>}
+                <div style={{ position:"absolute", bottom:0, left:0, right:0, zIndex:2, padding:"0 20px 20px" }}>
+                  <div style={{ fontSize:8,letterSpacing:4,color:"rgba(255,255,255,0.45)",fontFamily:"system-ui,sans-serif",marginBottom:4,fontWeight:600 }}>{b}</div>
+                  <div style={{ fontSize:26,fontWeight:700,color:"#fff",lineHeight:1,marginBottom:6,fontFamily:"system-ui,sans-serif",textShadow:"0 2px 12px rgba(0,0,0,0.8)" }}>{m}</div>
+                  <div style={{ width:24,height:1,background:G+"88",marginBottom:12 }} />
+                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                    <div>
+                      <span style={{ color:G,fontSize:14,fontWeight:700,fontFamily:"system-ui,sans-serif" }}>{fmtVND(cam.price)}</span>
+                      <span style={{ color:"rgba(255,255,255,0.35)",fontSize:9,marginLeft:4,fontFamily:"system-ui,sans-serif" }}>/ngày</span>
+                    </div>
+                    <button onClick={e=>{e.stopPropagation(); isAvail && onBook(cam);}} disabled={!isAvail}
+                      className={isAvail ? "btn-3d" : ""}
+                      style={isAvail ? { borderRadius:3,fontSize:9,letterSpacing:2,animation:"none",padding:"7px 14px" } : { background:"none",border:`1px solid #333`,cursor:"not-allowed",color:"#444",fontSize:9,fontFamily:"system-ui,sans-serif",padding:"6px 12px",borderRadius:3 }}>
+                      {isAvail ? "THUÊ NGAY" : "HẾT MÁY"}
+                    </button>
                   </div>
-                  <button
-                    onClick={isAvail ? () => onBook(cam) : undefined}
-                    disabled={!isAvail}
-                    className={isAvail && isCenter ? "btn-3d" : ""}
-                    style={isAvail && isCenter ? {
-                      borderRadius:3, fontSize:9, letterSpacing:2, animation:"none",
-                      padding:"7px 15px",
-                    } : isAvail ? {
-                      background:"none", border:`1px solid ${G}66`, cursor:"pointer",
-                      color:G, fontSize:9, fontFamily:"system-ui,sans-serif", fontWeight:700,
-                      letterSpacing:2, padding:"6px 12px", borderRadius:3, transition:"all .2s",
-                    } : {
-                      background:"none", border:`1px solid #333`, cursor:"not-allowed",
-                      color:"#444", fontSize:9, fontFamily:"system-ui,sans-serif", fontWeight:700,
-                      letterSpacing:2, padding:"6px 12px", borderRadius:3,
-                    }}>
-                    {isAvail ? "THUÊ NGAY" : "HẾT MÁY"}
-                  </button>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Dots */}
-      <div style={{ display:"flex",justifyContent:"center",gap:6,marginTop:28 }}>
-        {cameras.map((_,i) => (
-          <button key={i} onClick={()=>{ setSlideDir(i>active?1:-1); setAnimKey(k=>k+1); setActive(i); }}
-            style={{ width: i===active?22:6,height:5,borderRadius:3,background:i===active?G:BR,border:"none",cursor:"pointer",padding:0,transition:"all .3s" }} />
-        ))}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
