@@ -88,10 +88,17 @@ function Badge({ status }) {
 function Logo({ light = true, size = 1 }) {
   const col = light ? "#f0e8d0" : "#1a1a1a";
   const s = n => n * size;
-  const bw = 1.5;
+  const bw = 2.5;
+  const [clicked, setClicked] = useState(false);
+  const handleClick = () => { setClicked(true); setTimeout(() => setClicked(false), 600); };
+  const spread = clicked ? s(7) : 0;
+  const tr = { transition: clicked ? "none" : "transform 0.5s cubic-bezier(.4,0,.2,1)" };
   return (
-    <div style={{ display: "inline-flex", alignItems: "center", fontFamily: '"Times New Roman",Georgia,serif', color: col, userSelect: "none" }}>
-      <span style={{ display: "inline-block", width: s(11), height: s(32), borderLeft: `${bw}px solid ${col}`, borderTop: `${bw}px solid ${col}`, borderBottom: `${bw}px solid ${col}`, marginRight: s(9), flexShrink: 0 }} />
+    <div onClick={handleClick} style={{ display: "inline-flex", alignItems: "center", fontFamily: '"Times New Roman",Georgia,serif', color: col, userSelect: "none", cursor: "pointer" }}>
+      <div style={{ position: "relative", width: s(13), height: s(32), marginRight: s(9), flexShrink: 0 }}>
+        <span style={{ ...tr, position: "absolute", top: 0, left: 0, width: s(13), height: s(16), borderLeft: `${bw}px solid ${col}`, borderTop: `${bw}px solid ${col}`, transform: `translate(${-spread}px,${-spread}px)` }} />
+        <span style={{ ...tr, position: "absolute", bottom: 0, left: 0, width: s(13), height: s(16), borderLeft: `${bw}px solid ${col}`, borderBottom: `${bw}px solid ${col}`, transform: `translate(${-spread}px,${spread}px)` }} />
+      </div>
       <span style={{ fontSize: s(20), fontWeight: 400, letterSpacing: s(1.5), whiteSpace: "nowrap", display: "inline-flex", alignItems: "center" }}>
         <span>92</span>
         <span style={{ marginLeft: s(10) }}>KA</span>
@@ -99,7 +106,10 @@ function Logo({ light = true, size = 1 }) {
         <span style={{ marginLeft: s(10) }}>RA</span>
         <span style={{ display: "inline-block", width: s(7), height: s(7), borderRadius: "50%", background: "radial-gradient(circle at 36% 30%, #ff5555 0%, #bb0000 55%, #6a0000 100%)", boxShadow: `0 0 ${s(5)}px rgba(190,0,0,0.75), inset 0 ${s(1)}px 0 rgba(255,170,170,0.4)`, marginLeft: s(3), flexShrink: 0, position: "relative", top: s(-6) }} />
       </span>
-      <span style={{ display: "inline-block", width: s(11), height: s(32), borderRight: `${bw}px solid ${col}`, borderTop: `${bw}px solid ${col}`, borderBottom: `${bw}px solid ${col}`, marginLeft: s(9), flexShrink: 0 }} />
+      <div style={{ position: "relative", width: s(13), height: s(32), marginLeft: s(9), flexShrink: 0 }}>
+        <span style={{ ...tr, position: "absolute", top: 0, right: 0, width: s(13), height: s(16), borderRight: `${bw}px solid ${col}`, borderTop: `${bw}px solid ${col}`, transform: `translate(${spread}px,${-spread}px)` }} />
+        <span style={{ ...tr, position: "absolute", bottom: 0, right: 0, width: s(13), height: s(16), borderRight: `${bw}px solid ${col}`, borderBottom: `${bw}px solid ${col}`, transform: `translate(${spread}px,${spread}px)` }} />
+      </div>
     </div>
   );
 }
@@ -375,7 +385,7 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
     <div id="feedback" style={{ padding: "72px 16px 64px", borderTop: `1px solid ${BR}`, background: "linear-gradient(180deg,#060606 0%,#080700 50%,#060606 100%)" }}>
       <div style={{ textAlign: "center" }}>
         <div style={{ fontSize: 9, letterSpacing: 7, color: MUT, fontFamily: "system-ui,sans-serif", marginBottom: 14 }}>SOCIAL PROOF</div>
-        <h2 style={{ fontSize: 30, fontWeight: 400, letterSpacing: 2, margin: "0 0 6px", color: TXT, fontFamily: '"Times New Roman",Georgia,serif' }}>Feedback Khách Hàng</h2>
+        <h2 style={{ fontSize: 30, fontWeight: 400, letterSpacing: 2, margin: "0 0 6px", color: TXT, fontFamily: 'var(--font-display)' }}>Feedback Khách Hàng</h2>
         <div style={{ width: 36, height: 1, background: G, margin: "14px auto 20px" }} />
         <div style={{ color: MUT, fontSize: 13, fontFamily: "system-ui,sans-serif" }}>Chưa có feedback nào được duyệt</div>
       </div>
@@ -388,7 +398,7 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
   const header = (
     <div style={{ textAlign: "center", marginBottom: 32, position: "relative", zIndex: 2, padding: "0 16px" }}>
       <div style={{ fontSize: 9, letterSpacing: 7, color: MUT, fontFamily: "system-ui,sans-serif", marginBottom: 14 }}>SOCIAL PROOF</div>
-      <h2 style={{ fontSize: isMobile ? 24 : 30, fontWeight: 400, letterSpacing: 2, margin: "0 0 6px", color: TXT, fontFamily: '"Times New Roman",Georgia,serif' }}>Feedback Khách Hàng</h2>
+      <h2 style={{ fontSize: isMobile ? 24 : 30, fontWeight: 400, letterSpacing: 2, margin: "0 0 6px", color: TXT, fontFamily: 'var(--font-display)' }}>Feedback Khách Hàng</h2>
       <div style={{ width: 36, height: 1, background: G, margin: "14px auto 12px" }} />
       <div style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "#0e0e0e", border: `1px solid ${G}33`, borderRadius: 99, padding: "6px 20px", marginBottom: 18 }}>
         <span style={{ color: G, fontSize: 16 }}>{"★".repeat(Math.round(parseFloat(avgRating)))}</span>
@@ -398,31 +408,38 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
     </div>
   );
 
-  // ── MOBILE: scroll ngang tay, snap từng card ──
+  // ── MOBILE: auto-scroll + vuốt tay ──
   if (isMobile) {
+    const fbScrollRef = useRef(null);
+    const fbPausedRef = useRef(false);
+    const fbIdxRef = useRef(0);
+    useEffect(() => {
+      const el = fbScrollRef.current;
+      if (!el || all.length === 0) return;
+      const t = setInterval(() => {
+        if (fbPausedRef.current || !el) return;
+        const cards = el.querySelectorAll("[data-fbcard]");
+        if (!cards.length) return;
+        fbIdxRef.current = (fbIdxRef.current + 1) % cards.length;
+        cards[fbIdxRef.current].scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
+      }, 2800);
+      const onTouch = () => { fbPausedRef.current = true; setTimeout(() => { fbPausedRef.current = false; }, 5000); };
+      el.addEventListener("touchstart", onTouch, { passive: true });
+      return () => { clearInterval(t); el.removeEventListener("touchstart", onTouch); };
+    }, [all.length]);
+
     return (
       <div id="feedback" style={{ padding: "56px 0 52px", borderTop: `1px solid ${BR}`, background: "linear-gradient(180deg,#060606 0%,#080700 50%,#060606 100%)" }}>
-        <style>{`
-          .fb-scroll::-webkit-scrollbar{display:none}
-          .fb-scroll{-ms-overflow-style:none;scrollbar-width:none;}
-        `}</style>
+        <style>{`.fb-scroll::-webkit-scrollbar{display:none}.fb-scroll{-ms-overflow-style:none;scrollbar-width:none;}`}</style>
         {header}
-        <div
-          className="fb-scroll"
-          style={{
-            display: "flex", gap: 16, overflowX: "auto", overflowY: "visible",
-            scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch",
-            paddingLeft: 20, paddingRight: 20, paddingBottom: 8,
-            touchAction: "pan-x",
-          }}
-        >
+        <div ref={fbScrollRef} className="fb-scroll"
+          style={{ display: "flex", gap: 16, overflowX: "auto", overflowY: "visible", scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch", paddingLeft: 20, paddingRight: 20, paddingBottom: 8 }}>
           {all.map((c) => (
-            <div key={c.key} style={{ scrollSnapAlign: "start", flexShrink: 0 }}>
+            <div key={c.key} data-fbcard="1" style={{ scrollSnapAlign: "start", flexShrink: 0 }}>
               <FeedbackCard c={c} hov={false} onEnter={() => {}} onLeave={() => {}} />
             </div>
           ))}
         </div>
-        <div style={{ textAlign: "center", marginTop: 16, color: MUT, fontSize: 10, letterSpacing: 1.5, fontFamily: "system-ui,sans-serif" }}>← VUỐT ĐỂ XEM THÊM →</div>
       </div>
     );
   }
@@ -1185,10 +1202,10 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, feedbacks, setFeedbac
   );
 }
 
-function BookingModal({ cameras, accessories, siteContent, onClose, onSubmit, loggedUser }) {
+function BookingModal({ cameras, accessories, siteContent, onClose, onSubmit, loggedUser, preselectedCamId }) {
   const [step, setStep] = useState(1);
   // selCams: { [camId]: qty }
-  const [selCams, setSelCams] = useState({});
+  const [selCams, setSelCams] = useState(() => preselectedCamId ? { [preselectedCamId]: 1 } : {});
   const [selDur, setSelDur] = useState(null);
   const [customDays, setCustomDays] = useState("");
   const [pickDate, setPickDate] = useState(todayStr());
@@ -1455,7 +1472,7 @@ function BookingModal({ cameras, accessories, siteContent, onClose, onSubmit, lo
         {done && (
           <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
             <div style={{ fontSize: 64, marginBottom: 12 }}>📸</div>
-            <div style={{ color: G, fontSize: 22, fontWeight: 700, fontFamily: "Georgia,serif", marginBottom: 6, letterSpacing: 1 }}>Đặt đơn thành công!</div>
+            <div style={{ color: G, fontSize: 22, fontWeight: 700, fontFamily: "var(--font-display)", marginBottom: 6, letterSpacing: 1 }}>Đặt đơn thành công!</div>
             <div style={{ color: MUT, fontSize: 13, marginBottom: 10 }}>Mã đơn của bạn</div>
             <div style={{ color: TXT, fontSize: 28, fontWeight: 900, fontFamily: "monospace", letterSpacing: 5, background: "#111", padding: "12px 24px", borderRadius: 10, border: `1px solid ${G}44`, display: "inline-block", marginBottom: 12 }}>{orderId}</div>
             <div style={{ color: MUT, fontSize: 14, marginBottom: 20 }}>Tổng: <span style={{ color: G, fontWeight: 700, fontSize: 16 }}>{fmtVND(total)}</span></div>
@@ -1501,6 +1518,198 @@ function BookingModal({ cameras, accessories, siteContent, onClose, onSubmit, lo
   );
 }
 
+// ── CAMERA FEATURED CAROUSEL ──
+function CameraFeatured({ id, cameras, onBook, isMobile }) {
+  const [active, setActive] = useState(0);
+  const [hov, setHov] = useState(null);
+  const [slideDir, setSlideDir] = useState(1); // 1=next, -1=prev
+  const [animKey, setAnimKey] = useState(0);
+  const isPaused = useRef(false);
+  const total = cameras.length;
+
+  const go = useCallback((dir) => {
+    setSlideDir(dir);
+    setAnimKey(k => k + 1);
+    setActive(a => (a + dir + total) % total);
+  }, [total]);
+
+  const prev = () => go(-1);
+  const next = () => go(1);
+
+  // Auto-play 3.5s, dừng khi hover
+  useEffect(() => {
+    const t = setInterval(() => { if (!isPaused.current) go(1); }, 3500);
+    return () => clearInterval(t);
+  }, [go]);
+
+  const getVisible = () => {
+    if (isMobile) {
+      const items = [];
+      for (let d = 0; d <= 1; d++) {
+        const idx = (active + d + total) % total;
+        items.push({ cam: cameras[idx], offset: d, isCenter: d === 0 });
+      }
+      return items;
+    }
+    const items = [];
+    for (let d = -1; d <= 1; d++) {
+      const idx = (active + d + total) % total;
+      items.push({ cam: cameras[idx], offset: d, isCenter: d === 0 });
+    }
+    return items;
+  };
+  const visible = getVisible();
+
+  const parseName = (name) => {
+    const parts = name.split(" ");
+    if (parts.length === 1) return { brand: "", model: name };
+    const brandMap = { fujifilm: "FUJIFILM", sony: "SONY", canon: "CANON", nikon: "NIKON", dji: "DJI", gopro: "GOPRO" };
+    const firstLow = parts[0].toLowerCase();
+    if (brandMap[firstLow]) return { brand: brandMap[firstLow], model: parts.slice(1).join(" ") };
+    return { brand: parts[0].toUpperCase(), model: parts.slice(1).join(" ") };
+  };
+
+  const shortDesc = (desc) => {
+    const words = desc.split(/[,，、]/);
+    return words[0].trim().toUpperCase();
+  };
+
+  // Slide animation keyframes (inject 1 lần)
+  useEffect(() => {
+    if (document.getElementById("cf-anim-style")) return;
+    const style = document.createElement("style");
+    style.id = "cf-anim-style";
+    style.textContent = `
+      @keyframes cf-slide-in-left { from { opacity:0; transform:translateX(-48px) scale(0.97); } to { opacity:1; transform:translateX(0) scale(1); } }
+      @keyframes cf-slide-in-right { from { opacity:0; transform:translateX(48px) scale(0.97); } to { opacity:1; transform:translateX(0) scale(1); } }
+      @keyframes cf-slide-in-left-side { from { opacity:0; transform:translateX(-32px) scale(0.93); } to { opacity:0.6; transform:translateX(0) scale(0.93); } }
+      @keyframes cf-slide-in-right-side { from { opacity:0; transform:translateX(32px) scale(0.93); } to { opacity:0.6; transform:translateX(0) scale(0.93); } }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
+  return (
+    <div id={id}
+      onMouseEnter={() => { isPaused.current = true; }}
+      onMouseLeave={() => { isPaused.current = false; }}
+      style={{ padding: isMobile ? "72px 0 56px" : "96px 0 80px", background: BG, overflow: "hidden" }}>
+
+      <style>{`
+        @keyframes cf-slide-in-left { from { opacity:0; transform:translateX(-48px) scale(0.97); } to { opacity:1; transform:translateX(0) scale(1); } }
+        @keyframes cf-slide-in-right { from { opacity:0; transform:translateX(48px) scale(0.97); } to { opacity:1; transform:translateX(0) scale(1); } }
+        @keyframes cf-dot-in { from{opacity:0;transform:scaleX(0.4);} to{opacity:1;transform:scaleX(1);} }
+      `}</style>
+
+      <div style={{ position:"relative", display:"flex", alignItems:"center", justifyContent:"center", padding: isMobile ? "0 20px 40px" : "0 60px 48px", maxWidth: 1280, margin: "0 auto" }}>
+        <div style={{ textAlign:"center" }}>
+          <div style={{ fontSize: 9, letterSpacing: 7, color: MUT, fontFamily: "system-ui,sans-serif", marginBottom: 6 }}>BỘ SƯU TẬP</div>
+          <h2 style={{ fontSize: isMobile ? 24 : 30, fontWeight: 400, letterSpacing: 2, margin: 0, color: TXT, fontFamily: 'var(--font-display)' }}>Máy Ảnh Cho Thuê</h2>
+        </div>
+        <div style={{ position:"absolute", right: isMobile ? 20 : 60, display: "flex", gap: 8 }}>
+          <button onClick={prev} onMouseEnter={e=>{e.currentTarget.style.borderColor=G;e.currentTarget.style.color=G;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=BR;e.currentTarget.style.color=TXT;}}
+            style={{ width:36,height:36,borderRadius:"50%",background:"none",border:`1px solid ${BR}`,color:TXT,cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",transition:"all .2s" }}>‹</button>
+          <button onClick={next} onMouseEnter={e=>{e.currentTarget.style.borderColor=G;e.currentTarget.style.color=G;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=BR;e.currentTarget.style.color=TXT;}}
+            style={{ width:36,height:36,borderRadius:"50%",background:"none",border:`1px solid ${BR}`,color:TXT,cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",transition:"all .2s" }}>›</button>
+        </div>
+      </div>
+
+      <div style={{ display:"flex", alignItems:"center", justifyContent: isMobile ? "flex-start" : "center", gap: isMobile ? 12 : 16, padding: isMobile ? "0 16px" : "0 40px", maxWidth:1380, margin:"0 auto", overflowX: isMobile ? "visible" : "visible" }}>
+        {visible.map(({ cam, offset, isCenter }) => {
+          const { brand, model } = parseName(cam.name);
+          const isAvail = cam.status === "available";
+          const isHot = isCenter && isAvail;
+          const cardH = isCenter ? (isMobile ? 320 : 368) : (isMobile ? 290 : 288);
+          const cardW = isCenter ? (isMobile ? "calc(100vw - 72px)" : 304) : (isMobile ? "calc(100vw - 112px)" : 232);
+          // animation: center card slides in from direction, side cards fade
+          const animName = isCenter
+            ? (slideDir === 1 ? "cf-slide-in-right" : "cf-slide-in-left")
+            : (slideDir === 1 ? "cf-slide-in-right" : "cf-slide-in-left");
+          return (
+            <div key={`${cam.id}_${offset}_${animKey}`}
+              onMouseEnter={()=>setHov(cam.id)} onMouseLeave={()=>setHov(null)}
+              onClick={()=>!isCenter && go(offset)}
+              style={{
+                flex:"0 0 auto",
+                width: cardW,
+                height: cardH,
+                borderRadius: 4,
+                overflow: "hidden",
+                border: `1px solid ${isCenter ? G+"66" : BR}`,
+                transform: isCenter ? "scale(1)" : "scale(0.93)",
+                opacity: isCenter ? 1 : 0.6,
+                cursor: isCenter ? "default" : "pointer",
+                position: "relative",
+                boxShadow: isCenter ? `0 0 60px rgba(201,168,76,0.1), 0 0 0 1px ${G}22` : "none",
+                background: "#060606",
+                animation: `${animName} .42s cubic-bezier(.4,0,.2,1) both`,
+              }}>
+
+              {/* ── FULL-CARD IMAGE ── */}
+              <div style={{ position:"absolute", inset:0, zIndex:0 }}>
+                <CamImage cam={cam} height={cardH} />
+              </div>
+
+              {/* ── Overlay ── */}
+              <div style={{
+                position:"absolute", inset:0, zIndex:1,
+                background: isCenter
+                  ? "linear-gradient(to top, rgba(6,6,6,0.92) 0%, rgba(6,6,6,0.45) 45%, rgba(6,6,6,0.15) 100%)"
+                  : "linear-gradient(to top, rgba(6,6,6,0.95) 0%, rgba(6,6,6,0.6) 50%, rgba(6,6,6,0.25) 100%)",
+                pointerEvents:"none",
+              }} />
+
+              {/* ── ĐÃ THUÊ badge ── */}
+              {!isAvail && (
+                <div style={{ position:"absolute",top:14,right:14,zIndex:10,background:"rgba(204,51,51,0.25)",border:"1px solid #cc3333",color:"#ff6666",fontSize:8,fontWeight:700,letterSpacing:2,padding:"4px 10px",fontFamily:"system-ui,sans-serif",borderRadius:2 }}>ĐÃ THUÊ</div>
+              )}
+
+              {/* ── Text overlay (bottom) ── */}
+              <div style={{ position:"absolute", bottom:0, left:0, right:0, zIndex:2, padding: isCenter ? "0 20px 20px" : "0 14px 14px" }}>
+                <div style={{ fontSize:8,letterSpacing:4,color:"rgba(255,255,255,0.5)",fontFamily:"system-ui,sans-serif",marginBottom:4,fontWeight:600 }}>{brand}</div>
+                <div style={{ fontSize: isCenter ? 30 : 21, fontWeight:700, letterSpacing:0.5, color:"#ffffff", lineHeight:1, marginBottom:5, fontFamily:"system-ui,sans-serif", textShadow:"0 2px 12px rgba(0,0,0,0.8)" }}>{model}</div>
+                <div style={{ fontSize:8,letterSpacing:3,color:"rgba(255,255,255,0.45)",fontFamily:"system-ui,sans-serif",marginBottom: isCenter ? 16 : 12 }}>{shortDesc(cam.desc)}</div>
+                <div style={{ width:28, height:1, background: G+"88", marginBottom: isCenter ? 14 : 11 }} />
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                  <div>
+                    <span style={{ color:G, fontSize: isCenter ? 15 : 12, fontWeight:700, fontFamily:"system-ui,sans-serif" }}>{fmtVND(cam.price)}</span>
+                    <span style={{ color:"rgba(255,255,255,0.35)", fontSize:9, marginLeft:4, fontFamily:"system-ui,sans-serif" }}>/ngày</span>
+                  </div>
+                  <button
+                    onClick={isAvail ? () => onBook(cam) : undefined}
+                    disabled={!isAvail}
+                    className={isAvail && isCenter ? "btn-3d" : ""}
+                    style={isAvail && isCenter ? {
+                      borderRadius:3, fontSize:9, letterSpacing:2, animation:"none",
+                      padding:"7px 15px",
+                    } : isAvail ? {
+                      background:"none", border:`1px solid ${G}66`, cursor:"pointer",
+                      color:G, fontSize:9, fontFamily:"system-ui,sans-serif", fontWeight:700,
+                      letterSpacing:2, padding:"6px 12px", borderRadius:3, transition:"all .2s",
+                    } : {
+                      background:"none", border:`1px solid #333`, cursor:"not-allowed",
+                      color:"#444", fontSize:9, fontFamily:"system-ui,sans-serif", fontWeight:700,
+                      letterSpacing:2, padding:"6px 12px", borderRadius:3,
+                    }}>
+                    {isAvail ? "THUÊ NGAY" : "HẾT MÁY"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Dots */}
+      <div style={{ display:"flex",justifyContent:"center",gap:6,marginTop:28 }}>
+        {cameras.map((_,i) => (
+          <button key={i} onClick={()=>{ setSlideDir(i>active?1:-1); setAnimKey(k=>k+1); setActive(i); }}
+            style={{ width: i===active?22:6,height:5,borderRadius:3,background:i===active?G:BR,border:"none",cursor:"pointer",padding:0,transition:"all .3s" }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── HOMEPAGE ──
 function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile, photos, feedbacks, loggedUser, onOpenLogin, onOpenCustomer }) {
   const [scrollY, setScrollY] = useState(0);
@@ -1535,7 +1744,7 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
   const marquee = cameras.map(c => `${c.icon || "📷"} ${c.name}`);
 
   return (
-    <div style={{ position: "relative", zIndex: 1, fontFamily: '"Times New Roman",Georgia,serif', color: TXT }}>
+    <div style={{ position: "relative", zIndex: 1, fontFamily: 'var(--font-display)', color: TXT }}>
       {/* NAV */}
       <nav className="nav92" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, padding: navState === "top" ? "8px 20px 0" : "0" }}>
         <div className={`nav-inner${navState !== "top" ? " scrolled" : ""}${navState === "compact" ? " compact" : ""}`}
@@ -1673,8 +1882,8 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
 
           {/* Tagline 2 dòng */}
           <div style={{ marginTop: 20, marginBottom: 32 }}>
-            <div style={{ fontSize: isMobile ? 12 : 15, letterSpacing: isMobile ? 4 : 6, color: "#7a7570", fontFamily: "system-ui,sans-serif", lineHeight: 2 }}>TRẢI NGHIỆM MÁY ẢNH</div>
-            <div style={{ fontSize: isMobile ? 12 : 15, letterSpacing: isMobile ? 4 : 6, color: "#7a7570", fontFamily: "system-ui,sans-serif", lineHeight: 2 }}>BẮT GIỮ KHOẢNH KHẮC</div>
+            <div style={{ fontSize: isMobile ? 14 : 18, letterSpacing: isMobile ? 2 : 3, color: "#7a7570", fontFamily: 'var(--font-display)', fontStyle: "italic", fontWeight: 300, lineHeight: 2 }}>Trải nghiệm máy ảnh</div>
+            <div style={{ fontSize: isMobile ? 14 : 18, letterSpacing: isMobile ? 2 : 3, color: "#7a7570", fontFamily: 'var(--font-display)', fontStyle: "italic", fontWeight: 300, lineHeight: 2 }}>Bắt giữ khoảnh khắc</div>
           </div>
 
           {/* CTA Buttons */}
@@ -1705,37 +1914,8 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
       {/* CUSTOMER PHOTO FEED */}
       <FeedbackMarquee photos={photos || []} feedbacks={feedbacks || []} isMobile={isMobile} />
 
-      {/* CAMERAS */}
-      <div id="cameras" style={{ padding: isMobile ? "72px 16px 56px" : "110px 60px 80px", maxWidth: 1280, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 64 }}>
-          <div style={{ fontSize: 10, letterSpacing: 7, color: MUT, marginBottom: 14, fontFamily: "system-ui,sans-serif" }}>BỘ SƯU TẬP</div>
-          <h2 style={{ fontSize: 38, fontWeight: 400, letterSpacing: 2, margin: 0 }}>Máy Ảnh Cho Thuê</h2>
-          <div style={{ width: 40, height: 1, background: G, margin: "20px auto 0" }} />
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: isMobile ? 16 : 24 }}>
-          {cameras.map(c => (
-            <div key={c.id} onMouseEnter={() => setHov(c.id)} onMouseLeave={() => setHov(null)}
-              style={{ background: CARD, border: `1px solid ${hov === c.id ? G + "66" : BR}`, borderRadius: 12, overflow: "hidden", transition: "all .3s", transform: hov === c.id ? "translateY(-8px)" : "translateY(0)", boxShadow: hov === c.id ? `0 24px 60px rgba(201,168,76,0.07)` : "none" }}>
-              <CamImage cam={c} height={176} />
-              <div style={{ padding: 20 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                  <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: TXT }}>{c.name}</h3>
-                  <Badge status={c.status} />
-                </div>
-                <p style={{ color: MUT, fontSize: 12, marginBottom: 18, lineHeight: 1.7 }}>{c.desc}</p>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ color: G, fontSize: 17, fontWeight: 700 }}>{fmtVND(c.price)}<span style={{ color: MUT, fontSize: 10 }}>/ngày</span></span>
-                  <button onClick={onBook} disabled={c.status !== "available"}
-                    className={c.status === "available" ? "btn-3d" : ""}
-                    style={{ padding: "8px 18px", ...(c.status !== "available" ? { background: "#141414", color: MUT, border: `1px solid ${BR}`, borderRadius: 4, cursor: "not-allowed", fontWeight: 700, fontSize: 11, fontFamily: "system-ui,sans-serif", letterSpacing: 1.5 } : { borderRadius: 4, fontSize: 11, letterSpacing: 1.5, animation: "none", padding: "8px 18px" }) }}>
-                    {c.status === "available" ? "THUÊ NGAY" : "HẾT MÁY"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* CAMERAS — Featured Carousel */}
+      <CameraFeatured id="cameras" cameras={cameras} onBook={onBook} isMobile={isMobile} />
 
       {/* ACCESSORIES */}
       <div id="accessories" style={{ padding: isMobile ? "40px 16px 72px" : "60px 60px 100px", maxWidth: 1280, margin: "0 auto" }}>
@@ -1749,8 +1929,8 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
             <div key={a.id} style={{ background: CARD, border: `1px solid ${BR}`, borderRadius: 8, padding: "16px 18px", textAlign: "center", transition: "all .2s", cursor: "pointer" }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = G + "55"; e.currentTarget.style.background = "#110f00"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = BR; e.currentTarget.style.background = CARD; }}>
-              <div style={{ color: TXT, fontWeight: 500, marginBottom: 6, fontSize: 13 }}>{a.name}</div>
-              <div style={{ color: G, fontWeight: 700, fontSize: 14 }}>{fmtVND(a.price)}<span style={{ color: MUT, fontSize: 10 }}>/ngày</span></div>
+              <div style={{ color: TXT, fontWeight: 500, marginBottom: 6, fontSize: 13, fontFamily: '"Times New Roman",Georgia,serif' }}>{a.name}</div>
+              <div style={{ color: G, fontWeight: 700, fontSize: 14, fontFamily: '"Times New Roman",Georgia,serif' }}>{fmtVND(a.price)}<span style={{ color: MUT, fontSize: 10, fontFamily: '"Times New Roman",Georgia,serif' }}>/ngày</span></div>
             </div>
           ))}
         </div>
@@ -1787,7 +1967,7 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
       {/* ABOUT */}
       <div id="about" style={{ padding: isMobile ? "56px 16px 72px" : "80px 60px 100px", maxWidth: 1000, margin: "0 auto", textAlign: "center" }}>
         <div style={{ fontSize: 10, letterSpacing: 7, color: MUT, marginBottom: 16, fontFamily: "system-ui,sans-serif" }}>VỀ CHÚNG TÔI</div>
-        <h2 style={{ fontSize: isMobile ? 26 : 34, fontWeight: 400, letterSpacing: 2, marginBottom: 28 }}>92 KA MÊ RA</h2>
+        <h2 style={{ fontSize: isMobile ? 26 : 34, fontWeight: 400, letterSpacing: 2, marginBottom: 28, fontFamily: '"Times New Roman",Georgia,serif' }}>92 KA MÊ RA</h2>
         <p style={{ color: MUT, fontSize: isMobile ? 13 : 15, lineHeight: 2, maxWidth: 680, margin: "0 auto 64px" }}>{siteContent.desc}</p>
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(auto-fill,minmax(130px,1fr))" : "repeat(3,1fr)", gap: isMobile ? 14 : 40, marginTop: 48 }}>
           {siteContent.stats.map(([e, n, l]) => (
@@ -1979,7 +2159,7 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
             {!loggedUser && (
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 40, marginBottom: 12 }}>📷</div>
-                <div style={{ color: TXT, fontSize: 16, fontWeight: 600, fontFamily: "Georgia,serif", letterSpacing: 0.5, marginBottom: 6 }}>Đăng nhập để đặt máy</div>
+                <div style={{ color: TXT, fontSize: 16, fontWeight: 600, fontFamily: "var(--font-display)", letterSpacing: 0.5, marginBottom: 6 }}>Đăng nhập để đặt máy</div>
                 <div style={{ color: MUT, fontSize: 12, fontFamily: "system-ui,sans-serif", lineHeight: 1.7, marginBottom: 28 }}>
                   Theo dõi đơn thuê · Gửi đánh giá<br />Không cần tạo tài khoản riêng
                 </div>
@@ -2105,7 +2285,7 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
         {/* ── Tab quản trị ── */}
         {tab === "admin" && (
           <div style={{ marginTop: 28 }}>
-            <h3 style={{ color: TXT, fontWeight: 400, marginBottom: 6, fontFamily: "Georgia,serif", fontSize: 18, letterSpacing: 1 }}>Quản trị viên</h3>
+            <h3 style={{ color: TXT, fontWeight: 400, marginBottom: 6, fontFamily: "var(--font-display)", fontSize: 18, letterSpacing: 1 }}>Quản trị viên</h3>
             <p style={{ color: MUT, fontSize: 12, marginBottom: 20, letterSpacing: .5, fontFamily: "system-ui,sans-serif" }}>Nhập mật khẩu để truy cập dashboard</p>
             <input type="password" value={pw} onChange={e => setPw(e.target.value)} onKeyDown={e => e.key === "Enter" && checkAdmin()} placeholder="••••••••" style={{ width: "100%", padding: "13px 16px", background: "#111", border: `2px solid ${err ? "#ef4444" : BR}`, borderRadius: 8, color: TXT, fontSize: 16, outline: "none", boxSizing: "border-box", marginBottom: 8, fontFamily: "monospace", letterSpacing: 3, textAlign: "center", transition: "border .2s" }} />
             {err && <p style={{ color: "#ef4444", fontSize: 12, marginBottom: 8, fontFamily: "system-ui,sans-serif" }}>❌ Sai mật khẩu. Thử lại!</p>}
@@ -3369,7 +3549,7 @@ function SplashScreen({ onDone }) {
 
 function AppRoot() {
   const [page, setPage] = useState("home");
-  const [booking, setBooking] = useState(false);
+  const [booking, setBooking] = useState(false); // false | camId | true
   const [adminAuth, setAdminAuth] = useState(false);
   const [ready, setReady] = useState(false); // prevent flash before storage loads
   const [splashDone, setSplashDone] = useState(false);
@@ -3548,6 +3728,8 @@ function AppRoot() {
     <div style={{ minHeight: "100vh", background: BG, position: "relative" }}>
       <FlowBg />
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap');
+        :root { --font-display: 'Cormorant Garamond', Georgia, serif; }
         *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
         html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;scroll-padding-top:72px;}
         body{background:#060606;overflow-x:hidden;} canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
@@ -3762,7 +3944,7 @@ function AppRoot() {
           cameras={cameras}
           accessories={accessories}
           siteContent={siteContent}
-          onBook={() => setBooking(true)}
+          onBook={(cam) => setBooking(cam?.id ?? true)}
           onAdmin={() => setPage("admin")}
           isMobile={isMobile}
           photos={photos}
@@ -3840,6 +4022,7 @@ function AppRoot() {
           onClose={() => setBooking(false)}
           onSubmit={handleNewOrder}
           loggedUser={loggedUser}
+          preselectedCamId={typeof booking === "number" ? booking : null}
         />
       )}
     </div>
