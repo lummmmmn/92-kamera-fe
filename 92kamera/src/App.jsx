@@ -780,12 +780,37 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
 }
 
 // ── CUSTOMER DASHBOARD PAGE ──
-function CustomerPage({ loggedUser, setLoggedUser, orders, feedbacks, setFeedbacks, cameras, onBack, onOpenBooking, users, setUsers }) {
+function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks, setFeedbacks, cameras, onBack, onOpenBooking, users, setUsers }) {
   const [tab, setTab] = useState("dashboard");
   const [fbOrder, setFbOrder] = useState(null);
   const [filterStatus, setFilterStatus] = useState("all");
   const avatarRef = useRef();
   const [avatarLoading, setAvatarLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // ── Tự động refresh orders mỗi 30s khi đang xem tab đơn hàng ──
+  const refreshOrders = useCallback(async (silent = false) => {
+    if (!silent) setRefreshing(true);
+    try {
+      const fresh = await storageGet(STORE_KEYS.orders, true);
+      if (fresh && Array.isArray(fresh)) {
+        setOrders(prev => {
+          // Merge: giữ trạng thái mới nhất từ Supabase, không mất đơn local chưa sync
+          const freshIds = new Set(fresh.map(o => o.id));
+          const localOnly = prev.filter(o => !freshIds.has(o.id));
+          return [...localOnly, ...fresh];
+        });
+      }
+    } catch {}
+    if (!silent) setRefreshing(false);
+  }, [setOrders]);
+
+  useEffect(() => {
+    if (tab !== "orders") return;
+    refreshOrders(true); // fetch ngay khi vào tab
+    const t = setInterval(() => refreshOrders(true), 30000); // poll 30s
+    return () => clearInterval(t);
+  }, [tab, refreshOrders]);
 
   // ── Settings state ──
   const [settingsForm, setSettingsForm] = useState({
@@ -989,7 +1014,14 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, feedbacks, setFeedbac
         {/* ── ORDERS TAB ── */}
         {tab === "orders" && (
           <div>
-            <div style={{ color: TXT, fontWeight: 700, fontSize: 17, marginBottom: 4 }}>Đơn thuê của tôi</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+              <div style={{ color: TXT, fontWeight: 700, fontSize: 17 }}>Đơn thuê của tôi</div>
+              <button onClick={() => refreshOrders(false)} disabled={refreshing}
+                style={{ padding: "6px 12px", background: "#0e0e0e", color: refreshing ? MUT : G, border: `1px solid ${refreshing ? BR : G + "55"}`, borderRadius: 6, cursor: refreshing ? "default" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 5, transition: "all .2s" }}>
+                <span style={{ display: "inline-block", animation: refreshing ? "spin 1s linear infinite" : "none" }}>🔄</span>
+                {refreshing ? "Đang tải..." : "Làm mới"}
+              </button>
+            </div>
             <div style={{ width: 30, height: 2, background: G, marginBottom: 18 }} />
 
             {/* Status filter */}
@@ -4187,6 +4219,7 @@ function AppRoot() {
         ::-webkit-scrollbar-track{background:#060606}
         ::-webkit-scrollbar-thumb{background:#222;border-radius:2px}
         @keyframes floatY{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-9px)}}
+        @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
         @keyframes pulseIn{0%{transform:scale(0.7);opacity:0}100%{transform:scale(1);opacity:1}}
         @keyframes shootA{0%{opacity:0;transform:translate(0,0) rotate(-42deg)}4%{opacity:.9}80%{opacity:.5}100%{opacity:0;transform:translate(-520px,520px) rotate(-42deg)}}
         @keyframes shootB{0%{opacity:0;transform:translate(0,0) rotate(-38deg)}4%{opacity:.7}75%{opacity:.3}100%{opacity:0;transform:translate(-340px,340px) rotate(-38deg)}}
@@ -4410,6 +4443,7 @@ function AppRoot() {
           loggedUser={loggedUser}
           setLoggedUser={setLoggedUser}
           orders={orders}
+          setOrders={setOrders}
           feedbacks={feedbacks}
           setFeedbacks={setFeedbacks}
           cameras={cameras}
