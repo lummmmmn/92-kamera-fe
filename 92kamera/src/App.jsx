@@ -1677,7 +1677,31 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               );
             })()}
 
-            <div style={{ color: "#333", fontSize: 11, marginBottom: 22 }}>Đơn thuê đã được tạo · Vui lòng xác nhận qua Zalo 📸</div>
+            <div style={{ color: "#06c755", fontSize: 12, fontWeight: 800, marginBottom: 16, background: "#021a0a", border: "1px solid #06c75544", borderRadius: 8, padding: "10px 14px", fontFamily: "system-ui,sans-serif", lineHeight: 1.7 }}>
+              📌 Đơn thuê đã được tạo · Vui lòng xác nhận qua Zalo.<br/>Để được xử lý đơn nhanh hơn.
+            </div>
+            <CopyOrderBtn copyFn={() => {
+              const accList = (() => { try { return Object.entries(selAcc).filter(([,q])=>q>0).map(([n,q])=>q>1?`${n} x${q}`:n).join(", ") || "Không có"; } catch { return "Không có"; } })();
+              const lines = [
+                "📋 ĐƠN THUÊ MÁY ẢNH 92KAMERA",
+                "━━━━━━━━━━━━━━━━━━━━━━",
+                `Mã đơn : ${orderId}`,
+                `📷 Máy  : ${selectedCamList.map(c => `${c.name}${selCams[c.id]>1?` x${selCams[c.id]}`:""}`).join(", ")}`,
+                `🎒 Phụ kiện: ${accList}`,
+                `⏱ Thời gian: ${days} ngày`,
+                appliedDiscount ? `🏷️ Mã giảm giá: ${appliedDiscount.code} (-${fmtVND(discountAmt)})` : null,
+                `💰 Tổng tiền: ${fmtVND(total)}`,
+                "━━━━━━━━━━━━━━━━━━━━━━",
+                `👤 Tên   : ${info.name}`,
+                `📞 SĐT   : ${info.phone}`,
+                info.address ? `📍 Địa chỉ: ${info.address}` : null,
+                info.note ? `💬 Ghi chú: ${info.note}` : null,
+                "━━━━━━━━━━━━━━━━━━━━━━",
+                "⏳ Trạng thái: Chờ xác nhận",
+              ].filter(Boolean).join("\n");
+              navigator.clipboard?.writeText(lines).catch(() => {});
+            }} />
+            <div style={{ marginTop: 10 }} />
             <button onClick={onClose} style={{ width: "100%", padding: 12, background: "#111", color: MUT, border: `1px solid ${BR}`, borderRadius: 8, cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>Đóng</button>
           </div>
         )}
@@ -2530,6 +2554,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   const [search, setSearch] = useState("");
   const [newOrderIds, setNewOrderIds] = useState(new Set());
   const [expandedOrder, setExpandedOrder] = useState(null);
+  const deletedOrderIdsRef = useRef(new Set());
 
   // Track new unseen orders
   const unseenCount = orders.filter(o => !o.seen).length;
@@ -2560,7 +2585,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
         let count = 0;
         setOrders(prev => {
           const prevIds = new Set(prev.map(o => o.id));
-          const newOnes = data.filter(o => !prevIds.has(o.id));
+          const newOnes = data.filter(o => !prevIds.has(o.id) && !deletedOrderIdsRef.current.has(o.id));
           count = newOnes.length;
           if (count === 0) return prev;
           setNewOrderIds(ids => new Set([...ids, ...newOnes.map(o => o.id)]));
@@ -3100,7 +3125,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                             </button>
                           ))}
                         </div>
-                        <DeleteOrderBtn orderId={o.id} onDelete={() => { setOrders(p => p.filter(x => x.id !== o.id)); setExpandedOrder(null); }} />
+                        <DeleteOrderBtn orderId={o.id} onDelete={() => { deletedOrderIdsRef.current.add(o.id); setOrders(p => p.filter(x => x.id !== o.id)); setExpandedOrder(null); }} />
                       </div>
                     </div>
                   )}
