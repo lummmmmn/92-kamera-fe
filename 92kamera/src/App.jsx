@@ -496,7 +496,7 @@ function CustomerPhotoUpload({ loggedUser, cameras, setPhotos, onClose }) {
 
   const handleFile = async (file) => {
     if (!file || !file.type.startsWith("image/")) return;
-    const compressed = await compressImage(file, 600, 0.65);
+    const compressed = await compressImage(file, 800, 0.80);
     setImg(compressed);
   };
 
@@ -687,7 +687,7 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 10, color: MUT, letterSpacing: 1, marginBottom: 6, fontFamily: "system-ui,sans-serif" }}>ẢNH CHỤP BẰNG MÁY ĐÃ THUÊ (tùy chọn — tối đa 6 ảnh)</div>
               <div style={{ fontSize: 10, color: "#444", marginBottom: 10, fontFamily: "system-ui,sans-serif" }}>Ảnh đẹp sẽ hiện trên trang chủ nếu được duyệt 📸</div>
-              <ImageUploader images={images} onChange={setImages} max={4} />
+              <ImageUploader images={images} onChange={setImages} max={2} />
             </div>
 
             <button onClick={handleSubmit}
