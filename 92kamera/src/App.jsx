@@ -393,42 +393,34 @@ function MobileBackground() {
   return <LensBackground isMob={true} />;
 }
 
-// ── FEEDBACK CARD (dùng chung cho cả mobile & desktop) ──
+// ── FEEDBACK CARD (text-only, không ảnh) ──
 function FeedbackCard({ c, hov, onEnter, onLeave }) {
   return (
     <div
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
-      style={{ width: 240, flexShrink: 0, background: CARD, borderRadius: 14, overflow: "hidden", border: `1px solid ${hov ? G + "55" : BR}`, transition: "all .3s", transform: hov ? "translateY(-6px) scale(1.02)" : "none", boxShadow: hov ? `0 16px 40px rgba(201,168,76,0.1)` : "none" }}>
-      <div style={{ position: "relative" }}>
-        {c.hasImg ? (
-          <img src={c.img} alt="" style={{ width: "100%", height: 180, objectFit: "cover", display: "block" }} loading="lazy" />
-        ) : (
-          <div style={{ width: "100%", height: 140, background: `linear-gradient(135deg,#0d0b00,#1a1400)`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <div style={{ fontSize: 36 }}>📷</div>
-            <div style={{ color: G + "66", fontSize: 10, fontFamily: "system-ui,sans-serif", letterSpacing: 1 }}>92 KAMERA</div>
-          </div>
-        )}
-        <div style={{ position: "absolute", top: 10, left: 10, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", borderRadius: 99, padding: "3px 10px", fontSize: 11 }}>
-          <span style={{ color: G }}>{"★".repeat(c.rating)}</span><span style={{ color: "#333" }}>{"★".repeat(5 - c.rating)}</span>
-        </div>
-        {c.extraImages > 0 && (
-          <div style={{ position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.8)", color: G, borderRadius: 99, padding: "3px 9px", fontSize: 10, fontFamily: "system-ui,sans-serif", fontWeight: 700 }}>+{c.extraImages}</div>
-        )}
-        {c.type === "feedback" && (
-          <div style={{ position: "absolute", bottom: 10, right: 10, background: G + "cc", color: "#000", borderRadius: 99, padding: "2px 8px", fontSize: 9, fontFamily: "system-ui,sans-serif", fontWeight: 700, letterSpacing: .5 }}>ĐÃ THUÊ ✓</div>
-        )}
+      style={{ width: 240, flexShrink: 0, background: CARD, borderRadius: 14, overflow: "hidden", border: `1px solid ${hov ? G + "55" : BR}`, transition: "all .3s", transform: hov ? "translateY(-6px) scale(1.02)" : "none", boxShadow: hov ? `0 16px 40px rgba(201,168,76,0.1)` : "none", display: "flex", flexDirection: "column", padding: "18px 18px 14px" }}>
+
+      {/* Stars */}
+      <div style={{ marginBottom: 10 }}>
+        <span style={{ color: G, fontSize: 15 }}>{"★".repeat(c.rating)}</span>
+        <span style={{ color: "#2a2a2a", fontSize: 15 }}>{"★".repeat(5 - c.rating)}</span>
       </div>
-      <div style={{ padding: "14px 16px" }}>
-        {c.text ? (
-          <div style={{ color: TXT, fontSize: 12, lineHeight: 1.6, marginBottom: 8, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", fontStyle: "italic" }}>"{c.text}"</div>
-        ) : !c.hasImg ? (
-          <div style={{ color: MUT, fontSize: 12, lineHeight: 1.6, marginBottom: 8, fontStyle: "italic" }}>Khách hàng hài lòng 😊</div>
-        ) : null}
-        <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif" }}>📷 {c.camera}</div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+
+      {/* Review text */}
+      <div style={{ color: TXT, fontSize: 12, lineHeight: 1.7, flex: 1, fontStyle: "italic", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 4, WebkitBoxOrient: "vertical" }}>
+        "{c.text || "Khách hàng hài lòng 😊"}"
+      </div>
+
+      {/* Footer */}
+      <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${BR}` }}>
+        <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif", marginBottom: 4 }}>📷 {c.camera}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ color: "#aaa", fontSize: 10, fontFamily: "system-ui,sans-serif", fontWeight: 600 }}>{c.userName}</div>
-          <div style={{ color: "#777", fontSize: 9, fontFamily: "system-ui,sans-serif" }}>{c.date}</div>
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            {c.type === "feedback" && <span style={{ background: G + "22", color: G, borderRadius: 99, padding: "2px 8px", fontSize: 9, fontFamily: "system-ui,sans-serif", fontWeight: 700, letterSpacing: .5 }}>ĐÃ THUÊ ✓</span>}
+            <span style={{ color: "#555", fontSize: 9, fontFamily: "system-ui,sans-serif" }}>{c.date}</span>
+          </div>
         </div>
       </div>
     </div>
