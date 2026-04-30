@@ -115,7 +115,7 @@ function Logo({ light = true, size = 1 }) {
 }
 
 // ── IMAGE COMPRESS HELPER ──
-function compressImage(file, maxW = 600, quality = 0.65) {
+function compressImage(file, maxW = 480, quality = 0.55) {
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -136,7 +136,7 @@ function compressImage(file, maxW = 600, quality = 0.65) {
 }
 
 // ── IMAGE UPLOADER ──
-function ImageUploader({ images = [], onChange, max = 5 }) {
+function ImageUploader({ images = [], onChange, max = 3 }) {
   const fileRef = useRef();
 
   const handleFiles = async (files) => {
@@ -496,7 +496,7 @@ function CustomerPhotoUpload({ loggedUser, cameras, setPhotos, onClose }) {
 
   const handleFile = async (file) => {
     if (!file || !file.type.startsWith("image/")) return;
-    const compressed = await compressImage(file, 900, 0.78);
+    const compressed = await compressImage(file, 600, 0.65);
     setImg(compressed);
   };
 
@@ -687,7 +687,7 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 10, color: MUT, letterSpacing: 1, marginBottom: 6, fontFamily: "system-ui,sans-serif" }}>ẢNH CHỤP BẰNG MÁY ĐÃ THUÊ (tùy chọn — tối đa 6 ảnh)</div>
               <div style={{ fontSize: 10, color: "#444", marginBottom: 10, fontFamily: "system-ui,sans-serif" }}>Ảnh đẹp sẽ hiện trên trang chủ nếu được duyệt 📸</div>
-              <ImageUploader images={images} onChange={setImages} max={6} />
+              <ImageUploader images={images} onChange={setImages} max={4} />
             </div>
 
             <button onClick={handleSubmit}
@@ -769,7 +769,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, feedbacks, setFeedbac
     if (!file || !file.type.startsWith("image/")) return;
     setAvatarLoading(true);
     try {
-      const compressed = await compressImage(file, 400, 0.82);
+      const compressed = await compressImage(file, 300, 0.65);
       // Update loggedUser in memory
       const updated = { ...loggedUser, avatar: compressed };
       setLoggedUser(updated);
@@ -2466,19 +2466,19 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
 
     connect();
 
-    // Fallback poll 5s — đề phòng WebSocket miss event (nhanh ngang mobile)
+    // Fallback poll 20 phút — WebSocket đã xử lý realtime, poll chỉ là safety net
     const poll = setInterval(async () => {
       const [ords, phs, fbs] = await Promise.all([
-        storageGet(STORE_KEYS.orders),
-        storageGet(STORE_KEYS.photos),
-        storageGet(STORE_KEYS.feedbacks),
+        storageGet(STORE_KEYS.orders, true),
+        storageGet(STORE_KEYS.photos, true),
+        storageGet(STORE_KEYS.feedbacks, true),
       ]);
       const newCount = mergeData(STORE_KEYS.orders, ords);
       if (newCount > 0) playNotif();
       mergeData(STORE_KEYS.photos, phs);
       const newFbCount = mergeData(STORE_KEYS.feedbacks, fbs);
       if (newFbCount > 0) playNotif();
-    }, 5000);
+    }, 1200000);
 
     return () => {
       dead = true;
@@ -3330,8 +3330,32 @@ const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 const SB_TABLE = "kv_store";
 const SB_HEADERS = { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Content-Type": "application/json", "Prefer": "resolution=merge-duplicates" };
 
-// GET từ Supabase, fallback localStorage nếu offline
-async function storageGet(key) {
+// ── CACHE TTL: 30 phút — giảm băng thông tối đa ──
+const CACHE_TTL_MS = 30 * 60 * 1000;
+function cacheKey(key) { return `__ts_${key}`; }
+function isCacheFresh(key) {
+  try {
+    const ts = localStorage.getItem(cacheKey(key));
+    return ts && (Date.now() - parseInt(ts)) < CACHE_TTL_MS;
+  } catch { return false; }
+}
+function markCacheFresh(key) {
+  try { localStorage.setItem(cacheKey(key), String(Date.now())); } catch {}
+}
+function invalidateCache(key) {
+  try { localStorage.removeItem(cacheKey(key)); } catch {}
+}
+
+// GET từ Supabase — dùng localStorage cache nếu còn mới, tránh fetch thừa
+async function storageGet(key, forceRefresh = false) {
+  // 1. Nếu cache còn mới và không force, trả localStorage luôn
+  if (!forceRefresh && isCacheFresh(key)) {
+    try {
+      const r = localStorage.getItem(key);
+      if (r) return JSON.parse(r);
+    } catch {}
+  }
+  // 2. Fetch từ Supabase
   try {
     const res = await fetch(`${SB_URL}/rest/v1/${SB_TABLE}?key=eq.${encodeURIComponent(key)}&select=value`, {
       headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` }
@@ -3339,40 +3363,66 @@ async function storageGet(key) {
     if (res.ok) {
       const rows = await res.json();
       if (rows.length > 0) {
-        const parsed = JSON.parse(rows[0].value);
-        // Cache vào localStorage để dùng khi offline
         try { localStorage.setItem(key, rows[0].value); } catch {}
-        return parsed;
+        markCacheFresh(key);
+        return JSON.parse(rows[0].value);
       }
     }
   } catch {}
-  // Fallback: localStorage (offline / lỗi mạng)
+  // 3. Fallback: localStorage (offline / lỗi mạng)
   try {
     const r = localStorage.getItem(key);
     return r ? JSON.parse(r) : null;
   } catch { return null; }
 }
 
-// SET — ghi localStorage TRƯỚC (sync), Supabase chạy ngầm không block
+// ── DEBOUNCE WRITE — mỗi key chỉ fire 1 request sau 2s yên lặng ──
+const _writeTimers = {};
 function storageSet(key, val) {
   const value = JSON.stringify(val);
-  // 1. localStorage TRƯỚC — sync, không mất data khi thoát trang mobile
+  // 1. localStorage TRƯỚC — sync, không mất data
   try { localStorage.setItem(key, value); } catch {}
-  // 2. Supabase background — fire and forget, sync đa thiết bị
-  fetch(`${SB_URL}/rest/v1/${SB_TABLE}`, {
-    method: "POST",
-    headers: SB_HEADERS,
-    body: JSON.stringify({ key, value, updated_at: new Date().toISOString() })
-  }).catch(e => console.warn("[92K supabase] set failed:", key, e));
+  // 2. Invalidate cache để lần next fetch sẽ re-read từ Supabase
+  invalidateCache(key);
+  // 3. Debounce Supabase write — delay 5s, gộp nhiều cập nhật liên tiếp (cameras có ảnh lớn)
+  const debounceMs = key === STORE_KEYS.cameras || key === "cameras_img" ? 5000 : 2000;
+  clearTimeout(_writeTimers[key]);
+  _writeTimers[key] = setTimeout(() => {
+    fetch(`${SB_URL}/rest/v1/${SB_TABLE}`, {
+      method: "POST",
+      headers: SB_HEADERS,
+      body: JSON.stringify({ key, value, updated_at: new Date().toISOString() })
+    }).then(() => {
+      markCacheFresh(key); // Sau khi write thành công, mark cache fresh
+    }).catch(e => console.warn("[92K supabase] set failed:", key, e));
+  }, debounceMs);
 }
 
-// Cameras: lưu cả ảnh lên Supabase (text column không giới hạn size)
+// Cameras: tách meta (ko ảnh) và images (có ảnh) để giảm bandwidth
+// cameras_meta: dữ liệu máy không có ảnh — fetch mọi lần
+// cameras_img: chỉ chứa {id, images} — fetch khi cần hiển thị ảnh
 function saveCamerasToStorage(cams) {
-  storageSet(STORE_KEYS.cameras, cams);
+  // Lưu meta (không images) cho key chính — nhẹ hơn nhiều
+  const meta = cams.map(c => ({ ...c, images: [] }));
+  storageSet(STORE_KEYS.cameras, meta);
+  // Lưu images riêng — chỉ khi có ảnh
+  const imgs = cams.filter(c => c.images?.length > 0).map(c => ({ id: c.id, images: c.images }));
+  if (imgs.length > 0) {
+    storageSet("cameras_img", imgs);
+  }
 }
 
 async function loadCamerasFromStorage() {
-  return await storageGet(STORE_KEYS.cameras);
+  const [meta, imgs] = await Promise.all([
+    storageGet(STORE_KEYS.cameras),
+    storageGet("cameras_img"),
+  ]);
+  if (!meta) return null;
+  if (!imgs || imgs.length === 0) return meta;
+  // Merge images vào meta
+  const imgMap = {};
+  imgs.forEach(i => { imgMap[i.id] = i.images; });
+  return meta.map(c => ({ ...c, images: imgMap[c.id] || [] }));
 }
 
 // ── ERROR BOUNDARY — bắt mọi lỗi render, hiện fallback thay vì màn hình trắng ──
@@ -3604,7 +3654,7 @@ function AppRoot() {
   const setCameras = useCallback((updater) => {
     _setCameras(prev => {
       const next = typeof updater === "function" ? updater(prev) : updater;
-      setTimeout(() => saveCamerasToStorage(next).catch(e => console.warn("setCameras err", e)), 0);
+      if (next !== prev) setTimeout(() => saveCamerasToStorage(next).catch(e => console.warn("setCameras err", e)), 0);
       return next;
     });
   }, []);
@@ -3612,7 +3662,7 @@ function AppRoot() {
   const setAccessories = useCallback((updater) => {
     _setAccessories(prev => {
       const next = typeof updater === "function" ? updater(prev) : updater;
-      setTimeout(() => storageSet(STORE_KEYS.accessories, next), 0);
+      if (next !== prev) setTimeout(() => storageSet(STORE_KEYS.accessories, next), 0);
       return next;
     });
   }, []);
@@ -3620,7 +3670,7 @@ function AppRoot() {
   const setOrders = useCallback((updater) => {
     _setOrders(prev => {
       const next = typeof updater === "function" ? updater(prev) : updater;
-      setTimeout(() => storageSet(STORE_KEYS.orders, next), 0);
+      if (next !== prev) setTimeout(() => storageSet(STORE_KEYS.orders, next), 0);
       return next;
     });
   }, []);
@@ -3628,7 +3678,7 @@ function AppRoot() {
   const setSiteContent = useCallback((updater) => {
     _setSiteContent(prev => {
       const next = typeof updater === "function" ? updater(prev) : updater;
-      setTimeout(() => storageSet(STORE_KEYS.site, next), 0);
+      if (next !== prev) setTimeout(() => storageSet(STORE_KEYS.site, next), 0);
       return next;
     });
   }, []);
@@ -3636,7 +3686,7 @@ function AppRoot() {
   const setPhotos = useCallback((updater) => {
     _setPhotos(prev => {
       const next = typeof updater === "function" ? updater(prev) : updater;
-      setTimeout(() => storageSet(STORE_KEYS.photos, next), 0);
+      if (next !== prev) setTimeout(() => storageSet(STORE_KEYS.photos, next), 0);
       return next;
     });
   }, []);
@@ -3644,7 +3694,7 @@ function AppRoot() {
   const setFeedbacks = useCallback((updater) => {
     _setFeedbacks(prev => {
       const next = typeof updater === "function" ? updater(prev) : updater;
-      setTimeout(() => storageSet(STORE_KEYS.feedbacks, next), 0);
+      if (next !== prev) setTimeout(() => storageSet(STORE_KEYS.feedbacks, next), 0);
       return next;
     });
   }, []);
@@ -3652,7 +3702,7 @@ function AppRoot() {
   const setUsers = useCallback((updater) => {
     _setUsers(prev => {
       const next = typeof updater === "function" ? updater(prev) : updater;
-      setTimeout(() => storageSet(STORE_KEYS.users, next), 0);
+      if (next !== prev) setTimeout(() => storageSet(STORE_KEYS.users, next), 0);
       return next;
     });
   }, []);
@@ -3662,68 +3712,65 @@ function AppRoot() {
     // Show UI immediately with default data, then update from storage
     setReady(true);
     (async () => {
-      const [cams, accs, ords, site, phs, fbs, usrs] = await Promise.all([
+      // Ưu tiên: load cameras, accessories, orders, site trước (nhẹ, cần thiết ngay)
+      const [cams, accs, ords, site] = await Promise.all([
         loadCamerasFromStorage(),
         storageGet(STORE_KEYS.accessories),
         storageGet(STORE_KEYS.orders),
         storageGet(STORE_KEYS.site),
-        storageGet(STORE_KEYS.photos),
-        storageGet(STORE_KEYS.feedbacks),
-        storageGet(STORE_KEYS.users),
       ]);
       if (cams) _setCameras(cams);
       if (accs) _setAccessories(accs);
-      // Photos: merge to avoid overwriting items added before storage resolved
-      if (phs) {
-        _setPhotos(prev => {
-          const storageIds = new Set(phs.map(p => p.id));
-          const fresh = prev.filter(p => !storageIds.has(p.id));
-          return [...fresh, ...phs];
-        });
-      }
-      // Feedbacks: merge to avoid overwriting items added before storage resolved
-      if (fbs) {
-        _setFeedbacks(prev => {
-          const storageIds = new Set(fbs.map(f => f.id));
-          const fresh = prev.filter(f => !storageIds.has(f.id));
-          const merged = [...fresh, ...fbs];
-          if (fresh.length > 0) setTimeout(() => storageSet(STORE_KEYS.feedbacks, merged), 0);
-          return merged;
-        });
-      }
-      if (usrs) _setUsers(usrs);
+      if (site) _setSiteContent(site);
       if (ords) {
-        // ── FIX 1: Sync _orderNum to avoid duplicate order IDs across sessions ──
-        // Without this, _orderNum resets to 4 on every reload. If storage has
-        // orders up to #92K0010, new orders would get #92K0004 (duplicate) causing
-        // React key collisions → admin cannot see the new order.
         for (const o of ords) {
           const m = o.id?.match(/#92K(\d+)/);
           if (m) _orderNum = Math.max(_orderNum, parseInt(m[1]) + 1);
         }
-        // ── FIX 2: Merge instead of overwrite to prevent losing pending orders ──
-        // Using _setOrders(ords) directly overwrites any order placed by the customer
-        // BEFORE the async storage load completed (race condition).
-        // Instead, merge: keep any "fresh" orders not yet in storage.
         _setOrders(prev => {
           const storageIds = new Set(ords.map(o => o.id));
           const initIds = new Set(ORDERS_INIT.map(o => o.id));
-          // Fresh = orders added to state after mount but before storage loaded
           const fresh = prev.filter(o => !storageIds.has(o.id) && !initIds.has(o.id));
           const merged = [...fresh, ...ords];
-          // ── FIX 3: Persist merged result so fresh orders survive next reload ──
-          if (fresh.length > 0) {
-            setTimeout(() => storageSet(STORE_KEYS.orders, merged), 0);
-          }
+          if (fresh.length > 0) setTimeout(() => storageSet(STORE_KEYS.orders, merged), 0);
           return merged;
         });
       }
-      if (site) _setSiteContent(site);
+
+      // Lazy: load photos + feedbacks sau (có thể nặng do base64 images)
+      setTimeout(async () => {
+        const [phs, fbs] = await Promise.all([
+          storageGet(STORE_KEYS.photos),
+          storageGet(STORE_KEYS.feedbacks),
+        ]);
+        if (phs) {
+          _setPhotos(prev => {
+            const storageIds = new Set(phs.map(p => p.id));
+            const fresh = prev.filter(p => !storageIds.has(p.id));
+            return [...fresh, ...phs];
+          });
+        }
+        if (fbs) {
+          _setFeedbacks(prev => {
+            const storageIds = new Set(fbs.map(f => f.id));
+            const fresh = prev.filter(f => !storageIds.has(f.id));
+            const merged = [...fresh, ...fbs];
+            if (fresh.length > 0) setTimeout(() => storageSet(STORE_KEYS.feedbacks, merged), 0);
+            return merged;
+          });
+        }
+      }, 2000); // delay 2s sau khi UI đã render
+
+      // Rất lazy: load users — chỉ cần khi login (delay 5s)
+      setTimeout(async () => {
+        const usrs = await storageGet(STORE_KEYS.users);
+        if (usrs) _setUsers(usrs);
+      }, 5000);
     })();
   }, []);
 
   // NOTE: page-sync effect removed — all state lives in App (single source of truth).
-  // Reloading from storage on page change caused race conditions:
+  // Reloading from storage on page change caused race conditions.
   // new orders (seen:false) and newly added cameras were overwritten by stale storage reads.
 
   const handleNewOrder = useCallback((order) => {
