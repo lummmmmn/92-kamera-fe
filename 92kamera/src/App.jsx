@@ -563,103 +563,6 @@ function CustomerFeed({ photos }) {
   return <FeedbackMarquee photos={photos} feedbacks={[]} />;
 }
 
-// ── CUSTOMER PHOTO UPLOAD MODAL ──
-function CustomerPhotoUpload({ loggedUser, cameras, setPhotos, onClose }) {
-  const [img, setImg] = useState(null);
-  const [caption, setCaption] = useState("");
-  const [rating, setRating] = useState(5);
-  const [cameraUsed, setCameraUsed] = useState("");
-  const [done, setDone] = useState(false);
-  const fileRef = useRef();
-
-  const handleFile = async (file) => {
-    if (!file || !file.type.startsWith("image/")) return;
-    const compressed = await compressImage(file, 800, 0.80);
-    setImg(compressed);
-  };
-
-  const [uploading, setUploading] = useState(false);
-
-  const handleSubmit = async () => {
-    if (!img) return;
-    setUploading(true);
-    // Thử upload lên Storage; nếu lỗi thì fallback base64 (giữ hoạt động offline)
-    let photoUrl = img;
-    try {
-      const storageUrl = await uploadToStorage(img);
-      if (storageUrl) photoUrl = storageUrl;
-    } catch {}
-    const photo = { id: "photo_" + Date.now(), phone: loggedUser.phone || "", email: loggedUser.email || "", userName: loggedUser.displayName || loggedUser.name, url: photoUrl, caption, rating, cameraUsed, date: todayStr(), status: "pending", seen: false };
-    setPhotos(prev => [photo, ...prev]);
-    setUploading(false);
-    setDone(true);
-  };
-
-  const inpS = { padding: "10px 13px", background: "#111", border: `1px solid ${BR}`, borderRadius: 8, color: TXT, fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "system-ui,sans-serif" };
-
-  return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.96)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{ background: BG, border: `1px solid ${BR}`, borderRadius: 16, padding: 32, width: "min(460px,96vw)", position: "relative", maxHeight: "90vh", overflowY: "auto" }}>
-        <button onClick={onClose} style={{ position: "absolute", top: 14, right: 16, background: "none", border: "none", color: MUT, fontSize: 18, cursor: "pointer" }}>✕</button>
-        <Logo size={0.72} />
-        <div style={{ marginTop: 20, marginBottom: 20 }}>
-          <div style={{ fontSize: 15, color: TXT, fontWeight: 700, fontFamily: "system-ui,sans-serif", marginBottom: 4 }}>📸 Đăng ảnh của bạn</div>
-          <div style={{ fontSize: 11, color: MUT, fontFamily: "system-ui,sans-serif" }}>Ảnh sẽ được admin xét duyệt trước khi hiển thị công khai</div>
-        </div>
-        {!done ? (
-          <>
-            <div style={{ marginBottom: 16 }}>
-              {img ? (
-                <div style={{ position: "relative" }}>
-                  <img src={img} alt="" style={{ width: "100%", height: 210, objectFit: "cover", borderRadius: 10, border: `1px solid ${BR}` }} />
-                  <button onClick={() => setImg(null)} style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.8)", color: MUT, border: `1px solid ${BR}`, borderRadius: 6, padding: "4px 12px", cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>Đổi ảnh</button>
-                </div>
-              ) : (
-                <button onClick={() => fileRef.current?.click()} style={{ width: "100%", height: 170, border: `2px dashed ${G}44`, borderRadius: 10, background: "#0a0900", color: G, cursor: "pointer", fontFamily: "system-ui,sans-serif", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
-                  <span style={{ fontSize: 36 }}>📷</span>
-                  <span style={{ fontSize: 13 }}>Chọn ảnh của bạn</span>
-                  <span style={{ fontSize: 10, color: MUT }}>JPG, PNG — tối đa 10MB</span>
-                </button>
-              )}
-              <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => { if (e.target.files[0]) handleFile(e.target.files[0]); e.target.value = ""; }} />
-            </div>
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 10, color: MUT, letterSpacing: 1, marginBottom: 5, fontFamily: "system-ui,sans-serif" }}>CHIA SẺ TRẢI NGHIỆM</div>
-              <textarea value={caption} onChange={e => setCaption(e.target.value)} placeholder="Bạn cảm thấy thế nào khi dùng máy?" style={{ ...inpS, resize: "none", minHeight: 72, lineHeight: 1.6 }} />
-            </div>
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 10, color: MUT, letterSpacing: 1, marginBottom: 5, fontFamily: "system-ui,sans-serif" }}>MÁY ĐÃ THUÊ</div>
-              <select value={cameraUsed} onChange={e => setCameraUsed(e.target.value)} style={inpS}>
-                <option value="">-- Chọn máy đã thuê --</option>
-                {cameras.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-              </select>
-            </div>
-            <div style={{ marginBottom: 22 }}>
-              <div style={{ fontSize: 10, color: MUT, letterSpacing: 1, marginBottom: 8, fontFamily: "system-ui,sans-serif" }}>ĐÁNH GIÁ DỊCH VỤ</div>
-              <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                {[1,2,3,4,5].map(s => (
-                  <button key={s} onClick={() => setRating(s)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 26, color: s <= rating ? G : "#2a2a2a", padding: 2, lineHeight: 1, transition: "color .15s" }}>★</button>
-                ))}
-                <span style={{ color: MUT, fontSize: 12, marginLeft: 6, fontFamily: "system-ui,sans-serif" }}>{["","Tệ","Tạm","Ổn","Tốt","Xuất sắc"][rating]}</span>
-              </div>
-            </div>
-            <button onClick={handleSubmit} disabled={!img || uploading} style={{ width: "100%", padding: 13, background: img && !uploading ? G : "#1a1a1a", color: img && !uploading ? "#000" : MUT, border: "none", borderRadius: 8, cursor: img && !uploading ? "pointer" : "not-allowed", fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif", boxShadow: img && !uploading ? `0 0 20px ${G}33` : "none" }}>
-              {uploading ? "⏳ Đang tải ảnh lên..." : "Gửi ảnh & đánh giá"}
-            </button>
-          </>
-        ) : (
-          <div style={{ textAlign: "center", padding: "24px 0" }}>
-            <div style={{ fontSize: 52, marginBottom: 16 }}>✅</div>
-            <div style={{ color: G, fontSize: 18, fontWeight: 700, marginBottom: 8, fontFamily: "system-ui,sans-serif" }}>Đã gửi thành công!</div>
-            <div style={{ color: MUT, fontSize: 13, marginBottom: 24, lineHeight: 1.7, fontFamily: "system-ui,sans-serif" }}>Ảnh của bạn đang chờ duyệt.<br />Cảm ơn bạn đã chia sẻ trải nghiệm! 💛</div>
-            <button onClick={onClose} style={{ padding: "11px 36px", background: G, color: "#000", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>Đóng</button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 
 // ── FEEDBACK MODAL (post-order rating — only for completed orders) ──
 function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) {
@@ -675,7 +578,6 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
 
   const [rating, setRating] = useState(existingFb?.rating || 5);
   const [text, setText] = useState(existingFb?.text || "");
-  const [images, setImages] = useState(existingFb?.images || []);
   const [done, setDone] = useState(false);
   const [hovStar, setHovStar] = useState(0);
 
@@ -687,7 +589,7 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
       // CẬP NHẬT feedback cũ (status → pending lại để admin duyệt lại)
       setFeedbacks(prev => prev.map(f =>
         f.id === existingFb.id
-          ? { ...f, rating, text, images, date: todayStr(), status: "pending", hidden: false, seen: false }
+          ? { ...f, rating, text, images: f.images || [], date: todayStr(), status: "pending", hidden: false, seen: false }
           : f
       ));
     } else {
@@ -698,7 +600,7 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
         cameraName: order.cameraName,
         rating,
         text,
-        images,
+        images: [],
         userName: loggedUser.displayName || loggedUser.name,
         phone: loggedUser.phone || "",
         email: loggedUser.email || "",
@@ -738,7 +640,7 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
           <div style={{ textAlign: "center", padding: "28px 0" }}>
             <div style={{ fontSize: 52, marginBottom: 14 }}>🌟</div>
             <div style={{ color: G, fontSize: 18, fontWeight: 700, fontFamily: "system-ui,sans-serif", marginBottom: 8 }}>{isEditing ? "Đã cập nhật đánh giá! 💛" : "Cảm ơn bạn! 💛"}</div>
-            <div style={{ color: MUT, fontSize: 13, fontFamily: "system-ui,sans-serif", lineHeight: 1.7, marginBottom: 24 }}>Đánh giá đang chờ admin duyệt.<br />Ảnh đẹp của bạn sẽ sớm xuất hiện trên trang chủ!</div>
+            <div style={{ color: MUT, fontSize: 13, fontFamily: "system-ui,sans-serif", lineHeight: 1.7, marginBottom: 24 }}>Đánh giá đang chờ admin duyệt.<br />Cảm ơn bạn đã chia sẻ trải nghiệm! 💛</div>
             <button onClick={onClose} style={{ padding: "11px 36px", background: G, color: "#000", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>Đóng</button>
           </div>
         ) : (
@@ -771,19 +673,12 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
                 style={{ ...inpS, resize: "vertical", minHeight: 90, lineHeight: 1.6 }} />
             </div>
 
-            {/* Photo upload — ảnh đính kèm feedback */}
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ fontSize: 10, color: MUT, letterSpacing: 1, marginBottom: 6, fontFamily: "system-ui,sans-serif" }}>ẢNH CHỤP BẰNG MÁY ĐÃ THUÊ (tùy chọn — tối đa 6 ảnh)</div>
-              <div style={{ fontSize: 10, color: "#444", marginBottom: 10, fontFamily: "system-ui,sans-serif" }}>Ảnh đẹp sẽ hiện trên trang chủ nếu được duyệt 📸</div>
-              <ImageUploader images={images} onChange={setImages} max={2} />
-            </div>
-
             <button onClick={handleSubmit}
               style={{ width: "100%", padding: 14, background: G, color: "#000", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif", boxShadow: `0 0 24px ${G}44` }}>
               {isEditing ? "✏️ Cập nhật đánh giá" : "🌟 Gửi đánh giá"}
             </button>
             <div style={{ color: "#333", fontSize: 11, textAlign: "center", marginTop: 10, fontFamily: "system-ui,sans-serif" }}>
-              {isEditing ? "⚠️ Cập nhật sẽ gửi lại để admin duyệt" : "Ảnh & nhận xét sẽ chờ admin duyệt trước khi công khai"}
+              {isEditing ? "⚠️ Cập nhật sẽ gửi lại để admin duyệt" : "Nhận xét sẽ chờ admin duyệt trước khi công khai"}
             </div>
           </>
         )}
@@ -905,7 +800,6 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
   if (myOrders.length >= 1) badges.push({ icon: "🥉", label: "Khách Đồng", desc: "Đã thuê ít nhất 1 lần", col: "#cd7f32" });
   if (myOrders.length >= 3) badges.push({ icon: "🥈", label: "Khách Bạc", desc: "Đã thuê 3+ lần", col: "#aaa" });
   if (myOrders.length >= 5) badges.push({ icon: "🥇", label: "Khách Vàng", desc: "Đã thuê 5+ lần", col: G });
-  if (myFeedbacks.some(f => f.status === "approved" && f.images?.length > 0)) badges.push({ icon: "📸", label: "Creator Nổi Bật", desc: "Có ảnh feedback được duyệt", col: "#a78bfa" });
   if (totalDays >= 30) badges.push({ icon: "👑", label: "Đại Gia Khoảnh Khắc", desc: "Tổng 30+ ngày thuê", col: G });
 
   const filteredOrders = filterStatus === "all" ? myOrders : myOrders.filter(o => o.status === filterStatus);
@@ -1159,14 +1053,6 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 {myFeedbacks.map(f => {
-                  const canDeleteImg = f.status === "pending"; // Chỉ xoá ảnh khi chưa admin duyệt
-                  const handleDeleteImg = (imgIdx) => {
-                    setFeedbacks(prev => prev.map(fb =>
-                      fb.id === f.id
-                        ? { ...fb, images: fb.images.filter((_, i) => i !== imgIdx), seen: false }
-                        : fb
-                    ));
-                  };
                   return (
                   <div key={f.id} style={{ background: CARD, border: `1px solid ${f.status === "approved" ? "#22c55e33" : f.status === "rejected" ? "#ef444433" : BR}`, borderRadius: 12, padding: "18px 20px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
@@ -1184,33 +1070,10 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                       </span>
                     </div>
                     {f.text && <div style={{ color: TXT, fontSize: 13, lineHeight: 1.6, marginBottom: 12, fontStyle: "italic" }}>"{f.text}"</div>}
-                    {/* ── ẢNH: xem và xoá (chỉ khi chưa duyệt) ── */}
-                    {f.images?.length > 0 && (
-                      <div style={{ marginBottom: 10 }}>
-                        <div style={{ fontSize: 10, color: MUT, letterSpacing: 1, marginBottom: 8, fontFamily: "system-ui,sans-serif" }}>
-                          ẢNH ĐÃ TẢI LÊN ({f.images.length}) {canDeleteImg && <span style={{ color: "#ef444488" }}>· Nhấn ✕ để xoá</span>}
-                        </div>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          {f.images.map((img, i) => (
-                            <div key={i} style={{ position: "relative" }}>
-                              <img src={img} alt="" style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 8, border: `1px solid ${BR}`, display: "block" }} loading="lazy" />
-                              {canDeleteImg && (
-                                <button
-                                  onClick={() => handleDeleteImg(i)}
-                                  title="Xoá ảnh này"
-                                  style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: "50%", background: "#ef4444", color: "#fff", border: "2px solid #060606", cursor: "pointer", fontSize: 9, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, lineHeight: 1, padding: 0 }}>
-                                  ✕
-                                </button>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                     {f.status === "approved" && !f.hidden && (
                       <div style={{ marginTop: 10, fontSize: 10, color: "#22c55e66", fontFamily: "system-ui,sans-serif" }}>✨ Đang hiển thị trên trang chủ</div>
                     )}
-                    {canDeleteImg && (
+                    {f.status === "pending" && (
                       <div style={{ marginTop: 10, fontSize: 10, color: MUT, fontFamily: "system-ui,sans-serif" }}>
                         ✏️ Chờ admin duyệt · <button onClick={() => { const o = myOrders.find(ord => ord.id === f.orderId); if (o) setFbOrder(o); }} style={{ background: "none", border: "none", color: G, cursor: "pointer", fontSize: 10, fontFamily: "system-ui,sans-serif", padding: 0, fontWeight: 700, textDecoration: "underline" }}>Sửa đánh giá</button>
                       </div>
@@ -1234,7 +1097,6 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                 { icon: "🥉", label: "Khách Đồng", desc: "Thuê ít nhất 1 lần", col: "#cd7f32", unlocked: myOrders.length >= 1 },
                 { icon: "🥈", label: "Khách Bạc", desc: "Thuê 3+ lần", col: "#aaa", unlocked: myOrders.length >= 3 },
                 { icon: "🥇", label: "Khách Vàng", desc: "Thuê 5+ lần", col: G, unlocked: myOrders.length >= 5 },
-                { icon: "📸", label: "Creator Nổi Bật", desc: "Có ảnh feedback được duyệt", col: "#a78bfa", unlocked: myFeedbacks.some(f => f.status === "approved" && f.images?.length > 0) },
                 { icon: "👑", label: "Đại Gia Khoảnh Khắc", desc: "Thuê tổng 30+ ngày", col: G, unlocked: totalDays >= 30 },
                 { icon: "💎", label: "Khách VIP", desc: "Chi tiêu 5,000,000đ+", col: "#38bdf8", unlocked: totalSpent >= 5000000 },
               ].map(b => (
@@ -2282,8 +2144,28 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
 }
 
 // ── LOGIN MODAL (Khách hàng Google OAuth + Quản trị) ──
-function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", loggedUser, setLoggedUser, photos = [], setPhotos, cameras = [], setPage, usersMap, setUsersMap, siteContent }) {
+function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", loggedUser, setLoggedUser, photos = [], setPhotos, cameras = [], setPage, usersMap, setUsersMap, siteContent, setOrders }) {
   const [tab, setTab] = useState(defaultTab);
+
+  // ── Sync orders khi AdminLogin mount (tránh hiển thị đơn cũ / thiếu đơn mới) ──
+  useEffect(() => {
+    if (!setOrders) return;
+    let cancelled = false;
+    const fetchFresh = async () => {
+      try {
+        const fresh = await storageGet(STORE_KEYS.orders, true);
+        if (cancelled || !fresh || !Array.isArray(fresh)) return;
+        setOrders(prev => {
+          const freshIds = new Set(fresh.map(o => o.id));
+          const localOnly = prev.filter(o => !freshIds.has(o.id));
+          return [...localOnly, ...fresh];
+        });
+      } catch {}
+    };
+    fetchFresh(); // fetch ngay khi mount
+    const poll = setInterval(fetchFresh, 30000); // poll mỗi 30s khi đang ở AdminLogin
+    return () => { cancelled = true; clearInterval(poll); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Tab Quản trị ──
   const [pw, setPw] = useState("");
@@ -2639,12 +2521,8 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
         return count;
       }
       if (key === STORE_KEYS.photos) {
-        setPhotos(prev => {
-          const prevIds = new Set(prev.map(p => p.id));
-          const newOnes = data.filter(p => !prevIds.has(p.id));
-          if (newOnes.length === 0) return prev;
-          return [...newOnes.map(p => ({ ...p, seen: false })), ...prev];
-        });
+        // ⛔ Photos sync tắt — giảm egress Supabase
+        return 0;
       }
       if (key === STORE_KEYS.feedbacks) {
         let count = 0;
@@ -2712,14 +2590,13 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
 
     // Fallback poll 20 phút — WebSocket đã xử lý realtime, poll chỉ là safety net
     const poll = setInterval(async () => {
-      const [ords, phs, fbs] = await Promise.all([
+      const [ords, fbs] = await Promise.all([
         storageGet(STORE_KEYS.orders, true),
-        storageGet(STORE_KEYS.photos, true),
         storageGet(STORE_KEYS.feedbacks, true),
+        // ⛔ Photos không poll — đã tắt để giảm egress
       ]);
       const newCount = mergeData(STORE_KEYS.orders, ords);
       if (newCount > 0) playNotif();
-      mergeData(STORE_KEYS.photos, phs);
       const newFbCount = mergeData(STORE_KEYS.feedbacks, fbs);
       if (newFbCount > 0) playNotif();
     }, 1200000);
@@ -2779,7 +2656,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
     setTimeout(() => setSaved(false), 2500);
   };
 
-  const unseenPhotosCount = (photos || []).filter(p => p.status === "pending" && !p.seen).length;
+  const unseenPhotosCount = 0; // Photos sync đã tắt
 
   const unseenFeedbackCount = (feedbacks || []).filter(f => f.status === "pending" && !f.seen).length;
 
@@ -4140,7 +4017,8 @@ function AppRoot() {
   const setPhotos = useCallback((updater) => {
     _setPhotos(prev => {
       const next = typeof updater === "function" ? updater(prev) : updater;
-      if (next !== prev) setTimeout(() => storageSet(STORE_KEYS.photos, next), 0);
+      // ⛔ Không sync photos lên Supabase — ảnh base64 gây egress cao
+      // storageSet(STORE_KEYS.photos, next) -- đã tắt
       return next;
     });
   }, []);
@@ -4178,7 +4056,7 @@ function AppRoot() {
       const [cams, accs, ords, site, disc] = await Promise.all([
         loadCamerasFromStorage(),
         storageGet(STORE_KEYS.accessories),
-        storageGet(STORE_KEYS.orders),
+        storageGet(STORE_KEYS.orders, true), // force=true: luôn lấy từ Supabase, tránh cache cũ
         storageGet(STORE_KEYS.site),
         storageGet(STORE_KEYS.discounts),
       ]);
@@ -4201,19 +4079,9 @@ function AppRoot() {
         });
       }
 
-      // Lazy: load photos + feedbacks sau (có thể nặng do base64 images)
+      // Lazy: load feedbacks sau (photos đã tắt để giảm egress)
       setTimeout(async () => {
-        const [phs, fbs] = await Promise.all([
-          storageGet(STORE_KEYS.photos),
-          storageGet(STORE_KEYS.feedbacks),
-        ]);
-        if (phs) {
-          _setPhotos(prev => {
-            const storageIds = new Set(phs.map(p => p.id));
-            const fresh = prev.filter(p => !storageIds.has(p.id));
-            return [...fresh, ...phs];
-          });
-        }
+        const fbs = await storageGet(STORE_KEYS.feedbacks);
         if (fbs) {
           _setFeedbacks(prev => {
             const storageIds = new Set(fbs.map(f => f.id));
@@ -4501,7 +4369,7 @@ function AppRoot() {
       )}
 
       {page === "admin" && !adminAuth && (
-        <AdminLogin onLogin={() => setAdminAuth(true)} onBack={() => setPage("home")} orders={orders} loggedUser={loggedUser} setLoggedUser={setLoggedUser} photos={photos} setPhotos={setPhotos} cameras={cameras} setPage={setPage} usersMap={users} setUsersMap={(u) => setUsers(u)} siteContent={siteContent} />
+        <AdminLogin onLogin={() => setAdminAuth(true)} onBack={() => setPage("home")} orders={orders} setOrders={setOrders} loggedUser={loggedUser} setLoggedUser={setLoggedUser} photos={photos} setPhotos={setPhotos} cameras={cameras} setPage={setPage} usersMap={users} setUsersMap={(u) => setUsers(u)} siteContent={siteContent} />
       )}
 
       {page === "admin" && adminAuth && (
@@ -4524,6 +4392,7 @@ function AppRoot() {
           onLogin={() => { setLoginOpen(false); setPage("admin"); setAdminAuth(true); }}
           onBack={() => setLoginOpen(false)}
           orders={orders}
+          setOrders={setOrders}
           loggedUser={loggedUser}
           setLoggedUser={(u) => {
             setLoggedUser(u);
