@@ -9,7 +9,7 @@ const newCamId = () => _camIdNum++;
 const fmtVND = (n) => new Intl.NumberFormat("vi-VN").format(n || 0) + " ₫";
 const todayStr = () => new Date().toISOString().split("T")[0];
 
-const G = "#c9a84c", BG = "#060606", CARD = "#161410", BR = "#2a2a2a", TXT = "#f0e8d0", MUT = "#666", RED = "#cc3333";
+const G = "#c9a84c", BG = "#060606", CARD = "#161410", BR = "#2a2a2a", TXT = "#f0e8d0", MUT = "#999", RED = "#cc3333";
 const CARD2 = "#0d0d0d", BR2 = "#1a1a1a";
 
 // ── GOOGLE OAUTH ──
@@ -427,8 +427,8 @@ function FeedbackCard({ c, hov, onEnter, onLeave }) {
         ) : null}
         <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif" }}>📷 {c.camera}</div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-          <div style={{ color: "#5a5a5a", fontSize: 10, fontFamily: "system-ui,sans-serif", fontWeight: 600 }}>{c.userName}</div>
-          <div style={{ color: "#3a3a3a", fontSize: 9, fontFamily: "system-ui,sans-serif" }}>{c.date}</div>
+          <div style={{ color: "#aaa", fontSize: 10, fontFamily: "system-ui,sans-serif", fontWeight: 600 }}>{c.userName}</div>
+          <div style={{ color: "#777", fontSize: 9, fontFamily: "system-ui,sans-serif" }}>{c.date}</div>
         </div>
       </div>
     </div>
@@ -466,6 +466,27 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
     </div>
   );
 
+  // ── HOOKS luôn ở đây, không đặt trong if/else ──
+  const fbScrollRef = useRef(null);
+  const fbPausedRef = useRef(false);
+  const fbIdxRef = useRef(0);
+  useEffect(() => {
+    if (!isMobile) return;
+    const el = fbScrollRef.current;
+    if (!el || all.length === 0) return;
+    const t = setInterval(() => {
+      if (fbPausedRef.current || !el) return;
+      const cards = el.querySelectorAll("[data-fbcard]");
+      if (!cards.length) return;
+      fbIdxRef.current = (fbIdxRef.current + 1) % cards.length;
+      const card = cards[fbIdxRef.current];
+      el.scrollTo({ left: card.offsetLeft - el.offsetLeft, behavior: "smooth" });
+    }, 2800);
+    const onTouch = () => { fbPausedRef.current = true; setTimeout(() => { fbPausedRef.current = false; }, 5000); };
+    el.addEventListener("touchstart", onTouch, { passive: true });
+    return () => { clearInterval(t); el.removeEventListener("touchstart", onTouch); };
+  }, [all.length, isMobile]);
+
   if (all.length === 0) return emptySection;
 
   // ── HEADER dùng chung ──
@@ -483,24 +504,6 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
 
   // ── MOBILE: auto-scroll + vuốt tay ──
   if (isMobile) {
-    const fbScrollRef = useRef(null);
-    const fbPausedRef = useRef(false);
-    const fbIdxRef = useRef(0);
-    useEffect(() => {
-      const el = fbScrollRef.current;
-      if (!el || all.length === 0) return;
-      const t = setInterval(() => {
-        if (fbPausedRef.current || !el) return;
-        const cards = el.querySelectorAll("[data-fbcard]");
-        if (!cards.length) return;
-        fbIdxRef.current = (fbIdxRef.current + 1) % cards.length;
-        const card = cards[fbIdxRef.current];
-        el.scrollTo({ left: card.offsetLeft - el.offsetLeft, behavior: "smooth" });
-      }, 2800);
-      const onTouch = () => { fbPausedRef.current = true; setTimeout(() => { fbPausedRef.current = false; }, 5000); };
-      el.addEventListener("touchstart", onTouch, { passive: true });
-      return () => { clearInterval(t); el.removeEventListener("touchstart", onTouch); };
-    }, [all.length]);
 
     return (
       <div id="feedback" style={{ padding: "56px 0 52px", borderTop: `1px solid ${BR}`, background: "linear-gradient(180deg,#060606 0%,#080700 50%,#060606 100%)" }}>
@@ -575,10 +578,20 @@ function CustomerPhotoUpload({ loggedUser, cameras, setPhotos, onClose }) {
     setImg(compressed);
   };
 
-  const handleSubmit = () => {
+  const [uploading, setUploading] = useState(false);
+
+  const handleSubmit = async () => {
     if (!img) return;
-    const photo = { id: "photo_" + Date.now(), phone: loggedUser.phone || "", email: loggedUser.email || "", userName: loggedUser.displayName || loggedUser.name, url: img, caption, rating, cameraUsed, date: todayStr(), status: "pending", seen: false };
+    setUploading(true);
+    // Thử upload lên Storage; nếu lỗi thì fallback base64 (giữ hoạt động offline)
+    let photoUrl = img;
+    try {
+      const storageUrl = await uploadToStorage(img);
+      if (storageUrl) photoUrl = storageUrl;
+    } catch {}
+    const photo = { id: "photo_" + Date.now(), phone: loggedUser.phone || "", email: loggedUser.email || "", userName: loggedUser.displayName || loggedUser.name, url: photoUrl, caption, rating, cameraUsed, date: todayStr(), status: "pending", seen: false };
     setPhotos(prev => [photo, ...prev]);
+    setUploading(false);
     setDone(true);
   };
 
@@ -630,8 +643,8 @@ function CustomerPhotoUpload({ loggedUser, cameras, setPhotos, onClose }) {
                 <span style={{ color: MUT, fontSize: 12, marginLeft: 6, fontFamily: "system-ui,sans-serif" }}>{["","Tệ","Tạm","Ổn","Tốt","Xuất sắc"][rating]}</span>
               </div>
             </div>
-            <button onClick={handleSubmit} disabled={!img} style={{ width: "100%", padding: 13, background: img ? G : "#1a1a1a", color: img ? "#000" : MUT, border: "none", borderRadius: 8, cursor: img ? "pointer" : "not-allowed", fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif", boxShadow: img ? `0 0 20px ${G}33` : "none" }}>
-              Gửi ảnh & đánh giá
+            <button onClick={handleSubmit} disabled={!img || uploading} style={{ width: "100%", padding: 13, background: img && !uploading ? G : "#1a1a1a", color: img && !uploading ? "#000" : MUT, border: "none", borderRadius: 8, cursor: img && !uploading ? "pointer" : "not-allowed", fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif", boxShadow: img && !uploading ? `0 0 20px ${G}33` : "none" }}>
+              {uploading ? "⏳ Đang tải ảnh lên..." : "Gửi ảnh & đánh giá"}
             </button>
           </>
         ) : (
@@ -2115,7 +2128,7 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
         <div style={{ position: "absolute", top: "50%", transform: "translateY(-50%)", left: isMobile ? 20 : 60, zIndex: 4, maxWidth: isMobile ? "90%" : 520 }}>
 
           {/* Label */}
-          <div style={{ fontSize: 9.5, letterSpacing: 5, color: G, fontFamily: "system-ui,sans-serif", marginBottom: 18, opacity: 0.85 }}>
+          <div style={{ fontSize: 9.5, letterSpacing: 5, color: G, fontFamily: "system-ui,sans-serif", marginBottom: 18, opacity: 1, textShadow: `0 0 12px ${G}66` }}>
             DỊCH VỤ CHO THUÊ MÁY ẢNH NÚI THÀNH · TAM KỲ
           </div>
 
@@ -2124,8 +2137,8 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
 
           {/* Tagline 2 dòng */}
           <div style={{ marginTop: 20, marginBottom: 32 }}>
-            <div style={{ fontSize: isMobile ? 14 : 18, letterSpacing: isMobile ? 2 : 3, color: "#7a7570", fontFamily: 'var(--font-display)', fontStyle: "italic", fontWeight: 300, lineHeight: 2 }}>Trải nghiệm máy ảnh</div>
-            <div style={{ fontSize: isMobile ? 14 : 18, letterSpacing: isMobile ? 2 : 3, color: "#7a7570", fontFamily: 'var(--font-display)', fontStyle: "italic", fontWeight: 300, lineHeight: 2 }}>Bắt giữ khoảnh khắc</div>
+            <div style={{ fontSize: isMobile ? 14 : 18, letterSpacing: isMobile ? 2 : 3, color: "#c0b8a8", fontFamily: 'var(--font-display)', fontStyle: "italic", fontWeight: 300, lineHeight: 2, textShadow: "0 1px 8px rgba(0,0,0,0.8)" }}>Trải nghiệm máy ảnh</div>
+            <div style={{ fontSize: isMobile ? 14 : 18, letterSpacing: isMobile ? 2 : 3, color: "#c0b8a8", fontFamily: 'var(--font-display)', fontStyle: "italic", fontWeight: 300, lineHeight: 2, textShadow: "0 1px 8px rgba(0,0,0,0.8)" }}>Bắt giữ khoảnh khắc</div>
           </div>
 
           {/* CTA Buttons */}
@@ -2225,8 +2238,8 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
       {/* FOOTER */}
       <footer style={{ borderTop: `1px solid ${BR}`, padding: isMobile ? "20px 16px" : "28px 60px", display: "flex", flexWrap: "wrap", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 10 : 16 }}>
         <Logo size={0.7} />
-        <div style={{ color: "#666", fontSize: 12, fontFamily: "system-ui,sans-serif", letterSpacing: 1 }}>Zalo: {siteContent.zalo} · {siteContent.address}</div>
-        <div style={{ color: "#444", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>© 2026 92 KA MÊ RA</div>
+        <div style={{ color: "#999", fontSize: 12, fontFamily: "system-ui,sans-serif", letterSpacing: 1 }}>Zalo: {siteContent.zalo} · {siteContent.address}</div>
+        <div style={{ color: "#666", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>© 2026 92 KA MÊ RA</div>
       </footer>
 
       {/* QR góc phải — hover để phóng to */}
@@ -3736,6 +3749,39 @@ const SB_URL = "https://gtgjixgcillbjwnnkavx.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Z2ppeGdjaWxsYmp3bm5rYXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5OTg4MzMsImV4cCI6MjA5MjU3NDgzM30.iFh0KP4vrTZUDMrakW1a9nM8naJScP-D1WqJKrH0hiI";
 const SB_TABLE = "kv_store";
 const SB_HEADERS = { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Content-Type": "application/json", "Prefer": "resolution=merge-duplicates" };
+const SB_BUCKET = "k92-photos"; // Supabase Storage bucket
+
+// Upload ảnh lên Supabase Storage — trả về public URL hoặc null nếu lỗi
+async function uploadToStorage(base64DataUrl) {
+  try {
+    // Chuyển base64 → Blob
+    const res = await fetch(base64DataUrl);
+    const blob = await res.blob();
+    const fileName = `photo_${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
+    const uploadRes = await fetch(
+      `${SB_URL}/storage/v1/object/${SB_BUCKET}/${fileName}`,
+      {
+        method: "POST",
+        headers: {
+          "apikey": SB_KEY,
+          "Authorization": `Bearer ${SB_KEY}`,
+          "Content-Type": "image/jpeg",
+          "x-upsert": "true"
+        },
+        body: blob
+      }
+    );
+    if (!uploadRes.ok) {
+      console.warn("[92K storage] upload failed:", await uploadRes.text());
+      return null;
+    }
+    // Public URL
+    return `${SB_URL}/storage/v1/object/public/${SB_BUCKET}/${fileName}`;
+  } catch (e) {
+    console.warn("[92K storage] uploadToStorage error:", e);
+    return null;
+  }
+}
 
 // ── CACHE TTL: 30 phút — giảm băng thông tối đa ──
 const CACHE_TTL_MS = 30 * 60 * 1000;
