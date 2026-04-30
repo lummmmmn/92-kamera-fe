@@ -1236,9 +1236,11 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   const applyDiscount = () => {
     setDiscountMsg(null);
     const code = discountCode.trim().toUpperCase();
-    if (!code) return;
-    const disc = (discounts || []).find(d => d.code.toUpperCase() === code && d.active);
-    if (!disc) { setDiscountMsg({ type: "err", text: "Mã không tồn tại hoặc đã hết hiệu lực" }); return; }
+    if (!code) { setDiscountMsg({ type: "err", text: "Nhập mã giảm giá trước" }); return; }
+    const allDiscs = Array.isArray(discounts) ? discounts : [];
+    if (allDiscs.length === 0) { setDiscountMsg({ type: "err", text: "Chưa có mã nào. Admin tạo mã trong dashboard trước" }); return; }
+    const disc = allDiscs.find(d => d.code.toUpperCase() === code && d.active === true);
+    if (!disc) { setDiscountMsg({ type: "err", text: "Mã không tồn tại hoặc đã bị tắt" }); return; }
     if (disc.maxUse && disc.usedCount >= disc.maxUse) { setDiscountMsg({ type: "err", text: "Mã này đã dùng hết số lượt" }); return; }
     if (disc.minOrder && subtotal < disc.minOrder) { setDiscountMsg({ type: "err", text: `Đơn tối thiểu ${fmtVND(disc.minOrder)} mới được áp dụng` }); return; }
     const amt = disc.type === "percent" ? Math.round(subtotal * disc.value / 100) : disc.value;
@@ -3966,15 +3968,17 @@ function AppRoot() {
     setReady(true);
     (async () => {
       // Ưu tiên: load cameras, accessories, orders, site trước (nhẹ, cần thiết ngay)
-      const [cams, accs, ords, site] = await Promise.all([
+      const [cams, accs, ords, site, disc] = await Promise.all([
         loadCamerasFromStorage(),
         storageGet(STORE_KEYS.accessories),
         storageGet(STORE_KEYS.orders),
         storageGet(STORE_KEYS.site),
+        storageGet(STORE_KEYS.discounts),
       ]);
       if (cams) _setCameras(cams);
       if (accs) _setAccessories(accs);
       if (site) _setSiteContent(site);
+      if (disc) _setDiscounts(disc);
       if (ords) {
         for (const o of ords) {
           const m = o.id?.match(/#92K(\d+)/);
@@ -4018,8 +4022,6 @@ function AppRoot() {
       setTimeout(async () => {
         const usrs = await storageGet(STORE_KEYS.users);
         if (usrs) _setUsers(usrs);
-        const disc = await storageGet(STORE_KEYS.discounts);
-        if (disc) _setDiscounts(disc);
       }, 5000);
     })();
   }, []);
