@@ -55,7 +55,7 @@ const ORDERS_INIT = [
   { id: "#92K0002", cameraName: "Sony ZV-E10", cameraId: 2, accessories: [], days: 7, total: 1260000, name: "Trần Thị Bình", phone: "0912345678", zalo: "0912345678", address: "45 Lê Lợi, Hội An", note: "Cần thêm pin", status: "completed", date: "2026-04-10", seen: true },
   { id: "#92K0003", cameraName: "GoPro Hero 12", cameraId: 5, accessories: ["Mic thu âm", "Pin dự phòng"], days: 1, total: 360000, name: "Lê Văn Cường", phone: "0923456789", zalo: "0923456789", address: "78 Nguyễn Huệ, Tam Kỳ", note: "", status: "confirmed", date: "2026-04-20", seen: true },
 ];
-const SITE_INIT = { zalo: "0855 471 202", address: "Xã Tam Mỹ - Thành Phố Đà Nẵng", tagline: "Trải nghiệm máy ảnh · Bắt giữ khoảnh khắc", desc: "Chúng tôi cung cấp dịch vụ cho thuê máy ảnh khu vực Núi Thành - Tam Kỳ.", phone: "0855 471 202", slogan: "Dịch vụ cho thuê máy ảnh · Núi Thành - Tam Kỳ", stats: [["📸", "50+", "Lượt thuê / tháng"], ["🎬", "10+", "Loại thiết bị"], ["⭐", "98%", "Khách hài lòng"]], zaloLink: "", zaloQR: "", socialLinks: { youtube: "", facebook: "", tiktok: "", instagram: "" } };
+const SITE_INIT = { zalo: "0855 471 202", address: "Thạnh Mỹ Xã Tam Mỹ Thành Phố Đà Nẵng", tagline: "Trải nghiệm máy ảnh · Bắt giữ khoảnh khắc", desc: "Chúng tôi cung cấp dịch vụ cho thuê máy ảnh khu vực Núi Thành - Tam Kỳ.", phone: "0855 471 202", slogan: "Dịch vụ cho thuê máy ảnh · Núi Thành - Tam Kỳ", stats: [["📸", "50+", "Lượt thuê / tháng"], ["🎬", "10+", "Loại thiết bị"], ["⭐", "98%", "Khách hài lòng"]], zaloLink: "", zaloQR: "", socialLinks: { youtube: "", facebook: "", tiktok: "", instagram: "" } };
 const DURATIONS = [{ label: "1 ngày", days: 1 }, { label: "3 ngày", days: 3 }, { label: "7 ngày", days: 7 }, { label: "1 tháng", days: 30 }];
 
 // ── NÚT SAO CHÉP ĐƠN (có feedback "Đã sao chép!") ──
@@ -2092,8 +2092,11 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
       {/* FOOTER */}
       <footer style={{ borderTop: `1px solid ${BR}`, padding: isMobile ? "20px 16px" : "28px 60px", display: "flex", flexWrap: "wrap", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 10 : 16 }}>
         <Logo size={0.7} />
-        <div style={{ color: "#999", fontSize: 12, fontFamily: "system-ui,sans-serif", letterSpacing: 1 }}>Zalo: {siteContent.zalo} · {siteContent.address}</div>
-        <div style={{ color: "#666", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>© 2026 92 KA MÊ RA</div>
+        <div style={{ color: "#999", fontSize: 12, fontFamily: "system-ui,sans-serif", letterSpacing: 1, display: "grid", gridTemplateColumns: "auto auto 1fr", gap: "2px 4px" }}>
+          <span>Hotline</span><span>:</span><span>{siteContent.zalo}</span>
+          <span>Địa chỉ</span><span>:</span><span>{siteContent.address}</span>
+        </div>
+        <div style={{ color: "#666", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>© 2026 92 KA MÊ RA/abc2z</div>
       </footer>
 
       {/* QR góc phải — hover để phóng to */}
