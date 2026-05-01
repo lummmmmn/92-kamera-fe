@@ -1091,6 +1091,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                 { icon: "🥇", label: "Khách Vàng", desc: "Thuê 5+ lần", col: G, unlocked: myOrders.length >= 5 },
                 { icon: "👑", label: "Đại Gia Khoảnh Khắc", desc: "Thuê tổng 30+ ngày", col: G, unlocked: totalDays >= 30 },
                 { icon: "💎", label: "Khách VIP", desc: "Chi tiêu 5,000,000đ+", col: "#38bdf8", unlocked: totalSpent >= 5000000 },
+                { icon: "💠", label: "Kim Cương", desc: "Chi tiêu 10,000,000đ+", col: "#e879f9", unlocked: totalSpent >= 10000000 },
               ].map(b => (
                 <div key={b.label} style={{ background: CARD, border: `1px solid ${b.unlocked ? b.col + "44" : BR}`, borderRadius: 14, padding: "22px 18px", textAlign: "center", opacity: b.unlocked ? 1 : 0.4, transition: "all .3s", position: "relative" }}>
                   {b.unlocked && <div style={{ position: "absolute", top: 10, right: 10, width: 8, height: 8, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 6px #22c55e" }} />}
@@ -1199,7 +1200,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
   );
 }
 
-function BookingModal({ cameras, accessories, siteContent, discounts, setDiscounts, onClose, onSubmit, loggedUser, preselectedCamId }) {
+function BookingModal({ cameras, accessories, siteContent, discounts, setDiscounts, onClose, onSubmit, loggedUser, preselectedCamId, orders }) {
   const [step, setStep] = useState(1);
   // selCams: { [camId]: qty }
   const [selCams, setSelCams] = useState(() => preselectedCamId ? { [preselectedCamId]: 1 } : {});
@@ -1241,6 +1242,30 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
     if (!disc) { setDiscountMsg({ type: "err", text: "Mã không tồn tại hoặc đã bị tắt" }); return; }
     if (disc.maxUse && disc.usedCount >= disc.maxUse) { setDiscountMsg({ type: "err", text: "Mã này đã dùng hết số lượt" }); return; }
     if (disc.minOrder && subtotal < disc.minOrder) { setDiscountMsg({ type: "err", text: `Đơn tối thiểu ${fmtVND(disc.minOrder)} mới được áp dụng` }); return; }
+    // ── Badge check ──
+    if (disc.requiredBadge && disc.requiredBadge !== "none") {
+      const userKey = loggedUser?.email || loggedUser?.phone || info.phone;
+      const userOrders = (Array.isArray(orders) ? orders : []).filter(o =>
+        (loggedUser?.email && o.userEmail === loggedUser.email) ||
+        (loggedUser?.phone && o.userPhone === loggedUser.phone) ||
+        (info.phone && o.phone === info.phone)
+      );
+      const totalDaysUser = userOrders.reduce((s, o) => s + (o.days || 0), 0);
+      const totalSpentUser = userOrders.filter(o => o.status !== "cancelled").reduce((s, o) => s + (o.total || 0), 0);
+      const orderCount = userOrders.length;
+      const hasDong = orderCount >= 1;
+      const hasBac = orderCount >= 3;
+      const hasVang = orderCount >= 5;
+      const hasDaiGia = totalDaysUser >= 30;
+      const hasVip = totalSpentUser >= 5000000;
+      const hasKimCuong = totalSpentUser >= 10000000;
+      const badgeMap = { dong: hasDong, bac: hasBac, vang: hasVang, daigiadagia: hasDaiGia, vip: hasVip, kimcuong: hasKimCuong };
+      const badgeName = { dong: "🥉 Khách Đồng (cần 1+ đơn)", bac: "🥈 Khách Bạc (cần 3+ đơn)", vang: "🥇 Khách Vàng (cần 5+ đơn)", daigiadagia: "👑 Đại Gia (cần 30+ ngày thuê)", vip: "💎 Khách VIP (cần chi 5,000,000đ+)", kimcuong: "💠 Kim Cương (cần chi 10,000,000đ+)" };
+      if (!badgeMap[disc.requiredBadge]) {
+        setDiscountMsg({ type: "err", text: `🏅 Mã này chỉ dành cho ${badgeName[disc.requiredBadge]}. Hãy thuê thêm để mở khoá!` });
+        return;
+      }
+    }
     const amt = disc.type === "percent" ? Math.round(subtotal * disc.value / 100) : disc.value;
     setAppliedDiscount({ code: disc.code, type: disc.type, value: disc.value, discountAmt: amt, id: disc.id });
     setDiscountMsg({ type: "ok", text: `Áp dụng thành công! Giảm ${disc.type === "percent" ? disc.value + "%" : fmtVND(disc.value)}` });
@@ -2453,7 +2478,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   const [resetPwMsg, setResetPwMsg] = useState(null); // { type, text }
 
   // ── Discount management state ──
-  const [discForm, setDiscForm] = useState({ code: "", type: "percent", value: "", minOrder: "", maxUse: "", active: true });
+  const [discForm, setDiscForm] = useState({ code: "", type: "percent", value: "", minOrder: "", maxUse: "", active: true, requiredBadge: "none" });
   const [discMsg, setDiscMsg] = useState(null);
   const [editDiscId, setEditDiscId] = useState(null);
   const [adminPw, setAdminPw] = useState("admin92");
@@ -3439,6 +3464,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
               maxUse: parseInt(discForm.maxUse) || 0,
               usedCount: editDiscId ? (discList.find(d => d.id === editDiscId)?.usedCount || 0) : 0,
               active: discForm.active,
+              requiredBadge: discForm.requiredBadge || "none",
               createdAt: editDiscId ? (discList.find(d => d.id === editDiscId)?.createdAt || todayStr()) : todayStr(),
             };
             if (editDiscId) {
@@ -3446,14 +3472,14 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
             } else {
               setDiscounts(prev => [newDisc, ...prev]);
             }
-            setDiscForm({ code: "", type: "percent", value: "", minOrder: "", maxUse: "", active: true });
+            setDiscForm({ code: "", type: "percent", value: "", minOrder: "", maxUse: "", active: true, requiredBadge: "none" });
             setEditDiscId(null);
             setDiscMsg({ type: "ok", text: editDiscId ? "✓ Đã cập nhật mã giảm giá" : "✓ Đã tạo mã giảm giá mới" });
             setTimeout(() => setDiscMsg(null), 2500);
           };
           const startEdit = (d) => {
             setEditDiscId(d.id);
-            setDiscForm({ code: d.code, type: d.type, value: String(d.value), minOrder: d.minOrder ? String(d.minOrder) : "", maxUse: d.maxUse ? String(d.maxUse) : "", active: d.active });
+            setDiscForm({ code: d.code, type: d.type, value: String(d.value), minOrder: d.minOrder ? String(d.minOrder) : "", maxUse: d.maxUse ? String(d.maxUse) : "", active: d.active, requiredBadge: d.requiredBadge || "none" });
             setDiscMsg(null);
           };
           const deleteDisc = (id) => setDiscounts(prev => prev.filter(d => d.id !== id));
@@ -3505,6 +3531,30 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                     <input style={inp2} type="number" min="0"
                       value={discForm.maxUse} onChange={e => setDiscForm(p => ({ ...p, maxUse: e.target.value }))} placeholder="VD: 10" />
                   </div>
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ color: MUT, fontSize: 10, marginBottom: 6, letterSpacing: 1 }}>🏅 YÊU CẦU HUY HIỆU (chỉ khách có huy hiệu mới dùng được)</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                      {[
+                        { v: "none", label: "🔓 Không yêu cầu", col: MUT },
+                        { v: "dong", label: "🥉 Khách Đồng", col: "#cd7f32" },
+                        { v: "bac", label: "🥈 Khách Bạc", col: "#aaa" },
+                        { v: "vang", label: "🥇 Khách Vàng", col: G },
+                        { v: "daigiadagia", label: "👑 Đại Gia", col: G },
+                        { v: "vip", label: "💎 VIP (5tr+)", col: "#38bdf8" },
+                        { v: "kimcuong", label: "💠 Kim Cương (10tr+)", col: "#e879f9" },
+                      ].map(({ v, label, col }) => (
+                        <button key={v} onClick={() => setDiscForm(p => ({ ...p, requiredBadge: v }))}
+                          style={{ padding: "8px 6px", background: discForm.requiredBadge === v ? "#130f00" : "#0e0e0e", color: discForm.requiredBadge === v ? col : MUT, border: `1px solid ${discForm.requiredBadge === v ? col + "88" : BR2}`, borderRadius: 7, cursor: "pointer", fontSize: 11, fontWeight: discForm.requiredBadge === v ? 700 : 400, fontFamily: "system-ui,sans-serif", transition: "all .15s", textAlign: "center" }}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    {discForm.requiredBadge !== "none" && (
+                      <div style={{ marginTop: 6, background: "#0a0900", border: `1px solid ${G}22`, borderRadius: 6, padding: "7px 10px", fontSize: 11, color: MUT }}>
+                        ⚠️ Khách phải có huy hiệu tương ứng mới nhập được mã này
+                      </div>
+                    )}
+                  </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
                     <button onClick={() => setDiscForm(p => ({ ...p, active: !p.active }))}
                       style={{ width: 36, height: 20, borderRadius: 10, background: discForm.active ? "#22c55e" : "#333", border: "none", cursor: "pointer", position: "relative", transition: "background .2s", flexShrink: 0 }}>
@@ -3514,7 +3564,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button onClick={saveDisc} style={{ ...btn("gold"), flex: 1 }}>{editDiscId ? "💾 Lưu thay đổi" : "➕ Tạo mã"}</button>
-                    {editDiscId && <button onClick={() => { setEditDiscId(null); setDiscForm({ code: "", type: "percent", value: "", minOrder: "", maxUse: "", active: true }); setDiscMsg(null); }} style={{ ...btn("ghost") }}>Huỷ</button>}
+                    {editDiscId && <button onClick={() => { setEditDiscId(null); setDiscForm({ code: "", type: "percent", value: "", minOrder: "", maxUse: "", active: true, requiredBadge: "none" }); setDiscMsg(null); }} style={{ ...btn("ghost") }}>Huỷ</button>}
                   </div>
                 </div>
 
@@ -3563,6 +3613,11 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                         {d.minOrder > 0 && <span>Đơn tối thiểu: <span style={{ color: TXT }}>{fmtVND(d.minOrder)}</span></span>}
                         <span>Đã dùng: <span style={{ color: d.maxUse && d.usedCount >= d.maxUse ? "#ef4444" : "#60a5fa" }}>{d.usedCount || 0}{d.maxUse ? `/${d.maxUse}` : ""} lượt</span></span>
                         <span>Tạo: {d.createdAt}</span>
+                        {d.requiredBadge && d.requiredBadge !== "none" && (
+                          <span style={{ color: d.requiredBadge === "kimcuong" ? "#e879f9" : d.requiredBadge === "vip" ? "#38bdf8" : d.requiredBadge === "vang" || d.requiredBadge === "daigiadagia" ? G : d.requiredBadge === "bac" ? "#aaa" : "#cd7f32", fontWeight: 700 }}>
+                            🏅 Cần: {d.requiredBadge === "dong" ? "🥉 Khách Đồng" : d.requiredBadge === "bac" ? "🥈 Khách Bạc" : d.requiredBadge === "vang" ? "🥇 Khách Vàng" : d.requiredBadge === "daigiadagia" ? "👑 Đại Gia" : d.requiredBadge === "vip" ? "💎 VIP (5tr+)" : "💠 Kim Cương (10tr+)"}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
@@ -4420,6 +4475,7 @@ function AppRoot() {
           onSubmit={handleNewOrder}
           loggedUser={loggedUser}
           preselectedCamId={typeof booking === "number" ? booking : null}
+          orders={orders}
         />
       )}
     </div>
