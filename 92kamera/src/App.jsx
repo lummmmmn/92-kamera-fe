@@ -4437,8 +4437,9 @@ function useFavicon() {
       link.rel = "icon";
       document.head.appendChild(link);
     }
-    link.type = "image/png";
-    link.href = `data:image/png;base64,${FAVICON_B64}`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32"><defs><radialGradient id="glow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#1a0000" stop-opacity="0"/><stop offset="55%" stop-color="#0a0000" stop-opacity="0.7"/><stop offset="100%" stop-color="#000000" stop-opacity="0.95"/></radialGradient><radialGradient id="ball" cx="42%" cy="35%" r="58%"><stop offset="0%" stop-color="#ff4400"/><stop offset="35%" stop-color="#dd1100"/><stop offset="75%" stop-color="#880000"/><stop offset="100%" stop-color="#3a0000"/></radialGradient><radialGradient id="shine" cx="38%" cy="28%" r="35%"><stop offset="0%" stop-color="#ffaa88" stop-opacity="0.5"/><stop offset="100%" stop-color="#ff2200" stop-opacity="0"/></radialGradient></defs><rect width="32" height="32" fill="#000"/><circle cx="16" cy="16" r="15" fill="url(#glow)"/><circle cx="16" cy="16" r="10" fill="url(#ball)"/><circle cx="16" cy="16" r="10" fill="url(#shine)"/></svg>`;
+    link.type = "image/svg+xml";
+    link.href = `data:image/svg+xml,${encodeURIComponent(svg)}`;
     document.title = "92 KA MÊ RA";
   }, []);
 }
