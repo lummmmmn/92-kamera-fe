@@ -7,6 +7,7 @@ let _camIdNum = 100;
 const newOrderId = () => `#92K${String(_orderNum++).padStart(4, "0")}`;
 const newCamId = () => _camIdNum++;
 const fmtVND = (n) => new Intl.NumberFormat("vi-VN").format(n || 0) + " ₫";
+const fmtDays = (d) => d === 0.5 ? "1 buổi" : `${d} ngày`;
 const todayStr = () => new Date().toISOString().split("T")[0];
 
 const G = "#c9a84c", BG = "#060606", CARD = "#161410", BR = "#2a2a2a", TXT = "#f0e8d0", MUT = "#999", RED = "#cc3333";
@@ -56,7 +57,7 @@ const ORDERS_INIT = [
   { id: "#92K0003", cameraName: "GoPro Hero 12", cameraId: 5, accessories: ["Mic thu âm", "Pin dự phòng"], days: 1, total: 360000, name: "Lê Văn Cường", phone: "0923456789", zalo: "0923456789", address: "78 Nguyễn Huệ, Tam Kỳ", note: "", status: "confirmed", date: "2026-04-20", seen: true },
 ];
 const SITE_INIT = { zalo: "0855 471 202", address: "Thạnh Mỹ Xã Tam Mỹ Thành Phố Đà Nẵng", tagline: "Trải nghiệm máy ảnh · Bắt giữ khoảnh khắc", desc: "Chúng tôi cung cấp dịch vụ cho thuê máy ảnh khu vực Núi Thành - Tam Kỳ.", phone: "0855 471 202", slogan: "Dịch vụ cho thuê máy ảnh · Núi Thành - Tam Kỳ", stats: [["📸", "50+", "Lượt thuê / tháng"], ["🎬", "10+", "Loại thiết bị"], ["⭐", "98%", "Khách hài lòng"]], zaloLink: "", zaloQR: "", socialLinks: { youtube: "", facebook: "", tiktok: "", instagram: "" } };
-const DURATIONS = [{ label: "1 ngày", days: 1 }, { label: "3 ngày", days: 3 }, { label: "7 ngày", days: 7 }, { label: "1 tháng", days: 30 }];
+const DURATIONS = [{ label: "1 buổi", days: 0.5 }, { label: "1 ngày", days: 1 }, { label: "3 ngày", days: 3 }, { label: "7 ngày", days: 7 }, { label: "1 tháng", days: 30 }];
 
 // ── NÚT SAO CHÉP ĐƠN (có feedback "Đã sao chép!") ──
 function CopyOrderBtn({ copyFn }) {
@@ -119,7 +120,7 @@ function QuickOrderLookup({ orders, inp2, setExpandedOrder, setSearch, setOrderF
             </div>
             <span style={{ color: G, fontWeight: 700 }}>{fmtVND(quickResult.total)}</span>
           </div>
-          <div style={{ color: TXT, fontSize: 12, marginTop: 4 }}>📷 {quickResult.cameraName} · {quickResult.days} ngày</div>
+          <div style={{ color: TXT, fontSize: 12, marginTop: 4 }}>📷 {quickResult.cameraName} · {fmtDays(quickResult.days)}</div>
           <div style={{ color: MUT, fontSize: 11, marginTop: 2 }}>👤 {quickResult.name} · 📞 {quickResult.phone}</div>
           <div style={{ color: MUT, fontSize: 11, marginTop: 2 }}>📅 {quickResult.date}{quickResult.address ? ` · 📍 ${quickResult.address}` : ""}</div>
           {quickResult.discountCode && <div style={{ color: "#22c55e", fontSize: 11, marginTop: 4 }}>🏷️ Mã: {quickResult.discountCode} — Giảm {fmtVND(quickResult.discountAmt || 0)}</div>}
@@ -958,7 +959,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                             <Badge status={o.status} />
                           </div>
                           <div style={{ color: TXT, fontSize: 13, fontWeight: 600 }}>📷 {o.cameraName}</div>
-                          <div style={{ color: MUT, fontSize: 11, marginTop: 3 }}>{o.date} · {o.days} ngày · {fmtVND(o.total)}</div>
+                          <div style={{ color: MUT, fontSize: 11, marginTop: 3 }}>{o.date} · {fmtDays(o.days)} · {fmtVND(o.total)}</div>
                         </div>
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
                           <div style={{ color: G, fontWeight: 800, fontSize: 16 }}>{fmtVND(o.total)}</div>
@@ -982,7 +983,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                               `📷 Máy  : ${o.cameraName}`,
                               `🎒 Phụ kiện: ${accList}`,
                               `📅 Ngày thuê: ${o.date}`,
-                              `⏱ Thời gian: ${o.days} ngày`,
+                              `⏱ Thời gian: ${fmtDays(o.days)}`,
                               o.discountCode ? `🏷️ Mã giảm giá: ${o.discountCode} (-${fmtVND(o.discountAmt || 0)})` : null,
                               `💰 Tổng tiền: ${fmtVND(o.total)}`,
                               "━━━━━━━━━━━━━━━━━━━━━━",
@@ -1490,7 +1491,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               )}
               <div style={{ borderTop: `1px solid ${G}33`, marginTop: 10, paddingTop: 10 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: appliedDiscount ? 6 : 0 }}>
-                  <span style={{ color: MUT, fontSize: 12 }}>{days} ngày · từ {pickDate} → {endDate()}</span>
+                  <span style={{ color: MUT, fontSize: 12 }}>{fmtDays(days)} · từ {pickDate} → {endDate()}</span>
                   <div style={{ textAlign: "right" }}>
                     {appliedDiscount ? (
                       <>
@@ -1583,7 +1584,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               const zaloMsg = encodeURIComponent(
                 "Xin chào 92 KA MÊ RA! 📸\nMã đơn: " + orderId +
                 "\nThiết bị: " + selectedCamList.map(c => c.name + " x" + selCams[c.id]).join(", ") +
-                "\nSố ngày: " + days + " ngày" +
+                "\nThời gian: " + fmtDays(days) +
                 (appliedDiscount ? "\nMã giảm giá: " + appliedDiscount.code + " (-" + fmtVND(discountAmt) + ")" : "") +
                 "\nTổng tiền: " + fmtVND(total) +
                 "\nKhách: " + info.name + " | SĐT: " + info.phone
@@ -1612,7 +1613,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                 `Mã đơn : ${orderId}`,
                 `📷 Máy  : ${selectedCamList.map(c => `${c.name}${selCams[c.id]>1?` x${selCams[c.id]}`:""}`).join(", ")}`,
                 `🎒 Phụ kiện: ${accList}`,
-                `⏱ Thời gian: ${days} ngày`,
+                `⏱ Thời gian: ${fmtDays(days)}`,
                 appliedDiscount ? `🏷️ Mã giảm giá: ${appliedDiscount.code} (-${fmtVND(discountAmt)})` : null,
                 `💰 Tổng tiền: ${fmtVND(total)}`,
                 "━━━━━━━━━━━━━━━━━━━━━━",
@@ -2421,7 +2422,7 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
                           <Badge status={o.status} />
                         </div>
                         <div style={{ color: TXT, fontSize: 12, marginTop: 4 }}>{o.cameraName}</div>
-                        <div style={{ color: MUT, fontSize: 11, marginTop: 2 }}>{o.days} ngày · {fmtVND(o.total)}</div>
+                        <div style={{ color: MUT, fontSize: 11, marginTop: 2 }}>{fmtDays(o.days)} · {fmtVND(o.total)}</div>
                       </div>
                     ))}
                   </div>
@@ -3033,7 +3034,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                     </div>
                     <div style={{ textAlign: "right" }}>
                       <div style={{ color: G, fontSize: 18, fontWeight: 800 }}>{fmtVND(o.total)}</div>
-                      <div style={{ color: MUT, fontSize: 11 }}>{o.days} ngày</div>
+                      <div style={{ color: MUT, fontSize: 11 }}>{fmtDays(o.days)}</div>
                     </div>
                   </div>
 
