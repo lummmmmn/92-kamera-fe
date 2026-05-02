@@ -1895,17 +1895,12 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
           style={{ display:"flex", gap:12, overflowX:"auto", scrollSnapType:"x mandatory", WebkitOverflowScrolling:"touch", paddingLeft:16, paddingRight:16, paddingBottom:8 }}>
           {cameras.map((cam, i) => {
             const { brand, model } = parseName(cam.name);
-            const availQty = getAvailQty(cam.id, cam.qty || 1, orders);
-            const isAvail = cam.status !== "rented" && availQty > 0;
-            const isLow = isAvail && availQty <= 1;
             const isAct = i === active;
             return (
               <div key={cam.id} data-camcard="1"
                 style={{ scrollSnapAlign:"start", flexShrink:0, width:"calc(100vw - 48px)", height:320, borderRadius:4, overflow:"hidden", border:`1px solid ${isAct ? G+"66" : BR}`, position:"relative", background:"#060606" }}>
                 <div style={{ position:"absolute", inset:0, zIndex:0 }}><CamImage cam={cam} height={320} /></div>
                 <div style={{ position:"absolute", inset:0, zIndex:1, background:"linear-gradient(to top,rgba(6,6,6,0.92) 0%,rgba(6,6,6,0.3) 60%,transparent 100%)", pointerEvents:"none" }} />
-                {!isAvail && <div style={{ position:"absolute",top:14,right:14,zIndex:10,background:"rgba(204,51,51,0.25)",border:"1px solid #cc3333",color:"#ff6666",fontSize:8,fontWeight:700,letterSpacing:2,padding:"4px 10px",fontFamily:"system-ui,sans-serif",borderRadius:2 }}>ĐÃ THUÊ</div>}
-                {isLow && <div style={{ position:"absolute",top:14,right:14,zIndex:10,background:"rgba(245,158,11,0.2)",border:"1px solid #f59e0b",color:"#f59e0b",fontSize:8,fontWeight:700,letterSpacing:2,padding:"4px 10px",fontFamily:"system-ui,sans-serif",borderRadius:2 }}>CÒN {availQty} MÁY</div>}
                 <div style={{ position:"absolute", bottom:0, left:0, right:0, zIndex:2, padding:"0 20px 20px" }}>
                   <div style={{ fontSize:8,letterSpacing:4,color:"rgba(255,255,255,0.5)",fontFamily:"system-ui,sans-serif",marginBottom:4,fontWeight:600 }}>{brand}</div>
                   <div style={{ fontSize:28,fontWeight:700,letterSpacing:0.5,color:"#fff",lineHeight:1,marginBottom:5,fontFamily:"system-ui,sans-serif",textShadow:"0 2px 12px rgba(0,0,0,0.8)" }}>{model}</div>
@@ -1916,10 +1911,9 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
                       <span style={{ color:G,fontSize:15,fontWeight:700,fontFamily:"system-ui,sans-serif" }}>{fmtVND(cam.price)}</span>
                       <span style={{ color:"rgba(255,255,255,0.35)",fontSize:9,marginLeft:4,fontFamily:"system-ui,sans-serif" }}>/ngày</span>
                     </div>
-                    <button onClick={isAvail ? () => onBook(cam) : undefined} disabled={!isAvail}
-                      className={isAvail ? "btn-3d" : ""}
-                      style={isAvail ? { borderRadius:3,fontSize:9,letterSpacing:2,animation:"none",padding:"7px 15px" } : { background:"none",border:`1px solid #333`,cursor:"not-allowed",color:"#444",fontSize:9,fontFamily:"system-ui,sans-serif",fontWeight:700,letterSpacing:2,padding:"6px 12px",borderRadius:3 }}>
-                      {isAvail ? "THUÊ NGAY" : "HẾT MÁY"}
+                    <button onClick={() => onBook(cam)} className="btn-3d"
+                      style={{ borderRadius:3,fontSize:9,letterSpacing:2,animation:"none",padding:"7px 15px" }}>
+                      THUÊ NGAY
                     </button>
                   </div>
                 </div>
@@ -2005,18 +1999,14 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
             const b = brandMap[parts[0].toLowerCase()] || parts[0].toUpperCase();
             const m = parts.slice(1).join(" ");
             const availQty = getAvailQty(cam.id, cam.qty || 1, orders);
-            const isAvail = cam.status !== "rented" && availQty > 0;
-            const isLow = isAvail && availQty <= 1;
             return (
               <div key={cam.id+"_"+i}
                 onMouseEnter={() => setCfPaused(true)}
                 onMouseLeave={() => setCfPaused(false)}
                 style={{ flexShrink:0, width:280, height:360, borderRadius:4, overflow:"hidden", border:`1px solid ${G}44`, position:"relative", background:"#060606", cursor:"pointer" }}
-                onClick={() => isAvail && onBook(cam)}>
+                onClick={() => onBook(cam)}>
                 <div style={{ position:"absolute", inset:0, zIndex:0 }}><CamImage cam={cam} height={360} /></div>
                 <div style={{ position:"absolute", inset:0, zIndex:1, background:"linear-gradient(to top,rgba(6,6,6,0.92) 0%,rgba(6,6,6,0.4) 50%,rgba(6,6,6,0.1) 100%)", pointerEvents:"none" }} />
-                {!isAvail && <div style={{ position:"absolute",top:14,right:14,zIndex:10,background:"rgba(204,51,51,0.25)",border:"1px solid #cc3333",color:"#ff6666",fontSize:8,fontWeight:700,letterSpacing:2,padding:"4px 10px",fontFamily:"system-ui,sans-serif",borderRadius:2 }}>ĐÃ THUÊ</div>}
-                {isLow && <div style={{ position:"absolute",top:14,right:14,zIndex:10,background:"rgba(245,158,11,0.2)",border:"1px solid #f59e0b",color:"#f59e0b",fontSize:8,fontWeight:700,letterSpacing:2,padding:"4px 10px",fontFamily:"system-ui,sans-serif",borderRadius:2 }}>CÒN {availQty} MÁY</div>}
                 <div style={{ position:"absolute", bottom:0, left:0, right:0, zIndex:2, padding:"0 20px 20px" }}>
                   <div style={{ fontSize:8,letterSpacing:4,color:"rgba(255,255,255,0.45)",fontFamily:"system-ui,sans-serif",marginBottom:4,fontWeight:600 }}>{b}</div>
                   <div style={{ fontSize:26,fontWeight:700,color:"#fff",lineHeight:1,marginBottom:6,fontFamily:"system-ui,sans-serif",textShadow:"0 2px 12px rgba(0,0,0,0.8)" }}>{m}</div>
@@ -2026,10 +2016,9 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
                       <span style={{ color:G,fontSize:14,fontWeight:700,fontFamily:"system-ui,sans-serif" }}>{fmtVND(cam.price)}</span>
                       <span style={{ color:"rgba(255,255,255,0.35)",fontSize:9,marginLeft:4,fontFamily:"system-ui,sans-serif" }}>/ngày</span>
                     </div>
-                    <button onClick={e=>{e.stopPropagation(); isAvail && onBook(cam);}} disabled={!isAvail}
-                      className={isAvail ? "btn-3d" : ""}
-                      style={isAvail ? { borderRadius:3,fontSize:9,letterSpacing:2,animation:"none",padding:"7px 14px" } : { background:"none",border:`1px solid #333`,cursor:"not-allowed",color:"#444",fontSize:9,fontFamily:"system-ui,sans-serif",padding:"6px 12px",borderRadius:3 }}>
-                      {isAvail ? "THUÊ NGAY" : "HẾT MÁY"}
+                    <button onClick={e=>{e.stopPropagation(); onBook(cam);}} className="btn-3d"
+                      style={{ borderRadius:3,fontSize:9,letterSpacing:2,animation:"none",padding:"7px 14px" }}>
+                      THUÊ NGAY
                     </button>
                   </div>
                 </div>
