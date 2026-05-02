@@ -7,8 +7,50 @@ let _camIdNum = 100;
 const newOrderId = () => `#92K${String(_orderNum++).padStart(4, "0")}`;
 const newCamId = () => _camIdNum++;
 const fmtVND = (n) => new Intl.NumberFormat("vi-VN").format(n || 0) + " ₫";
-const fmtDays = (d) => d === 0.5 ? "1 buổi" : `${d} ngày`;
+const fmtDays = (d, shift) => {
+  if (d === 0.5) {
+    if (shift === "morning") return "Ca sáng (6h–12h)";
+    if (shift === "afternoon") return "Ca chiều (14h–20h)";
+    return "1 buổi";
+  }
+  return `${d} ngày`;
+};
+const SHIFTS = [
+  { key: "morning",   label: "🌅 Ca Sáng",  time: "6:00 – 12:00" },
+  { key: "afternoon", label: "🌇 Ca Chiều", time: "14:00 – 20:00" },
+];
 const todayStr = () => new Date().toISOString().split("T")[0];
+
+// Tính số máy thực tế còn có thể thuê (shift-aware: ca sáng vs ca chiều)
+const doesShiftConflict = (o, targetShift) => {
+  // Nếu đơn hiện tại là full-day (days >= 1 hoặc không có shift) → luôn xung đột
+  if (!o.shift || o.days >= 1) return true;
+  // Nếu cả hai đều là buổi → chỉ xung đột nếu cùng ca
+  return o.shift === targetShift;
+};
+const getAvailQty = (camId, camQty, orders, targetDate, targetShift) => {
+  const active = ["pending", "confirmed", "active"];
+  let rented = 0;
+  orders.filter(o => active.includes(o.status)).forEach(o => {
+    // Nếu có targetDate: lọc theo ngày
+    if (targetDate && !isDateInOrder(targetDate, o)) return;
+    // Nếu có targetShift và đơn kia là buổi khác ca → không xung đột
+    if (targetDate && targetShift && o.days === 0.5 && o.shift && o.shift !== targetShift) return;
+    if (o.cameras) { const c = o.cameras.find(c => c.id === camId); if (c) rented += (c.qty || 1); }
+    else if (o.cameraId === camId) rented += 1;
+  });
+  return Math.max(0, camQty - rented);
+};
+// Helpers cho lịch thuê
+const dateAddDays = (dateStr, n) => {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + (n < 1 ? 0 : Math.ceil(n) - 1));
+  return d.toISOString().split("T")[0];
+};
+const isDateInOrder = (dateStr, o) => {
+  if (!o.date || !o.days) return false;
+  return dateStr >= o.date && dateStr <= dateAddDays(o.date, o.days);
+};
 
 const G = "#c9a84c", BG = "#060606", CARD = "#161410", BR = "#2a2a2a", TXT = "#f0e8d0", MUT = "#999", RED = "#cc3333";
 const CARD2 = "#0d0d0d", BR2 = "#1a1a1a";
@@ -120,7 +162,7 @@ function QuickOrderLookup({ orders, inp2, setExpandedOrder, setSearch, setOrderF
             </div>
             <span style={{ color: G, fontWeight: 700 }}>{fmtVND(quickResult.total)}</span>
           </div>
-          <div style={{ color: TXT, fontSize: 12, marginTop: 4 }}>📷 {quickResult.cameraName} · {fmtDays(quickResult.days)}</div>
+          <div style={{ color: TXT, fontSize: 12, marginTop: 4 }}>📷 {quickResult.cameraName} · {fmtDays(quickResult.days, quickResult.shift)}</div>
           <div style={{ color: MUT, fontSize: 11, marginTop: 2 }}>👤 {quickResult.name} · 📞 {quickResult.phone}</div>
           <div style={{ color: MUT, fontSize: 11, marginTop: 2 }}>📅 {quickResult.date}{quickResult.address ? ` · 📍 ${quickResult.address}` : ""}</div>
           {quickResult.discountCode && <div style={{ color: "#22c55e", fontSize: 11, marginTop: 4 }}>🏷️ Mã: {quickResult.discountCode} — Giảm {fmtVND(quickResult.discountAmt || 0)}</div>}
@@ -959,7 +1001,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                             <Badge status={o.status} />
                           </div>
                           <div style={{ color: TXT, fontSize: 13, fontWeight: 600 }}>📷 {o.cameraName}</div>
-                          <div style={{ color: MUT, fontSize: 11, marginTop: 3 }}>{o.date} · {fmtDays(o.days)} · {fmtVND(o.total)}</div>
+                          <div style={{ color: MUT, fontSize: 11, marginTop: 3 }}>{o.date} · {fmtDays(o.days, o.shift)} · {fmtVND(o.total)}</div>
                         </div>
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
                           <div style={{ color: G, fontWeight: 800, fontSize: 16 }}>{fmtVND(o.total)}</div>
@@ -983,7 +1025,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                               `📷 Máy  : ${o.cameraName}`,
                               `🎒 Phụ kiện: ${accList}`,
                               `📅 Ngày thuê: ${o.date}`,
-                              `⏱ Thời gian: ${fmtDays(o.days)}`,
+                              `⏱ Thời gian: ${fmtDays(o.days, o.shift)}`,
                               o.discountCode ? `🏷️ Mã giảm giá: ${o.discountCode} (-${fmtVND(o.discountAmt || 0)})` : null,
                               `💰 Tổng tiền: ${fmtVND(o.total)}`,
                               "━━━━━━━━━━━━━━━━━━━━━━",
@@ -1201,11 +1243,127 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
   );
 }
 
+// ── BOOKING CALENDAR (khách tự chọn ngày, thấy tình trạng máy) ──
+function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, selShift }) {
+  const now = new Date();
+  const [cur, setCur] = useState({ y: now.getFullYear(), m: now.getMonth() });
+  const { y, m } = cur;
+
+  const firstDow = new Date(y, m, 1).getDay();
+  const startOffset = (firstDow + 6) % 7;
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const monthLabel = new Date(y, m, 1).toLocaleDateString("vi-VN", { month: "long", year: "numeric" });
+  const todayDate = todayStr();
+
+  const activeOrders = orders.filter(o => !["cancelled", "completed"].includes(o.status));
+
+  // Tính trạng thái ngày: "ok" | "low" | "full" | "past"
+  const getDayStatus = (day) => {
+    const ds = `${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    if (ds < todayDate) return "past";
+    let anyFull = false, anyLow = false;
+    selectedCams.forEach(({ id, qty: need, camQty }) => {
+      let rented = 0;
+      activeOrders.filter(o => isDateInOrder(ds, o)).forEach(o => {
+        // Nếu đang chọn ca buổi và đơn kia cũng là buổi khác ca → không xung đột
+        if (days === 0.5 && selShift && o.days === 0.5 && o.shift && o.shift !== selShift) return;
+        if (o.cameras) { const c = o.cameras.find(c => c.id === id); if (c) rented += (c.qty || 1); }
+        else if (o.cameraId === id) rented += 1;
+      });
+      const avail = Math.max(0, camQty - rented);
+      if (avail < need) anyFull = true;
+      else if (avail <= 1) anyLow = true;
+    });
+    if (anyFull) return "full";
+    if (anyLow) return "low";
+    return "ok";
+  };
+
+  // Range highlight
+  const getInRange = (day) => {
+    if (!pickDate || !days) return false;
+    const ds = `${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    const endDs = dateAddDays(pickDate, days);
+    return ds >= pickDate && ds <= endDs;
+  };
+
+  const statusStyle = (st, isStart, isInRange) => {
+    if (st === "past") return { bg:"transparent", border:"transparent", color:"#333", cursor:"default" };
+    if (st === "full") return { bg:"#1a0505", border:"#cc333344", color:"#cc3333", cursor:"not-allowed" };
+    if (isStart) return { bg:"#1a1200", border:G, color:G, cursor:"pointer" };
+    if (isInRange) return { bg:"#130f00", border:G+"44", color:TXT, cursor:"pointer" };
+    if (st === "low") return { bg:"#120a00", border:"#f59e0b44", color:"#f59e0b", cursor:"pointer" };
+    return { bg:"#0d0d0d", border:BR, color:TXT, cursor:"pointer" };
+  };
+
+  const handleClick = (day, st) => {
+    if (st === "past" || st === "full") return;
+    const ds = `${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    setPickDate(ds);
+  };
+
+  const cells = [];
+  for (let i = 0; i < startOffset; i++) cells.push(null);
+  for (let i = 1; i <= daysInMonth; i++) cells.push(i);
+
+  const navBtn = { background:"none", border:`1px solid ${BR}`, color:MUT, width:28, height:28, borderRadius:6, cursor:"pointer", fontSize:12, display:"flex", alignItems:"center", justifyContent:"center" };
+
+  return (
+    <div style={{ background:"#080808", border:`1px solid ${BR}`, borderRadius:10, padding:"14px 12px", marginBottom:14 }}>
+      {/* Header */}
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
+        <button style={navBtn} onClick={() => setCur(p => { const d = new Date(p.y, p.m-1,1); return {y:d.getFullYear(),m:d.getMonth()}; })}>◀</button>
+        <span style={{ color:TXT, fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif" }}>{monthLabel}</span>
+        <button style={navBtn} onClick={() => setCur(p => { const d = new Date(p.y, p.m+1,1); return {y:d.getFullYear(),m:d.getMonth()}; })}>▶</button>
+      </div>
+
+      {/* Day headers */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:2, marginBottom:2 }}>
+        {["T2","T3","T4","T5","T6","T7","CN"].map(d => (
+          <div key={d} style={{ textAlign:"center", fontSize:9, color:"#555", padding:"3px 0", fontFamily:"system-ui,sans-serif" }}>{d}</div>
+        ))}
+      </div>
+
+      {/* Grid */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:2 }}>
+        {cells.map((day, i) => {
+          if (!day) return <div key={`e${i}`} />;
+          const st = selectedCams.length ? getDayStatus(day) : (day < parseInt(todayDate.split("-")[2]) && m === now.getMonth() && y === now.getFullYear() ? "past" : "ok");
+          const ds = `${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+          const isStart = ds === pickDate;
+          const isInRange = getInRange(day);
+          const { bg, border, color, cursor } = statusStyle(st, isStart, isInRange);
+          const isToday = ds === todayDate;
+          return (
+            <div key={day} onClick={() => handleClick(day, st)}
+              style={{ textAlign:"center", padding:"6px 2px", borderRadius:5, background:bg, border:`1px solid ${border}`, color, cursor, fontSize:11, fontFamily:"system-ui,sans-serif", fontWeight: isToday || isStart ? 700 : 400, position:"relative", transition:"all .1s", userSelect:"none" }}>
+              {day}
+              {isToday && !isStart && <div style={{ position:"absolute", bottom:2, left:"50%", transform:"translateX(-50%)", width:3, height:3, borderRadius:"50%", background:G }} />}
+              {st === "full" && <div style={{ position:"absolute", bottom:2, left:"50%", transform:"translateX(-50%)", fontSize:6, color:"#cc3333" }}>✕</div>}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Legend */}
+      <div style={{ display:"flex", gap:12, marginTop:10, flexWrap:"wrap" }}>
+        {[["#0d0d0d",BR,TXT,"Trống"],["#120a00","#f59e0b44","#f59e0b","Còn ít"],["#1a0505","#cc333344","#cc3333","Hết máy"],["#1a1200",G,G,"Đang chọn"]].map(([bg,bd,col,lbl])=>(
+          <div key={lbl} style={{ display:"flex", alignItems:"center", gap:4 }}>
+            <div style={{ width:10, height:10, borderRadius:2, background:bg, border:`1px solid ${bd}` }} />
+            <span style={{ color:MUT, fontSize:9, fontFamily:"system-ui,sans-serif" }}>{lbl}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function BookingModal({ cameras, accessories, siteContent, discounts, setDiscounts, onClose, onSubmit, loggedUser, preselectedCamId, orders }) {
   const [step, setStep] = useState(1);
   // selCams: { [camId]: qty }
   const [selCams, setSelCams] = useState(() => preselectedCamId ? { [preselectedCamId]: 1 } : {});
   const [selDur, setSelDur] = useState(null);
+  const [selShift, setSelShift] = useState(null); // "morning" | "afternoon" — chỉ dùng khi days=0.5
   const [customDays, setCustomDays] = useState("");
   const [pickDate, setPickDate] = useState(todayStr());
   // selAcc: { [accName]: qty }
@@ -1220,6 +1378,8 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   const [discountMsg, setDiscountMsg] = useState(null); // { type: "ok"|"err", text }
 
   const days = selDur ? selDur.days : (parseInt(customDays) || 0);
+  const needShift = days === 0.5; // phải chọn ca khi thuê 1 buổi
+  const shiftReady = !needShift || !!selShift; // đủ điều kiện tiếp tục
   const availCams = cameras.filter(c => c.status === "available");
   const selectedCamList = availCams.filter(c => selCams[c.id] > 0);
   const totalCamSelected = Object.values(selCams).reduce((s, q) => s + (q || 0), 0);
@@ -1274,7 +1434,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 
   const removeDiscount = () => { setAppliedDiscount(null); setDiscountCode(""); setDiscountMsg(null); };
 
-  const endDate = () => { if (!pickDate || !days) return ""; const d = new Date(pickDate); d.setDate(d.getDate() + days); return d.toLocaleDateString("vi-VN"); };
+  const endDate = () => { if (!pickDate || !days) return ""; return new Date(dateAddDays(pickDate, days) + "T00:00:00").toLocaleDateString("vi-VN"); };
 
   const toggleCam = (cam) => {
     setSelCams(p => {
@@ -1313,6 +1473,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
       accessories: accNames,
       accessoriesDetail: Object.entries(selAcc).map(([name, qty]) => ({ name, qty })),
       days, subtotal, discountCode: appliedDiscount?.code || null, discountAmt, total,
+      shift: days === 0.5 ? selShift : null,
       ...info, status: "pending", date: pickDate, seen: false, userPhone: loggedUser?.phone || info.phone, userEmail: loggedUser?.email || ""
     });
     setDone(true);
@@ -1406,17 +1567,47 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
             <button onClick={() => setStep(1)} style={{ background: "none", border: "none", color: MUT, cursor: "pointer", fontSize: 12, fontFamily: "system-ui,sans-serif", marginBottom: 16 }}>← Quay lại</button>
             <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
               {DURATIONS.map(d => (
-                <button key={d.days} onClick={() => { setSelDur(d); setCustomDays(""); }}
+                <button key={d.days} onClick={() => { setSelDur(d); setCustomDays(""); if (d.days !== 0.5) setSelShift(null); }}
                   style={{ flex: 1, padding: "10px 4px", background: selDur?.days === d.days ? "#130f00" : "#0e0e0e", color: selDur?.days === d.days ? G : MUT, border: `1px solid ${selDur?.days === d.days ? G : BR}`, borderRadius: 7, cursor: "pointer", fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: selDur?.days === d.days ? 700 : 400 }}>{d.label}</button>
               ))}
             </div>
+
+            {/* ── CHỌN CA (chỉ hiện khi chọn 1 buổi) ── */}
+            {needShift && (
+              <div style={{ marginBottom: 16, background: "#080800", border: `1px solid ${G}33`, borderRadius: 10, padding: "14px 16px" }}>
+                <div style={{ color: G, fontSize: 11, fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>⏰ CHỌN CA THUÊ</div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  {SHIFTS.map(sh => {
+                    const sel = selShift === sh.key;
+                    return (
+                      <button key={sh.key} onClick={() => setSelShift(sh.key)}
+                        style={{ flex: 1, padding: "14px 8px", background: sel ? "#1a1200" : "#0e0e0e", color: sel ? G : MUT, border: `2px solid ${sel ? G : BR}`, borderRadius: 10, cursor: "pointer", transition: "all .2s", textAlign: "center" }}>
+                        <div style={{ fontSize: 20, marginBottom: 4 }}>{sh.label.split(" ")[0]}</div>
+                        <div style={{ fontSize: 12, fontWeight: sel ? 700 : 400, fontFamily: "system-ui,sans-serif" }}>{sh.label.split(" ").slice(1).join(" ")}</div>
+                        <div style={{ fontSize: 10, color: sel ? G + "cc" : "#555", marginTop: 3, fontFamily: "system-ui,sans-serif" }}>{sh.time}</div>
+                        {sel && <div style={{ marginTop: 6, fontSize: 10, color: "#22c55e" }}>✓ Đã chọn</div>}
+                      </button>
+                    );
+                  })}
+                </div>
+                {!selShift && <div style={{ color: "#f59e0b", fontSize: 11, marginTop: 10, fontFamily: "system-ui,sans-serif" }}>⚠️ Vui lòng chọn ca trước khi tiếp tục</div>}
+              </div>
+            )}
             <div style={{ marginBottom: 14 }}>
               <div style={{ color: MUT, fontSize: 10, marginBottom: 5, letterSpacing: 1 }}>HOẶC NHẬP SỐ NGÀY</div>
               <input style={inpS} type="number" min={1} value={customDays} onChange={e => { setCustomDays(e.target.value); setSelDur(null); }} placeholder="VD: 5" />
             </div>
             <div style={{ marginBottom: 16 }}>
-              <div style={{ color: MUT, fontSize: 10, marginBottom: 5, letterSpacing: 1 }}>NGÀY BẮT ĐẦU</div>
-              <input style={inpS} type="date" value={pickDate} min={todayStr()} onChange={e => setPickDate(e.target.value)} />
+              <div style={{ color: MUT, fontSize: 10, marginBottom: 8, letterSpacing: 1 }}>CHỌN NGÀY BẮT ĐẦU</div>
+              <BookingCalendar
+                selectedCams={selectedCamList.map(c => ({ id: c.id, qty: selCams[c.id] || 1, camQty: c.qty || 1 }))}
+                orders={orders}
+                pickDate={pickDate}
+                setPickDate={setPickDate}
+                days={days}
+                selShift={selShift}
+              />
+              <input style={{ ...inpS, fontSize: 12 }} type="date" value={pickDate} min={todayStr()} onChange={e => setPickDate(e.target.value)} />
             </div>
             {days > 0 && (
               <div style={{ background: "#0a0800", border: `1px solid ${G}33`, borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: MUT }}>
@@ -1453,9 +1644,9 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                 })}
               </div>
             </div>
-            <button onClick={() => days > 0 && setStep(3)} disabled={days === 0}
-              style={{ width: "100%", padding: 13, background: days > 0 ? G : "#1a1a1a", color: days > 0 ? "#000" : MUT, border: "none", borderRadius: 8, cursor: days > 0 ? "pointer" : "not-allowed", fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif" }}>
-              Tiếp theo →
+            <button onClick={() => days > 0 && shiftReady && setStep(3)} disabled={days === 0 || !shiftReady}
+              style={{ width: "100%", padding: 13, background: days > 0 && shiftReady ? G : "#1a1a1a", color: days > 0 && shiftReady ? "#000" : MUT, border: "none", borderRadius: 8, cursor: days > 0 && shiftReady ? "pointer" : "not-allowed", fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif" }}>
+              {needShift && !selShift ? "Chọn ca để tiếp tục" : "Tiếp theo →"}
             </button>
           </div>
         )}
@@ -1491,7 +1682,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               )}
               <div style={{ borderTop: `1px solid ${G}33`, marginTop: 10, paddingTop: 10 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: appliedDiscount ? 6 : 0 }}>
-                  <span style={{ color: MUT, fontSize: 12 }}>{fmtDays(days)} · từ {pickDate} → {endDate()}</span>
+                  <span style={{ color: MUT, fontSize: 12 }}>{fmtDays(days, selShift)} · từ {pickDate} → {endDate()}</span>
                   <div style={{ textAlign: "right" }}>
                     {appliedDiscount ? (
                       <>
@@ -1584,7 +1775,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               const zaloMsg = encodeURIComponent(
                 "Xin chào 92 KA MÊ RA! 📸\nMã đơn: " + orderId +
                 "\nThiết bị: " + selectedCamList.map(c => c.name + " x" + selCams[c.id]).join(", ") +
-                "\nThời gian: " + fmtDays(days) +
+                "\nThời gian: " + fmtDays(days, selShift) +
                 (appliedDiscount ? "\nMã giảm giá: " + appliedDiscount.code + " (-" + fmtVND(discountAmt) + ")" : "") +
                 "\nTổng tiền: " + fmtVND(total) +
                 "\nKhách: " + info.name + " | SĐT: " + info.phone
@@ -1613,7 +1804,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                 `Mã đơn : ${orderId}`,
                 `📷 Máy  : ${selectedCamList.map(c => `${c.name}${selCams[c.id]>1?` x${selCams[c.id]}`:""}`).join(", ")}`,
                 `🎒 Phụ kiện: ${accList}`,
-                `⏱ Thời gian: ${fmtDays(days)}`,
+                `⏱ Thời gian: ${fmtDays(days, selShift)}`,
                 appliedDiscount ? `🏷️ Mã giảm giá: ${appliedDiscount.code} (-${fmtVND(discountAmt)})` : null,
                 `💰 Tổng tiền: ${fmtVND(total)}`,
                 "━━━━━━━━━━━━━━━━━━━━━━",
@@ -1636,7 +1827,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 }
 
 // ── CAMERA FEATURED CAROUSEL ──
-function CameraFeatured({ id, cameras, onBook, isMobile }) {
+function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
   const [active, setActive] = useState(0);
   const [hov, setHov] = useState(null);
   const [slideDir, setSlideDir] = useState(1);
@@ -1704,7 +1895,9 @@ function CameraFeatured({ id, cameras, onBook, isMobile }) {
           style={{ display:"flex", gap:12, overflowX:"auto", scrollSnapType:"x mandatory", WebkitOverflowScrolling:"touch", paddingLeft:16, paddingRight:16, paddingBottom:8 }}>
           {cameras.map((cam, i) => {
             const { brand, model } = parseName(cam.name);
-            const isAvail = cam.status === "available";
+            const availQty = getAvailQty(cam.id, cam.qty || 1, orders);
+            const isAvail = cam.status !== "rented" && availQty > 0;
+            const isLow = isAvail && availQty <= 1;
             const isAct = i === active;
             return (
               <div key={cam.id} data-camcard="1"
@@ -1712,6 +1905,7 @@ function CameraFeatured({ id, cameras, onBook, isMobile }) {
                 <div style={{ position:"absolute", inset:0, zIndex:0 }}><CamImage cam={cam} height={320} /></div>
                 <div style={{ position:"absolute", inset:0, zIndex:1, background:"linear-gradient(to top,rgba(6,6,6,0.92) 0%,rgba(6,6,6,0.3) 60%,transparent 100%)", pointerEvents:"none" }} />
                 {!isAvail && <div style={{ position:"absolute",top:14,right:14,zIndex:10,background:"rgba(204,51,51,0.25)",border:"1px solid #cc3333",color:"#ff6666",fontSize:8,fontWeight:700,letterSpacing:2,padding:"4px 10px",fontFamily:"system-ui,sans-serif",borderRadius:2 }}>ĐÃ THUÊ</div>}
+                {isLow && <div style={{ position:"absolute",top:14,right:14,zIndex:10,background:"rgba(245,158,11,0.2)",border:"1px solid #f59e0b",color:"#f59e0b",fontSize:8,fontWeight:700,letterSpacing:2,padding:"4px 10px",fontFamily:"system-ui,sans-serif",borderRadius:2 }}>CÒN {availQty} MÁY</div>}
                 <div style={{ position:"absolute", bottom:0, left:0, right:0, zIndex:2, padding:"0 20px 20px" }}>
                   <div style={{ fontSize:8,letterSpacing:4,color:"rgba(255,255,255,0.5)",fontFamily:"system-ui,sans-serif",marginBottom:4,fontWeight:600 }}>{brand}</div>
                   <div style={{ fontSize:28,fontWeight:700,letterSpacing:0.5,color:"#fff",lineHeight:1,marginBottom:5,fontFamily:"system-ui,sans-serif",textShadow:"0 2px 12px rgba(0,0,0,0.8)" }}>{model}</div>
@@ -1810,7 +2004,9 @@ function CameraFeatured({ id, cameras, onBook, isMobile }) {
             const brandMap = { fujifilm:"FUJIFILM", sony:"SONY", canon:"CANON", nikon:"NIKON", dji:"DJI", gopro:"GOPRO" };
             const b = brandMap[parts[0].toLowerCase()] || parts[0].toUpperCase();
             const m = parts.slice(1).join(" ");
-            const isAvail = cam.status === "available";
+            const availQty = getAvailQty(cam.id, cam.qty || 1, orders);
+            const isAvail = cam.status !== "rented" && availQty > 0;
+            const isLow = isAvail && availQty <= 1;
             return (
               <div key={cam.id+"_"+i}
                 onMouseEnter={() => setCfPaused(true)}
@@ -1820,6 +2016,7 @@ function CameraFeatured({ id, cameras, onBook, isMobile }) {
                 <div style={{ position:"absolute", inset:0, zIndex:0 }}><CamImage cam={cam} height={360} /></div>
                 <div style={{ position:"absolute", inset:0, zIndex:1, background:"linear-gradient(to top,rgba(6,6,6,0.92) 0%,rgba(6,6,6,0.4) 50%,rgba(6,6,6,0.1) 100%)", pointerEvents:"none" }} />
                 {!isAvail && <div style={{ position:"absolute",top:14,right:14,zIndex:10,background:"rgba(204,51,51,0.25)",border:"1px solid #cc3333",color:"#ff6666",fontSize:8,fontWeight:700,letterSpacing:2,padding:"4px 10px",fontFamily:"system-ui,sans-serif",borderRadius:2 }}>ĐÃ THUÊ</div>}
+                {isLow && <div style={{ position:"absolute",top:14,right:14,zIndex:10,background:"rgba(245,158,11,0.2)",border:"1px solid #f59e0b",color:"#f59e0b",fontSize:8,fontWeight:700,letterSpacing:2,padding:"4px 10px",fontFamily:"system-ui,sans-serif",borderRadius:2 }}>CÒN {availQty} MÁY</div>}
                 <div style={{ position:"absolute", bottom:0, left:0, right:0, zIndex:2, padding:"0 20px 20px" }}>
                   <div style={{ fontSize:8,letterSpacing:4,color:"rgba(255,255,255,0.45)",fontFamily:"system-ui,sans-serif",marginBottom:4,fontWeight:600 }}>{b}</div>
                   <div style={{ fontSize:26,fontWeight:700,color:"#fff",lineHeight:1,marginBottom:6,fontFamily:"system-ui,sans-serif",textShadow:"0 2px 12px rgba(0,0,0,0.8)" }}>{m}</div>
@@ -1846,7 +2043,7 @@ function CameraFeatured({ id, cameras, onBook, isMobile }) {
 }
 
 // ── HOMEPAGE ──
-function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile, photos, feedbacks, loggedUser, onOpenLogin, onOpenCustomer }) {
+function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, isMobile, photos, feedbacks, loggedUser, onOpenLogin, onOpenCustomer }) {
   const [scrollY, setScrollY] = useState(0);
   const [scrollDir, setScrollDir] = useState("up");
   const prevScrollY = useRef(0);
@@ -2050,7 +2247,7 @@ function HomePage({ cameras, accessories, siteContent, onBook, onAdmin, isMobile
       <FeedbackMarquee photos={photos || []} feedbacks={feedbacks || []} isMobile={isMobile} />
 
       {/* CAMERAS — Featured Carousel */}
-      <CameraFeatured id="cameras" cameras={cameras} onBook={onBook} isMobile={isMobile} />
+      <CameraFeatured id="cameras" cameras={cameras} orders={orders} onBook={onBook} isMobile={isMobile} />
 
       {/* ACCESSORIES */}
       <div id="accessories" style={{ padding: isMobile ? "40px 16px 72px" : "60px 60px 100px", maxWidth: 1280, margin: "0 auto" }}>
@@ -2422,7 +2619,7 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
                           <Badge status={o.status} />
                         </div>
                         <div style={{ color: TXT, fontSize: 12, marginTop: 4 }}>{o.cameraName}</div>
-                        <div style={{ color: MUT, fontSize: 11, marginTop: 2 }}>{fmtDays(o.days)} · {fmtVND(o.total)}</div>
+                        <div style={{ color: MUT, fontSize: 11, marginTop: 2 }}>{fmtDays(o.days, o.shift)} · {fmtVND(o.total)}</div>
                       </div>
                     ))}
                   </div>
@@ -2460,6 +2657,191 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
 }
 
 // ── ADMIN DASHBOARD ──
+// ── RENTAL CALENDAR ──
+const CAM_PALETTE = ["#c9a84c","#e05252","#52a8e0","#52e0a8","#e0a852","#a852e0","#e05299","#52e052"];
+function RentalCalendar({ orders, cameras }) {
+  const now = new Date();
+  const [cur, setCur] = useState({ y: now.getFullYear(), m: now.getMonth() });
+  const [selDay, setSelDay] = useState(null);
+  const { y, m } = cur;
+
+  const camColorMap = {};
+  cameras.forEach((c, i) => { camColorMap[c.id] = CAM_PALETTE[i % CAM_PALETTE.length]; });
+
+  const firstDow = new Date(y, m, 1).getDay(); // 0=Sun
+  const startOffset = (firstDow + 6) % 7; // Mon=0
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const monthLabel = new Date(y, m, 1).toLocaleDateString("vi-VN", { month: "long", year: "numeric" });
+  const todayDate = todayStr();
+
+  const activeOrders = orders.filter(o => !["cancelled"].includes(o.status));
+
+  const getDay = (day) => {
+    const ds = `${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    return activeOrders.filter(o => isDateInOrder(ds, o));
+  };
+
+  const cells = [];
+  for (let i = 0; i < startOffset; i++) cells.push(null);
+  for (let i = 1; i <= daysInMonth; i++) cells.push(i);
+
+  const selDateStr = selDay ? `${y}-${String(m+1).padStart(2,"0")}-${String(selDay).padStart(2,"0")}` : null;
+  const selOrders = selDay ? getDay(selDay) : [];
+
+  const navBtn = { background:"#111", border:`1px solid ${BR}`, color:TXT, padding:"6px 16px", borderRadius:6, cursor:"pointer", fontSize:13, fontFamily:"system-ui,sans-serif" };
+
+  return (
+    <div>
+      {/* Header + nav */}
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20 }}>
+        <h2 style={{ margin:0, color:TXT, fontWeight:600, fontSize:18, fontFamily:"system-ui,sans-serif" }}>📅 Lịch thuê máy</h2>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <button style={navBtn} onClick={() => { setCur(p => { const d = new Date(p.y, p.m-1, 1); return { y:d.getFullYear(), m:d.getMonth() }; }); setSelDay(null); }}>◀</button>
+          <span style={{ color:G, fontWeight:700, fontSize:14, fontFamily:"system-ui,sans-serif", minWidth:160, textAlign:"center" }}>{monthLabel}</span>
+          <button style={navBtn} onClick={() => { setCur(p => { const d = new Date(p.y, p.m+1, 1); return { y:d.getFullYear(), m:d.getMonth() }; }); setSelDay(null); }}>▶</button>
+          <button style={{ ...navBtn, color:G, borderColor:G+"44" }} onClick={() => { setCur({ y:now.getFullYear(), m:now.getMonth() }); setSelDay(null); }}>Hôm nay</button>
+        </div>
+      </div>
+
+      {/* Day headers */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:3, marginBottom:3 }}>
+        {["T2","T3","T4","T5","T6","T7","CN"].map(d => (
+          <div key={d} style={{ textAlign:"center", fontSize:10, color:MUT, padding:"5px 0", fontFamily:"system-ui,sans-serif", letterSpacing:1 }}>{d}</div>
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:3 }}>
+        {cells.map((day, i) => {
+          if (!day) return <div key={`e${i}`} style={{ minHeight:60 }} />;
+          const ds = `${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+          const dayOrders = getDay(day);
+          const isToday = ds === todayDate;
+          const isSel = selDay === day;
+          const isPast = ds < todayDate;
+          return (
+            <div key={day} onClick={() => setSelDay(isSel ? null : day)}
+              style={{ minHeight:60, borderRadius:6, background: isSel ? "#1a1500" : "#0d0d0d", border:`1px solid ${isSel ? G : isToday ? G+"55" : BR}`, padding:"6px 8px", cursor:"pointer", transition:"border .15s", opacity: isPast && !dayOrders.length ? 0.4 : 1 }}>
+              <div style={{ fontSize:11, fontWeight: isToday ? 700 : 400, color: isToday ? G : TXT, fontFamily:"system-ui,sans-serif", marginBottom:4 }}>
+                {day}{isToday && <span style={{ fontSize:7, marginLeft:3, color:G }}>●</span>}
+              </div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:2 }}>
+                {dayOrders.slice(0,6).map((o, j) => {
+                  const cid = o.cameras?.[0]?.id || o.cameraId;
+                  return <div key={j} style={{ width:8, height:8, borderRadius:2, background: camColorMap[cid] || G, flexShrink:0 }} />;
+                })}
+                {dayOrders.length > 6 && <span style={{ fontSize:8, color:MUT, lineHeight:"8px" }}>+{dayOrders.length-6}</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Selected day detail */}
+      {selDay && (
+        <div style={{ marginTop:20, background:CARD, border:`1px solid ${BR}`, borderRadius:10, padding:16 }}>
+          <div style={{ color:G, fontSize:12, fontWeight:700, marginBottom:12, fontFamily:"system-ui,sans-serif" }}>
+            📅 Ngày {selDay}/{m+1}/{y} — {selOrders.length} đơn
+          </div>
+          {selOrders.length === 0
+            ? <div style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>Không có đơn nào ngày này</div>
+            : selOrders.map(o => {
+                const cid = o.cameras?.[0]?.id || o.cameraId;
+                const col = camColorMap[cid] || G;
+                const cfg = STATUS_CFG[o.status] || { label: o.status, color:"#888" };
+                return (
+                  <div key={o.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 0", borderBottom:`1px solid ${BR}` }}>
+                    <div style={{ width:10, height:10, borderRadius:2, background:col, flexShrink:0 }} />
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ color:TXT, fontSize:12, fontWeight:600, fontFamily:"system-ui,sans-serif" }}>{o.cameraName} · {o.name}</div>
+                      <div style={{ color:MUT, fontSize:11, fontFamily:"system-ui,sans-serif", marginTop:2 }}>
+                        {o.id} · {o.date} → {dateAddDays(o.date, o.days)} · {fmtDays(o.days, o.shift)} · {fmtVND(o.total)}
+                      </div>
+                    </div>
+                    <span style={{ display:"inline-block", padding:"3px 9px", borderRadius:99, fontSize:10, fontWeight:700, background:cfg.color+"22", color:cfg.color, border:`1px solid ${cfg.color}44`, whiteSpace:"nowrap", flexShrink:0 }}>{cfg.label}</span>
+                  </div>
+                );
+              })
+          }
+        </div>
+      )}
+
+      {/* Legend */}
+      <div style={{ marginTop:18, display:"flex", flexWrap:"wrap", gap:12, padding:"12px 14px", background:"#0d0d0d", borderRadius:8, border:`1px solid ${BR}` }}>
+        <span style={{ color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif", letterSpacing:1 }}>CHÚ THÍCH:</span>
+        {cameras.map((c, i) => {
+          const qty = getAvailQty(c.id, c.qty || 1, orders);
+          return (
+            <div key={c.id} style={{ display:"flex", alignItems:"center", gap:5 }}>
+              <div style={{ width:10, height:10, borderRadius:2, background:CAM_PALETTE[i%CAM_PALETTE.length] }} />
+              <span style={{ color:MUT, fontSize:11, fontFamily:"system-ui,sans-serif" }}>{c.name}</span>
+              <span style={{ color: qty === 0 ? RED : qty <= 1 ? "#f59e0b" : "#22c55e", fontSize:10, fontWeight:700 }}>({qty} còn)</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── GHI CHÚ NỘI BỘ (admin only, khách không thấy) ──
+function AdminNoteEditor({ order, setOrders }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(order.adminNote || "");
+  const [saved, setSaved] = useState(false);
+
+  const save = () => {
+    setOrders(p => p.map(x => x.id === order.id ? { ...x, adminNote: draft } : x));
+    setSaved(true);
+    setEditing(false);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const hasNote = !!(order.adminNote && order.adminNote.trim());
+
+  return (
+    <div style={{ background: "#0a0800", border: `1px solid ${hasNote ? "#f59e0b44" : "#2a2a2a"}`, borderRadius: 8, padding: "10px 14px", marginBottom: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: editing ? 8 : (hasNote ? 6 : 0) }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 13 }}>🔒</span>
+          <span style={{ color: "#f59e0b", fontSize: 10, fontWeight: 700, letterSpacing: 1, fontFamily: "system-ui,sans-serif" }}>GHI CHÚ NỘI BỘ</span>
+          <span style={{ color: "#555", fontSize: 9, fontFamily: "system-ui,sans-serif" }}>· Khách không thấy</span>
+        </div>
+        {!editing && (
+          <button onClick={() => { setDraft(order.adminNote || ""); setEditing(true); }}
+            style={{ padding: "3px 10px", background: "transparent", border: "1px solid #f59e0b44", color: "#f59e0b", borderRadius: 5, cursor: "pointer", fontSize: 10, fontFamily: "system-ui,sans-serif", fontWeight: 600 }}>
+            {hasNote ? "Sửa" : "+ Thêm ghi chú"}
+          </button>
+        )}
+      </div>
+      {!editing && hasNote && (
+        <div style={{ color: "#f59e0b", fontSize: 12, fontStyle: "italic", lineHeight: 1.5, fontFamily: "system-ui,sans-serif" }}>{order.adminNote}</div>
+      )}
+      {editing && (
+        <div>
+          <textarea value={draft} onChange={e => setDraft(e.target.value)}
+            placeholder="VD: khách hay trả trễ, cần đặt cọc trước..."
+            style={{ width: "100%", padding: "8px 10px", background: "#111", border: "1px solid #f59e0b44", borderRadius: 6, color: "#f59e0b", fontSize: 12, fontFamily: "system-ui,sans-serif", resize: "vertical", minHeight: 72, outline: "none", boxSizing: "border-box" }} />
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <button onClick={save}
+              style={{ padding: "6px 14px", background: "#1a1000", border: "1px solid #f59e0b66", color: "#f59e0b", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>
+              {saved ? "✓ Đã lưu!" : "💾 Lưu"}
+            </button>
+            <button onClick={() => setEditing(false)}
+              style={{ padding: "6px 12px", background: "transparent", border: "1px solid #2a2a2a", color: MUT, borderRadius: 6, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>
+              Huỷ
+            </button>
+            {hasNote && <button onClick={() => { setDraft(""); setOrders(p => p.map(x => x.id === order.id ? { ...x, adminNote: "" } : x)); setEditing(false); }}
+              style={{ padding: "6px 12px", background: "transparent", border: "1px solid #cc333333", color: RED, borderRadius: 6, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", marginLeft: "auto" }}>
+              Xoá ghi chú
+            </button>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orders, setOrders, siteContent, setSiteContent, photos, setPhotos, feedbacks, setFeedbacks, users, setUsers, discounts, setDiscounts, onBack, isMobile }) {
   const [tab, setTab] = useState("overview");
   const [editCam, setEditCam] = useState(null);
@@ -2503,6 +2885,77 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   const [newOrderIds, setNewOrderIds] = useState(new Set());
   const [expandedOrder, setExpandedOrder] = useState(null);
   const deletedOrderIdsRef = useRef(new Set());
+
+  // ── EXCEL EXPORT ──
+  const [exportMonth, setExportMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [exporting, setExporting] = useState(false);
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      if (!window.XLSX) {
+        await new Promise((res, rej) => {
+          const s = document.createElement("script");
+          s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+          s.onload = res; s.onerror = rej;
+          document.head.appendChild(s);
+        });
+      }
+      const XLSX = window.XLSX;
+      const [y, m] = exportMonth.split("-").map(Number);
+      const rows = orders.filter(o => {
+        if (!o.date) return false;
+        const d = new Date(o.date + "T00:00:00");
+        return d.getFullYear() === y && d.getMonth() + 1 === m;
+      });
+      const sheetData = [
+        ["Mã đơn", "Ngày", "Khách", "SĐT", "Zalo", "Địa chỉ", "Máy", "Ca/Ngày", "Phụ kiện", "Mã giảm giá", "Giảm (đ)", "Tổng (đ)", "Trạng thái", "Ghi chú KH", "Ghi chú nội bộ"],
+        ...rows.map(o => [
+          o.id,
+          o.date,
+          o.name,
+          o.phone,
+          o.zalo || "",
+          o.address || "",
+          o.cameraName,
+          fmtDays(o.days, o.shift),
+          (o.accessories || []).join(", "),
+          o.discountCode || "",
+          o.discountAmt || 0,
+          o.total,
+          o.status,
+          o.note || "",
+          o.adminNote || "",
+        ])
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+      // Độ rộng cột
+      ws["!cols"] = [8,10,16,12,12,20,18,14,24,10,10,12,10,20,20].map(w => ({ wch: w }));
+      // Highlight header vàng
+      const hdrRange = XLSX.utils.decode_range(ws["!ref"]);
+      for (let c = hdrRange.s.c; c <= hdrRange.e.c; c++) {
+        const cell = ws[XLSX.utils.encode_cell({ r: 0, c })];
+        if (cell) cell.s = { font: { bold: true }, fill: { fgColor: { rgb: "C9A84C" } }, alignment: { horizontal: "center" } };
+      }
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, `Tháng ${m}-${y}`);
+      // Trang tổng kết
+      const totalRevenue = rows.filter(o => o.status !== "cancelled").reduce((s, o) => s + (o.total || 0), 0);
+      const summary = [
+        ["BÁO CÁO THÁNG " + m + "/" + y, "", ""],
+        ["", "", ""],
+        ["Tổng đơn", rows.length, ""],
+        ["Đơn hoàn thành", rows.filter(o => o.status === "completed").length, ""],
+        ["Đơn huỷ", rows.filter(o => o.status === "cancelled").length, ""],
+        ["Doanh thu (đ)", totalRevenue, ""],
+        ["Trung bình/đơn (đ)", rows.length ? Math.round(totalRevenue / rows.length) : 0, ""],
+      ];
+      const ws2 = XLSX.utils.aoa_to_sheet(summary);
+      ws2["!cols"] = [{ wch: 22 }, { wch: 14 }, { wch: 10 }];
+      XLSX.utils.book_append_sheet(wb, ws2, "Tổng kết");
+      XLSX.writeFile(wb, `92KaMeRa_T${m}_${y}.xlsx`);
+    } catch (e) { alert("Lỗi xuất Excel: " + e.message); }
+    setExporting(false);
+  };
 
   // Track new unseen orders
   const unseenCount = orders.filter(o => !o.seen).length;
@@ -2686,6 +3139,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
     { k: "cameras", l: "📷 Máy ảnh" },
     { k: "accessories", l: "🎒 Phụ kiện" },
     { k: "orders", l: "📋 Đơn thuê", badge: unseenCount },
+    { k: "calendar", l: "📅 Lịch thuê" },
     { k: "media", l: "⭐ Feedback", badge: unseenFeedbackCount },
     { k: "users", l: "👥 Khách hàng" },
     { k: "discounts", l: "🏷️ Mã giảm giá" },
@@ -2995,6 +3449,21 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
           <div>
             <STitle c={`Đơn thuê (${orders.length})`} />
 
+            {/* ── XUẤT EXCEL ── */}
+            <div style={{ background: "#080a06", border: "1px solid #22c55e33", borderRadius: 10, padding: "14px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <span style={{ color: "#22c55e", fontSize: 18 }}>📊</span>
+              <div>
+                <div style={{ color: TXT, fontSize: 12, fontWeight: 600 }}>Xuất báo cáo Excel</div>
+                <div style={{ color: MUT, fontSize: 10 }}>Danh sách đơn + tổng kết doanh thu theo tháng</div>
+              </div>
+              <input type="month" value={exportMonth} onChange={e => setExportMonth(e.target.value)}
+                style={{ padding: "7px 10px", background: "#0d0d0d", border: `1px solid ${BR2}`, borderRadius: 7, color: TXT, fontSize: 12, fontFamily: "system-ui,sans-serif", outline: "none", marginLeft: "auto" }} />
+              <button onClick={handleExportExcel} disabled={exporting}
+                style={{ padding: "8px 18px", background: exporting ? "#111" : "#0d2010", color: exporting ? MUT : "#22c55e", border: "1px solid #22c55e44", borderRadius: 7, cursor: exporting ? "not-allowed" : "pointer", fontWeight: 700, fontSize: 12, fontFamily: "system-ui,sans-serif", whiteSpace: "nowrap", transition: "all .2s" }}>
+                {exporting ? "⏳ Đang xuất..." : "⬇️ Tải Excel"}
+              </button>
+            </div>
+
             {/* New orders alert */}
             {orders.filter(o => !o.seen).length > 0 && (
               <div style={{ background: "#0a0410", border: "1px solid #a78bfa44", borderRadius: 9, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
@@ -3028,13 +3497,14 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                       <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
                         <span style={{ color: !o.seen ? "#60a5fa" : TXT, fontWeight: 800, fontSize: 15, fontFamily: "monospace" }}>{o.id}</span>
                         {!o.seen && <span style={{ background: "#ef444422", color: "#ef4444", fontSize: 9, padding: "2px 7px", borderRadius: 99, fontWeight: 700 }}>MỚI</span>}
+                        {o.adminNote && <span title={o.adminNote} style={{ background: "#1a1000", color: "#f59e0b", fontSize: 9, padding: "2px 7px", borderRadius: 99, fontWeight: 700, cursor: "help" }}>🔒 NOTE</span>}
                         <Badge status={o.status} />
                       </div>
                       <div style={{ color: MUT, fontSize: 11, marginTop: 3 }}>{o.date} · {o.name} · 📞 {o.phone}</div>
                     </div>
                     <div style={{ textAlign: "right" }}>
                       <div style={{ color: G, fontSize: 18, fontWeight: 800 }}>{fmtVND(o.total)}</div>
-                      <div style={{ color: MUT, fontSize: 11 }}>{fmtDays(o.days)}</div>
+                      <div style={{ color: MUT, fontSize: 11 }}>{fmtDays(o.days, o.shift)}</div>
                     </div>
                   </div>
 
@@ -3043,10 +3513,14 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                     <div style={{ borderTop: `1px solid ${BR2}`, padding: "14px 18px" }}>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
                         <span style={{ padding: "3px 10px", background: "#111", border: `1px solid ${BR2}`, borderRadius: 99, color: TXT, fontSize: 11 }}>📷 {o.cameraName}</span>
+                        {o.shift && <span style={{ padding: "3px 10px", background: o.shift === "morning" ? "#0a0800" : "#080010", border: `1px solid ${o.shift === "morning" ? "#f59e0b44" : "#818cf844"}`, borderRadius: 99, color: o.shift === "morning" ? "#f59e0b" : "#818cf8", fontSize: 11 }}>{o.shift === "morning" ? "🌅 Ca sáng 6h–12h" : "🌇 Ca chiều 14h–20h"}</span>}
                         {o.accessories.map(a => <span key={a} style={{ padding: "3px 10px", background: "#111", border: `1px solid ${BR2}`, borderRadius: 99, color: MUT, fontSize: 11 }}>{a}</span>)}
                       </div>
                       {o.address && <div style={{ color: MUT, fontSize: 11, marginBottom: 6 }}>📍 {o.address}</div>}
                       {o.note && <div style={{ color: MUT, fontSize: 11, marginBottom: 12, fontStyle: "italic" }}>💬 {o.note}</div>}
+
+                      {/* ── GHI CHÚ NỘI BỘ (chỉ admin thấy) ── */}
+                      <AdminNoteEditor order={o} setOrders={setOrders} />
                       {o.discountCode && (
                         <div style={{ color: "#22c55e", fontSize: 11, marginBottom: 8, background: "#021a0a", border: "1px solid #22c55e22", borderRadius: 6, padding: "6px 12px" }}>
                           🏷️ Mã giảm giá: <strong>{o.discountCode}</strong> — Giảm {fmtVND(o.discountAmt || 0)} · Tổng gốc: {fmtVND(o.subtotal || o.total)}
@@ -3265,6 +3739,11 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
               </div>
             )}
           </div>
+        )}
+
+        {/* CALENDAR */}
+        {tab === "calendar" && (
+          <RentalCalendar orders={orders} cameras={cameras} />
         )}
 
         {/* INVENTORY */}
@@ -4392,6 +4871,7 @@ function AppRoot() {
           cameras={cameras}
           accessories={accessories}
           siteContent={siteContent}
+          orders={orders}
           onBook={(cam) => setBooking(cam?.id ?? true)}
           onAdmin={() => setPage("admin")}
           isMobile={isMobile}
