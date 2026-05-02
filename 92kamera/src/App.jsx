@@ -1283,30 +1283,38 @@ function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, se
   };
 
   // Range highlight
+  const endDs = pickDate && days ? dateAddDays(pickDate, days) : null;
   const getInRange = (day) => {
     if (!pickDate || !days) return false;
     const ds = `${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-    const endDs = dateAddDays(pickDate, days);
-    return ds >= pickDate && ds <= endDs;
+    return ds > pickDate && ds <= endDs;
+  };
+  const getIsEnd = (day) => {
+    if (!endDs || days === 0.5) return false;
+    const ds = `${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    return ds === endDs;
   };
 
-  const statusStyle = (st, isStart, isInRange) => {
-    if (st === "past") return { bg:"transparent", border:"transparent", color:"#333", cursor:"default" };
-    if (st === "full") return { bg:"#1a0505", border:"#cc333344", color:"#cc3333", cursor:"not-allowed" };
-    if (isStart) return { bg:"#1a1200", border:G, color:G, cursor:"pointer" };
-    if (isInRange) return { bg:"#130f00", border:G+"44", color:TXT, cursor:"pointer" };
-    if (st === "low") return { bg:"#120a00", border:"#f59e0b44", color:"#f59e0b", cursor:"pointer" };
-    return { bg:"#0d0d0d", border:BR, color:TXT, cursor:"pointer" };
+  const statusStyle = (st, isStart, isInRange, isEnd) => {
+    if (st === "past") return { bg:"transparent", border:"transparent", color:"#333", cursor:"default", shadow:"none", fw:400 };
+    if (st === "full") return { bg:"#1a0505", border:"#cc333344", color:"#cc3333", cursor:"not-allowed", shadow:"none", fw:400 };
+    if (isStart) return { bg:G+"33", border:G, color:G, cursor:"pointer", shadow:`0 0 0 2px ${G}55, 0 0 16px ${G}44`, fw:800 };
+    if (isEnd)   return { bg:G+"22", border:G+"bb", color:G, cursor:"pointer", shadow:`0 0 0 1px ${G}44, 0 0 10px ${G}33`, fw:700 };
+    if (isInRange) return { bg:"#1f1600", border:G+"55", color:G+"cc", cursor:"pointer", shadow:"none", fw:500 };
+    if (st === "low") return { bg:"#120a00", border:"#f59e0b44", color:"#f59e0b", cursor:"pointer", shadow:"none", fw:400 };
+    return { bg:"#0d0d0d", border:BR, color:TXT, cursor:"pointer", shadow:"none", fw:400 };
   };
 
-  // Guard: tránh click khi user đang scroll/drag trên mobile
+  // Guard: tránh click khi user đang scroll trên mobile
   const touchMoved = useRef(false);
   const touchOrigin = useRef({ x: 0, y: 0 });
 
   const handleClick = (day, st) => {
-    if (touchMoved.current) return; // bỏ qua nếu là drag
+    if (touchMoved.current) return;
     if (st === "past" || st === "full") return;
     const ds = `${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    // Click lại ngày đang chọn → bỏ chọn
+    if (ds === pickDate) { setPickDate(""); return; }
     setPickDate(ds);
   };
 
@@ -1342,15 +1350,18 @@ function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, se
           const st = selectedCams.length ? getDayStatus(day) : (day < parseInt(todayDate.split("-")[2]) && m === now.getMonth() && y === now.getFullYear() ? "past" : "ok");
           const ds = `${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
           const isStart = ds === pickDate;
+          const isEnd = getIsEnd(day);
           const isInRange = getInRange(day);
-          const { bg, border, color, cursor } = statusStyle(st, isStart, isInRange);
+          const { bg, border, color, cursor, shadow, fw } = statusStyle(st, isStart, isInRange, isEnd);
           const isToday = ds === todayDate;
           return (
             <div key={day} onClick={() => handleClick(day, st)}
-              style={{ textAlign:"center", padding:"6px 2px", borderRadius:5, background:bg, border:`1px solid ${border}`, color, cursor, fontSize:11, fontFamily:"system-ui,sans-serif", fontWeight: isToday || isStart ? 700 : 400, position:"relative", transition:"all .1s", userSelect:"none" }}>
+              style={{ textAlign:"center", padding:"6px 2px", borderRadius:5, background:bg, border:`1px solid ${border}`, color, cursor, fontSize:11, fontFamily:"system-ui,sans-serif", fontWeight: (isStart||isEnd||isInRange) ? fw : (isToday ? 700 : 400), position:"relative", transition:"all .1s", userSelect:"none", boxShadow: shadow }}>
               {day}
-              {isToday && !isStart && <div style={{ position:"absolute", bottom:2, left:"50%", transform:"translateX(-50%)", width:3, height:3, borderRadius:"50%", background:G }} />}
+              {isToday && !isStart && !isEnd && <div style={{ position:"absolute", bottom:2, left:"50%", transform:"translateX(-50%)", width:3, height:3, borderRadius:"50%", background:G }} />}
               {st === "full" && <div style={{ position:"absolute", bottom:2, left:"50%", transform:"translateX(-50%)", fontSize:6, color:"#cc3333" }}>✕</div>}
+              {isStart && <div style={{ position:"absolute", bottom:1, left:"50%", transform:"translateX(-50%)", fontSize:7, color:G, fontWeight:700 }}>▶</div>}
+              {isEnd   && <div style={{ position:"absolute", bottom:1, left:"50%", transform:"translateX(-50%)", fontSize:7, color:G, fontWeight:700 }}>◀</div>}
             </div>
           );
         })}
@@ -1358,7 +1369,7 @@ function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, se
 
       {/* Legend */}
       <div style={{ display:"flex", gap:12, marginTop:10, flexWrap:"wrap" }}>
-        {[["#0d0d0d",BR,TXT,"Trống"],["#120a00","#f59e0b44","#f59e0b","Còn ít"],["#1a0505","#cc333344","#cc3333","Hết máy"],["#1a1200",G,G,"Đang chọn"]].map(([bg,bd,col,lbl])=>(
+        {[["#0d0d0d",BR,TXT,"Trống"],["#120a00","#f59e0b44","#f59e0b","Còn ít"],["#1a0505","#cc333344","#cc3333","Hết máy"],[G+"33",G,G,"Đang chọn"]].map(([bg,bd,col,lbl])=>(
           <div key={lbl} style={{ display:"flex", alignItems:"center", gap:4 }}>
             <div style={{ width:10, height:10, borderRadius:2, background:bg, border:`1px solid ${bd}` }} />
             <span style={{ color:MUT, fontSize:9, fontFamily:"system-ui,sans-serif" }}>{lbl}</span>
@@ -1446,6 +1457,36 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   const removeDiscount = () => { setAppliedDiscount(null); setDiscountCode(""); setDiscountMsg(null); };
 
   const endDate = () => { if (!pickDate || !days) return ""; return new Date(dateAddDays(pickDate, days) + "T00:00:00").toLocaleDateString("vi-VN"); };
+
+  // Thông tin trả máy — 1 ngày = 24h tính từ lúc nhận
+  const returnInfo = () => {
+    if (!pickDate || !days) return null;
+    const fmtDate = (ds) => new Date(ds + "T00:00:00").toLocaleDateString("vi-VN", { day:"2-digit", month:"2-digit", year:"numeric" });
+
+    if (days === 0.5) {
+      const isM = selShift === "morning";
+      const isA = selShift === "afternoon";
+      return {
+        pickTime:  isM ? "06:00" : isA ? "14:00" : "--:--",
+        pickDate:  fmtDate(pickDate),
+        dropTime:  isM ? "12:00" : isA ? "20:00" : "--:--",
+        dropDate:  fmtDate(pickDate),
+        totalH:    6,
+        totalLabel:"6 giờ (1 buổi)",
+      };
+    }
+
+    const totalH = Math.ceil(days) * 24;
+    const endDs  = dateAddDays(pickDate, days);
+    return {
+      pickTime:  "12:00",
+      pickDate:  fmtDate(pickDate),
+      dropTime:  "12:00",
+      dropDate:  fmtDate(endDs),
+      totalH,
+      totalLabel:`${totalH} giờ (${Math.ceil(days)} ngày)`,
+    };
+  };
 
   const toggleCam = (cam) => {
     setSelCams(p => {
@@ -1620,11 +1661,40 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               />
               <input style={{ ...inpS, fontSize: 12 }} type="date" value={pickDate} min={todayStr()} onChange={e => setPickDate(e.target.value)} />
             </div>
-            {days > 0 && (
-              <div style={{ background: "#0a0800", border: `1px solid ${G}33`, borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: MUT }}>
-                Trả máy: <span style={{ color: TXT, fontWeight: 600 }}>{endDate()}</span> · Tiền máy: <span style={{ color: G, fontWeight: 700 }}>{fmtVND(camCost)}</span>
-              </div>
-            )}
+            {days > 0 && (() => {
+              const ri = returnInfo();
+              if (!ri) return null;
+              const row = { display:"flex", alignItems:"center", gap:6 };
+              const label = { color:MUT, fontSize:11, minWidth:110, fontFamily:"system-ui,sans-serif" };
+              const val   = { color:TXT, fontWeight:700, fontSize:12, fontFamily:"system-ui,sans-serif" };
+              const badge = { color:G, fontWeight:600, background:G+"18", border:`1px solid ${G}44`, borderRadius:99, padding:"2px 10px", fontSize:11, fontFamily:"system-ui,sans-serif" };
+              return (
+                <div style={{ background:"#0a0800", border:`1px solid ${G}33`, borderRadius:8, padding:"12px 14px", marginBottom:14 }}>
+                  {/* Nhận máy */}
+                  <div style={{ ...row, marginBottom:6 }}>
+                    <span style={label}>📦 Nhận máy:</span>
+                    <span style={badge}>{ri.pickTime}</span>
+                    <span style={{ ...val, color:MUT, fontSize:11 }}>{ri.pickDate}</span>
+                  </div>
+                  {/* Trả máy */}
+                  <div style={{ ...row, marginBottom:8 }}>
+                    <span style={label}>📅 Trả máy trước:</span>
+                    <span style={badge}>{ri.dropTime}</span>
+                    <span style={{ ...val, color:MUT, fontSize:11 }}>{ri.dropDate}</span>
+                  </div>
+                  {/* Tổng + tiền */}
+                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:6, paddingTop:8, borderTop:`1px solid ${BR}` }}>
+                    <span style={{ color:G, fontSize:11, fontFamily:"system-ui,sans-serif" }}>⏱ Tổng: <strong>{ri.totalLabel}</strong></span>
+                    <span style={{ color:G, fontWeight:700, fontSize:13, fontFamily:"system-ui,sans-serif" }}>{fmtVND(camCost)}</span>
+                  </div>
+                  {/* Phí trễ */}
+                  <div style={{ marginTop:8, padding:"7px 10px", background:"#1a0f00", border:"1px solid #f59e0b33", borderRadius:6, fontSize:10, fontFamily:"system-ui,sans-serif", color:"#f59e0b", display:"flex", flexDirection:"column", gap:3 }}>
+                    <span>⚠️ Trễ 1h đầu miễn phí · từ giờ thứ 2: +30.000 ₫/h</span>
+                    <span style={{ color:"#f87171" }}>🔴 Quá 6h → tính thêm 1 ngày thuê</span>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Phụ kiện multi-select + qty */}
             <div style={{ marginBottom: 20 }}>
