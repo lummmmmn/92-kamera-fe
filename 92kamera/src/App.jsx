@@ -19,7 +19,10 @@ const SHIFTS = [
   { key: "morning",   label: "🌅 Ca Sáng",  time: "6:00 – 12:00" },
   { key: "afternoon", label: "🌇 Ca Chiều", time: "14:00 – 20:00" },
 ];
-const todayStr = () => new Date().toISOString().split("T")[0];
+const todayStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+};
 
 // Tính số máy thực tế còn có thể thuê (shift-aware: ca sáng vs ca chiều)
 const doesShiftConflict = (o, targetShift) => {
@@ -45,7 +48,7 @@ const getAvailQty = (camId, camQty, orders, targetDate, targetShift) => {
 const dateAddDays = (dateStr, n) => {
   const d = new Date(dateStr + "T00:00:00");
   d.setDate(d.getDate() + (n < 1 ? 0 : Math.ceil(n) - 1));
-  return d.toISOString().split("T")[0];
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 };
 const isDateInOrder = (dateStr, o) => {
   if (!o.date || !o.days) return false;
@@ -1296,7 +1299,12 @@ function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, se
     return { bg:"#0d0d0d", border:BR, color:TXT, cursor:"pointer" };
   };
 
+  // Guard: tránh click khi user đang scroll/drag trên mobile
+  const touchMoved = useRef(false);
+  const touchOrigin = useRef({ x: 0, y: 0 });
+
   const handleClick = (day, st) => {
+    if (touchMoved.current) return; // bỏ qua nếu là drag
     if (st === "past" || st === "full") return;
     const ds = `${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
     setPickDate(ds);
@@ -1325,7 +1333,10 @@ function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, se
       </div>
 
       {/* Grid */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:2 }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:2 }}
+        onTouchStart={e => { touchMoved.current = false; touchOrigin.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
+        onTouchMove={e => { const dx = e.touches[0].clientX - touchOrigin.current.x; const dy = e.touches[0].clientY - touchOrigin.current.y; if (Math.abs(dx) > 6 || Math.abs(dy) > 6) touchMoved.current = true; }}
+      >
         {cells.map((day, i) => {
           if (!day) return <div key={`e${i}`} />;
           const st = selectedCams.length ? getDayStatus(day) : (day < parseInt(todayDate.split("-")[2]) && m === now.getMonth() && y === now.getFullYear() ? "past" : "ok");
