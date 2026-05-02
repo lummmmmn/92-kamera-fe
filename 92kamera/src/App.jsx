@@ -45,9 +45,11 @@ const getAvailQty = (camId, camQty, orders, targetDate, targetShift) => {
   return Math.max(0, camQty - rented);
 };
 // Helpers cho lịch thuê
+// 1 ngày = 24h: nhận 12:00 ngày X → trả 12:00 ngày X+1
+// n < 1 (buổi) → cùng ngày; n >= 1 → cộng đúng n ngày
 const dateAddDays = (dateStr, n) => {
   const d = new Date(dateStr + "T00:00:00");
-  d.setDate(d.getDate() + (n < 1 ? 0 : Math.ceil(n) - 1));
+  d.setDate(d.getDate() + (n < 1 ? 0 : Math.ceil(n)));
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 };
 const isDateInOrder = (dateStr, o) => {
