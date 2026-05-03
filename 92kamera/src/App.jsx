@@ -210,6 +210,178 @@ function Badge({ status }) {
   return <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: c.color + "22", color: c.color, border: `1px solid ${c.color}44`, whiteSpace: "nowrap", letterSpacing: .5 }}>{c.label}</span>;
 }
 
+// ── ORDER LOOKUP WIDGET (tra cứu đơn nhanh, không cần đăng nhập) ──
+function OrderLookupWidget({ orders }) {
+  const [open, setOpen] = useState(false);
+  const [val, setVal] = useState("");
+  const [result, setResult] = useState(null);
+  const [err, setErr] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState(null);
+  const inputRef = useRef();
+
+  // Tự cập nhật result khi orders thay đổi (admin đổi status → khách thấy ngay)
+  useEffect(() => {
+    if (!result) return;
+    const updated = orders.find(o => o.id === result.id);
+    if (updated && (updated.status !== result.status || updated.adminNote !== result.adminNote)) {
+      setResult(updated);
+      setLastRefresh(new Date());
+    }
+  }, [orders]);
+
+  const search = (q = val) => {
+    const s = q.trim().toUpperCase();
+    if (!s) return;
+    const found = orders.find(o => o.id.toUpperCase() === s || o.id.toUpperCase().replace("#","").includes(s.replace("#","")));
+    if (found) { setResult(found); setErr(false); setLastRefresh(new Date()); }
+    else { setResult(null); setErr(true); }
+  };
+
+  const refresh = async () => {
+    if (!result || refreshing) return;
+    setRefreshing(true);
+    try {
+      // Fetch thẳng Supabase để lấy data mới nhất
+      const res = await fetch(
+        `${SB_URL}/rest/v1/${SB_TABLE}?key=eq.${STORE_KEYS.orders}&select=value`,
+        { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
+      );
+      if (res.ok) {
+        const rows = await res.json();
+        if (rows?.[0]?.value) {
+          const freshOrders = JSON.parse(rows[0].value);
+          const found = freshOrders.find(o => o.id === result.id);
+          if (found) { setResult(found); setLastRefresh(new Date()); }
+        }
+      }
+    } catch {}
+    setRefreshing(false);
+  };
+
+  const toggle = () => {
+    setOpen(p => !p);
+    if (!open) { setVal(""); setResult(null); setErr(false); setTimeout(() => inputRef.current?.focus(), 200); }
+  };
+
+  const fmtD = (ds) => { try { return new Date(ds + "T00:00:00").toLocaleDateString("vi-VN", { day:"2-digit", month:"2-digit", year:"numeric" }); } catch { return ds; } };
+  const getTime = (o, type) => {
+    if (o.days === 0.5) {
+      if (type === "pick") return o.shift === "morning" ? "06:00" : o.shift === "afternoon" ? "14:00" : "--:--";
+      return o.shift === "morning" ? "12:00" : o.shift === "afternoon" ? "20:00" : "--:--";
+    }
+    return "12:00";
+  };
+
+  const sc = result ? (STATUS_CFG[result.status] || { label: result.status, color: "#888" }) : null;
+
+  return (
+    <div style={{ position: "relative", zIndex: 10 }}>
+      {/* Trigger row */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <button onClick={toggle} style={{
+          display: "flex", alignItems: "center", gap: 8,
+          background: open ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.06)",
+          border: `1px solid ${open ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.2)"}`,
+          borderRadius: open ? "8px 8px 0 0" : 8,
+          padding: "10px 18px", cursor: "pointer", transition: "all .25s",
+          color: "#e0d8c8", fontSize: 12, fontFamily: "system-ui,sans-serif", letterSpacing: 2, fontWeight: 600,
+        }}>
+          {/* Kính lúp SVG */}
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          TRA CỨU ĐƠN
+        </button>
+        {open && result && (
+          <button onClick={refresh} title="Làm mới" style={{
+            width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.05)",
+            border: `1px solid ${BR}`, cursor: "pointer", display: "flex", alignItems: "center",
+            justifyContent: "center", flexShrink: 0, transition: "all .2s",
+          }}>
+            <span style={{ display: "inline-block", animation: refreshing ? "spin 0.7s linear infinite" : "none", fontSize: 12 }}>↻</span>
+          </button>
+        )}
+        {open && lastRefresh && (
+          <span style={{ fontSize: 9, color: "#3a3a3a", fontFamily: "system-ui,sans-serif", letterSpacing: 1 }}>
+            {lastRefresh.toLocaleTimeString("vi-VN", { hour:"2-digit", minute:"2-digit", second:"2-digit" })}
+          </span>
+        )}
+      </div>
+
+      {/* Expand panel */}
+      {open && (
+        <div style={{
+          background: "#080808", border: `1px solid ${G}44`, borderRadius: "0 8px 8px 8px",
+          padding: "14px 16px", minWidth: 300, maxWidth: 400,
+          boxShadow: `0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px ${G}11`,
+        }}>
+          {/* Input */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+            <input ref={inputRef} value={val}
+              onChange={e => { setVal(e.target.value.toUpperCase()); setErr(false); setResult(null); }}
+              onKeyDown={e => e.key === "Enter" && search()}
+              placeholder="#92K0001"
+              style={{ flex: 1, padding: "9px 12px", background: "#0e0e0e", border: `1px solid ${err ? "#ef4444" : BR}`, borderRadius: 7, color: TXT, fontSize: 13, outline: "none", fontFamily: "monospace", letterSpacing: 2, transition: "border .2s" }}
+            />
+            <button onClick={() => search()}
+              style={{ padding: "9px 14px", background: G, color: "#000", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 800, fontSize: 12, fontFamily: "system-ui,sans-serif", flexShrink: 0 }}>
+              Tìm
+            </button>
+          </div>
+
+          {err && (
+            <div style={{ color: "#ef4444", fontSize: 11, fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 6 }}>
+              <span>✕</span> Không tìm thấy mã đơn này
+            </div>
+          )}
+
+          {result && (() => {
+            const dropDs = result.days >= 1 ? dateAddDays(result.date, result.days) : result.date;
+            return (
+              <div style={{ borderTop: `1px solid ${BR}`, paddingTop: 12, marginTop: 2 }}>
+                {/* Header: mã + badge */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <span style={{ color: G, fontWeight: 900, fontSize: 15, fontFamily: "monospace", letterSpacing: 2 }}>{result.id}</span>
+                  <span style={{ padding: "3px 10px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: sc.color + "22", color: sc.color, border: `1px solid ${sc.color}44`, letterSpacing: .5 }}>{sc.label}</span>
+                </div>
+
+                {/* Máy + thời gian */}
+                <div style={{ color: TXT, fontSize: 12, fontFamily: "system-ui,sans-serif", marginBottom: 8 }}>
+                  📷 {result.cameraName} · {fmtDays(result.days, result.shift)}
+                </div>
+
+                {/* Giờ nhận / trả */}
+                {result.date && result.days && (
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+                    <span style={{ display:"inline-flex", alignItems:"center", gap:4, background:"#0a1a08", border:"1px solid #22c55e33", borderRadius:6, padding:"4px 10px", fontSize:11, color:"#22c55e", fontWeight:700, fontFamily:"system-ui,sans-serif" }}>
+                      Nhận: {getTime(result,"pick")} · {fmtD(result.date)}
+                    </span>
+                    <span style={{ display:"inline-flex", alignItems:"center", gap:4, background:"#1a0a08", border:"1px solid #f59e0b33", borderRadius:6, padding:"4px 10px", fontSize:11, color:"#f59e0b", fontWeight:700, fontFamily:"system-ui,sans-serif" }}>
+                      Trả: {getTime(result,"drop")} · {fmtD(dropDs)}
+                    </span>
+                  </div>
+                )}
+
+                {/* Tổng tiền */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: `1px solid ${BR}`, paddingTop: 10 }}>
+                  <span style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif", letterSpacing: 1 }}>TỔNG TIỀN</span>
+                  <span style={{ color: G, fontWeight: 900, fontSize: 17, fontFamily: "system-ui,sans-serif" }}>{fmtVND(result.total)}</span>
+                </div>
+
+                {/* Hint refresh */}
+                <div style={{ marginTop: 8, color: "#2a2a2a", fontSize: 9, fontFamily: "system-ui,sans-serif", letterSpacing: 1 }}>
+                  Nhấn ↻ để cập nhật trạng thái mới nhất
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── LOGO ──
 function Logo({ light = true, size = 1 }) {
   const col = light ? "#f0e8d0" : "#1a1a1a";
@@ -1086,30 +1258,45 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                       )}
                       {/* Feedback actions */}
                       <div style={{ borderTop: `1px solid ${BR}`, paddingTop: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                        {o.status === "completed" && (
-                          <CopyOrderBtn copyFn={() => {
-                            const accList = Array.isArray(o.accessories) && o.accessories.length > 0 ? o.accessories.join(", ") : "Không có";
-                            const lines = [
-                              "📋 ĐƠN THUÊ MÁY ẢNH 92KAMERA",
-                              "━━━━━━━━━━━━━━━━━━━━━━",
-                              `Mã đơn : ${o.id}`,
-                              `📷 Máy  : ${o.cameraName}`,
-                              `🎒 Phụ kiện: ${accList}`,
-                              `📅 Ngày thuê: ${o.date}`,
-                              `⏱ Thời gian: ${fmtDays(o.days, o.shift)}`,
-                              o.discountCode ? `🏷️ Mã giảm giá: ${o.discountCode} (-${fmtVND(o.discountAmt || 0)})` : null,
-                              `💰 Tổng tiền: ${fmtVND(o.total)}`,
-                              "━━━━━━━━━━━━━━━━━━━━━━",
-                              `👤 Tên   : ${o.name}`,
-                              `📞 SĐT   : ${o.phone}`,
-                              `📍 Địa chỉ: ${o.address || "—"}`,
-                              o.note ? `💬 Ghi chú: ${o.note}` : null,
-                              "━━━━━━━━━━━━━━━━━━━━━━",
-                              "✅ Trạng thái: Hoàn thành",
-                            ].filter(Boolean).join("\n");
-                            navigator.clipboard?.writeText(lines).catch(() => {});
-                          }} />
-                        )}
+                        {/* Nút sao chép — hiện cho MỌI trạng thái */}
+                        <CopyOrderBtn copyFn={() => {
+                          const accList = Array.isArray(o.accessories) && o.accessories.length > 0 ? o.accessories.join(", ") : "Không có";
+                          const fmtD = (ds) => new Date(ds + "T00:00:00").toLocaleDateString("vi-VN", { day:"2-digit", month:"2-digit", year:"numeric" });
+                          let pickTime = "", pickDate = "", dropTime = "", dropDate = "";
+                          if (o.date && o.days) {
+                            if (o.days === 0.5) {
+                              pickTime = o.shift === "morning" ? "06:00" : o.shift === "afternoon" ? "14:00" : "--:--";
+                              dropTime = o.shift === "morning" ? "12:00" : o.shift === "afternoon" ? "20:00" : "--:--";
+                              pickDate = dropDate = fmtD(o.date);
+                            } else {
+                              pickTime = dropTime = "12:00";
+                              pickDate = fmtD(o.date);
+                              dropDate = fmtD(dateAddDays(o.date, o.days));
+                            }
+                          }
+                          const statusLabels = { pending:"Chờ xác nhận", confirmed:"Đã xác nhận", active:"Đang thuê", completed:"Hoàn thành", cancelled:"Đã huỷ" };
+                          const lines = [
+                            "📋 ĐƠN THUÊ MÁY ẢNH 92KAMERA",
+                            "━━━━━━━━━━━━━━━━━━━━━━",
+                            `Mã đơn : ${o.id}`,
+                            `📷 Máy  : ${o.cameraName}`,
+                            `🎒 Phụ kiện: ${accList}`,
+                            `📅 Ngày thuê: ${o.date}`,
+                            `⏱ Thời gian: ${fmtDays(o.days, o.shift)}`,
+                            pickDate ? `Giờ nhận : ${pickTime} · ${pickDate}` : null,
+                            dropDate ? `Giờ trả  : ${dropTime} · ${dropDate}` : null,
+                            o.discountCode ? `🏷️ Mã giảm giá: ${o.discountCode} (-${fmtVND(o.discountAmt || 0)})` : null,
+                            `💰 Tổng tiền: ${fmtVND(o.total)}`,
+                            "━━━━━━━━━━━━━━━━━━━━━━",
+                            `👤 Tên   : ${o.name}`,
+                            `📞 SĐT   : ${o.phone}`,
+                            `📍 Địa chỉ: ${o.address || "—"}`,
+                            o.note ? `💬 Ghi chú: ${o.note}` : null,
+                            "━━━━━━━━━━━━━━━━━━━━━━",
+                            `⏳ Trạng thái: ${statusLabels[o.status] || o.status}`,
+                          ].filter(Boolean).join("\n");
+                          navigator.clipboard?.writeText(lines).catch(() => {});
+                        }} />
                         {canFeedback && !hasFeedback && (
                           <button onClick={() => setFbOrder(o)}
                             style={{ padding: "8px 20px", background: G, color: "#000", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 700, fontSize: 12, fontFamily: "system-ui,sans-serif", boxShadow: `0 0 16px ${G}33` }}>
@@ -1740,19 +1927,18 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
       <div style={box}>
         <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", color: MUT, fontSize: 18, cursor: "pointer", lineHeight: 1 }}>✕</button>
         <div style={{ marginBottom: 24 }}>
-          {/* Logo — căn giữa tuyệt đối */}
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", width: "100%" }}>
+          {/* Logo — căn giữa */}
+          <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
             <Logo size={0.72} />
           </div>
           {!done && (
-            /* Step 1-2-3 — chia đều 3 phần, không margin thủ công */
+            /* Step 1-2-3 — chia đều 3 phần bằng flex */
             <div style={{ display: "flex", alignItems: "flex-start", marginTop: 22, width: "100%" }}>
               {stepLabel.map((l, i) => {
                 const active = step === i + 1;
                 const done_ = step > i + 1;
                 return (
                   <div key={i} style={{ display: "flex", alignItems: "center", flex: 1 }}>
-                    {/* Step node — căn giữa trong phần của nó */}
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
                       <div style={{
                         width: 32, height: 32, borderRadius: "50%",
@@ -1770,9 +1956,8 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                         {l.toUpperCase()}
                       </div>
                     </div>
-                    {/* Đường kẻ nối — nằm giữa 2 step, không ảnh hưởng flex của node */}
                     {i < stepLabel.length - 1 && (
-                      <div style={{ width: 32, flexShrink: 0, height: 1, background: step > i + 1 ? G + "66" : "#222", marginBottom: 22, transition: "all .3s" }} />
+                      <div style={{ width: 28, flexShrink: 0, height: 1, background: step > i + 1 ? G + "66" : "#222", marginBottom: 22, transition: "all .3s" }} />
                     )}
                   </div>
                 );
@@ -2239,8 +2424,18 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                         <span style={{ background:"#1a1a1a", border:`1px solid #333`, color:"#888", fontSize:10, borderRadius:4, padding:"1px 7px", fontFamily:"system-ui,sans-serif" }}>x{selCams[c.id] || 1}</span>
                       </div>
                       {ri && idx === 0 && (
-                        <div style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>
-                          {fmtDays(days, selShift)} · {ri.pickDate} → {ri.dropDate}
+                        <div style={{ fontFamily:"system-ui,sans-serif" }}>
+                          <div style={{ color:MUT, fontSize:12, marginBottom:6 }}>
+                            {fmtDays(days, selShift)} · {ri.pickDate} → {ri.dropDate}
+                          </div>
+                          <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                            <span style={{ display:"inline-flex", alignItems:"center", gap:5, background:"#0a1a08", border:"1px solid #22c55e33", borderRadius:6, padding:"4px 10px", fontSize:11, color:"#22c55e", fontWeight:700 }}>
+                              Nhận: {ri.pickTime} · {ri.pickDate}
+                            </span>
+                            <span style={{ display:"inline-flex", alignItems:"center", gap:5, background:"#1a0a08", border:"1px solid #f59e0b33", borderRadius:6, padding:"4px 10px", fontSize:11, color:"#f59e0b", fontWeight:700 }}>
+                              Trả: {ri.dropTime} · {ri.dropDate}
+                            </span>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -2434,6 +2629,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 
           const copyFn = () => {
             const accList = (() => { try { return Object.entries(selAcc).filter(([,q])=>q>0).map(([n,q])=>q>1?`${n} x${q}`:n).join(", ") || "Không có"; } catch { return "Không có"; } })();
+            const ri2 = returnInfo();
             const lines = [
               "📋 ĐƠN THUÊ MÁY ẢNH 92KAMERA",
               "━━━━━━━━━━━━━━━━━━━━━━",
@@ -2441,6 +2637,8 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               `📷 Máy  : ${selectedCamList.map(c => `${c.name}${selCams[c.id]>1?` x${selCams[c.id]}`:""}`).join(", ")}`,
               `🎒 Phụ kiện: ${accList}`,
               `⏱ Thời gian: ${fmtDays(days, selShift)}`,
+              ri2 ? `📦 Giờ nhận : ${ri2.pickTime} · ${ri2.pickDate}` : null,
+              ri2 ? `📅 Giờ trả  : ${ri2.dropTime} · ${ri2.dropDate}` : null,
               appliedDiscount ? `🏷️ Mã giảm giá: ${appliedDiscount.code} (-${fmtVND(discountAmt)})` : null,
               `💰 Tổng tiền: ${fmtVND(total)}`,
               "━━━━━━━━━━━━━━━━━━━━━━",
@@ -2535,9 +2733,16 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                 </div>
               </div>
 
-              {/* Sao chép đơn */}
-              <div style={{ marginBottom:10, zIndex:1, position:"relative" }}>
-                <CopyOrderBtn copyFn={copyFn} />
+              {/* Sao chép đơn — nổi bật */}
+              <div style={{ marginBottom:12, zIndex:1, position:"relative", background:"#0f0d08", border:`1px solid ${G}44`, borderRadius:12, padding:"14px 16px" }}>
+                <div style={{ color:"#888", fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", marginBottom:10 }}>SAO CHÉP ĐƠN ĐỂ GỬI / LƯU LẠI</div>
+                <button onClick={copyFn}
+                  style={{ width:"100%", padding:"13px 0", background:`linear-gradient(135deg,#1a1200,#0f0d08)`, color:G, border:`1px solid ${G}55`, borderRadius:10, cursor:"pointer", fontWeight:800, fontSize:14, fontFamily:"system-ui,sans-serif", display:"flex", alignItems:"center", justifyContent:"center", gap:8, transition:"all .2s", letterSpacing:0.5 }}
+                  onMouseEnter={e => e.currentTarget.style.background=`linear-gradient(135deg,#2a1e00,#1a1200)`}
+                  onMouseLeave={e => e.currentTarget.style.background=`linear-gradient(135deg,#1a1200,#0f0d08)`}
+                >
+                  <span style={{ fontSize:18 }}>📋</span> Sao chép đơn
+                </button>
               </div>
 
               {/* Đóng */}
@@ -2935,14 +3140,9 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
           </div>
 
           {/* CTA Buttons */}
-          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
             <button onClick={onBook} className="btn-3d" style={{ padding: "11px 28px", borderRadius: 3, fontSize: 11, letterSpacing: 3 }}>THUÊ NGAY</button>
-            <button onClick={() => document.getElementById("about")?.scrollIntoView({ behavior: "smooth" })} style={{ display: "flex", alignItems: "center", gap: 12, background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>
-              <div style={{ width: 38, height: 38, borderRadius: "50%", border: `1px solid ${BR}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="10" height="12" viewBox="0 0 10 12" fill={TXT}><polygon points="0,0 10,6 0,12"/></svg>
-              </div>
-              <span style={{ fontSize: 11, letterSpacing: 3, color: TXT, fontFamily: "system-ui,sans-serif" }}>XEM GIỚI THIỆU</span>
-            </button>
+            <OrderLookupWidget orders={orders} />
           </div>
         </div>
 
@@ -3447,6 +3647,46 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
                         </div>
                         <div style={{ color: TXT, fontSize: 12, marginTop: 4 }}>{o.cameraName}</div>
                         <div style={{ color: MUT, fontSize: 11, marginTop: 2 }}>{fmtDays(o.days, o.shift)} · {fmtVND(o.total)}</div>
+                        <div style={{ marginTop: 8 }}>
+                          <CopyOrderBtn copyFn={() => {
+                            const accList = Array.isArray(o.accessories) && o.accessories.length > 0 ? o.accessories.join(", ") : "Không có";
+                            const fmtD = (ds) => new Date(ds + "T00:00:00").toLocaleDateString("vi-VN", { day:"2-digit", month:"2-digit", year:"numeric" });
+                            let pickTime = "", pickDate = "", dropTime = "", dropDate = "";
+                            if (o.date && o.days) {
+                              if (o.days === 0.5) {
+                                pickTime = o.shift === "morning" ? "06:00" : o.shift === "afternoon" ? "14:00" : "--:--";
+                                dropTime = o.shift === "morning" ? "12:00" : o.shift === "afternoon" ? "20:00" : "--:--";
+                                pickDate = dropDate = fmtD(o.date);
+                              } else {
+                                pickTime = dropTime = "12:00";
+                                pickDate = fmtD(o.date);
+                                dropDate = fmtD(dateAddDays(o.date, o.days));
+                              }
+                            }
+                            const statusLabels = { pending:"Chờ xác nhận", confirmed:"Đã xác nhận", active:"Đang thuê", completed:"Hoàn thành", cancelled:"Đã huỷ" };
+                            const lines = [
+                              "📋 ĐƠN THUÊ MÁY ẢNH 92KAMERA",
+                              "━━━━━━━━━━━━━━━━━━━━━━",
+                              `Mã đơn : ${o.id}`,
+                              `📷 Máy  : ${o.cameraName}`,
+                              `🎒 Phụ kiện: ${accList}`,
+                              `📅 Ngày thuê: ${o.date}`,
+                              `⏱ Thời gian: ${fmtDays(o.days, o.shift)}`,
+                              pickDate ? `Giờ nhận : ${pickTime} · ${pickDate}` : null,
+                              dropDate ? `Giờ trả  : ${dropTime} · ${dropDate}` : null,
+                              o.discountCode ? `🏷️ Mã giảm giá: ${o.discountCode} (-${fmtVND(o.discountAmt || 0)})` : null,
+                              `💰 Tổng tiền: ${fmtVND(o.total)}`,
+                              "━━━━━━━━━━━━━━━━━━━━━━",
+                              `👤 Tên   : ${o.name}`,
+                              `📞 SĐT   : ${o.phone}`,
+                              `📍 Địa chỉ: ${o.address || "—"}`,
+                              o.note ? `💬 Ghi chú: ${o.note}` : null,
+                              "━━━━━━━━━━━━━━━━━━━━━━",
+                              `⏳ Trạng thái: ${statusLabels[o.status] || o.status}`,
+                            ].filter(Boolean).join("\n");
+                            navigator.clipboard?.writeText(lines).catch(() => {});
+                          }} />
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -3825,12 +4065,25 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
       if (key === STORE_KEYS.orders) {
         let count = 0;
         setOrders(prev => {
-          const prevIds = new Set(prev.map(o => o.id));
-          const newOnes = data.filter(o => !prevIds.has(o.id) && !deletedOrderIdsRef.current.has(o.id));
+          const prevMap = new Map(prev.map(o => [o.id, o]));
+          const incoming = data.filter(o => !deletedOrderIdsRef.current.has(o.id));
+          const newOnes = incoming.filter(o => !prevMap.has(o.id));
           count = newOnes.length;
-          if (count === 0) return prev;
-          setNewOrderIds(ids => new Set([...ids, ...newOnes.map(o => o.id)]));
-          return [...newOnes.map(o => ({ ...o, seen: false })), ...prev];
+          // Merge: update existing orders (status, adminNote...) + add new ones
+          const merged = prev.map(o => {
+            const fresh = incoming.find(x => x.id === o.id);
+            return fresh ? { ...o, ...fresh } : o;
+          });
+          if (newOnes.length > 0) {
+            setNewOrderIds(ids => new Set([...ids, ...newOnes.map(o => o.id)]));
+            return [...newOnes.map(o => ({ ...o, seen: false })), ...merged];
+          }
+          // Nếu có thay đổi status/field → trigger re-render
+          const changed = prev.some(o => {
+            const fresh = incoming.find(x => x.id === o.id);
+            return fresh && (fresh.status !== o.status || fresh.adminNote !== o.adminNote);
+          });
+          return changed ? [...merged] : prev;
         });
         return count;
       }
@@ -4506,8 +4759,77 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                         {o.shift && <span style={{ padding: "3px 10px", background: o.shift === "morning" ? "#0a0800" : "#080010", border: `1px solid ${o.shift === "morning" ? "#f59e0b44" : "#818cf844"}`, borderRadius: 99, color: o.shift === "morning" ? "#f59e0b" : "#818cf8", fontSize: 11 }}>{o.shift === "morning" ? "🌅 Ca sáng 6h–12h" : "🌇 Ca chiều 14h–20h"}</span>}
                         {o.accessories.map(a => <span key={a} style={{ padding: "3px 10px", background: "#111", border: `1px solid ${BR2}`, borderRadius: 99, color: MUT, fontSize: 11 }}>{a}</span>)}
                       </div>
+
+                      {/* Giờ nhận / giờ trả */}
+                      {(() => {
+                        if (!o.date || !o.days) return null;
+                        const fmtD = (ds) => new Date(ds + "T00:00:00").toLocaleDateString("vi-VN", { day:"2-digit", month:"2-digit", year:"numeric" });
+                        let pickTime, pickDate, dropTime, dropDate;
+                        if (o.days === 0.5) {
+                          pickTime = o.shift === "morning" ? "06:00" : o.shift === "afternoon" ? "14:00" : "--:--";
+                          dropTime = o.shift === "morning" ? "12:00" : o.shift === "afternoon" ? "20:00" : "--:--";
+                          pickDate = dropDate = fmtD(o.date);
+                        } else {
+                          pickTime = dropTime = "12:00";
+                          pickDate = fmtD(o.date);
+                          dropDate = fmtD(dateAddDays(o.date, o.days));
+                        }
+                        return (
+                          <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:10 }}>
+                            <span style={{ display:"inline-flex", alignItems:"center", gap:5, background:"#0a1a08", border:"1px solid #22c55e33", borderRadius:6, padding:"4px 10px", fontSize:11, color:"#22c55e", fontWeight:700 }}>
+                              Nhận: {pickTime} · {pickDate}
+                            </span>
+                            <span style={{ display:"inline-flex", alignItems:"center", gap:5, background:"#1a0a08", border:"1px solid #f59e0b33", borderRadius:6, padding:"4px 10px", fontSize:11, color:"#f59e0b", fontWeight:700 }}>
+                              Trả: {dropTime} · {dropDate}
+                            </span>
+                          </div>
+                        );
+                      })()}
+
                       {o.address && <div style={{ color: MUT, fontSize: 11, marginBottom: 6 }}>📍 {o.address}</div>}
                       {o.note && <div style={{ color: MUT, fontSize: 11, marginBottom: 12, fontStyle: "italic" }}>💬 {o.note}</div>}
+
+                      {/* Nút sao chép — hiện cho MỌI trạng thái */}
+                      <div style={{ marginBottom:12 }}>
+                        <CopyOrderBtn copyFn={() => {
+                          const accList = Array.isArray(o.accessories) && o.accessories.length > 0 ? o.accessories.join(", ") : "Không có";
+                          const fmtD = (ds) => new Date(ds + "T00:00:00").toLocaleDateString("vi-VN", { day:"2-digit", month:"2-digit", year:"numeric" });
+                          let pickTime, pickDate, dropTime, dropDate;
+                          if (o.date && o.days) {
+                            if (o.days === 0.5) {
+                              pickTime = o.shift === "morning" ? "06:00" : o.shift === "afternoon" ? "14:00" : "--:--";
+                              dropTime = o.shift === "morning" ? "12:00" : o.shift === "afternoon" ? "20:00" : "--:--";
+                              pickDate = dropDate = fmtD(o.date);
+                            } else {
+                              pickTime = dropTime = "12:00";
+                              pickDate = fmtD(o.date);
+                              dropDate = fmtD(dateAddDays(o.date, o.days));
+                            }
+                          }
+                          const statusLabels = { pending:"Chờ xác nhận", confirmed:"Đã xác nhận", active:"Đang thuê", completed:"Hoàn thành", cancelled:"Đã huỷ" };
+                          const lines = [
+                            "📋 ĐƠN THUÊ MÁY ẢNH 92KAMERA",
+                            "━━━━━━━━━━━━━━━━━━━━━━",
+                            `Mã đơn : ${o.id}`,
+                            `📷 Máy  : ${o.cameraName}`,
+                            `🎒 Phụ kiện: ${accList}`,
+                            `📅 Ngày thuê: ${o.date}`,
+                            `⏱ Thời gian: ${fmtDays(o.days, o.shift)}`,
+                            pickDate ? `📦 Giờ nhận : ${pickTime} · ${pickDate}` : null,
+                            dropDate ? `📅 Giờ trả  : ${dropTime} · ${dropDate}` : null,
+                            o.discountCode ? `🏷️ Mã giảm giá: ${o.discountCode} (-${fmtVND(o.discountAmt || 0)})` : null,
+                            `💰 Tổng tiền: ${fmtVND(o.total)}`,
+                            "━━━━━━━━━━━━━━━━━━━━━━",
+                            `👤 Tên   : ${o.name}`,
+                            `📞 SĐT   : ${o.phone}`,
+                            `📍 Địa chỉ: ${o.address || "—"}`,
+                            o.note ? `💬 Ghi chú: ${o.note}` : null,
+                            "━━━━━━━━━━━━━━━━━━━━━━",
+                            `⏳ Trạng thái: ${statusLabels[o.status] || o.status}`,
+                          ].filter(Boolean).join("\n");
+                          navigator.clipboard?.writeText(lines).catch(() => {});
+                        }} />
+                      </div>
 
                       {/* ── GHI CHÚ NỘI BỘ (chỉ admin thấy) ── */}
                       <AdminNoteEditor order={o} setOrders={setOrders} />
