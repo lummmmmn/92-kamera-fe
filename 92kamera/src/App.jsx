@@ -1542,18 +1542,19 @@ function BK_IconBox({ children }) {
 
 function BK_FormRow({ icon, labelTop, labelBottom, children, noBorder }) {
   return (
-    <div style={{ display:"flex", alignItems:"center", gap:14, padding:"12px 16px", borderBottom: noBorder ? "none" : "1px solid #181410" }}>
+    <div style={{ display:"flex", alignItems:"center", gap:10, padding:"12px 14px", borderBottom: noBorder ? "none" : "1px solid #181410" }}>
       <BK_IconBox>{icon}</BK_IconBox>
-      <div style={{ width:90, flexShrink:0 }}>
-        <div style={{ color:"#888", fontSize:10, letterSpacing:1, fontFamily:"system-ui,sans-serif", fontWeight:700, lineHeight:1.5 }}>{labelTop}</div>
-        {labelBottom && <div style={{ color:"#555", fontSize:10, letterSpacing:0.5, fontFamily:"system-ui,sans-serif", lineHeight:1.4 }}>{labelBottom}</div>}
+      <div style={{ width:80, flexShrink:0 }}>
+        <div style={{ color:"#888", fontSize:9, letterSpacing:1, fontFamily:"system-ui,sans-serif", fontWeight:700, lineHeight:1.5 }}>{labelTop}</div>
+        {labelBottom && <div style={{ color:"#555", fontSize:9, letterSpacing:0.5, fontFamily:"system-ui,sans-serif", lineHeight:1.4 }}>{labelBottom}</div>}
       </div>
-      <div style={{ flex:1 }}>{children}</div>
+      <div style={{ flex:1, minWidth:0 }}>{children}</div>
     </div>
   );
 }
 
 function BookingModal({ cameras, accessories, siteContent, discounts, setDiscounts, onClose, onSubmit, loggedUser, preselectedCamId, orders }) {
+  const isMob = useMobile();
   const [step, setStep] = useState(1);
   const [expandedCam, setExpandedCam] = useState(null);
   // selCams: { [camId]: qty }
@@ -1567,7 +1568,6 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   const [info, setInfo] = useState({ name: loggedUser?.displayName || loggedUser?.name || "", phone: loggedUser?.phone || "", zalo: loggedUser?.zalo || loggedUser?.phone || "", address: loggedUser?.address || "", note: "" });
   const [done, setDone] = useState(false);
   const [orderId, setOrderId] = useState("");
-  const [summaryOpen, setSummaryOpen] = useState(false);
 
   // ── Discount state ──
   const [discountCode, setDiscountCode] = useState("");
@@ -1709,8 +1709,8 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
     setDone(true);
   };
 
-  const overlay = { position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.92)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "24px 16px", overflowY: "auto" };
-  const box = { background: "#080808", border: `1px solid ${BR}`, borderRadius: 14, padding: "min(20px, 3vw)", width: step === 1 ? "min(500px,96vw)" : step === 2 ? "min(660px,96vw)" : "min(660px,96vw)", position: "relative", margin: "auto", transition: "width .3s" };
+  const overlay = { position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.92)", display: "flex", alignItems: isMob ? "flex-end" : "center", justifyContent: "center", padding: isMob ? "0" : "24px 16px", overflowY: "auto" };
+  const box = { background: "#080808", border: isMob ? "none" : `1px solid ${BR}`, borderRadius: isMob ? "16px 16px 0 0" : 14, padding: isMob ? "16px 14px" : "min(20px, 3vw)", width: "100%", maxWidth: step === 1 ? 500 : 660, position: "relative", transition: "width .3s", minHeight: isMob ? "70vh" : undefined };
   const inpS = { padding: "11px 14px", background: "#0e0e0e", border: `1px solid ${BR}`, borderRadius: 8, color: TXT, fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "system-ui,sans-serif", transition: "border .2s" };
   const qtyBtn = (onClick, label) => (
     <button onClick={onClick} style={{ width: 26, height: 26, border: `1px solid ${BR}`, borderRadius: 5, background: "#111", color: TXT, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontFamily: "monospace" }}>{label}</button>
@@ -1725,7 +1725,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
         <div style={{ marginBottom: 24 }}>
           <Logo size={0.72} />
           {!done && (
-            <div style={{ display: "flex", alignItems: "center", marginTop: 22 }}>
+            <div style={{ display: "flex", alignItems: "center", marginTop: 22, maxWidth: 420, margin: "22px auto 0" }}>
               {stepLabel.map((l, i) => {
                 const active = step === i + 1;
                 const done_ = step > i + 1;
@@ -1801,8 +1801,8 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                 </div>
               </div>
 
-              {/* Camera list — 2 cột */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
+              {/* Camera list — 2 cột desktop / 1 cột mobile nhỏ */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: isMob ? 8 : 10, marginBottom: 18 }}>
                 {availCams.map(c => {
                   const isSelected = (selCams[c.id] || 0) > 0;
                   const tags = CAM_TAGS[c.name] || [];
@@ -1894,78 +1894,6 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
         {/* STEP 2 — thời gian + phụ kiện — 2 cột desktop / 1 cột mobile */}
         {!done && step === 2 && (() => {
           const ri = days > 0 && (days !== 0.5 || selShift) ? returnInfo() : null;
-          const isMob = typeof window !== "undefined" && window.innerWidth < 720;
-          const phoneDisplay = siteContent?.phone || siteContent?.zalo || "0855 471 202";
-
-          // ── Sidebar (tóm tắt đơn) ──
-          const sidebar = (
-            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-              <div style={{ background:"#0e0c08", border:`1px solid ${G}28`, borderRadius:14, overflow:"hidden" }}>
-
-                {/* ── Header — luôn hiện, click để toggle ── */}
-                <div onClick={() => setSummaryOpen(p => !p)}
-                  style={{ display:"flex", alignItems:"center", gap:10, padding:"11px 14px", cursor:"pointer", userSelect:"none" }}>
-                  {/* Icon máy nhỏ */}
-                  {selectedCamList[0] && (
-                    <div style={{ width:32, height:32, background:"#111", borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0, border:`1px solid #222`, overflow:"hidden" }}>
-                      {selectedCamList[0].images?.length > 0
-                        ? <img src={selectedCamList[0].images[0]} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
-                        : selectedCamList[0].icon}
-                    </div>
-                  )}
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ color:MUT, fontSize:8, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>TÓM TẮT ĐƠN THUÊ</div>
-                    <div style={{ color:G, fontWeight:900, fontSize:15, fontFamily:"system-ui,sans-serif", marginTop:1 }}>
-                      {new Intl.NumberFormat("vi-VN").format(total)}đ
-                    </div>
-                  </div>
-                  {/* Chevron */}
-                  <div style={{ color:MUT, fontSize:12, transition:"transform .25s", transform: summaryOpen ? "rotate(180deg)" : "rotate(0deg)", flexShrink:0 }}>▼</div>
-                </div>
-
-                {/* ── Chi tiết — chỉ hiện khi mở ── */}
-                {summaryOpen && (
-                  <div style={{ borderTop:`1px solid #1e1a12`, padding:"12px 14px" }}>
-                    {/* Danh sách máy */}
-                    {selectedCamList.map(c => (
-                      <div key={c.id} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
-                        <div style={{ width:36, height:36, background:"#111", borderRadius:7, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, flexShrink:0, border:`1px solid #222`, overflow:"hidden" }}>
-                          {c.images?.length > 0
-                            ? <img src={c.images[0]} alt={c.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
-                            : c.icon}
-                        </div>
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ color:TXT, fontWeight:700, fontSize:12, fontFamily:"system-ui,sans-serif" }}>{c.name}</div>
-                          <div style={{ color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif" }}>x{selCams[c.id] || 1}</div>
-                        </div>
-                      </div>
-                    ))}
-                    <div style={{ borderTop:`1px solid #1e1a12`, marginBottom:10 }} />
-                    {/* Chi tiết thời gian */}
-                    {[
-                      { label:"Thời gian thuê", val: days > 0 ? fmtDays(days, selShift) : "—", highlight: true },
-                      { label:"Nhận máy",        val: ri ? `${ri.pickTime} · ${ri.pickDate}` : "—" },
-                      { label:"Trả máy trước",   val: ri ? `${ri.dropTime} · ${ri.dropDate}` : "—" },
-                    ].map(({ label, val, highlight }) => (
-                      <div key={label} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-                        <span style={{ color:MUT, fontSize:11, fontFamily:"system-ui,sans-serif" }}>{label}</span>
-                        <span style={{ color: highlight ? G : TXT, fontWeight: highlight ? 700 : 500, fontSize:11, fontFamily:"system-ui,sans-serif", textAlign:"right", maxWidth:"55%" }}>{val}</span>
-                      </div>
-                    ))}
-                    {ri && (
-                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", borderTop:`1px solid #1e1a12`, paddingTop:8, marginTop:2 }}>
-                        <span style={{ color:MUT, fontSize:11, fontFamily:"system-ui,sans-serif" }}>⏱ Tổng thời gian</span>
-                        <span style={{ color:G, fontWeight:700, fontSize:11, fontFamily:"system-ui,sans-serif" }}>{ri.totalLabel}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-            </div>
-          );
-
-          // ── Sidebar đã bỏ ──
 
           return (
             <div>
@@ -2024,7 +1952,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               {/* ── THỜI GIAN THUÊ — trải full width ── */}
               <div style={{ marginBottom:16 }}>
                 <div style={{ color:"#555", fontSize:9, letterSpacing:1.5, marginBottom:8, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>THỜI GIAN THUÊ</div>
-                <div style={{ display:"grid", gridTemplateColumns:`repeat(${DURATIONS.length},1fr)`, gap:6, marginBottom:14 }}>
+                <div style={{ display:"grid", gridTemplateColumns: isMob ? "repeat(3,1fr)" : `repeat(${DURATIONS.length},1fr)`, gap:6, marginBottom:14 }}>
                   {DURATIONS.map(d => {
                     const active = selDur?.days === d.days;
                     return (
@@ -2069,8 +1997,8 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                 </div>
               </div>
 
-              {/* ── LỊCH + THỜI GIAN DỰ KIẾN — ngang nhau ── */}
-              <div style={{ display:"grid", gridTemplateColumns: ri ? "1fr 1fr" : "1fr", gap:10, marginBottom:18, alignItems:"start" }}>
+              {/* ── LỊCH + THỜI GIAN DỰ KIẾN — ngang nhau desktop / dọc mobile ── */}
+              <div style={{ display:"grid", gridTemplateColumns: isMob ? "1fr" : ri ? "1fr 1fr" : "1fr", gap:10, marginBottom:18, alignItems:"start" }}>
                 {/* Calendar */}
                 <div>
                   <div style={{ color:"#555", fontSize:9, letterSpacing:1.5, marginBottom:8, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>CHỌN NGÀY BẮT ĐẦU</div>
@@ -2196,47 +2124,47 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
           // Dùng BK_FormRow, BK_IconBox, BK_flatInp đã định nghĩa ngoài component để tránh lag nhập liệu
 
           return (
-            <div style={{ paddingBottom:68 }}>
+            <div style={{ paddingBottom: isMob ? 110 : 68 }}>
               <button onClick={() => setStep(2)} style={{ background:"none", border:"none", color:MUT, cursor:"pointer", fontSize:12, fontFamily:"system-ui,sans-serif", marginBottom:18, display:"flex", alignItems:"center", gap:5 }}>← Quay lại</button>
 
               {/* ── SUMMARY CARD ── */}
               <div style={{ border:`1px solid #252010`, borderRadius:14, overflow:"hidden", marginBottom:14, background:"#0b0900" }}>
                 {selectedCamList.map((c, idx) => (
-                  <div key={c.id} style={{ display:"flex", alignItems:"center", gap:0, borderBottom: idx < selectedCamList.length - 1 ? `1px solid #1a1610` : "none" }}>
-                    {/* Ảnh */}
-                    <div style={{ width:80, height:64, background:"#111", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:26, overflow:"hidden" }}>
-                      {c.images?.length > 0
-                        ? <img src={c.images[0]} alt={c.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
-                        : c.icon}
-                    </div>
-                    {/* Info */}
-                    <div style={{ flex:1, padding:"14px 16px", minWidth:0 }}>
-                      <div style={{ color:G, fontSize:9, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700, marginBottom:6 }}>TÓM TẮT ĐƠN THUÊ</div>
-                      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
-                        <span style={{ color:TXT, fontWeight:700, fontSize:15, fontFamily:"system-ui,sans-serif" }}>{c.name}</span>
-                        <span style={{ background:"#1a1a1a", border:`1px solid #333`, color:"#888", fontSize:10, borderRadius:4, padding:"1px 7px", fontFamily:"system-ui,sans-serif" }}>x{selCams[c.id] || 1}</span>
+                  <div key={c.id} style={{ borderBottom: idx < selectedCamList.length - 1 ? `1px solid #1a1610` : "none" }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:0 }}>
+                      {/* Ảnh */}
+                      <div style={{ width: isMob ? 64 : 80, height: isMob ? 54 : 64, background:"#111", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:26, overflow:"hidden" }}>
+                        {c.images?.length > 0
+                          ? <img src={c.images[0]} alt={c.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                          : c.icon}
                       </div>
-                      {ri && idx === 0 && (
-                        <div style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>
-                          {fmtDays(days, selShift)} · {ri.pickDate} → {ri.dropDate}
+                      {/* Info */}
+                      <div style={{ flex:1, padding: isMob ? "10px 10px" : "14px 16px", minWidth:0 }}>
+                        <div style={{ color:G, fontSize:9, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700, marginBottom:4 }}>TÓM TẮT ĐƠN THUÊ</div>
+                        <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4, flexWrap:"wrap" }}>
+                          <span style={{ color:TXT, fontWeight:700, fontSize: isMob ? 13 : 14, fontFamily:"system-ui,sans-serif" }}>{c.name}</span>
+                          {(selCams[c.id] || 0) > 1 && <span style={{ background:"#222", color:MUT, borderRadius:4, padding:"1px 6px", fontSize:10, fontFamily:"system-ui,sans-serif" }}>x{selCams[c.id]}</span>}
+                        </div>
+                        <div style={{ color:MUT, fontSize:11, fontFamily:"system-ui,sans-serif" }}>
+                          {fmtDays(days, selShift)} · {pickDate}{endDate() ? ` → ${endDate()}` : ""}
+                        </div>
+                      </div>
+                      {/* Giá — chỉ hiện ở item đầu */}
+                      {idx === 0 && (
+                        <div style={{ padding: isMob ? "10px 10px" : "14px 16px", textAlign:"right", flexShrink:0 }}>
+                          {appliedDiscount ? (
+                            <>
+                              <div style={{ color:MUT, fontSize:10, textDecoration:"line-through", fontFamily:"system-ui,sans-serif" }}>{new Intl.NumberFormat("vi-VN").format(subtotal)}đ</div>
+                              <div style={{ color:"#22c55e", fontSize:10, fontFamily:"system-ui,sans-serif" }}>-{new Intl.NumberFormat("vi-VN").format(discountAmt)}đ</div>
+                              <div style={{ color:G, fontWeight:900, fontSize: isMob ? 15 : 18, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap" }}>{new Intl.NumberFormat("vi-VN").format(total)}đ</div>
+                            </>
+                          ) : (
+                            <div style={{ color:G, fontWeight:900, fontSize: isMob ? 15 : 18, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap" }}>{new Intl.NumberFormat("vi-VN").format(total)}đ</div>
+                          )}
+                          <div style={{ color:"#666", fontSize:9, letterSpacing:1, fontFamily:"system-ui,sans-serif", marginTop:2 }}>TỔNG CỘNG</div>
                         </div>
                       )}
                     </div>
-                    {/* Giá */}
-                    {idx === 0 && (
-                      <div style={{ padding:"14px 16px", textAlign:"right", flexShrink:0 }}>
-                        {appliedDiscount ? (
-                          <>
-                            <div style={{ color:MUT, fontSize:11, textDecoration:"line-through", fontFamily:"system-ui,sans-serif" }}>{new Intl.NumberFormat("vi-VN").format(subtotal)}đ</div>
-                            <div style={{ color:"#22c55e", fontSize:11, fontFamily:"system-ui,sans-serif" }}>-{new Intl.NumberFormat("vi-VN").format(discountAmt)}đ</div>
-                            <div style={{ color:G, fontWeight:900, fontSize:18, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap" }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</div>
-                          </>
-                        ) : (
-                          <div style={{ color:G, fontWeight:900, fontSize:18, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap" }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</div>
-                        )}
-                        <div style={{ color:"#666", fontSize:9, letterSpacing:1, fontFamily:"system-ui,sans-serif", marginTop:3 }}>TỔNG CỘNG</div>
-                      </div>
-                    )}
                   </div>
                 ))}
                 {/* Phụ kiện nếu có */}
@@ -2314,24 +2242,23 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               </div>
 
               {/* ── BOTTOM BAR (fixed) ── */}
-              <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"min(660px,100vw)", background:"linear-gradient(to top,#060606 80%,transparent)", padding:"16px 20px", zIndex:999, boxSizing:"border-box" }}>
-                <div style={{ background:"#0e0c08", border:`1px solid #2a2010`, borderRadius:12, padding:"12px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:16 }}>
+              <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:999, background:"linear-gradient(to top,#060606 75%,transparent)", padding:"12px 16px", paddingBottom:"calc(12px + env(safe-area-inset-bottom, 0px))", display:"flex", flexDirection:"column", alignItems:"center" }}>
+                <div style={{ width:"100%", maxWidth:660, background:"#0e0c08", border:`1px solid #2a2010`, borderRadius:12, padding:"12px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, boxSizing:"border-box" }}>
                   <div>
                     <div style={{ color:"#888", fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>TỔNG CỘNG</div>
-                    <div style={{ color:G, fontWeight:900, fontSize:20, fontFamily:"system-ui,sans-serif", marginTop:2 }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</div>
+                    <div style={{ color:G, fontWeight:900, fontSize: isMob ? 18 : 20, fontFamily:"system-ui,sans-serif", marginTop:2 }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</div>
                   </div>
                   <button onClick={() => info.name && info.phone && handleFinish()}
                     disabled={!info.name || !info.phone}
-                    style={{ padding:"13px 22px", background: info.name && info.phone ? `linear-gradient(135deg,${G},#a07830)` : "#1a1a1a", color: info.name && info.phone ? "#000" : "#444", border:"none", borderRadius:8, cursor: info.name && info.phone ? "pointer" : "not-allowed", fontWeight:900, fontSize:13, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap", boxShadow: info.name && info.phone ? `0 4px 20px ${G}55` : "none", transition:"all .2s", letterSpacing:0.5 }}>
+                    style={{ padding: isMob ? "11px 16px" : "13px 22px", background: info.name && info.phone ? `linear-gradient(135deg,${G},#a07830)` : "#1a1a1a", color: info.name && info.phone ? "#000" : "#444", border:"none", borderRadius:8, cursor: info.name && info.phone ? "pointer" : "not-allowed", fontWeight:900, fontSize: isMob ? 12 : 13, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap", boxShadow: info.name && info.phone ? `0 4px 20px ${G}55` : "none", transition:"all .2s", letterSpacing:0.5 }}>
                     XÁC NHẬN ĐẶT THUÊ
                   </button>
                 </div>
-                {/* Trust badges */}
-                <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:0, marginTop:8, flexWrap:"wrap" }}>
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:0, marginTop:6, flexWrap:"wrap" }}>
                   {["🛡️ Thiết bị chính hãng", "🔍 Kiểm tra kỹ trước khi giao", "🎧 Hỗ trợ 24/7"].map((t, i, arr) => (
                     <span key={t} style={{ display:"flex", alignItems:"center", gap:0 }}>
                       <span style={{ color:"#444", fontSize:9, fontFamily:"system-ui,sans-serif" }}>{t}</span>
-                      {i < arr.length - 1 && <span style={{ color:"#2a2a2a", margin:"0 10px", fontSize:11 }}>|</span>}
+                      {i < arr.length - 1 && <span style={{ color:"#2a2a2a", margin:"0 8px", fontSize:11 }}>|</span>}
                     </span>
                   ))}
                 </div>
@@ -3027,6 +2954,7 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
   const [pw, setPw] = useState("");
   const [err, setErr] = useState(false);
   const [shake, setShake] = useState(false);
+  const [reviewExpanded, setReviewExpanded] = useState(false);
   const [storedAdminPw, setStoredAdminPw] = useState("admin92");
   useEffect(() => {
     storageGet("k92_admin_pw").then(d => { if (d) setStoredAdminPw(d); });
@@ -3181,6 +3109,7 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
       <path fill="#34A853" d="M24 46.5c5.4 0 10-1.8 13.3-4.8l-7.5-5.8c-1.8 1.2-4.1 1.9-6.8 1.9-6.3 0-11.6-4.3-13.5-10.1l-7.5 5.1C7.2 41 15 46.5 24 46.5z"/>
     </svg>
   );
+  const GoogleLogo = GoogleIcon;
 
   return (
     <>
@@ -3322,31 +3251,69 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
                   </div>
                 </div>
 
-                {/* Completed orders with feedback CTA */}
+                {/* Completed orders with feedback CTA — collapsible */}
                 {completedOrders.length > 0 && (
-                  <div style={{ background: "#0a0900", border: `1px solid ${G}33`, borderRadius: 10, padding: "14px 16px", marginBottom: 12 }}>
-                    <div style={{ fontSize: 10, color: G, letterSpacing: 1, fontFamily: "system-ui,sans-serif", marginBottom: 10, fontWeight: 700 }}>
-                      ⭐ ĐƠN CÓ THỂ ĐÁNH GIÁ ({completedOrders.length})
-                    </div>
-                    {completedOrders.slice(0, 3).map(o => (
-                      <div key={o.id} style={{ background: "#111", border: `1px solid ${BR}`, borderRadius: 8, padding: "10px 12px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ color: G, fontSize: 11, fontWeight: 700, fontFamily: "monospace" }}>{o.id}</div>
-                          <div style={{ color: TXT, fontSize: 11, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 140 }}>📷 {o.cameraName}</div>
-                        </div>
+                  <div style={{ background: "#0a0900", border: `1px solid ${G}33`, borderRadius: 12, marginBottom: 12, overflow: "hidden" }}>
+                    {/* Header — clickable */}
+                    <div
+                      onClick={() => setReviewExpanded(v => !v)}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", cursor: "pointer", userSelect: "none" }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                        <span style={{ fontSize: 13 }}>⭐</span>
+                        <span style={{ fontSize: 11, color: G, fontWeight: 700, fontFamily: "system-ui,sans-serif", letterSpacing: 0.8 }}>
+                          ĐƠN CÓ THỂ ĐÁNH GIÁ ({completedOrders.length})
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         {setPage && (
-                          <button onClick={() => { setPage("customer"); onBack(); }}
-                            style={{ flexShrink: 0, padding: "6px 14px", background: G, color: "#000", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 700, fontSize: 11, fontFamily: "system-ui,sans-serif", whiteSpace: "nowrap" }}>
-                            ⭐ Đánh giá
-                          </button>
+                          <span
+                            onClick={e => { e.stopPropagation(); setPage("customer"); onBack(); }}
+                            style={{ color: MUT, fontSize: 11, fontFamily: "system-ui,sans-serif", cursor: "pointer" }}
+                          >Xem tất cả</span>
                         )}
+                        <span style={{ color: MUT, fontSize: 12, transition: "transform .2s", display: "inline-block", transform: reviewExpanded ? "rotate(180deg)" : "rotate(0deg)" }}>▾</span>
                       </div>
-                    ))}
-                    {completedOrders.length > 3 && (
-                      <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif", textAlign: "center", paddingTop: 4 }}>
-                        +{completedOrders.length - 3} đơn khác...
-                      </div>
-                    )}
+                    </div>
+
+                    {/* Order rows */}
+                    <div style={{ padding: "0 12px", paddingBottom: reviewExpanded || completedOrders.length === 1 ? 12 : 8 }}>
+                      {completedOrders.slice(0, reviewExpanded ? completedOrders.length : 1).map(o => {
+                        const cam = cameras.find(c => c.id === (o.cameraId || o.cameras?.[0]?.id));
+                        const camImg = cam?.images?.[0];
+                        return (
+                          <div key={o.id} style={{ background: "#111", border: `1px solid ${BR}`, borderRadius: 9, padding: "10px 12px", marginBottom: 8, display: "flex", alignItems: "center", gap: 10 }}>
+                            {/* Thumbnail */}
+                            <div style={{ width: 42, height: 42, borderRadius: 8, background: "#1a1a12", border: `1px solid ${BR}`, flexShrink: 0, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              {camImg
+                                ? <img src={camImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                : <span style={{ fontSize: 20 }}>{cam?.icon || "📷"}</span>}
+                            </div>
+                            {/* Info */}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ color: G, fontSize: 12, fontWeight: 700, fontFamily: "monospace" }}>{o.id}</div>
+                              <div style={{ color: TXT, fontSize: 11.5, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.cameraName}</div>
+                            </div>
+                            {/* Action */}
+                            {setPage && (
+                              <button
+                                onClick={() => { setPage("customer"); onBack(); }}
+                                style={{ flexShrink: 0, padding: "7px 14px", background: `linear-gradient(135deg,${G},#b8923e)`, color: "#000", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 700, fontSize: 11, fontFamily: "system-ui,sans-serif", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 4 }}>
+                                <span>⭐</span><span>Đánh giá</span>
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {/* Collapsed hint */}
+                      {!reviewExpanded && completedOrders.length > 1 && (
+                        <div
+                          onClick={() => setReviewExpanded(true)}
+                          style={{ color: MUT, fontSize: 11, fontFamily: "system-ui,sans-serif", textAlign: "center", paddingBottom: 4, cursor: "pointer" }}
+                        >+{completedOrders.length - 1} đơn khác...</div>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -3379,7 +3346,10 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
                 <button onClick={() => {
                   setLoggedUser(null);
                   try { window.google?.accounts?.id?.disableAutoSelect(); } catch {}
-                }} style={{ width: "100%", padding: 10, background: "none", color: MUT, border: `1px solid ${BR}`, borderRadius: 8, cursor: "pointer", fontSize: 12, fontFamily: "system-ui,sans-serif", marginTop: 10 }}>Đăng xuất Google</button>
+                }} style={{ width: "100%", padding: "11px 0", background: "#fff", color: "#3c4043", border: `1px solid #dadce0`, borderRadius: 8, cursor: "pointer", fontSize: 13, fontFamily: "system-ui,sans-serif", marginTop: 10, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 9 }}>
+                  <GoogleLogo />
+                  <span>Đăng xuất Google</span>
+                </button>
               </div>
             );
             })()}
