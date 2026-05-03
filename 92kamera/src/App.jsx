@@ -1532,23 +1532,34 @@ function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, se
 }
 
 // ── STABLE components — defined OUTSIDE BookingModal to avoid remount-on-render lag ──
-const BK_flatInp = { background:"transparent", border:"none", outline:"none", color:"#f0e8d0", fontSize:14, fontFamily:"system-ui,sans-serif", width:"100%", padding:0 };
+const BK_flatInp = {
+  background: "#0d0b08",
+  border: "1px solid rgba(201,168,76,0.18)",
+  borderRadius: 12,
+  outline: "none",
+  color: "#f0e8d0",
+  fontSize: 15,
+  fontFamily: "system-ui,sans-serif",
+  width: "100%",
+  padding: "12px 14px",
+  boxSizing: "border-box",
+  WebkitAppearance: "none",
+  transition: "border-color .2s, box-shadow .2s",
+};
 
 function BK_IconBox({ children }) {
-  return (
-    <div style={{ width:34, height:34, background:"#141008", border:"1px solid #2a2010", borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>{children}</div>
-  );
+  return <span style={{ fontSize: 14, opacity: 0.45, lineHeight: 1 }}>{children}</span>;
 }
 
 function BK_FormRow({ icon, labelTop, labelBottom, children, noBorder }) {
   return (
-    <div style={{ display:"flex", alignItems:"center", gap:14, padding:"12px 16px", borderBottom: noBorder ? "none" : "1px solid #181410" }}>
-      <BK_IconBox>{icon}</BK_IconBox>
-      <div style={{ width:90, flexShrink:0 }}>
-        <div style={{ color:"#888", fontSize:10, letterSpacing:1, fontFamily:"system-ui,sans-serif", fontWeight:700, lineHeight:1.5 }}>{labelTop}</div>
-        {labelBottom && <div style={{ color:"#555", fontSize:10, letterSpacing:0.5, fontFamily:"system-ui,sans-serif", lineHeight:1.4 }}>{labelBottom}</div>}
+    <div style={{ paddingBottom: noBorder ? 0 : 18, borderBottom: noBorder ? "none" : "1px solid #1a1610", marginBottom: noBorder ? 0 : 18 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+        {icon && <BK_IconBox>{icon}</BK_IconBox>}
+        <span style={{ color: "#888", fontSize: 10, letterSpacing: 1.5, fontFamily: "system-ui,sans-serif", fontWeight: 700 }}>{labelTop}</span>
+        {labelBottom && <span style={{ color: "#555", fontSize: 10, fontFamily: "system-ui,sans-serif", marginLeft: 4 }}>{labelBottom}</span>}
       </div>
-      <div style={{ flex:1 }}>{children}</div>
+      {children}
     </div>
   );
 }
@@ -1573,6 +1584,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState(null); // { code, type, value, discountAmt }
   const [discountMsg, setDiscountMsg] = useState(null); // { type: "ok"|"err", text }
+  const [discountExpanded, setDiscountExpanded] = useState(false);
 
   const days = selDur ? selDur.days : (parseInt(customDays) || 0);
   const needShift = days === 0.5; // phải chọn ca khi thuê 1 buổi
@@ -1709,7 +1721,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
     setDone(true);
   };
 
-  const overlay = { position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.92)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "24px 16px", overflowY: "auto" };
+  const overlay = { position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.92)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px", overflowY: "auto" };
   const box = { background: "#080808", border: `1px solid ${BR}`, borderRadius: 14, padding: "min(20px, 3vw)", width: step === 1 ? "min(500px,96vw)" : step === 2 ? "min(660px,96vw)" : "min(660px,96vw)", position: "relative", margin: "auto", transition: "width .3s" };
   const inpS = { padding: "11px 14px", background: "#0e0e0e", border: `1px solid ${BR}`, borderRadius: 8, color: TXT, fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "system-ui,sans-serif", transition: "border .2s" };
   const qtyBtn = (onClick, label) => (
@@ -1725,7 +1737,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
         <div style={{ marginBottom: 24 }}>
           <Logo size={0.72} />
           {!done && (
-            <div style={{ display: "flex", alignItems: "center", marginTop: 22 }}>
+            <div style={{ display: "flex", alignItems: "center", marginTop: 22, justifyContent: "center", maxWidth: 380, margin: "22px auto 0" }}>
               {stepLabel.map((l, i) => {
                 const active = step === i + 1;
                 const done_ = step > i + 1;
@@ -2251,62 +2263,101 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                 )}
               </div>
 
-              {/* ── FORM SECTION ── */}
-              <div style={{ color:G, fontSize:11, letterSpacing:2, fontFamily:"system-ui,sans-serif", fontWeight:700, marginBottom:10 }}>THÔNG TIN NGƯỜI THUÊ</div>
+              {/* ── FORM STYLES ── */}
+              <style>{`
+                .bk-inp:focus { border-color: rgba(201,168,76,0.6) !important; box-shadow: 0 0 0 3px rgba(201,168,76,0.12) !important; }
+                .bk-inp::placeholder { color: #444; }
+                .bk-inp { caret-color: #c9a84c; }
+                .bk-disc-body { overflow: hidden; transition: max-height .3s ease, opacity .3s ease; }
+                .bk-disc-body.open { max-height: 100px; opacity: 1; }
+                .bk-disc-body.closed { max-height: 0; opacity: 0; }
+                .bk-cta:hover:not(:disabled) { box-shadow: 0 6px 32px rgba(201,168,76,0.45) !important; transform: translateY(-1px); }
+                .bk-cta { transition: all .2s ease !important; }
+              `}</style>
 
-              <div style={{ background:"#0c0a08", border:`1px solid #1e1a12`, borderRadius:14, overflow:"hidden", marginBottom:14 }}>
-                {/* Mã giảm giá */}
-                <BK_FormRow icon="🏷️" labelTop="MÃ GIẢM GIÁ" labelBottom="(TÙY CHỌN)">
-                  {appliedDiscount ? (
-                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                      <span style={{ color:"#22c55e", fontWeight:700, fontSize:12, flex:1, fontFamily:"system-ui,sans-serif" }}>✓ {appliedDiscount.code} — -{fmtVND(discountAmt)}</span>
-                      <button onClick={removeDiscount} style={{ background:"none", border:"none", color:"#555", cursor:"pointer", fontSize:14, padding:0, lineHeight:1 }}>✕</button>
+              {/* ── FORM SECTION ── */}
+              <div style={{ color:G, fontSize:10, letterSpacing:2, fontFamily:"system-ui,sans-serif", fontWeight:700, marginBottom:14 }}>THÔNG TIN NGƯỜI THUÊ</div>
+
+              <div style={{ background:"#0c0a08", border:`1px solid #1e1a12`, borderRadius:16, padding:"20px 18px", marginBottom:14 }}>
+
+                {/* ── MÃ GIẢM GIÁ (collapsible) ── */}
+                <div style={{ marginBottom:18, paddingBottom:18, borderBottom:"1px solid #1a1610" }}>
+                  {/* Header row – luôn hiển thị */}
+                  <div
+                    onClick={() => { if (!appliedDiscount) setDiscountExpanded(p => !p); }}
+                    style={{ display:"flex", alignItems:"center", justifyContent:"space-between", cursor: appliedDiscount ? "default" : "pointer", userSelect:"none" }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:7 }}>
+                      <span style={{ fontSize:14, opacity:0.5 }}>🎟</span>
+                      <span style={{ color:"#888", fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>MÃ GIẢM GIÁ</span>
+                      {appliedDiscount && (
+                        <span style={{ color:G, fontSize:11, fontFamily:"monospace", fontWeight:700, letterSpacing:1, marginLeft:4 }}>
+                          {appliedDiscount.code}
+                        </span>
+                      )}
+                      {!appliedDiscount && !discountExpanded && discountCode && (
+                        <span style={{ color:G, fontSize:11, fontFamily:"monospace", fontWeight:700, letterSpacing:1, marginLeft:4 }}>{discountCode}</span>
+                      )}
                     </div>
-                  ) : (
-                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                      <input style={{ ...BK_flatInp, fontFamily:"monospace", letterSpacing:2, fontSize:12 }}
+                    {appliedDiscount ? (
+                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                        <span style={{ color:"#22c55e", fontSize:11, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>-{fmtVND(discountAmt)}</span>
+                        <button onClick={e => { e.stopPropagation(); removeDiscount(); setDiscountExpanded(false); }}
+                          style={{ background:"none", border:"none", color:"#555", cursor:"pointer", fontSize:14, padding:"0 2px", lineHeight:1 }}>✕</button>
+                      </div>
+                    ) : (
+                      <span style={{ color:"#444", fontSize:16, lineHeight:1, transition:"transform .3s", display:"inline-block", transform: discountExpanded ? "rotate(180deg)" : "rotate(0deg)" }}>⌄</span>
+                    )}
+                  </div>
+
+                  {/* Expand body */}
+                  <div className={`bk-disc-body ${discountExpanded && !appliedDiscount ? "open" : "closed"}`}>
+                    <div style={{ paddingTop:12, display:"flex", gap:8 }}>
+                      <input
+                        className="bk-inp"
+                        style={{ ...BK_flatInp, fontFamily:"monospace", letterSpacing:2, fontSize:13, flex:1 }}
                         value={discountCode}
                         onChange={e => { setDiscountCode(e.target.value.toUpperCase()); setDiscountMsg(null); }}
                         onKeyDown={e => e.key === "Enter" && applyDiscount()}
-                        placeholder="Nhập mã giảm giá" />
-                      <button onClick={applyDiscount}
-                        style={{ padding:"6px 12px", background:`linear-gradient(135deg,${G},#a07830)`, color:"#000", border:"none", borderRadius:7, cursor:"pointer", fontSize:11, fontWeight:800, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap", flexShrink:0 }}>
+                        placeholder="Nhập mã..."
+                      />
+                      <button onClick={() => { applyDiscount(); setDiscountExpanded(false); }}
+                        style={{ padding:"0 16px", background:`linear-gradient(135deg,${G},#a07830)`, color:"#000", border:"none", borderRadius:12, cursor:"pointer", fontSize:12, fontWeight:800, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap", flexShrink:0, minHeight:44 }}>
                         Áp dụng
                       </button>
                     </div>
-                  )}
-                </BK_FormRow>
-                {discountMsg && (
-                  <div style={{ padding:"6px 12px 8px 54px", fontSize:10, color: discountMsg.type==="ok" ? "#22c55e" : "#ef4444", fontFamily:"system-ui,sans-serif" }}>{discountMsg.text}</div>
-                )}
+                    {discountMsg && (
+                      <div style={{ marginTop:6, fontSize:10, color: discountMsg.type==="ok" ? "#22c55e" : "#ef4444", fontFamily:"system-ui,sans-serif" }}>{discountMsg.text}</div>
+                    )}
+                  </div>
+                </div>
 
                 {/* Họ tên */}
                 <BK_FormRow icon="👤" labelTop="HỌ VÀ TÊN *">
-                  <input style={BK_flatInp} type="text" value={info.name}
+                  <input className="bk-inp" style={BK_flatInp} type="text" value={info.name}
                     onChange={e => setInfo(p => ({ ...p, name: e.target.value }))} placeholder="Nhập họ và tên" />
                 </BK_FormRow>
 
                 {/* SĐT */}
                 <BK_FormRow icon="📞" labelTop="SỐ ĐIỆN THOẠI *">
-                  <input style={BK_flatInp} type="tel" value={info.phone}
-                    onChange={e => setInfo(p => ({ ...p, phone: e.target.value }))} placeholder="Nhập số điện thoại" />
+                  <input className="bk-inp" style={BK_flatInp} type="tel" value={info.phone}
+                    onChange={e => setInfo(p => ({ ...p, phone: e.target.value }))} placeholder="0901 234 567" />
                 </BK_FormRow>
 
                 {/* Zalo */}
                 <BK_FormRow icon="💬" labelTop="ZALO" labelBottom="(XÁC NHẬN ĐƠN)">
-                  <input style={BK_flatInp} type="tel" value={info.zalo}
-                    onChange={e => setInfo(p => ({ ...p, zalo: e.target.value }))} placeholder="Nhập Zalo" />
+                  <input className="bk-inp" style={BK_flatInp} type="tel" value={info.zalo}
+                    onChange={e => setInfo(p => ({ ...p, zalo: e.target.value }))} placeholder="Số Zalo" />
                 </BK_FormRow>
 
                 {/* Địa chỉ */}
                 <BK_FormRow icon="📍" labelTop="ĐỊA CHỈ" labelBottom="NHẬN / TRẢ MÁY">
-                  <input style={BK_flatInp} type="text" value={info.address}
-                    onChange={e => setInfo(p => ({ ...p, address: e.target.value }))} placeholder="Nhập địa chỉ nhận/trả máy" />
+                  <input className="bk-inp" style={BK_flatInp} type="text" value={info.address}
+                    onChange={e => setInfo(p => ({ ...p, address: e.target.value }))} placeholder="Địa chỉ nhận / trả máy" />
                 </BK_FormRow>
 
                 {/* Ghi chú */}
                 <BK_FormRow icon="📋" labelTop="GHI CHÚ" noBorder>
-                  <textarea style={{ ...BK_flatInp, resize:"vertical", minHeight:38, lineHeight:1.5 }}
+                  <textarea className="bk-inp" style={{ ...BK_flatInp, resize:"vertical", minHeight:80, lineHeight:1.6 }}
                     value={info.note}
                     onChange={e => setInfo(p => ({ ...p, note: e.target.value }))}
                     placeholder="Yêu cầu đặc biệt, lưu ý thêm..." />
@@ -2314,24 +2365,41 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               </div>
 
               {/* ── BOTTOM BAR (fixed) ── */}
-              <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"min(660px,100vw)", background:"linear-gradient(to top,#060606 80%,transparent)", padding:"16px 20px", zIndex:999, boxSizing:"border-box" }}>
-                <div style={{ background:"#0e0c08", border:`1px solid #2a2010`, borderRadius:12, padding:"12px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:16 }}>
-                  <div>
-                    <div style={{ color:"#888", fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>TỔNG CỘNG</div>
-                    <div style={{ color:G, fontWeight:900, fontSize:20, fontFamily:"system-ui,sans-serif", marginTop:2 }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</div>
+              <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"min(660px,100vw)", background:"linear-gradient(to top,#060606 88%,transparent)", padding:"14px 18px 18px", zIndex:999, boxSizing:"border-box" }}>
+                {/* Tổng tiền row */}
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10, padding:"0 2px" }}>
+                  <span style={{ color:"#666", fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>TỔNG CỘNG</span>
+                  <div style={{ textAlign:"right" }}>
+                    {appliedDiscount && (
+                      <span style={{ color:"#22c55e", fontSize:11, fontFamily:"system-ui,sans-serif", marginRight:8 }}>-{fmtVND(discountAmt)}</span>
+                    )}
+                    <span style={{ color:G, fontWeight:900, fontSize:20, fontFamily:"system-ui,sans-serif" }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</span>
                   </div>
-                  <button onClick={() => info.name && info.phone && handleFinish()}
-                    disabled={!info.name || !info.phone}
-                    style={{ padding:"13px 22px", background: info.name && info.phone ? `linear-gradient(135deg,${G},#a07830)` : "#1a1a1a", color: info.name && info.phone ? "#000" : "#444", border:"none", borderRadius:8, cursor: info.name && info.phone ? "pointer" : "not-allowed", fontWeight:900, fontSize:13, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap", boxShadow: info.name && info.phone ? `0 4px 20px ${G}55` : "none", transition:"all .2s", letterSpacing:0.5 }}>
-                    XÁC NHẬN ĐẶT THUÊ
-                  </button>
                 </div>
+                {/* CTA full width */}
+                <button
+                  className="bk-cta"
+                  onClick={() => info.name && info.phone && handleFinish()}
+                  disabled={!info.name || !info.phone}
+                  style={{
+                    width:"100%", padding:"15px 24px",
+                    background: info.name && info.phone ? `linear-gradient(135deg, #d4a93a 0%, ${G} 50%, #a07830 100%)` : "#1a1a1a",
+                    color: info.name && info.phone ? "#000" : "#444",
+                    border:"none", borderRadius:14,
+                    cursor: info.name && info.phone ? "pointer" : "not-allowed",
+                    fontWeight:900, fontSize:15, fontFamily:"system-ui,sans-serif",
+                    letterSpacing:1,
+                    boxShadow: info.name && info.phone ? `0 4px 24px rgba(201,168,76,0.35)` : "none",
+                    boxSizing:"border-box",
+                  }}>
+                  Xác nhận đặt thuê
+                </button>
                 {/* Trust badges */}
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:0, marginTop:8, flexWrap:"wrap" }}>
                   {["🛡️ Thiết bị chính hãng", "🔍 Kiểm tra kỹ trước khi giao", "🎧 Hỗ trợ 24/7"].map((t, i, arr) => (
                     <span key={t} style={{ display:"flex", alignItems:"center", gap:0 }}>
-                      <span style={{ color:"#444", fontSize:9, fontFamily:"system-ui,sans-serif" }}>{t}</span>
-                      {i < arr.length - 1 && <span style={{ color:"#2a2a2a", margin:"0 10px", fontSize:11 }}>|</span>}
+                      <span style={{ color:"#3a3a3a", fontSize:9, fontFamily:"system-ui,sans-serif" }}>{t}</span>
+                      {i < arr.length - 1 && <span style={{ color:"#222", margin:"0 8px", fontSize:11 }}>|</span>}
                     </span>
                   ))}
                 </div>
