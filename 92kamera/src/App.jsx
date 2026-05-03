@@ -93,15 +93,18 @@ const CAMS_INIT = [
   { id: 6, name: "Nikon Z30", price: 230000, status: "available", desc: "Không gương lật, video 4K 60fps", qty: 1, icon: "🌅", images: [] },
 ];
 const ACC_INIT = [
-  { id: 1, name: "Tripod 3 chân", price: 50000 }, { id: 2, name: "Mic thu âm", price: 80000 },
-  { id: 3, name: "Pin dự phòng", price: 30000 }, { id: 4, name: "Lens 50mm f/1.8", price: 150000 },
-  { id: 5, name: "ND Filter set", price: 40000 }, { id: 6, name: "Túi đựng máy", price: 30000 },
-  { id: 7, name: "Thẻ nhớ 128GB", price: 20000 },
+  { id: 1, name: "Tripod 3 chân",   price: 50000,  priceShift: 35000, qty: 2, active: true,  desc: "Dùng được cho mọi loại máy ảnh" },
+  { id: 2, name: "Mic thu âm",      price: 80000,  priceShift: 50000, qty: 2, active: true,  desc: "Cổng 3.5mm, thu âm rõ nét" },
+  { id: 3, name: "Pin dự phòng",    price: 30000,  priceShift: 20000, qty: 4, active: true,  desc: "Pin lithium, dùng được hầu hết máy" },
+  { id: 4, name: "Lens 50mm f/1.8", price: 150000, priceShift: null,  qty: 1, active: true,  desc: "Phù hợp Canon M-mount" },
+  { id: 5, name: "ND Filter set",   price: 40000,  priceShift: 25000, qty: 2, active: true,  desc: "Bộ 3 filter: ND4, ND8, ND16" },
+  { id: 6, name: "Túi đựng máy",    price: 30000,  priceShift: 20000, qty: 3, active: true,  desc: "Có lớp đệm bảo vệ, đeo vai" },
+  { id: 7, name: "Thẻ nhớ 128GB",   price: 20000,  priceShift: 15000, qty: 5, active: true,  desc: "Class 10, tốc độ ghi 100MB/s" },
 ];
 const ORDERS_INIT = [
-  { id: "#92K0001", cameraName: "Fujifilm X-T20", cameraId: 1, accessories: ["Tripod 3 chân"], days: 3, total: 650000, name: "Nguyễn Văn An", phone: "0901234567", zalo: "0901234567", address: "123 Trần Phú, Đà Nẵng", note: "", status: "active", date: "2026-04-15", seen: true },
-  { id: "#92K0002", cameraName: "Sony ZV-E10", cameraId: 2, accessories: [], days: 7, total: 1260000, name: "Trần Thị Bình", phone: "0912345678", zalo: "0912345678", address: "45 Lê Lợi, Hội An", note: "Cần thêm pin", status: "completed", date: "2026-04-10", seen: true },
-  { id: "#92K0003", cameraName: "GoPro Hero 12", cameraId: 5, accessories: ["Mic thu âm", "Pin dự phòng"], days: 1, total: 360000, name: "Lê Văn Cường", phone: "0923456789", zalo: "0923456789", address: "78 Nguyễn Huệ, Tam Kỳ", note: "", status: "confirmed", date: "2026-04-20", seen: true },
+  { id: "#92K0001", cameraName: "Fujifilm X-T20", cameraId: 1, accessories: ["Tripod 3 chân"], accessoriesDetail: [{ name: "Tripod 3 chân", qty: 1 }], days: 3, total: 650000, name: "Nguyễn Văn An", phone: "0901234567", zalo: "0901234567", address: "123 Trần Phú, Đà Nẵng", note: "", status: "active", date: "2026-04-15", seen: true },
+  { id: "#92K0002", cameraName: "Sony ZV-E10", cameraId: 2, accessories: [], accessoriesDetail: [], days: 7, total: 1260000, name: "Trần Thị Bình", phone: "0912345678", zalo: "0912345678", address: "45 Lê Lợi, Hội An", note: "Cần thêm pin", status: "completed", date: "2026-04-10", seen: true },
+  { id: "#92K0003", cameraName: "GoPro Hero 12", cameraId: 5, accessories: ["Mic thu âm", "Pin dự phòng"], accessoriesDetail: [{ name: "Mic thu âm", qty: 1 }, { name: "Pin dự phòng", qty: 1 }], days: 1, total: 360000, name: "Lê Văn Cường", phone: "0923456789", zalo: "0923456789", address: "78 Nguyễn Huệ, Tam Kỳ", note: "", status: "confirmed", date: "2026-04-20", seen: true },
 ];
 const SITE_INIT = { zalo: "0855 471 202", address: "Thạnh Mỹ Xã Tam Mỹ Thành Phố Đà Nẵng", tagline: "Trải nghiệm máy ảnh · Bắt giữ khoảnh khắc", desc: "Chúng tôi cung cấp dịch vụ cho thuê máy ảnh khu vực Núi Thành - Tam Kỳ.", phone: "0855 471 202", slogan: "Dịch vụ cho thuê máy ảnh · Núi Thành - Tam Kỳ", stats: [["📸", "50+", "Lượt thuê / tháng"], ["🎬", "10+", "Loại thiết bị"], ["⭐", "98%", "Khách hài lòng"]], zaloLink: "", zaloQR: "", socialLinks: { youtube: "", facebook: "", tiktok: "", instagram: "" } };
 const DURATIONS = [{ label: "1 buổi", days: 0.5 }, { label: "1 ngày", days: 1 }, { label: "3 ngày", days: 3 }, { label: "7 ngày", days: 7 }, { label: "1 tháng", days: 30 }];
@@ -1411,7 +1414,10 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   const camCost = selectedCamList.reduce((s, c) => s + c.price * (selCams[c.id] || 0) * days, 0);
   const accCost = Object.entries(selAcc).reduce((s, [name, qty]) => {
     const a = accessories.find(x => x.name === name);
-    return s + (a ? a.price * qty * days : 0);
+    if (!a) return s;
+    const unitPrice = days === 0.5 && a.priceShift ? a.priceShift : a.price;
+    const multiplier = days === 0.5 && a.priceShift ? 1 : days;
+    return s + unitPrice * qty * multiplier;
   }, 0);
   const subtotal = camCost + accCost;
   const discountAmt = appliedDiscount ? Math.min(appliedDiscount.discountAmt, subtotal) : 0;
@@ -1508,8 +1514,8 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
       return { ...p, [name]: 1 };
     });
   };
-  const setAccQty = (name, qty) => {
-    const q = Math.max(0, Math.min(20, parseInt(qty) || 0));
+  const setAccQty = (name, qty, maxQty = 999) => {
+    const q = Math.max(0, Math.min(maxQty, parseInt(qty) || 0));
     setSelAcc(p => { if (q === 0) { const n = { ...p }; delete n[name]; return n; } return { ...p, [name]: q }; });
   };
 
@@ -1663,13 +1669,13 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               />
               <input style={{ ...inpS, fontSize: 12 }} type="date" value={pickDate} min={todayStr()} onChange={e => setPickDate(e.target.value)} />
             </div>
-            {days > 0 && (() => {
+            {days > 0 && (days !== 0.5 || selShift) && (() => {
               const ri = returnInfo();
               if (!ri) return null;
-              const row = { display:"flex", alignItems:"center", gap:6 };
-              const label = { color:MUT, fontSize:11, minWidth:110, fontFamily:"system-ui,sans-serif" };
+              const row = { display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" };
+              const label = { color:MUT, fontSize:11, whiteSpace:"nowrap", flexShrink:0, fontFamily:"system-ui,sans-serif" };
               const val   = { color:TXT, fontWeight:700, fontSize:12, fontFamily:"system-ui,sans-serif" };
-              const badge = { color:G, fontWeight:600, background:G+"18", border:`1px solid ${G}44`, borderRadius:99, padding:"2px 10px", fontSize:11, fontFamily:"system-ui,sans-serif" };
+              const badge = { color:G, fontWeight:600, background:G+"18", border:`1px solid ${G}44`, borderRadius:99, padding:"2px 10px", fontSize:11, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap" };
               return (
                 <div style={{ background:"#0a0800", border:`1px solid ${G}33`, borderRadius:8, padding:"12px 14px", marginBottom:14 }}>
                   {/* Nhận máy */}
@@ -1700,26 +1706,57 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 
             {/* Phụ kiện multi-select + qty */}
             <div style={{ marginBottom: 20 }}>
-              <div style={{ color: TXT, fontWeight: 600, marginBottom: 12, fontSize: 14 }}>Phụ kiện đi kèm</div>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+                <span style={{ color: TXT, fontWeight: 600, fontSize: 14 }}>Phụ kiện đi kèm</span>
+                {days > 0 && accCost > 0 && (
+                  <span style={{ color:G, fontSize:12, fontWeight:700 }}>Tổng PK: {fmtVND(accCost)}</span>
+                )}
+              </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {accessories.map(a => {
-                  const isSelected = (selAcc[a.name] || 0) > 0;
+                {accessories.filter(a => a.active !== false).map(a => {
+                  const qty = selAcc[a.name] || 0;
+                  const isSelected = qty > 0;
+                  const maxQty = a.qty || 99;
+                  const unitPrice = days === 0.5 && a.priceShift ? a.priceShift : a.price;
+                  const multiplier = days === 0.5 && a.priceShift ? 1 : (days || 1);
+                  const lineTotal = unitPrice * qty * multiplier;
+                  const unitLabel = days === 0.5 ? "/buổi" : "/ngày";
                   return (
                     <div key={a.id} style={{ border: `1px solid ${isSelected ? G + "66" : BR}`, borderRadius: 8, padding: "10px 14px", background: isSelected ? "#0a0900" : "#0d0d0d", transition: "all .2s" }}>
+                      {/* Hàng chọn */}
                       <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => toggleAcc(a.name)}>
                         <div style={{ width: 18, height: 18, borderRadius: 4, border: `2px solid ${isSelected ? G : BR}`, background: isSelected ? G : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all .2s" }}>
                           {isSelected && <span style={{ color: "#000", fontSize: 11, fontWeight: 900, lineHeight: 1 }}>✓</span>}
                         </div>
-                        <span style={{ color: isSelected ? TXT : MUT, fontSize: 13, flex: 1 }}>{a.name}</span>
-                        <span style={{ color: G, fontSize: 12, fontWeight: 700 }}>{fmtVND(a.price)}/ngày</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ color: isSelected ? TXT : MUT, fontSize: 13, fontFamily:"system-ui,sans-serif" }}>{a.name}</span>
+                          {a.desc && <div style={{ color: "#555", fontSize: 10, marginTop: 1, fontFamily:"system-ui,sans-serif" }}>{a.desc}</div>}
+                        </div>
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                          <span style={{ color: G, fontSize: 12, fontWeight: 700, fontFamily:"system-ui,sans-serif" }}>{fmtVND(unitPrice)}{unitLabel}</span>
+                          {days === 0.5 && a.priceShift && (
+                            <div style={{ color: "#555", fontSize: 10, fontFamily:"system-ui,sans-serif" }}>{fmtVND(a.price)}/ngày</div>
+                          )}
+                        </div>
                       </div>
+                      {/* Qty + breakdown khi chọn */}
                       {isSelected && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, paddingTop: 8, borderTop: `1px solid ${G}22` }}>
-                          <span style={{ color: MUT, fontSize: 11 }}>Số lượng:</span>
-                          {qtyBtn(() => setAccQty(a.name, (selAcc[a.name] || 1) - 1), "−")}
-                          <span style={{ color: G, fontWeight: 700, fontSize: 14, minWidth: 20, textAlign: "center" }}>{selAcc[a.name]}</span>
-                          {qtyBtn(() => setAccQty(a.name, (selAcc[a.name] || 1) + 1), "+")}
-                          {days > 0 && <span style={{ color: MUT, fontSize: 11, marginLeft: "auto" }}>= {fmtVND(a.price * selAcc[a.name] * days)}</span>}
+                        <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid ${G}22` }}>
+                          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom: days > 0 ? 8 : 0 }}>
+                            <span style={{ color: MUT, fontSize: 11, fontFamily:"system-ui,sans-serif" }}>Số lượng:</span>
+                            {qtyBtn(() => setAccQty(a.name, qty - 1, maxQty), "−")}
+                            <span style={{ color: G, fontWeight: 700, fontSize: 14, minWidth: 20, textAlign: "center", fontFamily:"system-ui,sans-serif" }}>{qty}</span>
+                            {qtyBtn(() => setAccQty(a.name, qty + 1, maxQty), "+")}
+                            {maxQty < 99 && <span style={{ color: "#555", fontSize: 10, fontFamily:"system-ui,sans-serif" }}>/ {maxQty} cái</span>}
+                          </div>
+                          {days > 0 && (
+                            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", background:"#111", borderRadius:6, padding:"6px 10px" }}>
+                              <span style={{ color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif" }}>
+                                {qty} × {fmtVND(unitPrice)} × {days === 0.5 && a.priceShift ? fmtDays(days, selShift) : fmtDays(days, selShift)}
+                              </span>
+                              <span style={{ color:G, fontWeight:700, fontSize:12, fontFamily:"system-ui,sans-serif" }}>= {fmtVND(lineTotal)}</span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1754,10 +1791,12 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                 <div style={{ borderTop: `1px solid ${BR}`, marginTop: 8, paddingTop: 8 }}>
                   {Object.entries(selAcc).map(([name, qty]) => {
                     const a = accessories.find(x => x.name === name);
+                    const unitP = days === 0.5 && a?.priceShift ? a.priceShift : (a?.price || 0);
+                    const mult  = days === 0.5 && a?.priceShift ? 1 : days;
                     return (
                       <div key={name} style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, fontSize: 12 }}>
                         <span style={{ color: MUT }}>🎒 {name} ×{qty}</span>
-                        <span style={{ color: MUT }}>{fmtVND((a?.price || 0) * qty * days)}</span>
+                        <span style={{ color: MUT }}>{fmtVND(unitP * qty * mult)}</span>
                       </div>
                     );
                   })}
@@ -2921,7 +2960,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   const [nc, setNc] = useState({ name: "", price: "", desc: "", qty: 1, status: "available", icon: "📷", images: [] });
   const [editAcc, setEditAcc] = useState(null);
   const [addAcc, setAddAcc] = useState(false);
-  const [na, setNa] = useState({ name: "", price: "" });
+  const [na, setNa] = useState({ name: "", price: "", qty: 1, active: true, priceShift: "", desc: "" });
   const [saved, setSaved] = useState(false);
   // ── Đổi mật khẩu ──
   const [pwOld, setPwOld] = useState("");
@@ -3471,50 +3510,200 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
         )}
 
         {/* ACCESSORIES */}
-        {tab === "accessories" && (
+        {tab === "accessories" && (() => {
+          // ── Tính stats phụ kiện ──
+          const activeOrders = orders.filter(o => ["pending","confirmed","active"].includes(o.status));
+          const getAccRented = (accName) => {
+            let total = 0;
+            activeOrders.forEach(o => {
+              if (o.accessoriesDetail) {
+                const d = o.accessoriesDetail.find(x => x.name === accName);
+                if (d) total += (d.qty || 1);
+              } else if (o.accessories && o.accessories.some(a => a === accName || a.startsWith(accName + " x"))) {
+                total += 1;
+              }
+            });
+            return total;
+          };
+          const accRevenue = orders.filter(o => o.status !== "cancelled").reduce((s, o) => {
+            if (!o.accessoriesDetail || !o.days) return s;
+            return s + o.accessoriesDetail.reduce((ss, d) => {
+              const found = accessories.find(a => a.name === d.name);
+              if (!found) return ss;
+              const unitP = o.days === 0.5 && found.priceShift ? found.priceShift : found.price;
+              const mult  = o.days === 0.5 && found.priceShift ? 1 : o.days;
+              return ss + unitP * (d.qty || 1) * mult;
+            }, 0);
+          }, 0);
+          const totalRentedUnits = accessories.reduce((s, a) => s + getAccRented(a.name), 0);
+          const inp3 = { ...inp2, fontSize: 12 };
+
+          return (
           <div>
             <STitle c={`Phụ kiện (${accessories.length})`} extra={
-              <button onClick={() => setAddAcc(true)} style={btn("gold")}>+ Thêm phụ kiện</button>
+              <button onClick={() => { setAddAcc(true); }} style={btn("gold")}>+ Thêm phụ kiện</button>
             } />
-            {addAcc && (
-              <div style={{ background: CARD2, border: `1px solid ${G}44`, borderRadius: 9, padding: 18, marginBottom: 16 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10, marginBottom: 12 }}>
-                  <div><div style={{ color: MUT, fontSize: 10, marginBottom: 4, letterSpacing: 1 }}>TÊN</div><input style={inp2} value={na.name} onChange={e => setNa(p => ({ ...p, name: e.target.value }))} placeholder="Tên phụ kiện" /></div>
-                  <div><div style={{ color: MUT, fontSize: 10, marginBottom: 4, letterSpacing: 1 }}>GIÁ/NGÀY</div><input style={inp2} type="number" value={na.price} onChange={e => setNa(p => ({ ...p, price: e.target.value }))} placeholder="50000" /></div>
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={() => { if (na.name && na.price) { setAccessories(p => [...p, { id: Date.now(), name: na.name, price: parseInt(na.price) }]); setNa({ name: "", price: "" }); setAddAcc(false); } }} style={btn("gold")}>✓ Lưu</button>
-                  <button onClick={() => setAddAcc(false)} style={btn("ghost")}>Huỷ</button>
-                </div>
-              </div>
-            )}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 9 }}>
-              {accessories.map(a => (
-                <div key={a.id} style={{ background: CARD2, border: `1px solid ${BR2}`, borderRadius: 8, padding: "13px 15px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                  {editAcc?.id === a.id ? (
-                    <div style={{ display: "flex", gap: 7, flex: 1 }}>
-                      <input style={{ ...inp2, flex: 1 }} value={editAcc.name} onChange={e => setEditAcc(p => ({ ...p, name: e.target.value }))} />
-                      <input style={{ ...inp2, width: 90 }} type="number" value={editAcc.price} onChange={e => setEditAcc(p => ({ ...p, price: parseInt(e.target.value) || 0 }))} />
-                      <button onClick={() => saveAcc(a, editAcc)} style={{ ...btn("gold"), padding: "7px 10px" }}>✓</button>
-                      <button onClick={() => setEditAcc(null)} style={{ ...btn("ghost"), padding: "7px 9px" }}>✕</button>
-                    </div>
-                  ) : (
-                    <>
-                      <div>
-                        <div style={{ color: TXT, fontWeight: 500, fontSize: 13 }}>{a.name}</div>
-                        <div style={{ color: G, fontSize: 12, marginTop: 3, fontWeight: 700 }}>{fmtVND(a.price)}/ngày</div>
-                      </div>
-                      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                        <button onClick={() => setEditAcc({ ...a })} style={{ ...btn("ghost"), padding: "6px 9px" }}>✏️</button>
-                        <button onClick={() => setAccessories(p => p.filter(x => x.id !== a.id))} style={{ ...btn("danger"), padding: "6px 9px" }}>🗑</button>
-                      </div>
-                    </>
-                  )}
+
+            {/* ── Stats bar ── */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 20 }}>
+              {[
+                { icon: "🎒", l: "Tổng mặt hàng", v: accessories.length, c: "#60a5fa" },
+                { icon: "📦", l: "Đang cho thuê", v: `${totalRentedUnits} cái`, c: "#f59e0b" },
+                { icon: "💰", l: "Doanh thu PK", v: fmtVND(accRevenue), c: "#22c55e" },
+              ].map(s => (
+                <div key={s.l} style={{ background: CARD2, border: `1px solid ${s.c}22`, borderRadius: 10, padding: "16px 14px" }}>
+                  <div style={{ fontSize: 20, marginBottom: 6 }}>{s.icon}</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: s.c }}>{s.v}</div>
+                  <div style={{ color: MUT, fontSize: 10, marginTop: 4 }}>{s.l}</div>
                 </div>
               ))}
             </div>
+
+            {/* ── Form thêm mới ── */}
+            {addAcc && (
+              <div style={{ background: CARD2, border: `1px solid ${G}44`, borderRadius: 10, padding: 18, marginBottom: 18 }}>
+                <div style={{ color: G, fontSize: 11, fontWeight: 700, letterSpacing: 1, marginBottom: 14 }}>➕ THÊM PHỤ KIỆN MỚI</div>
+                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
+                  <div>
+                    <div style={{ color: MUT, fontSize: 10, marginBottom: 4, letterSpacing: 1 }}>TÊN</div>
+                    <input style={inp3} value={na.name} onChange={e => setNa(p => ({ ...p, name: e.target.value }))} placeholder="Tripod 3 chân..." />
+                  </div>
+                  <div>
+                    <div style={{ color: MUT, fontSize: 10, marginBottom: 4, letterSpacing: 1 }}>GIÁ/NGÀY (₫)</div>
+                    <input style={inp3} type="number" value={na.price} onChange={e => setNa(p => ({ ...p, price: e.target.value }))} placeholder="50000" />
+                  </div>
+                  <div>
+                    <div style={{ color: MUT, fontSize: 10, marginBottom: 4, letterSpacing: 1 }}>GIÁ/BUỔI (₫)</div>
+                    <input style={inp3} type="number" value={na.priceShift} onChange={e => setNa(p => ({ ...p, priceShift: e.target.value }))} placeholder="35000 (tuỳ chọn)" />
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "3fr 1fr", gap: 10, marginBottom: 10 }}>
+                  <div>
+                    <div style={{ color: MUT, fontSize: 10, marginBottom: 4, letterSpacing: 1 }}>MÔ TẢ NGẮN</div>
+                    <input style={inp3} value={na.desc} onChange={e => setNa(p => ({ ...p, desc: e.target.value }))} placeholder="Dùng được với mọi loại máy..." />
+                  </div>
+                  <div>
+                    <div style={{ color: MUT, fontSize: 10, marginBottom: 4, letterSpacing: 1 }}>SỐ LƯỢNG KHO</div>
+                    <input style={inp3} type="number" min={1} value={na.qty} onChange={e => setNa(p => ({ ...p, qty: parseInt(e.target.value) || 1 }))} placeholder="1" />
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <button onClick={() => {
+                    if (!na.name || !na.price) return;
+                    setAccessories(p => [...p, {
+                      id: Date.now(), name: na.name,
+                      price: parseInt(na.price),
+                      priceShift: na.priceShift ? parseInt(na.priceShift) : null,
+                      qty: na.qty || 1,
+                      active: na.active,
+                      desc: na.desc,
+                    }]);
+                    setNa({ name: "", price: "", qty: 1, active: true, priceShift: "", desc: "" });
+                    setAddAcc(false);
+                  }} style={btn("gold")}>✓ Lưu</button>
+                  <button onClick={() => setAddAcc(false)} style={btn("ghost")}>Huỷ</button>
+                  <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", marginLeft: "auto" }}>
+                    <span style={{ color: MUT, fontSize: 11 }}>Hiển thị cho khách</span>
+                    <div onClick={() => setNa(p => ({ ...p, active: !p.active }))}
+                      style={{ width: 38, height: 20, borderRadius: 99, background: na.active ? G : "#333", position: "relative", transition: "all .2s", cursor: "pointer", flexShrink: 0 }}>
+                      <div style={{ position: "absolute", top: 2, left: na.active ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "all .2s" }} />
+                    </div>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {/* ── Danh sách phụ kiện ── */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {accessories.map(a => {
+                const rentedNow = getAccRented(a.name);
+                const stockLeft = (a.qty || 1) - rentedNow;
+                const isEdit = editAcc?.id === a.id;
+                return (
+                  <div key={a.id} style={{ background: CARD2, border: `1px solid ${a.active === false ? "#33333366" : BR2}`, borderRadius: 10, padding: "14px 16px", opacity: a.active === false ? 0.6 : 1, transition: "all .2s" }}>
+                    {isEdit ? (
+                      /* ── Chế độ chỉnh sửa ── */
+                      <div>
+                        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 9, marginBottom: 9 }}>
+                          <div>
+                            <div style={{ color: MUT, fontSize: 10, marginBottom: 3, letterSpacing: 1 }}>TÊN</div>
+                            <input style={inp3} value={editAcc.name} onChange={e => setEditAcc(p => ({ ...p, name: e.target.value }))} />
+                          </div>
+                          <div>
+                            <div style={{ color: MUT, fontSize: 10, marginBottom: 3, letterSpacing: 1 }}>GIÁ/NGÀY</div>
+                            <input style={inp3} type="number" value={editAcc.price} onChange={e => setEditAcc(p => ({ ...p, price: parseInt(e.target.value) || 0 }))} />
+                          </div>
+                          <div>
+                            <div style={{ color: MUT, fontSize: 10, marginBottom: 3, letterSpacing: 1 }}>GIÁ/BUỔI</div>
+                            <input style={inp3} type="number" value={editAcc.priceShift || ""} onChange={e => setEditAcc(p => ({ ...p, priceShift: e.target.value ? parseInt(e.target.value) : null }))} placeholder="Để trống = ½ ngày" />
+                          </div>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "3fr 1fr", gap: 9, marginBottom: 12 }}>
+                          <div>
+                            <div style={{ color: MUT, fontSize: 10, marginBottom: 3, letterSpacing: 1 }}>MÔ TẢ</div>
+                            <input style={inp3} value={editAcc.desc || ""} onChange={e => setEditAcc(p => ({ ...p, desc: e.target.value }))} placeholder="Mô tả ngắn..." />
+                          </div>
+                          <div>
+                            <div style={{ color: MUT, fontSize: 10, marginBottom: 3, letterSpacing: 1 }}>SỐ LƯỢNG</div>
+                            <input style={inp3} type="number" min={1} value={editAcc.qty || 1} onChange={e => setEditAcc(p => ({ ...p, qty: parseInt(e.target.value) || 1 }))} />
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button onClick={() => saveAcc(a, editAcc)} style={btn("gold")}>✓ Lưu</button>
+                          <button onClick={() => setEditAcc(null)} style={btn("ghost")}>Huỷ</button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* ── Chế độ xem ── */
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          {/* Hàng 1: tên + badges */}
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+                            <span style={{ color: TXT, fontWeight: 600, fontSize: 13 }}>{a.name}</span>
+                            {a.active === false && (
+                              <span style={{ background: "#33333366", color: "#888", fontSize: 9, padding: "2px 7px", borderRadius: 99, fontWeight: 700 }}>ẨN</span>
+                            )}
+                            {rentedNow > 0 && (
+                              <span style={{ background: "#f59e0b22", color: "#f59e0b", fontSize: 9, padding: "2px 7px", borderRadius: 99, fontWeight: 700 }}>
+                                {rentedNow} đang thuê
+                              </span>
+                            )}
+                          </div>
+                          {/* Hàng 2: mô tả */}
+                          {a.desc && <div style={{ color: MUT, fontSize: 11, marginBottom: 7 }}>{a.desc}</div>}
+                          {/* Hàng 3: giá + kho */}
+                          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                            <span style={{ color: G, fontWeight: 700, fontSize: 12 }}>{fmtVND(a.price)}/ngày</span>
+                            {a.priceShift && (
+                              <span style={{ color: G + "aa", fontSize: 11 }}>· {fmtVND(a.priceShift)}/buổi</span>
+                            )}
+                            <span style={{ color: stockLeft > 0 ? "#22c55e" : "#ef4444", fontSize: 11, background: stockLeft > 0 ? "#22c55e15" : "#ef444415", padding: "2px 8px", borderRadius: 99 }}>
+                              Kho: {stockLeft}/{a.qty || 1}
+                            </span>
+                          </div>
+                        </div>
+                        {/* Actions: toggle active + edit + delete */}
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end", flexShrink: 0 }}>
+                          {/* Toggle active */}
+                          <div onClick={() => setAccessories(p => p.map(x => x.id === a.id ? { ...x, active: x.active === false ? true : false } : x))}
+                            title={a.active === false ? "Bật hiển thị" : "Ẩn khỏi trang khách"}
+                            style={{ width: 36, height: 18, borderRadius: 99, background: a.active === false ? "#333" : G, position: "relative", cursor: "pointer", transition: "all .2s", flexShrink: 0 }}>
+                            <div style={{ position: "absolute", top: 1, left: a.active === false ? 1 : 17, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "all .2s" }} />
+                          </div>
+                          <div style={{ display: "flex", gap: 6 }}>
+                            <button onClick={() => setEditAcc({ ...a })} style={{ ...btn("ghost"), padding: "5px 9px", fontSize: 13 }}>✏️</button>
+                            <button onClick={() => setAccessories(p => p.filter(x => x.id !== a.id))} style={{ ...btn("danger"), padding: "5px 9px", fontSize: 13 }}>🗑</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* ORDERS */}
         {tab === "orders" && (
@@ -4663,7 +4852,10 @@ function AppRoot() {
         storageGet(STORE_KEYS.discounts),
       ]);
       if (cams) _setCameras(cams);
-      if (accs) _setAccessories(accs);
+      if (accs) _setAccessories(accs.map(a => ({
+        qty: 1, active: true, priceShift: null, desc: "",
+        ...a,
+      })));
       if (site) _setSiteContent(site);
       if (disc) _setDiscounts(disc);
       if (ords) {
