@@ -1740,33 +1740,39 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
       <div style={box}>
         <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", color: MUT, fontSize: 18, cursor: "pointer", lineHeight: 1 }}>✕</button>
         <div style={{ marginBottom: 24 }}>
-          <Logo size={0.72} />
+          {/* Logo — căn giữa tuyệt đối */}
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", width: "100%" }}>
+            <Logo size={0.72} />
+          </div>
           {!done && (
-            <div style={{ display: "flex", alignItems: "center", marginTop: 22, justifyContent: "center", maxWidth: 380, margin: "22px auto 0" }}>
+            /* Step 1-2-3 — chia đều 3 phần, không margin thủ công */
+            <div style={{ display: "flex", alignItems: "flex-start", marginTop: 22, width: "100%" }}>
               {stepLabel.map((l, i) => {
                 const active = step === i + 1;
                 const done_ = step > i + 1;
                 return (
                   <div key={i} style={{ display: "flex", alignItems: "center", flex: 1 }}>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: "0 0 auto" }}>
+                    {/* Step node — căn giữa trong phần của nó */}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
                       <div style={{
-                        width: 28, height: 28, borderRadius: "50%",
+                        width: 32, height: 32, borderRadius: "50%",
                         background: active ? G : done_ ? G + "33" : "transparent",
                         border: `2px solid ${active || done_ ? G : "#333"}`,
                         display: "flex", alignItems: "center", justifyContent: "center",
                         transition: "all .3s", flexShrink: 0
                       }}>
                         {done_
-                          ? <span style={{ color: G, fontSize: 12, fontWeight: 900 }}>✓</span>
-                          : <span style={{ color: active ? "#000" : "#555", fontSize: 11, fontWeight: 800, fontFamily: "system-ui,sans-serif" }}>{i + 1}</span>
+                          ? <span style={{ color: G, fontSize: 13, fontWeight: 900 }}>✓</span>
+                          : <span style={{ color: active ? "#000" : "#555", fontSize: 12, fontWeight: 800, fontFamily: "system-ui,sans-serif" }}>{i + 1}</span>
                         }
                       </div>
-                      <div style={{ fontSize: 8, color: active ? G : done_ ? G + "88" : "#444", fontFamily: "system-ui,sans-serif", letterSpacing: 0.8, marginTop: 5, whiteSpace: "nowrap", fontWeight: active ? 700 : 400 }}>
+                      <div style={{ fontSize: 8, color: active ? G : done_ ? G + "88" : "#444", fontFamily: "system-ui,sans-serif", letterSpacing: 0.8, marginTop: 6, textAlign: "center", fontWeight: active ? 700 : 400, lineHeight: 1.3 }}>
                         {l.toUpperCase()}
                       </div>
                     </div>
+                    {/* Đường kẻ nối — nằm giữa 2 step, không ảnh hưởng flex của node */}
                     {i < stepLabel.length - 1 && (
-                      <div style={{ flex: 1, height: 1, background: step > i + 1 ? G + "66" : "#222", margin: "0 6px", marginBottom: 18, transition: "all .3s" }} />
+                      <div style={{ width: 32, flexShrink: 0, height: 1, background: step > i + 1 ? G + "66" : "#222", marginBottom: 22, transition: "all .3s" }} />
                     )}
                   </div>
                 );
