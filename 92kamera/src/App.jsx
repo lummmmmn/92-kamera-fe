@@ -891,98 +891,101 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
       <div style={{ maxWidth: 1000, margin: "0 auto", padding: "32px 24px" }}>
 
         {/* Profile banner */}
-        <div style={{ background: "linear-gradient(135deg,#0e0c02,#0d0b02,#090800)", border: `1px solid ${G}44`, borderRadius: 18, padding: "28px 32px", marginBottom: 28, display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap", position: "relative", overflow: "hidden" }}>
-          {/* Background diagonal lines */}
-          <div style={{ position: "absolute", inset: 0, backgroundImage: `repeating-linear-gradient(135deg, transparent, transparent 22px, ${G}06 22px, ${G}06 23px)`, pointerEvents: "none" }} />
-          {/* Glow corner */}
-          <div style={{ position: "absolute", top: -40, right: -40, width: 200, height: 200, background: `radial-gradient(circle, ${G}0d 0%, transparent 70%)`, pointerEvents: "none" }} />
+        <div style={{ background:"linear-gradient(160deg,#100e02,#0c0a00)", border:`1px solid ${G}33`, borderRadius:20, padding:"28px 20px 24px", marginBottom:20, textAlign:"center", position:"relative", overflow:"hidden" }}>
+          {/* Subtle glow top-right */}
+          <div style={{ position:"absolute", top:-60, right:-60, width:200, height:200, background:`radial-gradient(circle, ${G}0b 0%, transparent 70%)`, pointerEvents:"none" }} />
 
           {/* Avatar */}
-          <div style={{ position: "relative", flexShrink: 0, zIndex: 1 }} onClick={() => avatarRef.current?.click()} title="Đổi ảnh đại diện">
-            <div style={{ width: 88, height: 88, borderRadius: "50%", background: `radial-gradient(circle, ${G}22, #0a0800)`, border: `3px solid ${G}99`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, overflow: "hidden", cursor: "pointer", boxShadow: `0 0 0 5px ${G}18, 0 0 30px ${G}22` }}>
+          <div style={{ position:"relative", display:"inline-block", marginBottom:14 }}
+            onClick={() => avatarRef.current?.click()} title="Đổi ảnh đại diện">
+            <div style={{ width:84, height:84, borderRadius:"50%", background:`radial-gradient(circle, ${G}22, #0a0800)`, border:`2.5px solid ${G}77`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:34, overflow:"hidden", cursor:"pointer", boxShadow:`0 0 0 5px ${G}14, 0 0 28px ${G}1a` }}>
               {(loggedUser?.avatar || loggedUser?.picture)
-                ? <img src={loggedUser.avatar || loggedUser.picture} alt="avatar" referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                : <span style={{ color: G, fontWeight: 800 }}>{loggedUser?.name?.[0]?.toUpperCase() || "?"}</span>}
+                ? <img src={loggedUser.avatar || loggedUser.picture} alt="avatar" referrerPolicy="no-referrer" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                : <span style={{ color:G, fontWeight:800, fontSize:34, fontFamily:"system-ui,sans-serif" }}>{loggedUser?.name?.[0]?.toUpperCase() || "?"}</span>}
             </div>
-            <div style={{ position: "absolute", bottom: 2, right: 2, width: 28, height: 28, borderRadius: "50%", background: `linear-gradient(135deg, ${G}, #a07030)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, border: `2.5px solid #090800`, cursor: "pointer", boxShadow: `0 0 12px ${G}aa` }}>
-              {avatarLoading ? "⏳" : "👑"}
+            <div style={{ position:"absolute", bottom:2, right:2, width:26, height:26, borderRadius:"50%", background:`linear-gradient(135deg,${G},#a07030)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, border:`2px solid #0c0a00`, cursor:"pointer", boxShadow:`0 0 10px ${G}99` }}>
+              {avatarLoading ? "⏳" : "📷"}
             </div>
-            <input ref={avatarRef} type="file" accept="image/*" style={{ display: "none" }}
+            <input ref={avatarRef} type="file" accept="image/*" style={{ display:"none" }}
               onChange={e => { if (e.target.files[0]) handleAvatarChange(e.target.files[0]); e.target.value = ""; }} />
           </div>
 
-          <div style={{ flex: 1, minWidth: 0, zIndex: 1 }}>
-            <div style={{ color: G, fontWeight: 800, fontSize: 22, fontFamily: "Georgia,serif", marginBottom: 5 }}>{loggedUser?.displayName || loggedUser?.name}</div>
-            <div style={{ color: "#888", fontSize: 13, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: 13 }}>✉</span><span>{loggedUser?.email || loggedUser?.phone}</span>
-            </div>
-            <div style={{ color: "#454535", fontSize: 11.5, marginBottom: 12 }}>Bạn đã là khách hàng thân thiết</div>
-            {badges.length > 0 && (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {badges.slice(-2).map((b, i, arr) => {
-                  const isActive = i === arr.length - 1;
-                  return (
-                    <span key={b.label} style={{ background: isActive ? b.col + "22" : "transparent", color: isActive ? b.col : "#555", border: `1px solid ${isActive ? b.col + "66" : "#383838"}`, borderRadius: 99, padding: "5px 14px", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}>
-                      <span>{b.icon}</span><span>{b.label}</span>
-                    </span>
-                  );
-                })}
-              </div>
-            )}
+          {/* Name */}
+          <div style={{ color:G, fontWeight:800, fontSize:22, fontFamily:"system-ui,sans-serif", marginBottom:5, letterSpacing:0.2 }}>{loggedUser?.displayName || loggedUser?.name}</div>
+          {/* Email / phone */}
+          <div style={{ color:"#555", fontSize:12.5, fontFamily:"system-ui,sans-serif", marginBottom:14, display:"flex", alignItems:"center", justifyContent:"center", gap:5 }}>
+            <span style={{ fontSize:12 }}>✉</span><span>{loggedUser?.email || loggedUser?.phone}</span>
           </div>
 
+          {/* Badges row */}
+          {badges.length > 0 && (
+            <div style={{ display:"flex", justifyContent:"center", flexWrap:"wrap", gap:7, marginBottom:18 }}>
+              {badges.slice(-2).map((b, i, arr) => {
+                const isActive = i === arr.length - 1;
+                return (
+                  <span key={b.label} style={{ background: isActive ? b.col+"1a" : "transparent", color: isActive ? b.col : "#484838", border:`1px solid ${isActive ? b.col+"55" : "#2a2a20"}`, borderRadius:99, padding:"5px 13px", fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif", display:"inline-flex", alignItems:"center", gap:5 }}>
+                    <span>{b.icon}</span><span>{b.label}</span>
+                  </span>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Logout */}
           <button onClick={() => { setLoggedUser(null); onBack(); }}
-            style={{ background: "#141200", border: `1px solid ${G}55`, color: G, padding: "11px 20px", borderRadius: 10, cursor: "pointer", fontSize: 13, fontWeight: 700, flexShrink: 0, zIndex: 1, display: "flex", alignItems: "center", gap: 7, transition: "background .2s, box-shadow .2s" }}
-            onMouseEnter={e => { e.currentTarget.style.background = G + "22"; e.currentTarget.style.boxShadow = `0 0 16px ${G}33`; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "#141200"; e.currentTarget.style.boxShadow = "none"; }}
-          ><span>⇥</span><span>Đăng xuất</span></button>
+            style={{ padding:"11px 28px", background:`linear-gradient(135deg,${G}22,${G}0d)`, border:`1px solid ${G}55`, color:G, borderRadius:12, cursor:"pointer", fontSize:13, fontWeight:700, fontFamily:"system-ui,sans-serif", display:"inline-flex", alignItems:"center", gap:7, transition:"all .2s" }}
+            onMouseEnter={e => { e.currentTarget.style.background=`${G}30`; e.currentTarget.style.boxShadow=`0 0 18px ${G}33`; }}
+            onMouseLeave={e => { e.currentTarget.style.background=`linear-gradient(135deg,${G}22,${G}0d)`; e.currentTarget.style.boxShadow="none"; }}>
+            <span>⇥</span><span>Đăng xuất</span>
+          </button>
         </div>
 
         {/* ── DASHBOARD TAB ── */}
         {tab === "dashboard" && (
           <div>
-            {/* Stats grid — 4 cards horizontal */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 20 }}>
+            {/* Stats 2×2 grid */}
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:16 }}>
               {[
-                { icon: "📋", label: "Tổng đơn",      value: myOrders.length,                       col: "#4e8ef7", bg: "#0d1a35" },
-                { icon: "💰", label: "Đã chi tiêu",    value: fmtVND(totalSpent),                    col: G,         bg: "#1a1200" },
-                { icon: "📅", label: "Tổng ngày thuê", value: totalDays + " ngày",                   col: "#a78bfa", bg: "#150d2a" },
-                { icon: "✅", label: "Đơn hoàn thành", value: completedOrders.length,                col: "#22c55e", bg: "#071a0e" },
+                { icon:"📋", label:"Tổng đơn",      value: myOrders.length,        unit:"đơn",  col:G,         dot:"#c9a84c" },
+                { icon:"💰", label:"Đã chi tiêu",    value: fmtVND(totalSpent),     unit:"",     col:G,         dot:"#c9a84c" },
+                { icon:"📅", label:"Ngày thuê",      value: totalDays,              unit:"ngày", col:"#a78bfa", dot:"#a78bfa" },
+                { icon:"✅", label:"Hoàn thành",     value: completedOrders.length, unit:"đơn",  col:"#22c55e", dot:"#22c55e" },
               ].map(s => (
-                <div key={s.label} style={{ background: "#0d0d0a", border: `1px solid ${BR}`, borderRadius: 16, padding: "22px 20px", display: "flex", alignItems: "center", gap: 16 }}>
-                  {/* Circular icon */}
-                  <div style={{ width: 56, height: 56, borderRadius: "50%", background: s.bg, border: `1px solid ${s.col}33`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{s.icon}</div>
-                  <div>
-                    <div style={{ color: s.col, fontWeight: 800, fontSize: typeof s.value === "string" && s.value.length > 8 ? 14 : 22, lineHeight: 1.2, fontFamily: "Georgia,serif" }}>{s.value}</div>
-                    <div style={{ color: "#555", fontSize: 11.5, marginTop: 4 }}>{s.label}</div>
+                <div key={s.label} style={{ background:"#0d0b08", border:"1px solid #1e1a10", borderRadius:18, padding:"18px 16px 16px", position:"relative", overflow:"hidden" }}>
+                  {/* Accent dot top-right */}
+                  <div style={{ position:"absolute", top:14, right:14, width:7, height:7, borderRadius:"50%", background:s.dot, boxShadow:`0 0 8px ${s.dot}99` }} />
+                  {/* Icon */}
+                  <div style={{ fontSize:20, marginBottom:10, opacity:0.7 }}>{s.icon}</div>
+                  {/* Value */}
+                  <div style={{ color:s.col, fontWeight:800, fontSize: typeof s.value === "string" && s.value.length > 9 ? 16 : 26, fontFamily:"system-ui,sans-serif", lineHeight:1, marginBottom:6 }}>
+                    {s.value}{s.unit && <span style={{ fontSize:12, color:"#444", fontWeight:500, marginLeft:4 }}>{s.unit}</span>}
                   </div>
+                  {/* Label */}
+                  <div style={{ color:"#505040", fontSize:11, fontFamily:"system-ui,sans-serif", fontWeight:600, letterSpacing:0.3 }}>{s.label}</div>
                 </div>
               ))}
             </div>
 
             {/* Thiết bị đã thuê */}
             {usedCameras.length > 0 && (
-              <div style={{ background: "#0d0d0a", border: `1px solid ${BR}`, borderRadius: 16, padding: "20px 24px", marginBottom: 16 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 16 }}>📷</span>
-                    <span style={{ color: "#888", fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>THIẾT BỊ ĐÃ THUÊ</span>
-                  </div>
-                  <button onClick={() => setTab("orders")} style={{ background: "none", border: "none", color: G, fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, padding: 0 }}>
+              <div style={{ background:"#0d0b08", border:"1px solid #1e1a10", borderRadius:18, padding:"18px 18px 16px", marginBottom:12 }}>
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14 }}>
+                  <span style={{ color:"#666", fontSize:10, fontWeight:700, letterSpacing:1.5, fontFamily:"system-ui,sans-serif" }}>THIẾT BỊ ĐÃ THUÊ</span>
+                  <button onClick={() => setTab("orders")} style={{ background:"none", border:"none", color:G, fontSize:11.5, fontWeight:700, cursor:"pointer", padding:0, fontFamily:"system-ui,sans-serif", display:"flex", alignItems:"center", gap:3 }}>
                     Xem tất cả <span>→</span>
                   </button>
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 9 }}>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
                   {usedCameras.map(c => (
-                    <span key={c} style={{ background: "#141410", color: G, border: `1px solid ${BR}`, borderRadius: 99, padding: "7px 16px", fontSize: 12.5, fontWeight: 600, display: "flex", alignItems: "center", gap: 7 }}>
-                      <span style={{ fontSize: 14 }}>📷</span><span>{c}</span>
+                    <span key={c} style={{ background:"#141208", color:"#888", border:"1px solid #252018", borderRadius:10, padding:"7px 13px", fontSize:12, fontFamily:"system-ui,sans-serif", display:"inline-flex", alignItems:"center", gap:6 }}>
+                      <span style={{ fontSize:13, opacity:0.6 }}>📷</span><span>{c}</span>
                     </span>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Unreviewed orders CTA */}
+            {/* Unreviewed CTA */}
             {(() => {
               const unreviewed = completedOrders.filter(o => !feedbacks.some(f =>
                 f.orderId === o.id && (
@@ -991,31 +994,32 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                 )
               ));
               return unreviewed.length > 0 && (
-                <div style={{ background: "#0a0900", border: `1px solid ${G}44`, borderRadius: 14, padding: "18px 24px", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+                <div style={{ background:"#0e0b00", border:`1px solid ${G}33`, borderRadius:18, padding:"16px 18px", marginBottom:12, display:"flex", alignItems:"center", justifyContent:"space-between", gap:14 }}>
                   <div>
-                    <div style={{ color: G, fontWeight: 700, fontSize: 14, marginBottom: 4 }}>⭐ Bạn có {unreviewed.length} đơn chưa đánh giá!</div>
-                    <div style={{ color: MUT, fontSize: 12 }}>Chia sẻ trải nghiệm để nhận huy hiệu.</div>
+                    <div style={{ color:TXT, fontWeight:700, fontSize:14, fontFamily:"system-ui,sans-serif", marginBottom:3 }}>Bạn có {unreviewed.length} đơn chưa đánh giá</div>
+                    <div style={{ color:"#555", fontSize:12, fontFamily:"system-ui,sans-serif" }}>Chia sẻ trải nghiệm để nhận huy hiệu</div>
                   </div>
-                  <button onClick={() => setTab("orders")} style={{ flexShrink: 0, padding: "9px 20px", background: G, color: "#000", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12 }}>Đánh giá ngay →</button>
+                  <button onClick={() => setTab("orders")}
+                    style={{ flexShrink:0, padding:"10px 18px", background:`linear-gradient(135deg,${G},#a07830)`, color:"#000", border:"none", borderRadius:12, cursor:"pointer", fontWeight:800, fontSize:12, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap", boxShadow:`0 4px 16px ${G}33` }}>
+                    Đánh giá →
+                  </button>
                 </div>
               );
             })()}
 
-            {/* CTA book more */}
+            {/* Book more CTA */}
             {onOpenBooking && (
-              <div
-                onClick={onOpenBooking}
-                style={{ border: `1.5px dashed ${G}44`, borderRadius: 16, padding: "24px 28px", cursor: "pointer", display: "flex", alignItems: "center", gap: 18, transition: "border-color .2s, background .2s" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = G + "99"; e.currentTarget.style.background = G + "08"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = G + "44"; e.currentTarget.style.background = "transparent"; }}
-              >
-                <div style={{ width: 44, height: 44, borderRadius: "50%", border: `1.5px solid ${G}66`, display: "flex", alignItems: "center", justifyContent: "center", color: G, fontSize: 22, fontWeight: 300, flexShrink: 0 }}>＋</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: G, fontWeight: 700, fontSize: 15, marginBottom: 3 }}>Thuê thêm thiết bị</div>
-                  <div style={{ color: "#555", fontSize: 12 }}>Khám phá thêm nhiều thiết bị chất lượng</div>
+              <button onClick={onOpenBooking}
+                style={{ width:"100%", background:"none", border:"1.5px dashed #2a2416", borderRadius:18, padding:"18px 20px", cursor:"pointer", display:"flex", alignItems:"center", gap:14, transition:"all .2s", textAlign:"left" }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor=G+"55"; e.currentTarget.style.background=G+"08"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor="#2a2416"; e.currentTarget.style.background="none"; }}>
+                <div style={{ width:40, height:40, borderRadius:12, border:`1.5px solid ${G}44`, display:"flex", alignItems:"center", justifyContent:"center", color:G, fontSize:20, flexShrink:0 }}>＋</div>
+                <div style={{ flex:1 }}>
+                  <div style={{ color:G, fontWeight:700, fontSize:14, fontFamily:"system-ui,sans-serif", marginBottom:2 }}>Thuê thêm thiết bị</div>
+                  <div style={{ color:"#444", fontSize:12, fontFamily:"system-ui,sans-serif" }}>Khám phá thêm nhiều thiết bị chất lượng</div>
                 </div>
-                <div style={{ color: G, fontSize: 20, fontWeight: 300, flexShrink: 0 }}>→</div>
-              </div>
+                <span style={{ color:"#333", fontSize:18 }}>→</span>
+              </button>
             )}
           </div>
         )}
