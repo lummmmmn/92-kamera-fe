@@ -1191,90 +1191,97 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
         {/* ── BADGES TAB ── */}
         {tab === "badges" && (
           <div>
-            {/* Section header */}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-              <span style={{ fontSize: 22 }}>🏅</span>
-              <span style={{ color: TXT, fontWeight: 800, fontSize: 18, letterSpacing: 0.5 }}>HUY HIỆU CỦA TÔI</span>
-              <span style={{ color: `${G}66`, fontSize: 16 }}>◇</span>
+            {/* Header */}
+            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:6 }}>
+              <span style={{ fontSize:22 }}>🏅</span>
+              <span style={{ color:TXT, fontWeight:800, fontSize:18, letterSpacing:0.5, fontFamily:"system-ui,sans-serif" }}>HUY HIỆU CỦA TÔI</span>
+              <span style={{ color:`${G}55`, fontSize:14 }}>◇</span>
             </div>
-            <div style={{ width: 36, height: 3, background: G, borderRadius: 2, marginBottom: 24 }} />
+            <div style={{ width:36, height:3, background:G, borderRadius:2, marginBottom:24 }} />
 
-            {/* Badge grid */}
+            {/* ── Badge horizontal scroll ── */}
             {(() => {
               const allBadges = [
-                { icon: "🥉", label: "Khách Đồng",          desc: "Thuê ít nhất 1 lần",    col: "#cd7f32", unlocked: myOrders.length >= 1 },
-                { icon: "🥈", label: "Khách Bạc",            desc: "Thuê 3+ lần",            col: "#b0b8c8", unlocked: myOrders.length >= 3 },
-                { icon: "🥇", label: "Khách Vàng",           desc: "Thuê 5+ lần",            col: G,         unlocked: myOrders.length >= 5 },
-                { icon: "👑", label: "Đại Gia Khoảnh Khắc", desc: "Thuê tổng 30+ ngày",     col: G,         unlocked: totalDays >= 30 },
-                { icon: "💎", label: "Khách VIP",            desc: "Chi tiêu 5,000,000đ+",   col: "#38bdf8", unlocked: totalSpent >= 5000000 },
-                { icon: "💠", label: "Kim Cương",            desc: "Chi tiêu 10,000,000đ+",  col: "#e879f9", unlocked: totalSpent >= 10000000 },
+                { icon:"🥉", label:"Khách Đồng",          desc:"Thuê ít nhất 1 lần",   col:"#cd7f32", unlocked: myOrders.length >= 1 },
+                { icon:"🥈", label:"Khách Bạc",            desc:"Thuê 3+ lần",           col:"#b0b8c8", unlocked: myOrders.length >= 3 },
+                { icon:"🥇", label:"Khách Vàng",           desc:"Thuê 5+ lần",           col:G,         unlocked: myOrders.length >= 5 },
+                { icon:"👑", label:"Đại Gia Khoảnh Khắc", desc:"Tổng 30+ ngày",         col:G,         unlocked: totalDays >= 30 },
+                { icon:"💎", label:"Khách VIP",            desc:"Chi tiêu 5,000,000đ+",  col:"#38bdf8", unlocked: totalSpent >= 5000000 },
+                { icon:"💠", label:"Kim Cương",            desc:"Chi tiêu 10,000,000đ+", col:"#e879f9", unlocked: totalSpent >= 10000000 },
               ];
-              // Find the highest unlocked badge index
               const highestIdx = allBadges.reduce((hi, b, i) => b.unlocked ? i : hi, -1);
-
               return (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
-                  {allBadges.map((b, i) => {
-                    const isHighest = i === highestIdx;
-                    return (
-                      <div key={b.label} style={{
-                        background: b.unlocked ? "#0e0d09" : "#0a0a09",
-                        border: `1px solid ${isHighest ? G + "cc" : b.unlocked ? b.col + "44" : BR}`,
-                        borderRadius: 14,
-                        padding: "22px 16px 18px",
-                        textAlign: "center",
-                        position: "relative",
-                        opacity: b.unlocked ? 1 : 0.55,
-                        transition: "all .3s",
-                        boxShadow: isHighest ? `0 0 24px ${G}22` : "none",
-                      }}>
-                        {/* Status dot or lock */}
-                        <div style={{ position: "absolute", top: 11, right: 12 }}>
+                <>
+                  <style>{`
+                    .badge-scroll::-webkit-scrollbar{display:none}
+                    .badge-card{transition:transform .2s,box-shadow .2s}
+                    .badge-card:active{transform:scale(0.97)}
+                  `}</style>
+                  <div className="badge-scroll" style={{ display:"flex", gap:12, overflowX:"auto", paddingBottom:6, scrollSnapType:"x mandatory", WebkitOverflowScrolling:"touch", scrollbarWidth:"none", margin:"0 -4px", padding:"4px 4px 16px" }}>
+                    {allBadges.map((b, i) => {
+                      const isTop = i === highestIdx;
+                      return (
+                        <div key={b.label} className="badge-card" style={{
+                          minWidth:140, flexShrink:0,
+                          scrollSnapAlign:"start",
+                          background: isTop
+                            ? `linear-gradient(160deg,#1c1500,#100e00)`
+                            : b.unlocked ? "#0e0d09" : "#090908",
+                          border:`1.5px solid ${isTop ? G+"cc" : b.unlocked ? b.col+"44" : "#1c1c18"}`,
+                          borderRadius:20,
+                          padding:"20px 14px 16px",
+                          textAlign:"center",
+                          position:"relative",
+                          opacity: b.unlocked ? 1 : 0.4,
+                          boxShadow: isTop ? `0 0 28px ${G}28,0 0 0 1px ${G}18` : "none",
+                        }}>
+                          {/* dot / lock */}
+                          <div style={{ position:"absolute", top:12, right:12 }}>
+                            {b.unlocked
+                              ? <div style={{ width:8, height:8, borderRadius:"50%", background:"#22c55e", boxShadow:"0 0 8px #22c55eaa" }} />
+                              : <span style={{ fontSize:11, opacity:0.4 }}>🔒</span>}
+                          </div>
+                          {/* icon */}
+                          <div style={{ fontSize:48, marginBottom:10, filter: b.unlocked ? "none" : "grayscale(1) brightness(0.4)", lineHeight:1 }}>{b.icon}</div>
+                          {/* label */}
+                          <div style={{ color: b.unlocked ? b.col : "#444", fontWeight:700, fontSize:13, fontFamily:"system-ui,sans-serif", marginBottom:5, lineHeight:1.3 }}>{b.label}</div>
+                          {/* desc */}
+                          <div style={{ color:"#444", fontSize:10.5, fontFamily:"system-ui,sans-serif", marginBottom:10, lineHeight:1.4 }}>{b.desc}</div>
+                          {/* status */}
                           {b.unlocked
-                            ? <div style={{ width: 9, height: 9, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 8px #22c55eaa" }} />
-                            : <span style={{ fontSize: 13, opacity: 0.5 }}>🔒</span>}
+                            ? <div style={{ background:"#0a1a0a", border:"1px solid #22c55e33", borderRadius:8, padding:"5px 8px", display:"inline-flex", alignItems:"center", gap:4 }}>
+                                <span style={{ color:"#22c55e", fontSize:10 }}>✓</span>
+                                <span style={{ color:"#22c55e", fontSize:10, fontWeight:700, fontFamily:"system-ui,sans-serif" }}>Đã mở</span>
+                              </div>
+                            : null}
                         </div>
-
-                        {/* Medal icon */}
-                        <div style={{ fontSize: 44, marginBottom: 12, filter: b.unlocked ? "none" : "grayscale(1)" }}>{b.icon}</div>
-
-                        {/* Label */}
-                        <div style={{ color: b.unlocked ? b.col : "#555", fontWeight: 700, fontSize: 13, marginBottom: 5 }}>{b.label}</div>
-
-                        {/* Desc */}
-                        <div style={{ color: "#555", fontSize: 11, marginBottom: 10, lineHeight: 1.4 }}>{b.desc}</div>
-
-                        {/* Unlock status */}
-                        {b.unlocked
-                          ? <div style={{ color: "#22c55e", fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}><span>✓</span><span>Đã mở khoá</span></div>
-                          : null}
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                </>
               );
             })()}
 
-            {/* Stats section */}
-            <div style={{ background: "#0d0d0a", border: `1px solid ${BR}`, borderRadius: 16, padding: "24px 28px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18 }}>
-                <span style={{ fontSize: 18 }}>🏆</span>
-                <span style={{ color: G, fontWeight: 800, fontSize: 14, letterSpacing: 1 }}>THỐNG KÊ CỦA BẠN</span>
-              </div>
+            {/* ── Stats grid 2×3 ── */}
+            <div style={{ color:G, fontSize:10, letterSpacing:2, fontFamily:"system-ui,sans-serif", fontWeight:700, marginBottom:14, marginTop:8 }}>THỐNG KÊ CỦA BẠN</div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:8 }}>
               {[
-                { icon: "📋", label: "Tổng đơn đã thuê",     value: myOrders.length + " đơn",                                  col: TXT },
-                { icon: "📅", label: "Tổng ngày thuê",        value: totalDays + " ngày",                                       col: TXT },
-                { icon: "💰", label: "Tổng chi tiêu",         value: fmtVND(totalSpent),                                        col: G },
-                { icon: "⭐", label: "Số đánh giá gửi",       value: myFeedbacks.length + " feedback",                          col: TXT },
-                { icon: "💬", label: "Đánh giá được duyệt",   value: myFeedbacks.filter(f => f.status === "approved").length + " đánh giá", col: TXT },
-                { icon: "🏅", label: "Huy hiệu đã mở",        value: badges.length + " / 6 huy hiệu",                           col: G },
-              ].map(({ icon, label, value, col }, i, arr) => (
-                <div key={label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 0", borderBottom: i < arr.length - 1 ? `1px solid ${BR}` : "none" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <span style={{ fontSize: 16, width: 22, textAlign: "center" }}>{icon}</span>
-                    <span style={{ color: "#888", fontSize: 13 }}>{label}</span>
+                { icon:"📋", label:"Tổng đơn",          value: myOrders.length,                                              unit:"đơn",     col:G },
+                { icon:"📅", label:"Ngày thuê",          value: totalDays,                                                    unit:"ngày",    col:"#a78bfa" },
+                { icon:"💰", label:"Chi tiêu",           value: fmtVND(totalSpent),                                           unit:"",        col:G },
+                { icon:"✅", label:"Đơn hoàn thành",     value: myOrders.filter(o=>o.status==="completed").length,            unit:"đơn",     col:"#22c55e" },
+                { icon:"💬", label:"Đánh giá",           value: myFeedbacks.filter(f=>f.status==="approved").length,          unit:"reviews", col:"#f59e0b" },
+                { icon:"🏅", label:"Huy hiệu",           value: badges.length,                                                unit:"/ 6",     col:G },
+              ].map(({ icon, label, value, unit, col }) => (
+                <div key={label} style={{ background:"#0d0b08", border:"1px solid #1e1a10", borderRadius:16, padding:"16px 16px 14px" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:10 }}>
+                    <span style={{ fontSize:16 }}>{icon}</span>
+                    <span style={{ color:"#555", fontSize:10.5, fontFamily:"system-ui,sans-serif", fontWeight:600, letterSpacing:0.5 }}>{label}</span>
                   </div>
-                  <span style={{ color: col, fontWeight: 700, fontSize: 13 }}>{value}</span>
+                  <div style={{ color:col, fontWeight:800, fontSize:22, fontFamily:"system-ui,sans-serif", lineHeight:1 }}>
+                    {value}
+                    {unit && <span style={{ fontSize:12, color:"#555", fontWeight:500, marginLeft:4 }}>{unit}</span>}
+                  </div>
                 </div>
               ))}
             </div>
@@ -1285,100 +1292,94 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
         {/* ── SETTINGS TAB ── */}
         {tab === "settings" && (
           <div>
-            <div style={{ color: TXT, fontWeight: 800, fontSize: 20, marginBottom: 6, fontFamily: "Georgia,serif" }}>Cài đặt hồ sơ</div>
-            <div style={{ width: 36, height: 3, background: G, borderRadius: 2, marginBottom: 24 }} />
+            <style>{`
+              .sp-inp { transition: border-color .2s, box-shadow .2s !important; }
+              .sp-inp:focus { border-color: rgba(201,168,76,0.65) !important; box-shadow: 0 0 0 3px rgba(201,168,76,0.1) !important; outline: none !important; }
+              .sp-inp::placeholder { color: #333 !important; }
+              .sp-save:hover { box-shadow: 0 6px 28px rgba(201,168,76,0.4) !important; transform: translateY(-1px); }
+              .sp-save { transition: all .2s ease !important; }
+              .sp-upload:hover { border-color: rgba(201,168,76,0.6) !important; background: rgba(201,168,76,0.04) !important; }
+            `}</style>
 
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(220px,1fr) minmax(0,2fr)", gap: 16, alignItems: "start" }}>
+            <div style={{ color:TXT, fontWeight:800, fontSize:20, marginBottom:4, fontFamily:"system-ui,sans-serif" }}>Cài đặt hồ sơ</div>
+            <div style={{ width:36, height:3, background:G, borderRadius:2, marginBottom:28 }} />
 
-              {/* ── Left: Avatar card ── */}
-              <div style={{ background: "#0d0d0a", border: `1px solid ${BR}`, borderRadius: 16, padding: "28px 22px", textAlign: "center" }}>
-                {/* Big avatar */}
-                <div style={{ position: "relative", display: "inline-block", marginBottom: 16 }} onClick={() => avatarRef.current?.click()} title="Đổi ảnh">
-                  <div style={{ width: 120, height: 120, borderRadius: "50%", background: `radial-gradient(circle, ${G}22, #0d0d0a)`, border: `3px solid ${G}66`, overflow: "hidden", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, boxShadow: `0 0 0 5px ${G}12` }}>
-                    {(loggedUser?.avatar || loggedUser?.picture)
-                      ? <img src={loggedUser.avatar || loggedUser.picture} alt="avatar" referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      : <span style={{ color: G, fontWeight: 800 }}>{loggedUser?.name?.[0]?.toUpperCase() || "?"}</span>}
-                  </div>
-                  <div style={{ position: "absolute", bottom: 4, right: 4, width: 32, height: 32, borderRadius: "50%", background: G, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, border: `3px solid #0d0d0a`, cursor: "pointer", boxShadow: `0 0 12px ${G}99` }}>
-                    {avatarLoading ? "⏳" : "📷"}
-                  </div>
-                  <input ref={avatarRef} type="file" accept="image/*" style={{ display: "none" }}
-                    onChange={e => { if (e.target.files[0]) handleAvatarChange(e.target.files[0]); e.target.value = ""; }} />
+            {/* ── Avatar block ── */}
+            <div style={{ background:"#0d0b08", border:"1px solid #1e1a10", borderRadius:20, padding:"28px 20px 24px", textAlign:"center", marginBottom:14 }}>
+              <div style={{ position:"relative", display:"inline-block", marginBottom:14 }}
+                onClick={() => avatarRef.current?.click()} title="Đổi ảnh đại diện">
+                <div style={{ width:96, height:96, borderRadius:"50%", background:`radial-gradient(circle, ${G}22, #0a0800)`, border:`3px solid ${G}88`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:40, overflow:"hidden", cursor:"pointer", boxShadow:`0 0 0 5px ${G}14, 0 0 32px ${G}18` }}>
+                  {(loggedUser?.avatar || loggedUser?.picture)
+                    ? <img src={loggedUser.avatar || loggedUser.picture} alt="avatar" referrerPolicy="no-referrer" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                    : <span style={{ color:G, fontWeight:800, fontFamily:"system-ui,sans-serif" }}>{loggedUser?.name?.[0]?.toUpperCase() || "?"}</span>}
                 </div>
+                <div style={{ position:"absolute", bottom:2, right:2, width:30, height:30, borderRadius:"50%", background:`linear-gradient(135deg,${G},#a07030)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, border:`2.5px solid #0d0b08`, cursor:"pointer", boxShadow:`0 0 12px ${G}99` }}>
+                  {avatarLoading ? "⏳" : "📷"}
+                </div>
+                <input ref={avatarRef} type="file" accept="image/*" style={{ display:"none" }}
+                  onChange={e => { if (e.target.files[0]) handleAvatarChange(e.target.files[0]); e.target.value = ""; }} />
+              </div>
+              <div style={{ color:TXT, fontWeight:700, fontSize:15, marginBottom:4, fontFamily:"system-ui,sans-serif" }}>{loggedUser?.displayName || loggedUser?.name || "Chưa đặt tên"}</div>
+              <div style={{ color:"#555", fontSize:12, fontFamily:"system-ui,sans-serif", marginBottom:18 }}>{loggedUser?.email || loggedUser?.phone || ""}</div>
+              {/* Upload zone */}
+              <div className="sp-upload"
+                onClick={() => avatarRef.current?.click()}
+                style={{ border:`1.5px dashed ${G}44`, borderRadius:14, padding:"16px 12px", cursor:"pointer", transition:"all .2s" }}>
+                <div style={{ fontSize:22, marginBottom:5 }}>☁️</div>
+                <div style={{ color:G, fontWeight:600, fontSize:12, fontFamily:"system-ui,sans-serif", marginBottom:3 }}>Tải ảnh lên</div>
+                <div style={{ color:"#383028", fontSize:10, fontFamily:"system-ui,sans-serif" }}>JPG, PNG – Tối đa 5MB</div>
+              </div>
+            </div>
 
-                <div style={{ color: TXT, fontWeight: 700, fontSize: 15, marginBottom: 6, fontFamily: "Georgia,serif" }}>Ảnh đại diện</div>
-                <div style={{ color: MUT, fontSize: 11.5, lineHeight: 1.7, marginBottom: 18 }}>Bấm vào ảnh để thay đổi<br />Ảnh được lưu vào hồ sơ của bạn</div>
+            {/* ── Form fields ── */}
+            <div style={{ background:"#0d0b08", border:"1px solid #1e1a10", borderRadius:20, overflow:"hidden", marginBottom:14 }}>
+              {[
+                { key:"displayName", icon:"👤", label:"Tên hiển thị",     hint:"Tự động điền khi đặt máy",         type:"text", placeholder:"Tên của bạn" },
+                { key:"phone",       icon:"📞", label:"Số điện thoại",    hint:"Gửi thông tin đặt máy",            type:"tel",  placeholder:"0901 234 567" },
+                { key:"zalo",        icon:"💬", label:"Zalo",             hint:"Xác nhận đơn qua Zalo",            type:"tel",  placeholder:"Số Zalo" },
+                { key:"address",     icon:"📍", label:"Địa chỉ nhận máy", hint:"Tự động điền khi đặt máy",         type:"text", placeholder:"Số nhà, đường, phường..." },
+              ].map(({ key, icon, label, hint, type, placeholder }, idx, arr) => (
+                <div key={key} style={{ padding:"18px 20px", borderBottom: idx < arr.length - 1 ? "1px solid #181410" : "none" }}>
+                  {/* Label row */}
+                  <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:8 }}>
+                    <span style={{ fontSize:14, opacity:0.45 }}>{icon}</span>
+                    <span style={{ color:"#777", fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>{label.toUpperCase()}</span>
+                    <span style={{ color:"#333", fontSize:10, fontFamily:"system-ui,sans-serif" }}>— {hint}</span>
+                  </div>
+                  {/* Input */}
+                  <input className="sp-inp" type={type}
+                    value={settingsForm[key]}
+                    onChange={e => setSettingsForm(p => ({ ...p, [key]: e.target.value }))}
+                    placeholder={placeholder}
+                    style={{ width:"100%", padding:"12px 14px", background:"#0a0806", border:"1px solid rgba(201,168,76,0.15)", borderRadius:12, color:TXT, fontSize:14, fontFamily:"system-ui,sans-serif", boxSizing:"border-box", caretColor:G }}
+                  />
+                </div>
+              ))}
 
-                {/* Upload area */}
-                <div
-                  onClick={() => avatarRef.current?.click()}
-                  style={{ border: `1.5px dashed ${G}55`, borderRadius: 10, padding: "18px 12px", cursor: "pointer", transition: "border-color .2s, background .2s" }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = G + "aa"; e.currentTarget.style.background = G + "08"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = G + "55"; e.currentTarget.style.background = "transparent"; }}
-                >
-                  <div style={{ fontSize: 26, marginBottom: 6 }}>☁️</div>
-                  <div style={{ color: G, fontWeight: 600, fontSize: 12, marginBottom: 3 }}>Tải ảnh lên</div>
-                  <div style={{ color: "#444", fontSize: 10 }}>JPG, PNG – Tối đa 5MB</div>
+              {/* Google row */}
+              <div style={{ padding:"18px 20px", borderTop:"1px solid #181410" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:8 }}>
+                  <span style={{ fontSize:14, opacity:0.45 }}>✉️</span>
+                  <span style={{ color:"#777", fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>TÀI KHOẢN GOOGLE</span>
+                </div>
+                <input readOnly value={loggedUser?.email || ""}
+                  style={{ width:"100%", padding:"12px 14px", background:"#0a0806", border:"1px solid #1a1810", borderRadius:12, color:"#444", fontSize:13, fontFamily:"system-ui,sans-serif", boxSizing:"border-box" }} />
+                <div style={{ marginTop:8, display:"flex", alignItems:"center", gap:5 }}>
+                  <span style={{ color:"#22c55e", fontSize:13 }}>✅</span>
+                  <span style={{ color:"#22c55e", fontSize:11, fontWeight:600, fontFamily:"system-ui,sans-serif" }}>Đã xác minh</span>
                 </div>
               </div>
 
-              {/* ── Right: Form fields ── */}
-              <div style={{ background: "#0d0d0a", border: `1px solid ${BR}`, borderRadius: 16, overflow: "hidden" }}>
-                {[
-                  { key: "displayName", icon: "👤", label: "Tên hiển thị",     hint: "Tên này sẽ tự động hiển thị khi đặt máy",  type: "text", placeholder: loggedUser?.name || "Tên của bạn" },
-                  { key: "phone",       icon: "📞", label: "Số điện thoại",    hint: "Tự động gửi thông tin đặt máy",            type: "tel",  placeholder: "0901 234 567" },
-                  { key: "zalo",        icon: "💬", label: "Zalo",             hint: "Dùng để xác nhận đơn qua Zalo",           type: "tel",  placeholder: "Số Zalo" },
-                  { key: "address",     icon: "📍", label: "Địa chỉ nhận máy", hint: "Tự động hiển thị khi đặt máy",            type: "text", placeholder: "Số nhà, đường, phường..." },
-                ].map(({ key, icon, label, hint, type, placeholder }, idx, arr) => (
-                  <div key={key} style={{ padding: "18px 22px", borderBottom: idx < arr.length - 1 ? `1px solid ${BR}` : "none", display: "grid", gridTemplateColumns: "auto 1fr", gap: "0 16px", alignItems: "start" }}>
-                    {/* Icon + label col */}
-                    <div style={{ paddingTop: 2 }}>
-                      <span style={{ fontSize: 18 }}>{icon}</span>
-                    </div>
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 3 }}>
-                        <div style={{ color: TXT, fontWeight: 600, fontSize: 13 }}>{label}</div>
-                      </div>
-                      <div style={{ color: "#444", fontSize: 11, marginBottom: 8 }}>{hint}</div>
-                      <input
-                        type={type}
-                        value={settingsForm[key]}
-                        onChange={e => setSettingsForm(p => ({ ...p, [key]: e.target.value }))}
-                        placeholder={placeholder}
-                        style={{ width: "100%", padding: "11px 14px", background: "#111109", border: `1px solid ${BR}`, borderRadius: 10, color: TXT, fontSize: 13, outline: "none", boxSizing: "border-box", fontFamily: "system-ui,sans-serif", transition: "border-color .2s" }}
-                        onFocus={e => e.target.style.borderColor = G + "88"}
-                        onBlur={e => e.target.style.borderColor = BR}
-                      />
-                    </div>
-                  </div>
-                ))}
-
-                {/* Google account row (readonly) */}
-                <div style={{ padding: "18px 22px", borderTop: `1px solid ${BR}`, display: "grid", gridTemplateColumns: "auto 1fr", gap: "0 16px", alignItems: "start" }}>
-                  <div style={{ paddingTop: 2 }}><span style={{ fontSize: 18 }}>✉️</span></div>
-                  <div>
-                    <div style={{ color: TXT, fontWeight: 600, fontSize: 13, marginBottom: 3 }}>Tài khoản Google</div>
-                    <div style={{ color: "#444", fontSize: 11, marginBottom: 8 }}>Dùng để bật xác minh &amp; đồng bộ</div>
-                    <input readOnly value={loggedUser?.email || ""} style={{ width: "100%", padding: "11px 14px", background: "#111109", border: `1px solid ${BR}`, borderRadius: 10, color: MUT, fontSize: 13, outline: "none", boxSizing: "border-box", fontFamily: "system-ui,sans-serif" }} />
-                    <div style={{ marginTop: 7, display: "flex", alignItems: "center", gap: 5 }}>
-                      <span style={{ color: "#22c55e", fontSize: 14 }}>✅</span>
-                      <span style={{ color: "#22c55e", fontSize: 11, fontWeight: 600 }}>Đã xác minh</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Save button */}
-                <div style={{ padding: "18px 22px", borderTop: `1px solid ${BR}` }}>
-                  <button onClick={handleSaveSettings}
-                    style={{ width: "100%", padding: "15px 0", background: settingsSaved ? "#052" : `linear-gradient(135deg, ${G}, #b8923e)`, color: settingsSaved ? "#22c55e" : "#0a0800", border: settingsSaved ? "1px solid #22c55e44" : "none", borderRadius: 12, cursor: "pointer", fontWeight: 800, fontSize: 15, fontFamily: "system-ui,sans-serif", transition: "all .3s", letterSpacing: 0.3, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                    {settingsSaved ? <><span>✓</span><span>Đã lưu hồ sơ!</span></> : <><span>💾</span><span>Lưu cài đặt</span></>}
-                  </button>
-                  <div style={{ textAlign: "center", marginTop: 10, color: "#383830", fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
-                    <span>🛡️</span><span>Thông tin của bạn được bảo mật tuyệt đối</span>
-                  </div>
+              {/* Save button */}
+              <div style={{ padding:"16px 20px", borderTop:"1px solid #181410" }}>
+                <button className="sp-save" onClick={handleSaveSettings}
+                  style={{ width:"100%", padding:"15px 0", background: settingsSaved ? "#052" : `linear-gradient(135deg,#d4a93a,${G},#a07830)`, color: settingsSaved ? "#22c55e" : "#050300", border: settingsSaved ? "1px solid #22c55e44" : "none", borderRadius:14, cursor:"pointer", fontWeight:800, fontSize:15, fontFamily:"system-ui,sans-serif", letterSpacing:0.3, display:"flex", alignItems:"center", justifyContent:"center", gap:8, boxShadow: settingsSaved ? "none" : `0 4px 24px ${G}35` }}>
+                  {settingsSaved ? <><span>✓</span><span>Đã lưu hồ sơ!</span></> : <><span>💾</span><span>Lưu cài đặt</span></>}
+                </button>
+                <div style={{ textAlign:"center", marginTop:10, color:"#2e2e24", fontSize:10.5, display:"flex", alignItems:"center", justifyContent:"center", gap:5, fontFamily:"system-ui,sans-serif" }}>
+                  <span>🛡️</span><span>Thông tin của bạn được bảo mật tuyệt đối</span>
                 </div>
               </div>
-
             </div>
           </div>
         )}
