@@ -857,85 +857,132 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
 
   return (
     <div style={{ minHeight: "100vh", background: BG, fontFamily: "system-ui,sans-serif", position: "relative", zIndex: 1 }}>
-      <style>{`*{box-sizing:border-box;} @keyframes pulseIn{0%{transform:scale(0.7);opacity:0}100%{transform:scale(1);opacity:1}}`}</style>
+      <style>{`*{box-sizing:border-box;} @keyframes pulseIn{0%{transform:scale(0.7);opacity:0}100%{transform:scale(1);opacity:1}} @keyframes spin{to{transform:rotate(360deg)}}`}</style>
 
       {/* Header */}
-      <div style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(6,6,6,0.55)", backdropFilter: "blur(32px) saturate(160%)", WebkitBackdropFilter: "blur(32px) saturate(160%)", borderBottom: `1px solid rgba(42,42,42,0.6)`, padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "background .3s" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 24, overflowX: "auto", WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
-          <div style={{ marginRight: 8, flexShrink: 0 }}><Logo size={0.65} /></div>
-          {[["dashboard","📊 Dashboard"],["orders","📋 Đơn thuê"],["feedbacks","⭐ Feedback"],["badges","🏅 Huy hiệu"],["settings","⚙️ Cài đặt"]].map(([k,l]) => (
-            <button key={k} onClick={() => setTab(k)} style={tabStyle(k)}>{l}</button>
+      <div style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(6,6,6,0.82)", backdropFilter: "blur(32px) saturate(160%)", WebkitBackdropFilter: "blur(32px) saturate(160%)", borderBottom: `1px solid rgba(42,42,42,0.7)`, padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, overflowX: "auto", WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
+          {[
+            ["dashboard", "⊞",  "Dashboard"],
+            ["orders",    "≡",   "Đơn thuê"],
+            ["feedbacks", "☆",  "Feedback"],
+            ["badges",    "◎",  "Huy hiệu"],
+            ["settings",  "✦",  "Cài đặt"],
+          ].map(([k, ico, label]) => (
+            <button key={k} onClick={() => setTab(k)} style={{
+              padding: "16px 18px", background: "none", border: "none",
+              borderBottom: `2.5px solid ${tab === k ? G : "transparent"}`,
+              color: tab === k ? G : "#666",
+              fontWeight: tab === k ? 700 : 400,
+              fontSize: 13, cursor: "pointer",
+              fontFamily: "system-ui,sans-serif",
+              transition: "all .2s",
+              display: "flex", alignItems: "center", gap: 7,
+              whiteSpace: "nowrap",
+            }}>
+              <span style={{ fontSize: 14, opacity: tab === k ? 1 : 0.6 }}>{ico}</span>
+              <span>{label}</span>
+            </button>
           ))}
         </div>
-        <button onClick={onBack} style={{ background: "none", border: `1px solid ${BR}`, color: MUT, padding: "7px 14px", borderRadius: 6, cursor: "pointer", fontSize: 11, flexShrink: 0, marginLeft: 16 }}>← Trang chủ</button>
+        <button onClick={onBack} style={{ background: "none", border: `1px solid ${BR}`, color: MUT, padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 12, flexShrink: 0, marginLeft: 20, display: "flex", alignItems: "center", gap: 6, letterSpacing: 0.2 }}>← Trang chủ</button>
       </div>
 
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 16px" }}>
+      <div style={{ maxWidth: 1000, margin: "0 auto", padding: "32px 24px" }}>
 
         {/* Profile banner */}
-        <div style={{ background: `linear-gradient(135deg,#0a0900,#110e00)`, border: `1px solid ${G}33`, borderRadius: 14, padding: "22px 24px", marginBottom: 24, display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
-          {/* Clickable avatar */}
-          <div style={{ position: "relative", flexShrink: 0 }} onClick={() => avatarRef.current?.click()} title="Đổi ảnh đại diện">
-            <div style={{ width: 64, height: 64, borderRadius: "50%", background: G + "22", border: `2px solid ${G}55`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, overflow: "hidden", cursor: "pointer", transition: "border-color .2s" }}>
+        <div style={{ background: "linear-gradient(135deg,#0e0c02,#0d0b02,#090800)", border: `1px solid ${G}44`, borderRadius: 18, padding: "28px 32px", marginBottom: 28, display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap", position: "relative", overflow: "hidden" }}>
+          {/* Background diagonal lines */}
+          <div style={{ position: "absolute", inset: 0, backgroundImage: `repeating-linear-gradient(135deg, transparent, transparent 22px, ${G}06 22px, ${G}06 23px)`, pointerEvents: "none" }} />
+          {/* Glow corner */}
+          <div style={{ position: "absolute", top: -40, right: -40, width: 200, height: 200, background: `radial-gradient(circle, ${G}0d 0%, transparent 70%)`, pointerEvents: "none" }} />
+
+          {/* Avatar */}
+          <div style={{ position: "relative", flexShrink: 0, zIndex: 1 }} onClick={() => avatarRef.current?.click()} title="Đổi ảnh đại diện">
+            <div style={{ width: 88, height: 88, borderRadius: "50%", background: `radial-gradient(circle, ${G}22, #0a0800)`, border: `3px solid ${G}99`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, overflow: "hidden", cursor: "pointer", boxShadow: `0 0 0 5px ${G}18, 0 0 30px ${G}22` }}>
               {(loggedUser?.avatar || loggedUser?.picture)
                 ? <img src={loggedUser.avatar || loggedUser.picture} alt="avatar" referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                : <span>{loggedUser?.name?.[0]?.toUpperCase() || "👤"}</span>}
+                : <span style={{ color: G, fontWeight: 800 }}>{loggedUser?.name?.[0]?.toUpperCase() || "?"}</span>}
             </div>
-            {/* Camera icon overlay */}
-            <div style={{ position: "absolute", bottom: 0, right: 0, width: 22, height: 22, borderRadius: "50%", background: G, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, border: "2px solid #060606", cursor: "pointer", boxShadow: `0 0 8px ${G}66` }}>
-              {avatarLoading ? "⏳" : "📷"}
+            <div style={{ position: "absolute", bottom: 2, right: 2, width: 28, height: 28, borderRadius: "50%", background: `linear-gradient(135deg, ${G}, #a07030)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, border: `2.5px solid #090800`, cursor: "pointer", boxShadow: `0 0 12px ${G}aa` }}>
+              {avatarLoading ? "⏳" : "👑"}
             </div>
             <input ref={avatarRef} type="file" accept="image/*" style={{ display: "none" }}
               onChange={e => { if (e.target.files[0]) handleAvatarChange(e.target.files[0]); e.target.value = ""; }} />
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: G, fontWeight: 700, fontSize: 17 }}>{loggedUser?.displayName || loggedUser?.name}</div>
-            <div style={{ color: MUT, fontSize: 12, marginTop: 3 }}>{loggedUser?.email ? `✉️ ${loggedUser.email}` : `📞 ${loggedUser?.phone}`}</div>
-            <div style={{ color: "#333", fontSize: 10, marginTop: 2, fontFamily: "system-ui,sans-serif" }}>Bấm ảnh đại diện để thay đổi</div>
+
+          <div style={{ flex: 1, minWidth: 0, zIndex: 1 }}>
+            <div style={{ color: G, fontWeight: 800, fontSize: 22, fontFamily: "Georgia,serif", marginBottom: 5 }}>{loggedUser?.displayName || loggedUser?.name}</div>
+            <div style={{ color: "#888", fontSize: 13, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 13 }}>✉</span><span>{loggedUser?.email || loggedUser?.phone}</span>
+            </div>
+            <div style={{ color: "#454535", fontSize: 11.5, marginBottom: 12 }}>Bạn đã là khách hàng thân thiết</div>
             {badges.length > 0 && (
-              <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
-                {badges.slice(-2).map(b => (
-                  <span key={b.label} style={{ background: b.col + "22", color: b.col, border: `1px solid ${b.col}44`, borderRadius: 99, padding: "2px 10px", fontSize: 10, fontWeight: 700 }}>{b.icon} {b.label}</span>
-                ))}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {badges.slice(-2).map((b, i, arr) => {
+                  const isActive = i === arr.length - 1;
+                  return (
+                    <span key={b.label} style={{ background: isActive ? b.col + "22" : "transparent", color: isActive ? b.col : "#555", border: `1px solid ${isActive ? b.col + "66" : "#383838"}`, borderRadius: 99, padding: "5px 14px", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}>
+                      <span>{b.icon}</span><span>{b.label}</span>
+                    </span>
+                  );
+                })}
               </div>
             )}
           </div>
+
           <button onClick={() => { setLoggedUser(null); onBack(); }}
-            style={{ background: "none", border: `1px solid ${BR}`, color: MUT, padding: "7px 14px", borderRadius: 6, cursor: "pointer", fontSize: 11, flexShrink: 0 }}>Đăng xuất</button>
+            style={{ background: "#141200", border: `1px solid ${G}55`, color: G, padding: "11px 20px", borderRadius: 10, cursor: "pointer", fontSize: 13, fontWeight: 700, flexShrink: 0, zIndex: 1, display: "flex", alignItems: "center", gap: 7, transition: "background .2s, box-shadow .2s" }}
+            onMouseEnter={e => { e.currentTarget.style.background = G + "22"; e.currentTarget.style.boxShadow = `0 0 16px ${G}33`; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "#141200"; e.currentTarget.style.boxShadow = "none"; }}
+          ><span>⇥</span><span>Đăng xuất</span></button>
         </div>
 
         {/* ── DASHBOARD TAB ── */}
         {tab === "dashboard" && (
           <div>
-            {/* Stats grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(160px,1fr))", gap: 14, marginBottom: 28 }}>
+            {/* Stats grid — 4 cards horizontal */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 20 }}>
               {[
-                { icon: "📋", label: "Tổng đơn", value: myOrders.length, col: "#60a5fa" },
-                { icon: "💰", label: "Đã chi tiêu", value: fmtVND(totalSpent), col: G, small: true },
-                { icon: "📅", label: "Tổng ngày thuê", value: totalDays + " ngày", col: "#a78bfa" },
-                { icon: "✅", label: "Đơn hoàn thành", value: completedOrders.length, col: "#22c55e" },
+                { icon: "📋", label: "Tổng đơn",      value: myOrders.length,                       col: "#4e8ef7", bg: "#0d1a35" },
+                { icon: "💰", label: "Đã chi tiêu",    value: fmtVND(totalSpent),                    col: G,         bg: "#1a1200" },
+                { icon: "📅", label: "Tổng ngày thuê", value: totalDays + " ngày",                   col: "#a78bfa", bg: "#150d2a" },
+                { icon: "✅", label: "Đơn hoàn thành", value: completedOrders.length,                col: "#22c55e", bg: "#071a0e" },
               ].map(s => (
-                <div key={s.label} style={{ background: CARD, border: `1px solid ${s.col}22`, borderRadius: 12, padding: "18px 16px", textAlign: "center" }}>
-                  <div style={{ fontSize: 24, marginBottom: 8 }}>{s.icon}</div>
-                  <div style={{ color: s.col, fontWeight: 800, fontSize: s.small ? 13 : 24, lineHeight: 1.3 }}>{s.value}</div>
-                  <div style={{ color: MUT, fontSize: 10, marginTop: 5 }}>{s.label}</div>
+                <div key={s.label} style={{ background: "#0d0d0a", border: `1px solid ${BR}`, borderRadius: 16, padding: "22px 20px", display: "flex", alignItems: "center", gap: 16 }}>
+                  {/* Circular icon */}
+                  <div style={{ width: 56, height: 56, borderRadius: "50%", background: s.bg, border: `1px solid ${s.col}33`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{s.icon}</div>
+                  <div>
+                    <div style={{ color: s.col, fontWeight: 800, fontSize: typeof s.value === "string" && s.value.length > 8 ? 14 : 22, lineHeight: 1.2, fontFamily: "Georgia,serif" }}>{s.value}</div>
+                    <div style={{ color: "#555", fontSize: 11.5, marginTop: 4 }}>{s.label}</div>
+                  </div>
                 </div>
               ))}
             </div>
 
             {/* Thiết bị đã thuê */}
             {usedCameras.length > 0 && (
-              <div style={{ background: CARD, border: `1px solid ${BR}`, borderRadius: 12, padding: "20px 22px", marginBottom: 20 }}>
-                <div style={{ color: MUT, fontSize: 10, letterSpacing: 1, marginBottom: 14 }}>THIẾT BỊ ĐÃ THUÊ</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <div style={{ background: "#0d0d0a", border: `1px solid ${BR}`, borderRadius: 16, padding: "20px 24px", marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 16 }}>📷</span>
+                    <span style={{ color: "#888", fontSize: 12, fontWeight: 700, letterSpacing: 1.5 }}>THIẾT BỊ ĐÃ THUÊ</span>
+                  </div>
+                  <button onClick={() => setTab("orders")} style={{ background: "none", border: "none", color: G, fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, padding: 0 }}>
+                    Xem tất cả <span>→</span>
+                  </button>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 9 }}>
                   {usedCameras.map(c => (
-                    <span key={c} style={{ background: G + "15", color: G, border: `1px solid ${G}33`, borderRadius: 99, padding: "5px 14px", fontSize: 12, fontWeight: 600 }}>📷 {c}</span>
+                    <span key={c} style={{ background: "#141410", color: G, border: `1px solid ${BR}`, borderRadius: 99, padding: "7px 16px", fontSize: 12.5, fontWeight: 600, display: "flex", alignItems: "center", gap: 7 }}>
+                      <span style={{ fontSize: 14 }}>📷</span><span>{c}</span>
+                    </span>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Quick action */}
+            {/* Unreviewed orders CTA */}
             {(() => {
               const unreviewed = completedOrders.filter(o => !feedbacks.some(f =>
                 f.orderId === o.id && (
@@ -944,19 +991,31 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                 )
               ));
               return unreviewed.length > 0 && (
-                <div style={{ background: "#0a0900", border: `1px solid ${G}44`, borderRadius: 12, padding: "18px 22px", marginBottom: 20 }}>
-                  <div style={{ color: G, fontWeight: 700, fontSize: 14, marginBottom: 6 }}>⭐ Bạn có {unreviewed.length} đơn chưa đánh giá!</div>
-                  <div style={{ color: MUT, fontSize: 12, marginBottom: 14 }}>Chia sẻ trải nghiệm để giúp cộng đồng và nhận huy hiệu Creator.</div>
-                  <button onClick={() => setTab("orders")} style={{ padding: "9px 22px", background: G, color: "#000", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 700, fontSize: 12, fontFamily: "system-ui,sans-serif" }}>Đánh giá ngay →</button>
+                <div style={{ background: "#0a0900", border: `1px solid ${G}44`, borderRadius: 14, padding: "18px 24px", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+                  <div>
+                    <div style={{ color: G, fontWeight: 700, fontSize: 14, marginBottom: 4 }}>⭐ Bạn có {unreviewed.length} đơn chưa đánh giá!</div>
+                    <div style={{ color: MUT, fontSize: 12 }}>Chia sẻ trải nghiệm để nhận huy hiệu.</div>
+                  </div>
+                  <button onClick={() => setTab("orders")} style={{ flexShrink: 0, padding: "9px 20px", background: G, color: "#000", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12 }}>Đánh giá ngay →</button>
                 </div>
               );
             })()}
 
             {/* CTA book more */}
             {onOpenBooking && (
-              <button onClick={onOpenBooking} style={{ width: "100%", padding: "14px 0", background: "transparent", border: `1px solid ${G}55`, color: G, borderRadius: 10, cursor: "pointer", fontSize: 13, fontFamily: "system-ui,sans-serif", fontWeight: 600, letterSpacing: 1 }}>
-                📷 Thuê thêm thiết bị →
-              </button>
+              <div
+                onClick={onOpenBooking}
+                style={{ border: `1.5px dashed ${G}44`, borderRadius: 16, padding: "24px 28px", cursor: "pointer", display: "flex", alignItems: "center", gap: 18, transition: "border-color .2s, background .2s" }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = G + "99"; e.currentTarget.style.background = G + "08"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = G + "44"; e.currentTarget.style.background = "transparent"; }}
+              >
+                <div style={{ width: 44, height: 44, borderRadius: "50%", border: `1.5px solid ${G}66`, display: "flex", alignItems: "center", justifyContent: "center", color: G, fontSize: 22, fontWeight: 300, flexShrink: 0 }}>＋</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: G, fontWeight: 700, fontSize: 15, marginBottom: 3 }}>Thuê thêm thiết bị</div>
+                  <div style={{ color: "#555", fontSize: 12 }}>Khám phá thêm nhiều thiết bị chất lượng</div>
+                </div>
+                <div style={{ color: G, fontSize: 20, fontWeight: 300, flexShrink: 0 }}>→</div>
+              </div>
             )}
           </div>
         )}
@@ -1132,42 +1191,90 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
         {/* ── BADGES TAB ── */}
         {tab === "badges" && (
           <div>
-            <div style={{ color: TXT, fontWeight: 700, fontSize: 17, marginBottom: 4 }}>Huy hiệu của tôi</div>
-            <div style={{ width: 30, height: 2, background: G, marginBottom: 18 }} />
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 14, marginBottom: 28 }}>
-              {[
-                { icon: "🥉", label: "Khách Đồng", desc: "Thuê ít nhất 1 lần", col: "#cd7f32", unlocked: myOrders.length >= 1 },
-                { icon: "🥈", label: "Khách Bạc", desc: "Thuê 3+ lần", col: "#aaa", unlocked: myOrders.length >= 3 },
-                { icon: "🥇", label: "Khách Vàng", desc: "Thuê 5+ lần", col: G, unlocked: myOrders.length >= 5 },
-                { icon: "👑", label: "Đại Gia Khoảnh Khắc", desc: "Thuê tổng 30+ ngày", col: G, unlocked: totalDays >= 30 },
-                { icon: "💎", label: "Khách VIP", desc: "Chi tiêu 5,000,000đ+", col: "#38bdf8", unlocked: totalSpent >= 5000000 },
-                { icon: "💠", label: "Kim Cương", desc: "Chi tiêu 10,000,000đ+", col: "#e879f9", unlocked: totalSpent >= 10000000 },
-              ].map(b => (
-                <div key={b.label} style={{ background: CARD, border: `1px solid ${b.unlocked ? b.col + "44" : BR}`, borderRadius: 14, padding: "22px 18px", textAlign: "center", opacity: b.unlocked ? 1 : 0.4, transition: "all .3s", position: "relative" }}>
-                  {b.unlocked && <div style={{ position: "absolute", top: 10, right: 10, width: 8, height: 8, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 6px #22c55e" }} />}
-                  <div style={{ fontSize: 40, marginBottom: 10 }}>{b.icon}</div>
-                  <div style={{ color: b.unlocked ? b.col : MUT, fontWeight: 700, fontSize: 13, marginBottom: 5 }}>{b.label}</div>
-                  <div style={{ color: MUT, fontSize: 10 }}>{b.desc}</div>
-                  {b.unlocked && <div style={{ color: "#22c55e", fontSize: 10, marginTop: 8, fontWeight: 600 }}>✓ Đã mở khoá</div>}
-                </div>
-              ))}
+            {/* Section header */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+              <span style={{ fontSize: 22 }}>🏅</span>
+              <span style={{ color: TXT, fontWeight: 800, fontSize: 18, letterSpacing: 0.5 }}>HUY HIỆU CỦA TÔI</span>
+              <span style={{ color: `${G}66`, fontSize: 16 }}>◇</span>
             </div>
+            <div style={{ width: 36, height: 3, background: G, borderRadius: 2, marginBottom: 24 }} />
 
-            {/* Leaderboard hint */}
-            <div style={{ background: "#0a0900", border: `1px solid ${G}33`, borderRadius: 12, padding: "18px 22px" }}>
-              <div style={{ color: G, fontWeight: 700, fontSize: 14, marginBottom: 8 }}>🏆 Thống kê của bạn</div>
+            {/* Badge grid */}
+            {(() => {
+              const allBadges = [
+                { icon: "🥉", label: "Khách Đồng",          desc: "Thuê ít nhất 1 lần",    col: "#cd7f32", unlocked: myOrders.length >= 1 },
+                { icon: "🥈", label: "Khách Bạc",            desc: "Thuê 3+ lần",            col: "#b0b8c8", unlocked: myOrders.length >= 3 },
+                { icon: "🥇", label: "Khách Vàng",           desc: "Thuê 5+ lần",            col: G,         unlocked: myOrders.length >= 5 },
+                { icon: "👑", label: "Đại Gia Khoảnh Khắc", desc: "Thuê tổng 30+ ngày",     col: G,         unlocked: totalDays >= 30 },
+                { icon: "💎", label: "Khách VIP",            desc: "Chi tiêu 5,000,000đ+",   col: "#38bdf8", unlocked: totalSpent >= 5000000 },
+                { icon: "💠", label: "Kim Cương",            desc: "Chi tiêu 10,000,000đ+",  col: "#e879f9", unlocked: totalSpent >= 10000000 },
+              ];
+              // Find the highest unlocked badge index
+              const highestIdx = allBadges.reduce((hi, b, i) => b.unlocked ? i : hi, -1);
+
+              return (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
+                  {allBadges.map((b, i) => {
+                    const isHighest = i === highestIdx;
+                    return (
+                      <div key={b.label} style={{
+                        background: b.unlocked ? "#0e0d09" : "#0a0a09",
+                        border: `1px solid ${isHighest ? G + "cc" : b.unlocked ? b.col + "44" : BR}`,
+                        borderRadius: 14,
+                        padding: "22px 16px 18px",
+                        textAlign: "center",
+                        position: "relative",
+                        opacity: b.unlocked ? 1 : 0.55,
+                        transition: "all .3s",
+                        boxShadow: isHighest ? `0 0 24px ${G}22` : "none",
+                      }}>
+                        {/* Status dot or lock */}
+                        <div style={{ position: "absolute", top: 11, right: 12 }}>
+                          {b.unlocked
+                            ? <div style={{ width: 9, height: 9, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 8px #22c55eaa" }} />
+                            : <span style={{ fontSize: 13, opacity: 0.5 }}>🔒</span>}
+                        </div>
+
+                        {/* Medal icon */}
+                        <div style={{ fontSize: 44, marginBottom: 12, filter: b.unlocked ? "none" : "grayscale(1)" }}>{b.icon}</div>
+
+                        {/* Label */}
+                        <div style={{ color: b.unlocked ? b.col : "#555", fontWeight: 700, fontSize: 13, marginBottom: 5 }}>{b.label}</div>
+
+                        {/* Desc */}
+                        <div style={{ color: "#555", fontSize: 11, marginBottom: 10, lineHeight: 1.4 }}>{b.desc}</div>
+
+                        {/* Unlock status */}
+                        {b.unlocked
+                          ? <div style={{ color: "#22c55e", fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}><span>✓</span><span>Đã mở khoá</span></div>
+                          : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
+            {/* Stats section */}
+            <div style={{ background: "#0d0d0a", border: `1px solid ${BR}`, borderRadius: 16, padding: "24px 28px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18 }}>
+                <span style={{ fontSize: 18 }}>🏆</span>
+                <span style={{ color: G, fontWeight: 800, fontSize: 14, letterSpacing: 1 }}>THỐNG KÊ CỦA BẠN</span>
+              </div>
               {[
-                ["Tổng đơn đã thuê", myOrders.length + " đơn"],
-                ["Tổng ngày thuê", totalDays + " ngày"],
-                ["Tổng chi tiêu", fmtVND(totalSpent)],
-                ["Số đánh giá gửi", myFeedbacks.length + " feedback"],
-                ["Đánh giá được duyệt", myFeedbacks.filter(f => f.status === "approved").length + " đánh giá"],
-                ["Huy hiệu đã mở", badges.length + " / 6 huy hiệu"],
-              ].map(([l, v]) => (
-                <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BR}` }}>
-                  <span style={{ color: MUT, fontSize: 12 }}>{l}</span>
-                  <span style={{ color: G, fontWeight: 700, fontSize: 12 }}>{v}</span>
+                { icon: "📋", label: "Tổng đơn đã thuê",     value: myOrders.length + " đơn",                                  col: TXT },
+                { icon: "📅", label: "Tổng ngày thuê",        value: totalDays + " ngày",                                       col: TXT },
+                { icon: "💰", label: "Tổng chi tiêu",         value: fmtVND(totalSpent),                                        col: G },
+                { icon: "⭐", label: "Số đánh giá gửi",       value: myFeedbacks.length + " feedback",                          col: TXT },
+                { icon: "💬", label: "Đánh giá được duyệt",   value: myFeedbacks.filter(f => f.status === "approved").length + " đánh giá", col: TXT },
+                { icon: "🏅", label: "Huy hiệu đã mở",        value: badges.length + " / 6 huy hiệu",                           col: G },
+              ].map(({ icon, label, value, col }, i, arr) => (
+                <div key={label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 0", borderBottom: i < arr.length - 1 ? `1px solid ${BR}` : "none" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ fontSize: 16, width: 22, textAlign: "center" }}>{icon}</span>
+                    <span style={{ color: "#888", fontSize: 13 }}>{label}</span>
+                  </div>
+                  <span style={{ color: col, fontWeight: 700, fontSize: 13 }}>{value}</span>
                 </div>
               ))}
             </div>
@@ -1178,61 +1285,100 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
         {/* ── SETTINGS TAB ── */}
         {tab === "settings" && (
           <div>
-            <div style={{ color: TXT, fontWeight: 700, fontSize: 17, marginBottom: 4 }}>Cài đặt hồ sơ</div>
-            <div style={{ width: 30, height: 2, background: G, marginBottom: 22 }} />
+            <div style={{ color: TXT, fontWeight: 800, fontSize: 20, marginBottom: 6, fontFamily: "Georgia,serif" }}>Cài đặt hồ sơ</div>
+            <div style={{ width: 36, height: 3, background: G, borderRadius: 2, marginBottom: 24 }} />
 
-            <div style={{ background: CARD, border: `1px solid ${BR}`, borderRadius: 14, padding: "24px 22px", maxWidth: 520 }}>
-              {/* Avatar section */}
-              <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 18 }}>
-                <div style={{ position: "relative", flexShrink: 0 }} onClick={() => avatarRef.current?.click()} title="Đổi ảnh đại diện">
-                  <div style={{ width: 72, height: 72, borderRadius: "50%", background: G + "22", border: `2px solid ${G}55`, overflow: "hidden", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(220px,1fr) minmax(0,2fr)", gap: 16, alignItems: "start" }}>
+
+              {/* ── Left: Avatar card ── */}
+              <div style={{ background: "#0d0d0a", border: `1px solid ${BR}`, borderRadius: 16, padding: "28px 22px", textAlign: "center" }}>
+                {/* Big avatar */}
+                <div style={{ position: "relative", display: "inline-block", marginBottom: 16 }} onClick={() => avatarRef.current?.click()} title="Đổi ảnh">
+                  <div style={{ width: 120, height: 120, borderRadius: "50%", background: `radial-gradient(circle, ${G}22, #0d0d0a)`, border: `3px solid ${G}66`, overflow: "hidden", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, boxShadow: `0 0 0 5px ${G}12` }}>
                     {(loggedUser?.avatar || loggedUser?.picture)
                       ? <img src={loggedUser.avatar || loggedUser.picture} alt="avatar" referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      : <span>{loggedUser?.name?.[0]?.toUpperCase() || "👤"}</span>}
+                      : <span style={{ color: G, fontWeight: 800 }}>{loggedUser?.name?.[0]?.toUpperCase() || "?"}</span>}
                   </div>
-                  <div style={{ position: "absolute", bottom: 0, right: 0, width: 22, height: 22, borderRadius: "50%", background: G, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, border: "2px solid #060606", cursor: "pointer" }}>
+                  <div style={{ position: "absolute", bottom: 4, right: 4, width: 32, height: 32, borderRadius: "50%", background: G, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, border: `3px solid #0d0d0a`, cursor: "pointer", boxShadow: `0 0 12px ${G}99` }}>
                     {avatarLoading ? "⏳" : "📷"}
                   </div>
                   <input ref={avatarRef} type="file" accept="image/*" style={{ display: "none" }}
                     onChange={e => { if (e.target.files[0]) handleAvatarChange(e.target.files[0]); e.target.value = ""; }} />
                 </div>
-                <div>
-                  <div style={{ color: TXT, fontWeight: 600, fontSize: 14, marginBottom: 4 }}>Ảnh đại diện</div>
-                  <div style={{ color: MUT, fontSize: 12 }}>Bấm vào ảnh để thay đổi<br />Ảnh được lưu vào hồ sơ của bạn</div>
+
+                <div style={{ color: TXT, fontWeight: 700, fontSize: 15, marginBottom: 6, fontFamily: "Georgia,serif" }}>Ảnh đại diện</div>
+                <div style={{ color: MUT, fontSize: 11.5, lineHeight: 1.7, marginBottom: 18 }}>Bấm vào ảnh để thay đổi<br />Ảnh được lưu vào hồ sơ của bạn</div>
+
+                {/* Upload area */}
+                <div
+                  onClick={() => avatarRef.current?.click()}
+                  style={{ border: `1.5px dashed ${G}55`, borderRadius: 10, padding: "18px 12px", cursor: "pointer", transition: "border-color .2s, background .2s" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = G + "aa"; e.currentTarget.style.background = G + "08"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = G + "55"; e.currentTarget.style.background = "transparent"; }}
+                >
+                  <div style={{ fontSize: 26, marginBottom: 6 }}>☁️</div>
+                  <div style={{ color: G, fontWeight: 600, fontSize: 12, marginBottom: 3 }}>Tải ảnh lên</div>
+                  <div style={{ color: "#444", fontSize: 10 }}>JPG, PNG – Tối đa 5MB</div>
                 </div>
               </div>
 
-              {/* Form fields */}
-              {[
-                { key: "displayName", label: "Tên hiển thị", type: "text", placeholder: loggedUser?.name || "Tên của bạn", hint: "Tên này sẽ tự điền khi đặt máy" },
-                { key: "phone", label: "Số điện thoại", type: "tel", placeholder: "0901 234 567", hint: "Tự điền SĐT khi đặt máy" },
-                { key: "zalo", label: "Zalo", type: "tel", placeholder: "Số Zalo (nếu khác SĐT)", hint: "Dùng để xác nhận đơn qua Zalo" },
-                { key: "address", label: "Địa chỉ nhận máy", type: "text", placeholder: "Số nhà, đường, phường...", hint: "Tự điền địa chỉ khi đặt máy" },
-              ].map(({ key, label, type, placeholder, hint }) => (
-                <div key={key} style={{ marginBottom: 16 }}>
-                  <div style={{ color: MUT, fontSize: 10, letterSpacing: 1, marginBottom: 5, fontFamily: "system-ui,sans-serif" }}>{label.toUpperCase()}</div>
-                  <input
-                    type={type}
-                    value={settingsForm[key]}
-                    onChange={e => setSettingsForm(p => ({ ...p, [key]: e.target.value }))}
-                    placeholder={placeholder}
-                    style={{ padding: "10px 13px", background: "#111", border: `1px solid ${BR}`, borderRadius: 8, color: TXT, fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "system-ui,sans-serif" }}
-                  />
-                  <div style={{ color: "#333", fontSize: 10, marginTop: 4, fontFamily: "system-ui,sans-serif" }}>{hint}</div>
-                </div>
-              ))}
+              {/* ── Right: Form fields ── */}
+              <div style={{ background: "#0d0d0a", border: `1px solid ${BR}`, borderRadius: 16, overflow: "hidden" }}>
+                {[
+                  { key: "displayName", icon: "👤", label: "Tên hiển thị",     hint: "Tên này sẽ tự động hiển thị khi đặt máy",  type: "text", placeholder: loggedUser?.name || "Tên của bạn" },
+                  { key: "phone",       icon: "📞", label: "Số điện thoại",    hint: "Tự động gửi thông tin đặt máy",            type: "tel",  placeholder: "0901 234 567" },
+                  { key: "zalo",        icon: "💬", label: "Zalo",             hint: "Dùng để xác nhận đơn qua Zalo",           type: "tel",  placeholder: "Số Zalo" },
+                  { key: "address",     icon: "📍", label: "Địa chỉ nhận máy", hint: "Tự động hiển thị khi đặt máy",            type: "text", placeholder: "Số nhà, đường, phường..." },
+                ].map(({ key, icon, label, hint, type, placeholder }, idx, arr) => (
+                  <div key={key} style={{ padding: "18px 22px", borderBottom: idx < arr.length - 1 ? `1px solid ${BR}` : "none", display: "grid", gridTemplateColumns: "auto 1fr", gap: "0 16px", alignItems: "start" }}>
+                    {/* Icon + label col */}
+                    <div style={{ paddingTop: 2 }}>
+                      <span style={{ fontSize: 18 }}>{icon}</span>
+                    </div>
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 3 }}>
+                        <div style={{ color: TXT, fontWeight: 600, fontSize: 13 }}>{label}</div>
+                      </div>
+                      <div style={{ color: "#444", fontSize: 11, marginBottom: 8 }}>{hint}</div>
+                      <input
+                        type={type}
+                        value={settingsForm[key]}
+                        onChange={e => setSettingsForm(p => ({ ...p, [key]: e.target.value }))}
+                        placeholder={placeholder}
+                        style={{ width: "100%", padding: "11px 14px", background: "#111109", border: `1px solid ${BR}`, borderRadius: 10, color: TXT, fontSize: 13, outline: "none", boxSizing: "border-box", fontFamily: "system-ui,sans-serif", transition: "border-color .2s" }}
+                        onFocus={e => e.target.style.borderColor = G + "88"}
+                        onBlur={e => e.target.style.borderColor = BR}
+                      />
+                    </div>
+                  </div>
+                ))}
 
-              {/* Google info (readonly) */}
-              <div style={{ background: "#0a0a0a", border: `1px solid ${BR}`, borderRadius: 8, padding: "12px 14px", marginBottom: 20 }}>
-                <div style={{ color: MUT, fontSize: 10, letterSpacing: 1, marginBottom: 8 }}>TÀI KHOẢN GOOGLE</div>
-                <div style={{ color: TXT, fontSize: 13 }}>✉️ {loggedUser?.email}</div>
-                <div style={{ color: "#333", fontSize: 11, marginTop: 4 }}>Tên Google: {loggedUser?.name}</div>
+                {/* Google account row (readonly) */}
+                <div style={{ padding: "18px 22px", borderTop: `1px solid ${BR}`, display: "grid", gridTemplateColumns: "auto 1fr", gap: "0 16px", alignItems: "start" }}>
+                  <div style={{ paddingTop: 2 }}><span style={{ fontSize: 18 }}>✉️</span></div>
+                  <div>
+                    <div style={{ color: TXT, fontWeight: 600, fontSize: 13, marginBottom: 3 }}>Tài khoản Google</div>
+                    <div style={{ color: "#444", fontSize: 11, marginBottom: 8 }}>Dùng để bật xác minh &amp; đồng bộ</div>
+                    <input readOnly value={loggedUser?.email || ""} style={{ width: "100%", padding: "11px 14px", background: "#111109", border: `1px solid ${BR}`, borderRadius: 10, color: MUT, fontSize: 13, outline: "none", boxSizing: "border-box", fontFamily: "system-ui,sans-serif" }} />
+                    <div style={{ marginTop: 7, display: "flex", alignItems: "center", gap: 5 }}>
+                      <span style={{ color: "#22c55e", fontSize: 14 }}>✅</span>
+                      <span style={{ color: "#22c55e", fontSize: 11, fontWeight: 600 }}>Đã xác minh</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Save button */}
+                <div style={{ padding: "18px 22px", borderTop: `1px solid ${BR}` }}>
+                  <button onClick={handleSaveSettings}
+                    style={{ width: "100%", padding: "15px 0", background: settingsSaved ? "#052" : `linear-gradient(135deg, ${G}, #b8923e)`, color: settingsSaved ? "#22c55e" : "#0a0800", border: settingsSaved ? "1px solid #22c55e44" : "none", borderRadius: 12, cursor: "pointer", fontWeight: 800, fontSize: 15, fontFamily: "system-ui,sans-serif", transition: "all .3s", letterSpacing: 0.3, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                    {settingsSaved ? <><span>✓</span><span>Đã lưu hồ sơ!</span></> : <><span>💾</span><span>Lưu cài đặt</span></>}
+                  </button>
+                  <div style={{ textAlign: "center", marginTop: 10, color: "#383830", fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                    <span>🛡️</span><span>Thông tin của bạn được bảo mật tuyệt đối</span>
+                  </div>
+                </div>
               </div>
 
-              <button onClick={handleSaveSettings}
-                style={{ width: "100%", padding: "12px 0", background: settingsSaved ? "#022" : G, color: settingsSaved ? "#22c55e" : "#000", border: settingsSaved ? "1px solid #22c55e44" : "none", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif", transition: "all .3s" }}>
-                {settingsSaved ? "✓ Đã lưu hồ sơ!" : "💾 Lưu cài đặt"}
-              </button>
             </div>
           </div>
         )}
@@ -1386,21 +1532,21 @@ function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, se
 }
 
 // ── STABLE components — defined OUTSIDE BookingModal to avoid remount-on-render lag ──
-const BK_flatInp = { background:"transparent", border:"none", outline:"none", color:"#f0e8d0", fontSize:12, fontFamily:"system-ui,sans-serif", width:"100%", padding:0 };
+const BK_flatInp = { background:"transparent", border:"none", outline:"none", color:"#f0e8d0", fontSize:14, fontFamily:"system-ui,sans-serif", width:"100%", padding:0 };
 
 function BK_IconBox({ children }) {
   return (
-    <div style={{ width:28, height:28, background:"#141008", border:"1px solid #2a2010", borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>{children}</div>
+    <div style={{ width:34, height:34, background:"#141008", border:"1px solid #2a2010", borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>{children}</div>
   );
 }
 
 function BK_FormRow({ icon, labelTop, labelBottom, children, noBorder }) {
   return (
-    <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderBottom: noBorder ? "none" : "1px solid #181410" }}>
+    <div style={{ display:"flex", alignItems:"center", gap:14, padding:"12px 16px", borderBottom: noBorder ? "none" : "1px solid #181410" }}>
       <BK_IconBox>{icon}</BK_IconBox>
-      <div style={{ width:80, flexShrink:0 }}>
-        <div style={{ color:"#777", fontSize:8, letterSpacing:1.2, fontFamily:"system-ui,sans-serif", fontWeight:600, lineHeight:1.4 }}>{labelTop}</div>
-        {labelBottom && <div style={{ color:"#555", fontSize:8, letterSpacing:1, fontFamily:"system-ui,sans-serif", lineHeight:1.4 }}>{labelBottom}</div>}
+      <div style={{ width:90, flexShrink:0 }}>
+        <div style={{ color:"#888", fontSize:10, letterSpacing:1, fontFamily:"system-ui,sans-serif", fontWeight:700, lineHeight:1.5 }}>{labelTop}</div>
+        {labelBottom && <div style={{ color:"#555", fontSize:10, letterSpacing:0.5, fontFamily:"system-ui,sans-serif", lineHeight:1.4 }}>{labelBottom}</div>}
       </div>
       <div style={{ flex:1 }}>{children}</div>
     </div>
@@ -1409,6 +1555,7 @@ function BK_FormRow({ icon, labelTop, labelBottom, children, noBorder }) {
 
 function BookingModal({ cameras, accessories, siteContent, discounts, setDiscounts, onClose, onSubmit, loggedUser, preselectedCamId, orders }) {
   const [step, setStep] = useState(1);
+  const [expandedCam, setExpandedCam] = useState(null);
   // selCams: { [camId]: qty }
   const [selCams, setSelCams] = useState(() => preselectedCamId ? { [preselectedCamId]: 1 } : {});
   const [selDur, setSelDur] = useState(null);
@@ -1420,6 +1567,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   const [info, setInfo] = useState({ name: loggedUser?.displayName || loggedUser?.name || "", phone: loggedUser?.phone || "", zalo: loggedUser?.zalo || loggedUser?.phone || "", address: loggedUser?.address || "", note: "" });
   const [done, setDone] = useState(false);
   const [orderId, setOrderId] = useState("");
+  const [summaryOpen, setSummaryOpen] = useState(false);
 
   // ── Discount state ──
   const [discountCode, setDiscountCode] = useState("");
@@ -1562,7 +1710,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   };
 
   const overlay = { position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.92)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "24px 16px", overflowY: "auto" };
-  const box = { background: "#080808", border: `1px solid ${BR}`, borderRadius: 14, padding: "min(20px, 3vw)", width: step === 2 ? "min(600px,96vw)" : "min(420px,96vw)", position: "relative", margin: "auto", transition: "width .3s" };
+  const box = { background: "#080808", border: `1px solid ${BR}`, borderRadius: 14, padding: "min(20px, 3vw)", width: step === 1 ? "min(500px,96vw)" : step === 2 ? "min(660px,96vw)" : "min(660px,96vw)", position: "relative", margin: "auto", transition: "width .3s" };
   const inpS = { padding: "11px 14px", background: "#0e0e0e", border: `1px solid ${BR}`, borderRadius: 8, color: TXT, fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "system-ui,sans-serif", transition: "border .2s" };
   const qtyBtn = (onClick, label) => (
     <button onClick={onClick} style={{ width: 26, height: 26, border: `1px solid ${BR}`, borderRadius: 5, background: "#111", color: TXT, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontFamily: "monospace" }}>{label}</button>
@@ -1653,8 +1801,8 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                 </div>
               </div>
 
-              {/* Camera list */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 18 }}>
+              {/* Camera list — 2 cột */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
                 {availCams.map(c => {
                   const isSelected = (selCams[c.id] || 0) > 0;
                   const tags = CAM_TAGS[c.name] || [];
@@ -1662,73 +1810,72 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                   const isPopular = CAM_POPULAR.includes(c.name);
                   return (
                     <div key={c.id} style={{
-                      border: `1px solid ${isSelected ? G : "#222"}`,
+                      border: `1px solid ${isSelected ? G : "#3a3a3a"}`,
                       borderRadius: 12,
-                      background: isSelected ? "#0f0c00" : "#0e0e0e",
+                      background: "#111",
                       transition: "all .2s",
                       overflow: "hidden",
+                      position: "relative",
                     }}>
-                      {/* Main row */}
-                      <div style={{ display: "flex", gap: 0, cursor: "pointer" }} onClick={() => toggleCam(c)}>
+                      {/* Ảnh — full card, tỉ lệ cố định */}
+                      <div style={{ position: "relative", width: "100%", paddingTop: "130%", background: "#111", overflow: "hidden" }}>
+                        {isPopular && null}
+                        {/* Checkbox góc trên phải */}
+                        <div onClick={() => toggleCam(c)} style={{ position: "absolute", top: 7, right: 7, zIndex: 3, width: 24, height: 24, borderRadius: 6, border: `2px solid ${isSelected ? G : "rgba(255,255,255,0.4)"}`, background: isSelected ? G : "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all .2s" }}>
+                          {isSelected && <span style={{ color: "#000", fontSize: 13, fontWeight: 900, lineHeight: 1 }}>✓</span>}
+                        </div>
                         {/* Ảnh */}
-                        <div style={{ width: 110, minHeight: 110, background: "#111", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, position: "relative", borderRight: `1px solid #1a1a1a` }}>
-                          {isPopular && (
-                            <div style={{ position: "absolute", top: 8, left: 8, background: G, color: "#000", fontSize: 9, fontWeight: 800, borderRadius: 4, padding: "2px 7px", fontFamily: "system-ui,sans-serif", letterSpacing: 0.5 }}>Phổ biến</div>
-                          )}
-                          {c.images?.length > 0
-                            ? <img src={c.images[0]} alt={c.name} style={{ width: "100%", height: 110, objectFit: "cover" }} />
-                            : <span style={{ fontSize: 40 }}>{c.icon}</span>}
-                        </div>
+                        {c.images?.length > 0
+                          ? <img src={c.images[0]} alt={c.name} onClick={() => toggleCam(c)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }} />
+                          : <span onClick={() => toggleCam(c)} style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, cursor: "pointer" }}>{c.icon}</span>}
 
-                        {/* Info */}
-                        <div style={{ flex: 1, padding: "12px 14px", minWidth: 0 }}>
-                          <div style={{ color: isSelected ? G : TXT, fontWeight: 700, fontSize: 15, marginBottom: 7, fontFamily: "system-ui,sans-serif" }}>{c.name}</div>
-                          {/* Tags */}
-                          {tags.length > 0 && (
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 8 }}>
-                              {tags.map(t => (
-                                <span key={t} style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", color: "#888", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontFamily: "system-ui,sans-serif" }}>{t}</span>
-                              ))}
+                        {/* Info overlay — dưới cùng, mặc định trong suốt */}
+                        <div style={{
+                          position: "absolute", bottom: 0, left: 0, right: 0,
+                          background: expandedCam === c.id
+                            ? "linear-gradient(to top, rgba(8,6,0,0.97) 0%, rgba(8,6,0,0.95) 80%, rgba(8,6,0,0.6) 100%)"
+                            : "linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.35) 60%, transparent 100%)",
+                          transition: "background .3s",
+                          padding: expandedCam === c.id ? "14px 12px 12px" : "28px 12px 10px",
+                        }}>
+                          {/* Tên + giá */}
+                          <div onClick={() => toggleCam(c)} style={{ cursor: "pointer", marginBottom: 5 }}>
+                            <div style={{ color: isSelected ? G : "#fff", fontWeight: 700, fontSize: 13, fontFamily: "system-ui,sans-serif", lineHeight: 1.3, marginBottom: 3, textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>{c.name}</div>
+                            <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                              <span style={{ color: G, fontWeight: 800, fontSize: 14, fontFamily: "system-ui,sans-serif", textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>{new Intl.NumberFormat("vi-VN").format(c.price)}đ</span>
+                              <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 10, fontFamily: "system-ui,sans-serif" }}>/ ngày</span>
+                            </div>
+                          </div>
+
+                          {/* Nút chi tiết */}
+                          <button onClick={e => { e.stopPropagation(); setExpandedCam(expandedCam === c.id ? null : c.id); }}
+                            style={{ background: "none", border: "none", color: expandedCam === c.id ? G : "rgba(255,255,255,0.45)", fontSize: 10, fontFamily: "system-ui,sans-serif", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 3 }}>
+                            {expandedCam === c.id ? "▴ Thu gọn" : "▾ Chi tiết"}
+                          </button>
+
+                          {/* Thông tin mở rộng */}
+                          {expandedCam === c.id && (
+                            <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid rgba(201,168,76,0.2)" }}>
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
+                                {tags.slice(0, 3).map(t => (
+                                  <span key={t} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "#ccc", borderRadius: 4, padding: "2px 6px", fontSize: 9, fontFamily: "system-ui,sans-serif" }}>{t}</span>
+                                ))}
+                              </div>
+                              <div style={{ color: "#bbb", fontSize: 10, fontFamily: "system-ui,sans-serif", lineHeight: 1.6 }}>{details[0]}</div>
+                              {details[1] && <div style={{ color: "#888", fontSize: 10, fontFamily: "system-ui,sans-serif", marginTop: 4, lineHeight: 1.5 }}>{details[1]}</div>}
                             </div>
                           )}
-                          {/* Detail lines */}
-                          <div style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: 8 }}>
-                            {details.map((d, i) => (
-                              <div key={i} style={{ color: i === 0 ? "#888" : "#555", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>{d}</div>
-                            ))}
-                          </div>
-                          <div style={{ color: G, fontSize: 11, fontFamily: "system-ui,sans-serif", cursor: "pointer" }}>Xem chi tiết &gt;</div>
-                        </div>
-
-                        {/* Price + checkbox */}
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "14px 16px", gap: 10, flexShrink: 0 }}>
-                          <div style={{ textAlign: "center" }}>
-                            <div style={{ color: G, fontWeight: 800, fontSize: 16, fontFamily: "system-ui,sans-serif", whiteSpace: "nowrap" }}>
-                              {new Intl.NumberFormat("vi-VN").format(c.price)}đ
-                            </div>
-                            <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif" }}>/ ngày</div>
-                          </div>
-                          <div style={{
-                            width: 26, height: 26, borderRadius: 6,
-                            border: `2px solid ${isSelected ? G : "#444"}`,
-                            background: isSelected ? G : "transparent",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            flexShrink: 0, transition: "all .2s",
-                          }}>
-                            {isSelected && <span style={{ color: "#000", fontSize: 14, fontWeight: 900, lineHeight: 1 }}>✓</span>}
-                          </div>
                         </div>
                       </div>
 
                       {/* Qty row khi đã chọn */}
                       {isSelected && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", background: "#0a0800", borderTop: `1px solid ${G}22` }}>
-                          <span style={{ color: MUT, fontSize: 11, flex: 1, fontFamily: "system-ui,sans-serif" }}>Số lượng:</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#0a0800", borderTop: `1px solid ${G}22` }}>
+                          <span style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif" }}>SL:</span>
                           {qtyBtn(() => setCamQty(c.id, (selCams[c.id] || 1) - 1, c.qty), "−")}
-                          <span style={{ color: G, fontWeight: 700, fontSize: 15, minWidth: 24, textAlign: "center", fontFamily: "system-ui,sans-serif" }}>{selCams[c.id]}</span>
+                          <span style={{ color: G, fontWeight: 700, fontSize: 14, minWidth: 20, textAlign: "center", fontFamily: "system-ui,sans-serif" }}>{selCams[c.id]}</span>
                           {qtyBtn(() => setCamQty(c.id, (selCams[c.id] || 1) + 1, c.qty), "+")}
-                          <span style={{ color: "#444", fontSize: 10, fontFamily: "system-ui,sans-serif" }}>/ {c.qty} có sẵn</span>
-                          <span style={{ color: G, fontSize: 12, fontWeight: 700, marginLeft: "auto", fontFamily: "system-ui,sans-serif" }}>+{fmtVND(c.price * (selCams[c.id] || 1))}/ngày</span>
+                          <span style={{ color: "#444", fontSize: 9, fontFamily: "system-ui,sans-serif", marginLeft: "auto" }}>/ {c.qty} sẵn</span>
                         </div>
                       )}
                     </div>
@@ -1753,257 +1900,292 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
           // ── Sidebar (tóm tắt đơn) ──
           const sidebar = (
             <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-              {/* TÓM TẮT ĐƠN THUÊ */}
-              <div style={{ background:"#0e0c08", border:`1px solid ${G}28`, borderRadius:14, padding:"18px 16px" }}>
-                <div style={{ color:MUT, fontSize:9, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", marginBottom:14, fontWeight:600 }}>TÓM TẮT ĐƠN THUÊ</div>
-                {/* Danh sách máy */}
-                {selectedCamList.map(c => (
-                  <div key={c.id} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
-                    <div style={{ width:44, height:44, background:"#111", borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0, border:`1px solid #222`, overflow:"hidden" }}>
-                      {c.images?.length > 0
-                        ? <img src={c.images[0]} alt={c.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
-                        : c.icon}
+              <div style={{ background:"#0e0c08", border:`1px solid ${G}28`, borderRadius:14, overflow:"hidden" }}>
+
+                {/* ── Header — luôn hiện, click để toggle ── */}
+                <div onClick={() => setSummaryOpen(p => !p)}
+                  style={{ display:"flex", alignItems:"center", gap:10, padding:"11px 14px", cursor:"pointer", userSelect:"none" }}>
+                  {/* Icon máy nhỏ */}
+                  {selectedCamList[0] && (
+                    <div style={{ width:32, height:32, background:"#111", borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0, border:`1px solid #222`, overflow:"hidden" }}>
+                      {selectedCamList[0].images?.length > 0
+                        ? <img src={selectedCamList[0].images[0]} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                        : selectedCamList[0].icon}
                     </div>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ color:TXT, fontWeight:700, fontSize:13, fontFamily:"system-ui,sans-serif" }}>{c.name}</div>
-                      <div style={{ color:MUT, fontSize:11, fontFamily:"system-ui,sans-serif" }}>x{selCams[c.id] || 1}</div>
-                    </div>
-                  </div>
-                ))}
-                <div style={{ borderTop:`1px solid #1e1a12`, marginBottom:12 }} />
-                {/* Chi tiết thời gian */}
-                {[
-                  { label:"Thời gian thuê", val: days > 0 ? fmtDays(days, selShift) : "—", highlight: true },
-                  { label:"Nhận máy",        val: ri ? `${ri.pickTime} · ${ri.pickDate}` : "—" },
-                  { label:"Trả máy trước",   val: ri ? `${ri.dropTime} · ${ri.dropDate}` : "—" },
-                ].map(({ label, val, highlight }) => (
-                  <div key={label} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-                    <span style={{ color:MUT, fontSize:11, fontFamily:"system-ui,sans-serif" }}>{label}</span>
-                    <span style={{ color: highlight ? G : TXT, fontWeight: highlight ? 700 : 500, fontSize:12, fontFamily:"system-ui,sans-serif", textAlign:"right", maxWidth:"55%" }}>{val}</span>
-                  </div>
-                ))}
-                {ri && (
-                  <>
-                    <div style={{ borderTop:`1px solid #1e1a12`, margin:"10px 0" }} />
-                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
-                      <span style={{ color:MUT, fontSize:11, fontFamily:"system-ui,sans-serif" }}>⏱ Tổng thời gian</span>
-                      <span style={{ color:G, fontWeight:700, fontSize:12, fontFamily:"system-ui,sans-serif" }}>{ri.totalLabel}</span>
-                    </div>
-                  </>
-                )}
-                <div style={{ borderTop:`1px solid #1e1a12`, marginTop:8, paddingTop:12 }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                    <span style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>Tổng cộng</span>
-                    <span style={{ color:G, fontWeight:900, fontSize:22, fontFamily:"system-ui,sans-serif" }}>
+                  )}
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ color:MUT, fontSize:8, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>TÓM TẮT ĐƠN THUÊ</div>
+                    <div style={{ color:G, fontWeight:900, fontSize:15, fontFamily:"system-ui,sans-serif", marginTop:1 }}>
                       {new Intl.NumberFormat("vi-VN").format(total)}đ
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Feature badges */}
-              <div style={{ background:"#0e0c08", border:`1px solid #1a1812`, borderRadius:14, padding:"16px" }}>
-                {[
-                  { icon:"📸", title:"Giữ máy dễ dàng",    desc:"Đặt nhanh, giữ máy trong vài phút" },
-                  { icon:"🎧", title:"Hỗ trợ 24/7",         desc:"Tư vấn nhanh chóng, tận tâm" },
-                  { icon:"🛡️", title:"An tâm tuyệt đối",    desc:"Bảo mật thông tin & thiết bị" },
-                ].map(({ icon, title, desc }) => (
-                  <div key={title} style={{ display:"flex", alignItems:"flex-start", gap:12, marginBottom:14, lastChild:{ marginBottom:0 } }}>
-                    <div style={{ width:36, height:36, background:"#161410", border:`1px solid #2a2620`, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>{icon}</div>
-                    <div>
-                      <div style={{ color:TXT, fontWeight:600, fontSize:12, fontFamily:"system-ui,sans-serif" }}>{title}</div>
-                      <div style={{ color:"#555", fontSize:11, fontFamily:"system-ui,sans-serif", marginTop:2 }}>{desc}</div>
                     </div>
                   </div>
-                ))}
+                  {/* Chevron */}
+                  <div style={{ color:MUT, fontSize:12, transition:"transform .25s", transform: summaryOpen ? "rotate(180deg)" : "rotate(0deg)", flexShrink:0 }}>▼</div>
+                </div>
+
+                {/* ── Chi tiết — chỉ hiện khi mở ── */}
+                {summaryOpen && (
+                  <div style={{ borderTop:`1px solid #1e1a12`, padding:"12px 14px" }}>
+                    {/* Danh sách máy */}
+                    {selectedCamList.map(c => (
+                      <div key={c.id} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+                        <div style={{ width:36, height:36, background:"#111", borderRadius:7, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, flexShrink:0, border:`1px solid #222`, overflow:"hidden" }}>
+                          {c.images?.length > 0
+                            ? <img src={c.images[0]} alt={c.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                            : c.icon}
+                        </div>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ color:TXT, fontWeight:700, fontSize:12, fontFamily:"system-ui,sans-serif" }}>{c.name}</div>
+                          <div style={{ color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif" }}>x{selCams[c.id] || 1}</div>
+                        </div>
+                      </div>
+                    ))}
+                    <div style={{ borderTop:`1px solid #1e1a12`, marginBottom:10 }} />
+                    {/* Chi tiết thời gian */}
+                    {[
+                      { label:"Thời gian thuê", val: days > 0 ? fmtDays(days, selShift) : "—", highlight: true },
+                      { label:"Nhận máy",        val: ri ? `${ri.pickTime} · ${ri.pickDate}` : "—" },
+                      { label:"Trả máy trước",   val: ri ? `${ri.dropTime} · ${ri.dropDate}` : "—" },
+                    ].map(({ label, val, highlight }) => (
+                      <div key={label} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                        <span style={{ color:MUT, fontSize:11, fontFamily:"system-ui,sans-serif" }}>{label}</span>
+                        <span style={{ color: highlight ? G : TXT, fontWeight: highlight ? 700 : 500, fontSize:11, fontFamily:"system-ui,sans-serif", textAlign:"right", maxWidth:"55%" }}>{val}</span>
+                      </div>
+                    ))}
+                    {ri && (
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", borderTop:`1px solid #1e1a12`, paddingTop:8, marginTop:2 }}>
+                        <span style={{ color:MUT, fontSize:11, fontFamily:"system-ui,sans-serif" }}>⏱ Tổng thời gian</span>
+                        <span style={{ color:G, fontWeight:700, fontSize:11, fontFamily:"system-ui,sans-serif" }}>{ri.totalLabel}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Cần hỗ trợ */}
-              <div style={{ background:"#0e0c08", border:`1px solid #1a1812`, borderRadius:14, padding:"14px 16px", display:"flex", alignItems:"center", gap:12 }}>
-                <div style={{ width:36, height:36, background:"#161410", border:`1px solid #2a2620`, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, flexShrink:0 }}>📞</div>
-                <div>
-                  <div style={{ color:TXT, fontSize:12, fontWeight:600, fontFamily:"system-ui,sans-serif" }}>Cần hỗ trợ?</div>
-                  <div style={{ color:MUT, fontSize:11, fontFamily:"system-ui,sans-serif" }}>Gọi ngay <span style={{ color:G, fontWeight:700 }}>{phoneDisplay}</span></div>
-                </div>
-              </div>
             </div>
           );
+
+          // ── Sidebar đã bỏ ──
 
           return (
             <div>
               {/* Back */}
-              <button onClick={() => setStep(1)} style={{ background:"none", border:"none", color:MUT, cursor:"pointer", fontSize:12, fontFamily:"system-ui,sans-serif", marginBottom:18, display:"flex", alignItems:"center", gap:5 }}>← Quay lại</button>
+              <button onClick={() => setStep(1)} style={{ background:"none", border:"none", color:MUT, cursor:"pointer", fontSize:12, fontFamily:"system-ui,sans-serif", marginBottom:16, display:"flex", alignItems:"center", gap:5 }}>← Quay lại</button>
 
-              {/* 2-col grid */}
-              <div style={{ display:"grid", gridTemplateColumns: isMob ? "1fr" : "1fr 280px", gap:20, alignItems:"start" }}>
-
-                {/* ── CỘT TRÁI ── */}
-                <div>
-                  <div style={{ marginBottom:20 }}>
-                    <div style={{ color:TXT, fontWeight:700, fontSize:20, letterSpacing:0.2, marginBottom:4 }}>Chọn thời gian thuê</div>
-                    <div style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>Chọn ngày nhận và trả máy</div>
-                  </div>
-
-                  {/* Duration buttons */}
-                  <div style={{ display:"flex", gap:6, marginBottom:18, flexWrap:"wrap" }}>
-                    {DURATIONS.map(d => {
-                      const active = selDur?.days === d.days;
-                      return (
-                        <button key={d.days} onClick={() => { setSelDur(d); setCustomDays(""); if (d.days !== 0.5) setSelShift(null); }}
-                          style={{ flex:"1 1 auto", minWidth:60, padding:"10px 8px", background: active ? "#1a1200" : "#111", color: active ? G : "#aaa", border:`1px solid ${active ? G : "#222"}`, borderRadius:8, cursor:"pointer", fontSize:13, fontFamily:"system-ui,sans-serif", fontWeight: active ? 700 : 400, transition:"all .2s" }}>
-                          {d.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Chọn ca (chỉ khi 1 buổi) */}
-                  {needShift && (
-                    <div style={{ marginBottom:16, background:"#080800", border:`1px solid ${G}33`, borderRadius:10, padding:"14px 16px" }}>
-                      <div style={{ color:G, fontSize:10, fontWeight:700, letterSpacing:1.2, marginBottom:12, fontFamily:"system-ui,sans-serif" }}>⏰ CHỌN CA THUÊ</div>
-                      <div style={{ display:"flex", gap:10 }}>
-                        {SHIFTS.map(sh => {
-                          const sel = selShift === sh.key;
-                          return (
-                            <button key={sh.key} onClick={() => setSelShift(sh.key)}
-                              style={{ flex:1, padding:"14px 8px", background: sel ? "#1a1200" : "#0e0e0e", color: sel ? G : MUT, border:`2px solid ${sel ? G : BR}`, borderRadius:10, cursor:"pointer", transition:"all .2s", textAlign:"center" }}>
-                              <div style={{ fontSize:20, marginBottom:4 }}>{sh.label.split(" ")[0]}</div>
-                              <div style={{ fontSize:12, fontWeight: sel ? 700 : 400, fontFamily:"system-ui,sans-serif" }}>{sh.label.split(" ").slice(1).join(" ")}</div>
-                              <div style={{ fontSize:10, color: sel ? G+"cc" : "#555", marginTop:3, fontFamily:"system-ui,sans-serif" }}>{sh.time}</div>
-                              {sel && <div style={{ marginTop:6, fontSize:10, color:"#22c55e" }}>✓ Đã chọn</div>}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      {!selShift && <div style={{ color:"#f59e0b", fontSize:11, marginTop:10, fontFamily:"system-ui,sans-serif" }}>⚠️ Vui lòng chọn ca trước khi tiếp tục</div>}
-                    </div>
-                  )}
-
-                  {/* Nhập số ngày tuỳ chỉnh */}
-                  <div style={{ marginBottom:16 }}>
-                    <div style={{ color:"#555", fontSize:9, letterSpacing:1.5, marginBottom:6, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>HOẶC NHẬP SỐ NGÀY</div>
-                    <div style={{ position:"relative" }}>
-                      <input style={{ ...inpS, paddingRight:50 }} type="number" min={1} value={customDays}
-                        onChange={e => { setCustomDays(e.target.value); setSelDur(null); }} placeholder="VD: 5" />
-                      <span style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif", pointerEvents:"none" }}>ngày</span>
-                    </div>
-                  </div>
-
-                  {/* Calendar */}
-                  <div style={{ marginBottom:14 }}>
-                    <div style={{ color:"#555", fontSize:9, letterSpacing:1.5, marginBottom:8, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>CHỌN NGÀY BẮT ĐẦU</div>
-                    <BookingCalendar
-                      selectedCams={selectedCamList.map(c => ({ id:c.id, qty:selCams[c.id] || 1, camQty:c.qty || 1 }))}
-                      orders={orders} pickDate={pickDate} setPickDate={setPickDate} days={days} selShift={selShift}
-                    />
-                    <div style={{ position:"relative", marginTop:8 }}>
-                      <input style={{ ...inpS, fontSize:12 }} type="date" value={pickDate} min={todayStr()} onChange={e => setPickDate(e.target.value)} />
-                    </div>
-                  </div>
-
-                  {/* Thời gian dự kiến */}
-                  {ri && (
-                    <div style={{ background:"#0a0900", border:`1px solid #252010`, borderRadius:10, padding:"16px", marginBottom:16 }}>
-                      <div style={{ color:"#555", fontSize:9, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:600, marginBottom:14 }}>THỜI GIAN DỰ KIẾN</div>
-                      {[
-                        { icon:"📦", label:"Nhận máy",       time:ri.pickTime, date:ri.pickDate },
-                        { icon:"📅", label:"Trả máy trước",  time:ri.dropTime, date:ri.dropDate },
-                      ].map(({ icon, label, time, date }) => (
-                        <div key={label} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
-                          <span style={{ fontSize:14, width:20, textAlign:"center" }}>{icon}</span>
-                          <span style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif", flex:1 }}>{label}</span>
-                          <span style={{ background:G+"22", color:G, border:`1px solid ${G}44`, borderRadius:6, padding:"3px 10px", fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif" }}>{time}</span>
-                          <span style={{ color:"#888", fontSize:12, fontFamily:"system-ui,sans-serif" }}>{date}</span>
-                        </div>
-                      ))}
-                      <div style={{ borderTop:`1px solid #1e1a12`, margin:"10px 0" }} />
-                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-                        <span style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>⏱ Tổng thời gian</span>
-                        <span style={{ color:G, fontWeight:700, fontSize:13, fontFamily:"system-ui,sans-serif" }}>{ri.totalLabel}</span>
-                      </div>
-                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-                        <span style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>🏷 Thành tiền</span>
-                        <span style={{ color:G, fontWeight:800, fontSize:18, fontFamily:"system-ui,sans-serif" }}>{new Intl.NumberFormat("vi-VN").format(camCost)}đ</span>
-                      </div>
-                      {/* Lưu ý phí trễ */}
-                      <div style={{ background:"#100d00", border:"1px solid #2a2010", borderRadius:8, padding:"10px 12px" }}>
-                        <div style={{ color:"#666", fontSize:9, letterSpacing:1.2, fontFamily:"system-ui,sans-serif", fontWeight:600, marginBottom:8 }}>LƯU Ý THỜI GIAN</div>
-                        {[
-                          { color:"#22c55e", icon:"✅", text:"Trễ 1 giờ đầu miễn phí" },
-                          { color:"#f59e0b", icon:"⏱",  text:"Từ giờ thứ 2: +30.000đ/giờ" },
-                          { color:"#f87171", icon:"⏰", text:"Quá 6 giờ → tính thêm 1 ngày thuê" },
-                        ].map(({ color, icon, text }) => (
-                          <div key={text} style={{ display:"flex", alignItems:"center", gap:7, marginBottom:5 }}>
-                            <span style={{ fontSize:12 }}>{icon}</span>
-                            <span style={{ color, fontSize:11, fontFamily:"system-ui,sans-serif" }}>{text}</span>
+              {/* ── PHỤKIỆN — trên cùng ── */}
+              <div style={{ marginBottom:20 }}>
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
+                  <span style={{ color:TXT, fontWeight:700, fontSize:15, fontFamily:"system-ui,sans-serif" }}>Phụ kiện đi kèm</span>
+                  {days > 0 && accCost > 0 && <span style={{ color:G, fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif" }}>+{fmtVND(accCost)}</span>}
+                </div>
+                <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
+                  {accessories.filter(a => a.active !== false).map(a => {
+                    const qty = selAcc[a.name] || 0;
+                    const isSel = qty > 0;
+                    const maxQty = a.qty || 99;
+                    const unitPrice = days === 0.5 && a.priceShift ? a.priceShift : a.price;
+                    const multiplier = days === 0.5 ? 1 : (days || 1);
+                    const lineTotal = unitPrice * qty * multiplier;
+                    return (
+                      <div key={a.id} style={{ border:`1px solid ${isSel ? G+"55" : "#1e1e1e"}`, borderRadius:10, padding:"10px 13px", background: isSel ? "#0a0900" : "#0d0d0d", transition:"all .2s" }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer" }} onClick={() => toggleAcc(a.name)}>
+                          <div style={{ width:18, height:18, borderRadius:4, border:`2px solid ${isSel ? G : "#333"}`, background: isSel ? G : "transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all .2s" }}>
+                            {isSel && <span style={{ color:"#000", fontSize:11, fontWeight:900, lineHeight:1 }}>✓</span>}
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Phụ kiện */}
-                  <div style={{ marginBottom:20 }}>
-                    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
-                      <span style={{ color:TXT, fontWeight:600, fontSize:14, fontFamily:"system-ui,sans-serif" }}>Phụ kiện đi kèm</span>
-                      {days > 0 && accCost > 0 && <span style={{ color:G, fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif" }}>+{fmtVND(accCost)}</span>}
-                    </div>
-                    <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                      {accessories.filter(a => a.active !== false).map(a => {
-                        const qty = selAcc[a.name] || 0;
-                        const isSel = qty > 0;
-                        const maxQty = a.qty || 99;
-                        const unitPrice = days === 0.5 && a.priceShift ? a.priceShift : a.price;
-                        const multiplier = days === 0.5 ? 1 : (days || 1);
-                        const lineTotal = unitPrice * qty * multiplier;
-                        return (
-                          <div key={a.id} style={{ border:`1px solid ${isSel ? G+"55" : "#1e1e1e"}`, borderRadius:10, padding:"12px 14px", background: isSel ? "#0a0900" : "#0d0d0d", transition:"all .2s" }}>
-                            <div style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer" }} onClick={() => toggleAcc(a.name)}>
-                              <div style={{ width:20, height:20, borderRadius:5, border:`2px solid ${isSel ? G : "#333"}`, background: isSel ? G : "transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all .2s" }}>
-                                {isSel && <span style={{ color:"#000", fontSize:12, fontWeight:900, lineHeight:1 }}>✓</span>}
-                              </div>
-                              <div style={{ flex:1, minWidth:0 }}>
-                                <span style={{ color: isSel ? TXT : "#888", fontSize:13, fontFamily:"system-ui,sans-serif" }}>{a.name}</span>
-                                {a.desc && <div style={{ color:"#444", fontSize:10, marginTop:2, fontFamily:"system-ui,sans-serif" }}>{a.desc}</div>}
-                              </div>
-                              <span style={{ color:G, fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif", flexShrink:0 }}>{fmtVND(a.price)}/ngày</span>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <span style={{ color: isSel ? TXT : "#888", fontSize:13, fontFamily:"system-ui,sans-serif" }}>{a.name}</span>
+                            {a.desc && <div style={{ color:"#444", fontSize:10, marginTop:1, fontFamily:"system-ui,sans-serif" }}>{a.desc}</div>}
+                          </div>
+                          <span style={{ color:G, fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif", flexShrink:0 }}>{fmtVND(a.price)}/ngày</span>
+                        </div>
+                        {isSel && (
+                          <div style={{ marginTop:8, paddingTop:8, borderTop:`1px solid ${G}22` }}>
+                            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom: days > 0 ? 7 : 0 }}>
+                              <span style={{ color:MUT, fontSize:11, fontFamily:"system-ui,sans-serif" }}>Số lượng:</span>
+                              {qtyBtn(() => setAccQty(a.name, qty-1, maxQty), "−")}
+                              <span style={{ color:G, fontWeight:700, fontSize:14, minWidth:20, textAlign:"center", fontFamily:"system-ui,sans-serif" }}>{qty}</span>
+                              {qtyBtn(() => setAccQty(a.name, qty+1, maxQty), "+")}
+                              {maxQty < 99 && <span style={{ color:"#444", fontSize:10, fontFamily:"system-ui,sans-serif" }}>/ {maxQty} cái</span>}
                             </div>
-                            {isSel && (
-                              <div style={{ marginTop:10, paddingTop:8, borderTop:`1px solid ${G}22` }}>
-                                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom: days > 0 ? 8 : 0 }}>
-                                  <span style={{ color:MUT, fontSize:11, fontFamily:"system-ui,sans-serif" }}>Số lượng:</span>
-                                  {qtyBtn(() => setAccQty(a.name, qty-1, maxQty), "−")}
-                                  <span style={{ color:G, fontWeight:700, fontSize:14, minWidth:20, textAlign:"center", fontFamily:"system-ui,sans-serif" }}>{qty}</span>
-                                  {qtyBtn(() => setAccQty(a.name, qty+1, maxQty), "+")}
-                                  {maxQty < 99 && <span style={{ color:"#444", fontSize:10, fontFamily:"system-ui,sans-serif" }}>/ {maxQty} cái</span>}
-                                </div>
-                                {days > 0 && (
-                                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", background:"#111", borderRadius:6, padding:"6px 10px" }}>
-                                    <span style={{ color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif" }}>{qty} × {fmtVND(unitPrice)} × {fmtDays(days, selShift)}</span>
-                                    <span style={{ color:G, fontWeight:700, fontSize:12, fontFamily:"system-ui,sans-serif" }}>= {fmtVND(lineTotal)}</span>
-                                  </div>
-                                )}
+                            {days > 0 && (
+                              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", background:"#111", borderRadius:6, padding:"5px 10px" }}>
+                                <span style={{ color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif" }}>{qty} × {fmtVND(unitPrice)} × {fmtDays(days, selShift)}</span>
+                                <span style={{ color:G, fontWeight:700, fontSize:12, fontFamily:"system-ui,sans-serif" }}>= {fmtVND(lineTotal)}</span>
                               </div>
                             )}
                           </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ── THỜI GIAN THUÊ — trải full width ── */}
+              <div style={{ marginBottom:16 }}>
+                <div style={{ color:"#555", fontSize:9, letterSpacing:1.5, marginBottom:8, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>THỜI GIAN THUÊ</div>
+                <div style={{ display:"grid", gridTemplateColumns:`repeat(${DURATIONS.length},1fr)`, gap:6, marginBottom:14 }}>
+                  {DURATIONS.map(d => {
+                    const active = selDur?.days === d.days;
+                    return (
+                      <button key={d.days} onClick={() => { setSelDur(d); setCustomDays(""); if (d.days !== 0.5) setSelShift(null); }}
+                        style={{ padding:"11px 4px", background: active ? "#1a1200" : "#111", color: active ? G : "#aaa", border:`1px solid ${active ? G : "#222"}`, borderRadius:8, cursor:"pointer", fontSize:12, fontFamily:"system-ui,sans-serif", fontWeight: active ? 700 : 400, transition:"all .2s", textAlign:"center" }}>
+                        {d.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Chọn ca (chỉ khi 1 buổi) */}
+                {needShift && (
+                  <div style={{ marginBottom:14, background:"#080800", border:`1px solid ${G}33`, borderRadius:10, padding:"12px 14px" }}>
+                    <div style={{ color:G, fontSize:10, fontWeight:700, letterSpacing:1.2, marginBottom:10, fontFamily:"system-ui,sans-serif" }}>⏰ CHỌN CA THUÊ</div>
+                    <div style={{ display:"flex", gap:10 }}>
+                      {SHIFTS.map(sh => {
+                        const sel = selShift === sh.key;
+                        return (
+                          <button key={sh.key} onClick={() => setSelShift(sh.key)}
+                            style={{ flex:1, padding:"12px 8px", background: sel ? "#1a1200" : "#0e0e0e", color: sel ? G : MUT, border:`2px solid ${sel ? G : BR}`, borderRadius:10, cursor:"pointer", transition:"all .2s", textAlign:"center" }}>
+                            <div style={{ fontSize:18, marginBottom:3 }}>{sh.label.split(" ")[0]}</div>
+                            <div style={{ fontSize:12, fontWeight: sel ? 700 : 400, fontFamily:"system-ui,sans-serif" }}>{sh.label.split(" ").slice(1).join(" ")}</div>
+                            <div style={{ fontSize:10, color: sel ? G+"cc" : "#555", marginTop:2, fontFamily:"system-ui,sans-serif" }}>{sh.time}</div>
+                            {sel && <div style={{ marginTop:4, fontSize:10, color:"#22c55e" }}>✓ Đã chọn</div>}
+                          </button>
                         );
                       })}
                     </div>
+                    {!selShift && <div style={{ color:"#f59e0b", fontSize:11, marginTop:8, fontFamily:"system-ui,sans-serif" }}>⚠️ Vui lòng chọn ca trước khi tiếp tục</div>}
                   </div>
+                )}
 
-                  {/* Nút tiếp tục — chỉ hiện trong cột trái */}
-                  <button onClick={() => days > 0 && shiftReady && setStep(3)} disabled={days === 0 || !shiftReady}
-                    style={{ width:"100%", padding:15, background: days > 0 && shiftReady ? G : "#1a1a1a", color: days > 0 && shiftReady ? "#000" : MUT, border:"none", borderRadius:10, cursor: days > 0 && shiftReady ? "pointer" : "not-allowed", fontWeight:800, fontSize:15, fontFamily:"system-ui,sans-serif", letterSpacing:0.5 }}>
-                    {needShift && !selShift ? "Chọn ca để tiếp tục" : "Tiếp tục →"}
-                  </button>
+                {/* Nhập số ngày tuỳ chỉnh */}
+                <div style={{ marginBottom:14 }}>
+                  <div style={{ color:"#555", fontSize:9, letterSpacing:1.5, marginBottom:6, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>HOẶC NHẬP SỐ NGÀY</div>
+                  <div style={{ position:"relative" }}>
+                    <input style={{ ...inpS, paddingRight:50 }} type="number" min={1} value={customDays}
+                      onChange={e => { setCustomDays(e.target.value); setSelDur(null); }} placeholder="VD: 5" />
+                    <span style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif", pointerEvents:"none" }}>ngày</span>
+                  </div>
                 </div>
-
-                {/* ── CỘT PHẢI (sidebar) — chỉ trên desktop ── */}
-                {!isMob && sidebar}
               </div>
 
-              {/* Sidebar trên mobile (hiện sau cột trái) */}
-              {isMob && <div style={{ marginTop:20 }}>{sidebar}</div>}
+              {/* ── LỊCH + THỜI GIAN DỰ KIẾN — ngang nhau ── */}
+              <div style={{ display:"grid", gridTemplateColumns: ri ? "1fr 1fr" : "1fr", gap:10, marginBottom:18, alignItems:"start" }}>
+                {/* Calendar */}
+                <div>
+                  <div style={{ color:"#555", fontSize:9, letterSpacing:1.5, marginBottom:8, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>CHỌN NGÀY BẮT ĐẦU</div>
+                  <BookingCalendar
+                    selectedCams={selectedCamList.map(c => ({ id:c.id, qty:selCams[c.id] || 1, camQty:c.qty || 1 }))}
+                    orders={orders} pickDate={pickDate} setPickDate={setPickDate} days={days} selShift={selShift}
+                  />
+                  <div style={{ position:"relative", marginTop:8 }}>
+                    <input style={{ ...inpS, fontSize:12 }} type="date" value={pickDate} min={todayStr()} onChange={e => setPickDate(e.target.value)} />
+                  </div>
+                </div>
+
+                {/* Thời gian dự kiến */}
+                {ri && (
+                  <div style={{ background:"#0a0900", border:`1px solid #252010`, borderRadius:10, padding:"14px" }}>
+                    <div style={{ color:"#888", fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700, marginBottom:12 }}>THỜI GIAN DỰ KIẾN</div>
+                    {[
+                      { icon:"📦", label:"Nhận máy",      time:ri.pickTime, date:ri.pickDate },
+                      { icon:"📅", label:"Trả máy trước", time:ri.dropTime, date:ri.dropDate },
+                    ].map(({ icon, label, time, date }) => (
+                      <div key={label} style={{ marginBottom:12 }}>
+                        <div style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif", marginBottom:5, fontWeight:500 }}>{icon} {label}</div>
+                        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                          <span style={{ background:G+"22", color:G, border:`1px solid ${G}55`, borderRadius:7, padding:"5px 12px", fontSize:15, fontWeight:800, fontFamily:"system-ui,sans-serif", letterSpacing:0.5 }}>{time}</span>
+                          <span style={{ color:"#aaa", fontSize:14, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>{date}</span>
+                        </div>
+                      </div>
+                    ))}
+                    <div style={{ borderTop:`1px solid #1e1a12`, margin:"10px 0" }} />
+                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+                      <span style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>⏱ Tổng</span>
+                      <span style={{ color:G, fontWeight:700, fontSize:13, fontFamily:"system-ui,sans-serif" }}>{ri.totalLabel}</span>
+                    </div>
+                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:10 }}>
+                      <span style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>🏷 Tiền máy</span>
+                      <span style={{ color:G, fontWeight:800, fontSize:15, fontFamily:"system-ui,sans-serif" }}>{new Intl.NumberFormat("vi-VN").format(camCost)}đ</span>
+                    </div>
+                    <div style={{ background:"#100d00", border:"1px solid #2a2010", borderRadius:6, padding:"9px 11px" }}>
+                      {[
+                        { color:"#22c55e", icon:"✅", text:"Trễ 1 giờ đầu miễn phí" },
+                        { color:"#f59e0b", icon:"⏱",  text:"Từ giờ 2: +30k/giờ" },
+                        { color:"#f87171", icon:"⏰", text:"Quá 6 giờ → +1 ngày" },
+                      ].map(({ color, icon, text }) => (
+                        <div key={text} style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4 }}>
+                          <span style={{ fontSize:12 }}>{icon}</span>
+                          <span style={{ color, fontSize:11, fontFamily:"system-ui,sans-serif" }}>{text}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ── TỔNG ĐƠN TẠM TÍNH ── */}
+              {days > 0 && (
+                <div style={{ background:"#0a0900", border:`1px solid ${G}33`, borderRadius:12, padding:"16px 18px", marginBottom:14 }}>
+                  <div style={{ color:"#888", fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700, marginBottom:14 }}>TỔNG ĐƠN TẠM TÍNH</div>
+
+                  {/* Máy ảnh */}
+                  {selectedCamList.map(c => (
+                    <div key={c.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                      <span style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>
+                        📷 {c.name}{(selCams[c.id] || 0) > 1 ? ` ×${selCams[c.id]}` : ""} · {fmtDays(days, selShift)}
+                      </span>
+                      <span style={{ color:TXT, fontSize:12, fontWeight:600, fontFamily:"system-ui,sans-serif" }}>
+                        {fmtVND(c.price * (selCams[c.id] || 0) * days)}
+                      </span>
+                    </div>
+                  ))}
+
+                  {/* Phụ kiện */}
+                  {Object.entries(selAcc).filter(([,q]) => q > 0).map(([name, qty]) => {
+                    const acc = accessories.find(a => a.name === name);
+                    if (!acc) return null;
+                    const unitPrice = days === 0.5 && acc.priceShift ? acc.priceShift : acc.price;
+                    return (
+                      <div key={name} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                        <span style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>🎒 {name}{qty > 1 ? ` ×${qty}` : ""}</span>
+                        <span style={{ color:TXT, fontSize:12, fontWeight:600, fontFamily:"system-ui,sans-serif" }}>{fmtVND(unitPrice * qty * days)}</span>
+                      </div>
+                    );
+                  })}
+
+                  {/* Divider */}
+                  <div style={{ borderTop:`1px solid #252010`, margin:"10px 0" }} />
+
+                  {/* Subtotal */}
+                  {accCost > 0 && (
+                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+                      <span style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>Tạm tính</span>
+                      <span style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>{fmtVND(subtotal)}</span>
+                    </div>
+                  )}
+
+                  {/* Discount */}
+                  {appliedDiscount && (
+                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+                      <span style={{ color:"#22c55e", fontSize:12, fontFamily:"system-ui,sans-serif" }}>🏷️ {appliedDiscount.code}</span>
+                      <span style={{ color:"#22c55e", fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif" }}>-{fmtVND(discountAmt)}</span>
+                    </div>
+                  )}
+
+                  {/* Total */}
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:4 }}>
+                    <span style={{ color:TXT, fontSize:14, fontWeight:700, fontFamily:"system-ui,sans-serif" }}>Tổng cộng</span>
+                    <span style={{ color:G, fontSize:20, fontWeight:900, fontFamily:"system-ui,sans-serif", letterSpacing:0.5 }}>{fmtVND(total)}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Nút tiếp tục */}
+              <button onClick={() => days > 0 && shiftReady && setStep(3)} disabled={days === 0 || !shiftReady}
+                style={{ width:"100%", padding:15, background: days > 0 && shiftReady ? G : "#1a1a1a", color: days > 0 && shiftReady ? "#000" : MUT, border:"none", borderRadius:10, cursor: days > 0 && shiftReady ? "pointer" : "not-allowed", fontWeight:800, fontSize:15, fontFamily:"system-ui,sans-serif", letterSpacing:0.5 }}>
+                {needShift && !selShift ? "Chọn ca để tiếp tục" : "Tiếp tục →"}
+              </button>
             </div>
           );
         })()}
@@ -2014,11 +2196,11 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
           // Dùng BK_FormRow, BK_IconBox, BK_flatInp đã định nghĩa ngoài component để tránh lag nhập liệu
 
           return (
-            <div style={{ paddingBottom:100 }}>
+            <div style={{ paddingBottom:68 }}>
               <button onClick={() => setStep(2)} style={{ background:"none", border:"none", color:MUT, cursor:"pointer", fontSize:12, fontFamily:"system-ui,sans-serif", marginBottom:18, display:"flex", alignItems:"center", gap:5 }}>← Quay lại</button>
 
               {/* ── SUMMARY CARD ── */}
-              <div style={{ border:`1px solid #252010`, borderRadius:14, overflow:"hidden", marginBottom:22, background:"#0b0900" }}>
+              <div style={{ border:`1px solid #252010`, borderRadius:14, overflow:"hidden", marginBottom:14, background:"#0b0900" }}>
                 {selectedCamList.map((c, idx) => (
                   <div key={c.id} style={{ display:"flex", alignItems:"center", gap:0, borderBottom: idx < selectedCamList.length - 1 ? `1px solid #1a1610` : "none" }}>
                     {/* Ảnh */}
@@ -2028,32 +2210,31 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                         : c.icon}
                     </div>
                     {/* Info */}
-                    <div style={{ flex:1, padding:"12px 14px", minWidth:0 }}>
-                      <div style={{ color:G, fontSize:7, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:600, marginBottom:4 }}>TÓM TẮT ĐƠN THUÊ</div>
-                      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:5 }}>
-                        <span style={{ color:TXT, fontWeight:700, fontSize:13, fontFamily:"system-ui,sans-serif" }}>{c.name}</span>
-                        <span style={{ background:"#1a1a1a", border:`1px solid #333`, color:"#888", fontSize:9, borderRadius:4, padding:"1px 6px", fontFamily:"system-ui,sans-serif" }}>x{selCams[c.id] || 1}</span>
+                    <div style={{ flex:1, padding:"14px 16px", minWidth:0 }}>
+                      <div style={{ color:G, fontSize:9, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700, marginBottom:6 }}>TÓM TẮT ĐƠN THUÊ</div>
+                      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
+                        <span style={{ color:TXT, fontWeight:700, fontSize:15, fontFamily:"system-ui,sans-serif" }}>{c.name}</span>
+                        <span style={{ background:"#1a1a1a", border:`1px solid #333`, color:"#888", fontSize:10, borderRadius:4, padding:"1px 7px", fontFamily:"system-ui,sans-serif" }}>x{selCams[c.id] || 1}</span>
                       </div>
                       {ri && idx === 0 && (
-                        <div style={{ display:"flex", alignItems:"center", gap:6, color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif" }}>
-                          <span>📅</span>
-                          <span>{fmtDays(days, selShift)} · {ri.pickDate} → {ri.dropDate}</span>
+                        <div style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>
+                          {fmtDays(days, selShift)} · {ri.pickDate} → {ri.dropDate}
                         </div>
                       )}
                     </div>
                     {/* Giá */}
                     {idx === 0 && (
-                      <div style={{ padding:"10px 14px", textAlign:"right", flexShrink:0 }}>
+                      <div style={{ padding:"14px 16px", textAlign:"right", flexShrink:0 }}>
                         {appliedDiscount ? (
                           <>
-                            <div style={{ color:MUT, fontSize:10, textDecoration:"line-through", fontFamily:"system-ui,sans-serif" }}>{new Intl.NumberFormat("vi-VN").format(subtotal)}đ</div>
-                            <div style={{ color:"#22c55e", fontSize:10, fontFamily:"system-ui,sans-serif" }}>-{new Intl.NumberFormat("vi-VN").format(discountAmt)}đ</div>
-                            <div style={{ color:G, fontWeight:900, fontSize:16, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap" }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</div>
+                            <div style={{ color:MUT, fontSize:11, textDecoration:"line-through", fontFamily:"system-ui,sans-serif" }}>{new Intl.NumberFormat("vi-VN").format(subtotal)}đ</div>
+                            <div style={{ color:"#22c55e", fontSize:11, fontFamily:"system-ui,sans-serif" }}>-{new Intl.NumberFormat("vi-VN").format(discountAmt)}đ</div>
+                            <div style={{ color:G, fontWeight:900, fontSize:18, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap" }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</div>
                           </>
                         ) : (
-                          <div style={{ color:G, fontWeight:900, fontSize:16, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap" }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</div>
+                          <div style={{ color:G, fontWeight:900, fontSize:18, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap" }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</div>
                         )}
-                        <div style={{ color:"#555", fontSize:8, letterSpacing:1, fontFamily:"system-ui,sans-serif", marginTop:2 }}>TỔNG CỘNG</div>
+                        <div style={{ color:"#666", fontSize:9, letterSpacing:1, fontFamily:"system-ui,sans-serif", marginTop:3 }}>TỔNG CỘNG</div>
                       </div>
                     )}
                   </div>
@@ -2071,9 +2252,9 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               </div>
 
               {/* ── FORM SECTION ── */}
-              <div style={{ color:G, fontSize:10, letterSpacing:2, fontFamily:"system-ui,sans-serif", fontWeight:700, marginBottom:12 }}>THÔNG TIN NGƯỜI THUÊ</div>
+              <div style={{ color:G, fontSize:11, letterSpacing:2, fontFamily:"system-ui,sans-serif", fontWeight:700, marginBottom:10 }}>THÔNG TIN NGƯỜI THUÊ</div>
 
-              <div style={{ background:"#0c0a08", border:`1px solid #1e1a12`, borderRadius:14, overflow:"hidden", marginBottom:18 }}>
+              <div style={{ background:"#0c0a08", border:`1px solid #1e1a12`, borderRadius:14, overflow:"hidden", marginBottom:14 }}>
                 {/* Mã giảm giá */}
                 <BK_FormRow icon="🏷️" labelTop="MÃ GIẢM GIÁ" labelBottom="(TÙY CHỌN)">
                   {appliedDiscount ? (
@@ -2125,7 +2306,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 
                 {/* Ghi chú */}
                 <BK_FormRow icon="📋" labelTop="GHI CHÚ" noBorder>
-                  <textarea style={{ ...BK_flatInp, resize:"vertical", minHeight:50, lineHeight:1.5 }}
+                  <textarea style={{ ...BK_flatInp, resize:"vertical", minHeight:38, lineHeight:1.5 }}
                     value={info.note}
                     onChange={e => setInfo(p => ({ ...p, note: e.target.value }))}
                     placeholder="Yêu cầu đặc biệt, lưu ý thêm..." />
@@ -2133,16 +2314,16 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               </div>
 
               {/* ── BOTTOM BAR (fixed) ── */}
-              <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"min(600px,100vw)", background:"linear-gradient(to top,#060606 80%,transparent)", padding:"16px 20px", zIndex:999, boxSizing:"border-box" }}>
-                <div style={{ background:"#0e0c08", border:`1px solid #2a2010`, borderRadius:12, padding:"12px 14px", display:"flex", alignItems:"center", gap:12, flexWrap:"wrap" }}>
-                  <div style={{ flex:1 }}>
-                    <div style={{ color:"#666", fontSize:8, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>TỔNG CỘNG</div>
-                    <div style={{ color:G, fontWeight:900, fontSize:18, fontFamily:"system-ui,sans-serif", marginTop:1 }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</div>
+              <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"min(660px,100vw)", background:"linear-gradient(to top,#060606 80%,transparent)", padding:"16px 20px", zIndex:999, boxSizing:"border-box" }}>
+                <div style={{ background:"#0e0c08", border:`1px solid #2a2010`, borderRadius:12, padding:"12px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:16 }}>
+                  <div>
+                    <div style={{ color:"#888", fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>TỔNG CỘNG</div>
+                    <div style={{ color:G, fontWeight:900, fontSize:20, fontFamily:"system-ui,sans-serif", marginTop:2 }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</div>
                   </div>
                   <button onClick={() => info.name && info.phone && handleFinish()}
                     disabled={!info.name || !info.phone}
-                    style={{ padding:"11px 18px", background: info.name && info.phone ? `linear-gradient(135deg,${G},#a07830)` : "#1a1a1a", color: info.name && info.phone ? "#000" : "#444", border:"none", borderRadius:8, cursor: info.name && info.phone ? "pointer" : "not-allowed", fontWeight:800, fontSize:12, fontFamily:"system-ui,sans-serif", display:"flex", alignItems:"center", gap:6, whiteSpace:"nowrap", boxShadow: info.name && info.phone ? `0 4px 16px ${G}44` : "none", transition:"all .2s" }}>
-                    📅 XÁC NHẬN ĐẶT THUÊ
+                    style={{ padding:"13px 22px", background: info.name && info.phone ? `linear-gradient(135deg,${G},#a07830)` : "#1a1a1a", color: info.name && info.phone ? "#000" : "#444", border:"none", borderRadius:8, cursor: info.name && info.phone ? "pointer" : "not-allowed", fontWeight:900, fontSize:13, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap", boxShadow: info.name && info.phone ? `0 4px 20px ${G}55` : "none", transition:"all .2s", letterSpacing:0.5 }}>
+                    XÁC NHẬN ĐẶT THUÊ
                   </button>
                 </div>
                 {/* Trust badges */}
@@ -2946,58 +3127,162 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
   }) : [];
   const totalSpent = myOrders.filter(o => o.status !== "cancelled").reduce((s, o) => s + o.total, 0);
 
-  const tabBtn = (k, label) => (
-    <button onClick={() => setTab(k)} style={{ flex: 1, padding: "11px 0", background: "none", border: "none", borderBottom: `2px solid ${tab === k ? G : "transparent"}`, color: tab === k ? G : MUT, fontWeight: tab === k ? 700 : 400, fontSize: 13, cursor: "pointer", fontFamily: "system-ui,sans-serif", transition: "all .2s" }}>{label}</button>
+  // ── Keyframes injected once ──
+  useEffect(() => {
+    const id = "login-keyframes-92k";
+    if (document.getElementById(id)) return;
+    const style = document.createElement("style");
+    style.id = id;
+    style.textContent = `
+      @keyframes loginFadeIn {
+        from { opacity: 0; transform: translateY(18px) scale(0.97); }
+        to   { opacity: 1; transform: translateY(0)   scale(1);    }
+      }
+      @keyframes loginGlow {
+        0%, 100% { box-shadow: 0 0 60px rgba(201,168,76,0.07), 0 0 0 1px rgba(201,168,76,0.13); }
+        50%       { box-shadow: 0 0 90px rgba(201,168,76,0.13), 0 0 0 1px rgba(201,168,76,0.22); }
+      }
+      @keyframes camFloat {
+        0%, 100% { transform: translateY(0px); }
+        50%       { transform: translateY(-6px); }
+      }
+      @keyframes shimmer {
+        0%   { background-position: -200% center; }
+        100% { background-position:  200% center; }
+      }
+      .login-card-92k { animation: loginFadeIn .45s cubic-bezier(0.22,1,0.36,1) both, loginGlow 4s ease-in-out 1s infinite; }
+      .cam-float-92k  { animation: camFloat 3.5s ease-in-out infinite; }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
+  const tabBtn = (k, icon, label) => (
+    <button onClick={() => setTab(k)} style={{
+      flex: 1, padding: "13px 0", background: "none", border: "none",
+      borderBottom: `2px solid ${tab === k ? G : "transparent"}`,
+      color: tab === k ? G : MUT,
+      fontWeight: tab === k ? 700 : 400,
+      fontSize: 13, cursor: "pointer",
+      fontFamily: "system-ui,sans-serif",
+      transition: "all .25s",
+      display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+    }}>
+      <span style={{ fontSize: 15 }}>{icon}</span>
+      <span style={{ letterSpacing: 0.3 }}>{label}</span>
+    </button>
+  );
+
+  // Google SVG icon
+  const GoogleIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#EA4335" d="M24 9.5c3.1 0 5.9 1.1 8.1 2.9l6-6C34.5 3.5 29.6 1.5 24 1.5 14.9 1.5 7.2 7 3.7 14.8l7 5.4C12.4 14 17.7 9.5 24 9.5z"/>
+      <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.3-4 6.8-10 6.8-17z"/>
+      <path fill="#FBBC05" d="M10.7 28.6A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.6l-7-5.4C1.8 17.2 1 20.5 1 24c0 3.5.8 6.8 2.2 9.7l7.5-5.1z"/>
+      <path fill="#34A853" d="M24 46.5c5.4 0 10-1.8 13.3-4.8l-7.5-5.8c-1.8 1.2-4.1 1.9-6.8 1.9-6.3 0-11.6-4.3-13.5-10.1l-7.5 5.1C7.2 41 15 46.5 24 46.5z"/>
+    </svg>
   );
 
   return (
     <>
-    <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.97)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ background: BG, border: `1px solid ${BR}`, borderRadius: 16, padding: "36px 40px 40px", width: "min(420px,94vw)", textAlign: "center", boxShadow: "0 0 80px rgba(201,168,76,0.08)", transform: shake ? "translateX(-5px)" : "none", transition: "transform .1s", maxHeight: "92vh", overflowY: "auto" }}>
+    {/* Backdrop with subtle grain */}
+    <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(3,3,3,0.97)", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(2px)" }}>
 
-        <Logo size={0.88} />
+      {/* Ambient gold glows in background */}
+      <div style={{ position: "absolute", width: 340, height: 340, borderRadius: "50%", background: "radial-gradient(circle, rgba(201,168,76,0.05) 0%, transparent 70%)", top: "20%", left: "50%", transform: "translateX(-50%)", pointerEvents: "none" }} />
 
-        {/* Tabs */}
-        <div style={{ display: "flex", borderBottom: `1px solid ${BR}`, margin: "28px -40px 0", padding: "0 40px" }}>
-          {tabBtn("customer", "👤 Khách hàng")}
-          {tabBtn("admin", "🔐 Quản trị")}
+      <div
+        className="login-card-92k"
+        style={{
+          background: "linear-gradient(160deg, #111009 0%, #0a0a08 60%, #080807 100%)",
+          border: "1px solid rgba(201,168,76,0.18)",
+          borderRadius: 20,
+          padding: "32px 36px 36px",
+          width: "min(400px,93vw)",
+          textAlign: "center",
+          transform: shake ? "translateX(-6px)" : undefined,
+          transition: "transform .1s",
+          maxHeight: "92vh",
+          overflowY: "auto",
+          position: "relative",
+          scrollbarWidth: "none",
+        }}
+      >
+        {/* Corner accents */}
+        <div style={{ position: "absolute", top: 14, left: 14, width: 18, height: 18, borderTop: `1.5px solid ${G}55`, borderLeft: `1.5px solid ${G}55`, borderRadius: "2px 0 0 0" }} />
+        <div style={{ position: "absolute", top: 14, right: 14, width: 18, height: 18, borderTop: `1.5px solid ${G}55`, borderRight: `1.5px solid ${G}55`, borderRadius: "0 2px 0 0" }} />
+
+        {/* ── Logo ── */}
+        <div style={{ marginBottom: 6 }}>
+          <Logo size={0.88} />
+        </div>
+
+        {/* ── Tab bar ── */}
+        <div style={{ display: "flex", borderBottom: `1px solid ${BR}`, margin: "20px -36px 0", padding: "0 36px" }}>
+          {tabBtn("customer", "👤", "Khách hàng")}
+          {tabBtn("admin", "🔐", "Quản trị")}
         </div>
 
         {/* ── Tab khách hàng ── */}
         {tab === "customer" && (
           <div style={{ marginTop: 24, textAlign: "left" }}>
 
-            {/* Chưa đăng nhập — hiện Google button */}
+            {/* Chưa đăng nhập */}
             {!loggedUser && (
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>📷</div>
-                <div style={{ color: TXT, fontSize: 16, fontWeight: 600, fontFamily: "var(--font-display)", letterSpacing: 0.5, marginBottom: 6 }}>Đăng nhập để đặt máy</div>
-                <div style={{ color: MUT, fontSize: 12, fontFamily: "system-ui,sans-serif", lineHeight: 1.7, marginBottom: 28 }}>
-                  Theo dõi đơn thuê · Gửi đánh giá<br />Không cần tạo tài khoản riêng
+                {/* Camera illustration with glow */}
+                <div style={{ position: "relative", display: "inline-block", marginBottom: 18 }}>
+                  <div style={{
+                    position: "absolute", inset: 0,
+                    background: "radial-gradient(ellipse 80% 55% at 50% 60%, rgba(201,168,76,0.18) 0%, transparent 70%)",
+                    filter: "blur(10px)",
+                    transform: "scale(1.4) translateY(10px)",
+                    borderRadius: "50%",
+                  }} />
+                  <div className="cam-float-92k" style={{ fontSize: 64, lineHeight: 1, position: "relative", filter: "drop-shadow(0 4px 24px rgba(201,168,76,0.3))" }}>
+                    📷
+                  </div>
                 </div>
 
-                {/* Google button container */}
-                <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+                {/* Heading */}
+                <div style={{ color: TXT, fontSize: 20, fontWeight: 700, fontFamily: "'Georgia', serif", letterSpacing: 0.3, marginBottom: 8 }}>
+                  Đăng nhập
+                </div>
+                <div style={{ color: MUT, fontSize: 12.5, fontFamily: "system-ui,sans-serif", lineHeight: 1.75, marginBottom: 28 }}>
+                  Đăng nhập ngay để nhận ưu đãi của thành viên
+                </div>
+
+                {/* Google button area */}
+                <div style={{ marginBottom: 16 }}>
                   {gsiErr ? (
                     <div style={{ color: "#ef4444", fontSize: 12, fontFamily: "system-ui,sans-serif", padding: "12px 0" }}>
                       ❌ Không tải được Google Sign-In.<br />
                       <span style={{ color: MUT, fontSize: 11 }}>Kiểm tra kết nối mạng và thử lại.</span>
                     </div>
                   ) : !gsiReady ? (
-                    <div style={{ color: MUT, fontSize: 12, fontFamily: "system-ui,sans-serif", padding: "12px 0" }}>
-                      ⏳ Đang tải Google Sign-In...
+                    <div style={{
+                      width: "100%", padding: "14px 18px", borderRadius: 12,
+                      background: "#161410", border: `1px solid ${BR}`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      gap: 10, color: MUT, fontSize: 13, fontFamily: "system-ui,sans-serif",
+                      boxSizing: "border-box",
+                    }}>
+                      <span style={{ opacity: 0.6, fontSize: 15 }}>⏳</span>
+                      <span>Đang tải Google Sign-In…</span>
                     </div>
                   ) : (
-                    <div ref={googleBtnRef} style={{ minHeight: 44 }} />
+                    <div style={{ display: "flex", justifyContent: "center" }}>
+                      <div ref={googleBtnRef} style={{ minHeight: 44 }} />
+                    </div>
                   )}
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "8px 0 16px" }}>
-                  <div style={{ flex: 1, height: 1, background: BR }} />
-                  <span style={{ color: "#2a2a2a", fontSize: 10, fontFamily: "system-ui,sans-serif" }}>BẢO MẬT BỞI GOOGLE</span>
-                  <div style={{ flex: 1, height: 1, background: BR }} />
+                {/* Divider */}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "14px 0 12px" }}>
+                  <div style={{ flex: 1, height: 1, background: `${BR}` }} />
+                  <span style={{ color: "#666", fontSize: 10, fontFamily: "system-ui,sans-serif", letterSpacing: 2, fontWeight: 600 }}>BẢO MẬT BỞI GOOGLE</span>
+                  <div style={{ flex: 1, height: 1, background: `${BR}` }} />
                 </div>
-                <div style={{ color: "#2a2a2a", fontSize: 10, fontFamily: "system-ui,sans-serif", lineHeight: 1.6 }}>
+                <div style={{ color: "#555", fontSize: 11, fontFamily: "system-ui,sans-serif", lineHeight: 1.7 }}>
                   92 KA MÊ RA chỉ nhận tên và email.<br />Không đọc dữ liệu Google Drive hay Gmail.
                 </div>
               </div>
@@ -3009,24 +3294,31 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
               return (
               <div>
                 <div style={{ textAlign: "center", marginBottom: 20 }}>
-                  <div style={{ width: 76, height: 76, borderRadius: "50%", background: G + "22", border: `2px solid ${G}55`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, overflow: "hidden", margin: "0 auto 10px" }}>
-                    {(loggedUser.picture || loggedUser.avatar)
-                      ? <img src={loggedUser.avatar || loggedUser.picture} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} referrerPolicy="no-referrer" />
-                      : <span>{loggedUser.name?.[0]?.toUpperCase() || "👤"}</span>}
+                  {/* Avatar ring */}
+                  <div style={{ position: "relative", display: "inline-block", margin: "0 auto 12px" }}>
+                    <div style={{ position: "absolute", inset: -3, borderRadius: "50%", background: `conic-gradient(${G}, ${G}55, ${G})`, opacity: 0.6 }} />
+                    <div style={{ width: 76, height: 76, borderRadius: "50%", background: G + "22", border: `3px solid ${BG}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, overflow: "hidden", position: "relative" }}>
+                      {(loggedUser.picture || loggedUser.avatar)
+                        ? <img src={loggedUser.avatar || loggedUser.picture} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} referrerPolicy="no-referrer" />
+                        : <span style={{ color: G, fontWeight: 800, fontSize: 28, fontFamily: "serif" }}>{loggedUser.name?.[0]?.toUpperCase() || "?"}</span>}
+                    </div>
                   </div>
-                  <div style={{ color: G, fontWeight: 700, fontSize: 16 }}>{loggedUser.displayName || loggedUser.name}</div>
-                  <div style={{ color: MUT, fontSize: 12, marginTop: 2 }}>✉️ {loggedUser.email}</div>
+                  <div style={{ color: TXT, fontWeight: 700, fontSize: 16, fontFamily: "Georgia,serif" }}>{loggedUser.displayName || loggedUser.name}</div>
+                  <div style={{ color: MUT, fontSize: 11.5, marginTop: 4, display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                    <span style={{ fontSize: 10 }}>✉</span>
+                    <span>{loggedUser.email}</span>
+                  </div>
                 </div>
 
                 {/* Stats */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-                  <div style={{ background: "#0e0e0e", border: `1px solid ${BR}`, borderRadius: 10, padding: "14px 12px", textAlign: "center" }}>
-                    <div style={{ color: G, fontWeight: 800, fontSize: 22 }}>{myOrders.length}</div>
-                    <div style={{ color: MUT, fontSize: 11, marginTop: 3 }}>Tổng đơn</div>
+                  <div style={{ background: "#0e0e0c", border: `1px solid ${BR}`, borderRadius: 12, padding: "14px 12px", textAlign: "center" }}>
+                    <div style={{ color: G, fontWeight: 800, fontSize: 24, fontFamily: "Georgia,serif" }}>{myOrders.length}</div>
+                    <div style={{ color: MUT, fontSize: 11, marginTop: 3, letterSpacing: 0.5 }}>Tổng đơn</div>
                   </div>
-                  <div style={{ background: "#0e0e0e", border: `1px solid ${BR}`, borderRadius: 10, padding: "14px 12px", textAlign: "center" }}>
-                    <div style={{ color: G, fontWeight: 800, fontSize: 13, lineHeight: 1.6 }}>{fmtVND(totalSpent)}</div>
-                    <div style={{ color: MUT, fontSize: 11, marginTop: 3 }}>Đã chi</div>
+                  <div style={{ background: "#0e0e0c", border: `1px solid ${BR}`, borderRadius: 12, padding: "14px 12px", textAlign: "center" }}>
+                    <div style={{ color: G, fontWeight: 800, fontSize: 13, lineHeight: 1.6, fontFamily: "Georgia,serif" }}>{fmtVND(totalSpent)}</div>
+                    <div style={{ color: MUT, fontSize: 11, marginTop: 3, letterSpacing: 0.5 }}>Đã chi</div>
                   </div>
                 </div>
 
@@ -3096,17 +3388,30 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
 
         {/* ── Tab quản trị ── */}
         {tab === "admin" && (
-          <div style={{ marginTop: 28 }}>
-            <h3 style={{ color: TXT, fontWeight: 400, marginBottom: 6, fontFamily: "var(--font-display)", fontSize: 18, letterSpacing: 1 }}>Quản trị viên</h3>
-            <p style={{ color: MUT, fontSize: 12, marginBottom: 20, letterSpacing: .5, fontFamily: "system-ui,sans-serif" }}>Nhập mật khẩu để truy cập dashboard</p>
-            <input type="password" value={pw} onChange={e => setPw(e.target.value)} onKeyDown={e => e.key === "Enter" && checkAdmin()} placeholder="••••••••" style={{ width: "100%", padding: "13px 16px", background: "#111", border: `2px solid ${err ? "#ef4444" : BR}`, borderRadius: 8, color: TXT, fontSize: 16, outline: "none", boxSizing: "border-box", marginBottom: 8, fontFamily: "monospace", letterSpacing: 3, textAlign: "center", transition: "border .2s" }} />
-            {err && <p style={{ color: "#ef4444", fontSize: 12, marginBottom: 8, fontFamily: "system-ui,sans-serif" }}>❌ Sai mật khẩu. Thử lại!</p>}
-            <button onClick={checkAdmin} style={{ width: "100%", padding: 13, background: G, color: "#000", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif", marginTop: 4, boxShadow: `0 0 20px ${G}44` }}>Đăng nhập</button>
-            <p style={{ color: "#2a2a2a", fontSize: 10, marginTop: 20, fontFamily: "monospace" }}>Demo password: admin92</p>
+          <div style={{ marginTop: 32 }}>
+            {/* Lock icon with glow */}
+            <div style={{ textAlign: "center", marginBottom: 20 }}>
+              <div style={{ fontSize: 40, filter: "drop-shadow(0 0 18px rgba(201,168,76,0.25))", marginBottom: 10 }}>🔐</div>
+              <h3 style={{ color: TXT, fontWeight: 700, marginBottom: 4, fontFamily: "Georgia,serif", fontSize: 19, letterSpacing: 0.5, margin: "0 0 6px" }}>Quản trị viên</h3>
+              <p style={{ color: MUT, fontSize: 12, marginBottom: 24, letterSpacing: .3, fontFamily: "system-ui,sans-serif", margin: "0 0 24px" }}>Nhập mật khẩu để truy cập dashboard</p>
+            </div>
+            <input type="password" value={pw} onChange={e => setPw(e.target.value)} onKeyDown={e => e.key === "Enter" && checkAdmin()} placeholder="••••••••"
+              style={{ width: "100%", padding: "14px 18px", background: "#0d0d0b", border: `1.5px solid ${err ? "#ef4444" : BR}`, borderRadius: 12, color: TXT, fontSize: 18, outline: "none", boxSizing: "border-box", marginBottom: 8, fontFamily: "monospace", letterSpacing: 4, textAlign: "center", transition: "border .2s", boxShadow: err ? "0 0 20px rgba(239,68,68,0.12)" : "none" }} />
+            {err && <p style={{ color: "#ef4444", fontSize: 12, marginBottom: 8, fontFamily: "system-ui,sans-serif", letterSpacing: 0.3 }}>❌ Sai mật khẩu. Thử lại!</p>}
+            <button onClick={checkAdmin}
+              style={{ width: "100%", padding: "14px 0", background: `linear-gradient(135deg, ${G}, #b8923e)`, color: "#0a0800", border: "none", borderRadius: 12, cursor: "pointer", fontWeight: 800, fontSize: 14, fontFamily: "system-ui,sans-serif", marginTop: 4, boxShadow: `0 4px 24px ${G}44`, letterSpacing: 0.5, transition: "opacity .2s" }}
+              onMouseEnter={e => e.currentTarget.style.opacity = "0.88"}
+              onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+            >Đăng nhập</button>
+            <p style={{ color: "#252520", fontSize: 10, marginTop: 20, fontFamily: "monospace", textAlign: "center" }}>Demo password: admin92</p>
           </div>
         )}
 
-        <button onClick={onBack} style={{ width: "100%", padding: 10, background: "none", color: MUT, border: `1px solid ${BR}`, borderRadius: 8, cursor: "pointer", fontSize: 12, fontFamily: "system-ui,sans-serif", marginTop: 16 }}>← Về trang chủ</button>
+        <button onClick={onBack}
+          style={{ width: "100%", padding: "13px 0", background: "none", color: MUT, border: `1px solid ${BR}`, borderRadius: 12, cursor: "pointer", fontSize: 13, fontFamily: "system-ui,sans-serif", marginTop: 20, letterSpacing: 0.3, transition: "border-color .2s, color .2s" }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = G + "55"; e.currentTarget.style.color = G; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = BR; e.currentTarget.style.color = MUT; }}
+        >← Về trang chủ</button>
       </div>
     </div>
     </>
