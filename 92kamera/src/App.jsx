@@ -2086,8 +2086,8 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                 </div>
               </div>
 
-              {/* ── LỊCH + THỜI GIAN DỰ KIẾN — ngang nhau ── */}
-              <div style={{ display:"grid", gridTemplateColumns: ri ? "1fr 1fr" : "1fr", gap:10, marginBottom:18, alignItems:"start" }}>
+              {/* ── LỊCH + THỜI GIAN DỰ KIẾN — xếp dọc ── */}
+              <div style={{ display:"flex", flexDirection:"column", gap:12, marginBottom:18 }}>
                 {/* Calendar */}
                 <div>
                   <div style={{ color:"#555", fontSize:9, letterSpacing:1.5, marginBottom:8, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>CHỌN NGÀY BẮT ĐẦU</div>
@@ -2100,40 +2100,39 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                   </div>
                 </div>
 
-                {/* Thời gian dự kiến */}
+                {/* Thời gian dự kiến — full width, below calendar */}
                 {ri && (
-                  <div style={{ background:"#0a0900", border:`1px solid #252010`, borderRadius:10, padding:"14px" }}>
-                    <div style={{ color:"#888", fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700, marginBottom:12 }}>THỜI GIAN DỰ KIẾN</div>
-                    {[
-                      { icon:"📦", label:"Nhận máy",      time:ri.pickTime, date:ri.pickDate },
-                      { icon:"📅", label:"Trả máy trước", time:ri.dropTime, date:ri.dropDate },
-                    ].map(({ icon, label, time, date }) => (
-                      <div key={label} style={{ marginBottom:12 }}>
-                        <div style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif", marginBottom:5, fontWeight:500 }}>{icon} {label}</div>
-                        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                          <span style={{ background:G+"22", color:G, border:`1px solid ${G}55`, borderRadius:7, padding:"5px 12px", fontSize:15, fontWeight:800, fontFamily:"system-ui,sans-serif", letterSpacing:0.5 }}>{time}</span>
-                          <span style={{ color:"#aaa", fontSize:14, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>{date}</span>
+                  <div style={{ background:"#0a0900", border:`1px solid #252010`, borderRadius:14, padding:"18px 16px" }}>
+                    <div style={{ color:"#888", fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700, marginBottom:14 }}>THỜI GIAN DỰ KIẾN</div>
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
+                      {[
+                        { icon:"📦", label:"Nhận máy",      time:ri.pickTime, date:ri.pickDate },
+                        { icon:"📅", label:"Trả máy trước", time:ri.dropTime, date:ri.dropDate },
+                      ].map(({ icon, label, time, date }) => (
+                        <div key={label} style={{ background:"#0f0d00", border:"1px solid #1e1a0a", borderRadius:10, padding:"12px 12px" }}>
+                          <div style={{ color:"#666", fontSize:10.5, fontFamily:"system-ui,sans-serif", marginBottom:8 }}>{icon} {label}</div>
+                          <div style={{ color:G, fontWeight:800, fontSize:18, fontFamily:"system-ui,sans-serif", lineHeight:1, marginBottom:4 }}>{time}</div>
+                          <div style={{ color:"#aaa", fontSize:12, fontFamily:"system-ui,sans-serif" }}>{date}</div>
                         </div>
-                      </div>
-                    ))}
-                    <div style={{ borderTop:`1px solid #1e1a12`, margin:"10px 0" }} />
-                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+                      ))}
+                    </div>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
                       <span style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>⏱ Tổng</span>
                       <span style={{ color:G, fontWeight:700, fontSize:13, fontFamily:"system-ui,sans-serif" }}>{ri.totalLabel}</span>
                     </div>
-                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:10 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
                       <span style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>🏷 Tiền máy</span>
                       <span style={{ color:G, fontWeight:800, fontSize:15, fontFamily:"system-ui,sans-serif" }}>{new Intl.NumberFormat("vi-VN").format(camCost)}đ</span>
                     </div>
-                    <div style={{ background:"#100d00", border:"1px solid #2a2010", borderRadius:6, padding:"9px 11px" }}>
+                    <div style={{ background:"#0d0a00", border:"1px solid #222010", borderRadius:8, padding:"10px 12px", display:"flex", flexDirection:"column", gap:5 }}>
                       {[
                         { color:"#22c55e", icon:"✅", text:"Trễ 1 giờ đầu miễn phí" },
                         { color:"#f59e0b", icon:"⏱",  text:"Từ giờ 2: +30k/giờ" },
                         { color:"#f87171", icon:"⏰", text:"Quá 6 giờ → +1 ngày" },
                       ].map(({ color, icon, text }) => (
-                        <div key={text} style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4 }}>
+                        <div key={text} style={{ display:"flex", alignItems:"center", gap:7 }}>
                           <span style={{ fontSize:12 }}>{icon}</span>
-                          <span style={{ color, fontSize:11, fontFamily:"system-ui,sans-serif" }}>{text}</span>
+                          <span style={{ color, fontSize:11.5, fontFamily:"system-ui,sans-serif" }}>{text}</span>
                         </div>
                       ))}
                     </div>
