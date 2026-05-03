@@ -1385,6 +1385,28 @@ function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, se
   );
 }
 
+// ── STABLE components — defined OUTSIDE BookingModal to avoid remount-on-render lag ──
+const BK_flatInp = { background:"transparent", border:"none", outline:"none", color:"#f0e8d0", fontSize:12, fontFamily:"system-ui,sans-serif", width:"100%", padding:0 };
+
+function BK_IconBox({ children }) {
+  return (
+    <div style={{ width:28, height:28, background:"#141008", border:"1px solid #2a2010", borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>{children}</div>
+  );
+}
+
+function BK_FormRow({ icon, labelTop, labelBottom, children, noBorder }) {
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderBottom: noBorder ? "none" : "1px solid #181410" }}>
+      <BK_IconBox>{icon}</BK_IconBox>
+      <div style={{ width:80, flexShrink:0 }}>
+        <div style={{ color:"#777", fontSize:8, letterSpacing:1.2, fontFamily:"system-ui,sans-serif", fontWeight:600, lineHeight:1.4 }}>{labelTop}</div>
+        {labelBottom && <div style={{ color:"#555", fontSize:8, letterSpacing:1, fontFamily:"system-ui,sans-serif", lineHeight:1.4 }}>{labelBottom}</div>}
+      </div>
+      <div style={{ flex:1 }}>{children}</div>
+    </div>
+  );
+}
+
 function BookingModal({ cameras, accessories, siteContent, discounts, setDiscounts, onClose, onSubmit, loggedUser, preselectedCamId, orders }) {
   const [step, setStep] = useState(1);
   // selCams: { [camId]: qty }
@@ -1416,7 +1438,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
     const a = accessories.find(x => x.name === name);
     if (!a) return s;
     const unitPrice = days === 0.5 && a.priceShift ? a.priceShift : a.price;
-    const multiplier = days === 0.5 && a.priceShift ? 1 : days;
+    const multiplier = days === 0.5 ? 1 : days;
     return s + unitPrice * qty * multiplier;
   }, 0);
   const subtotal = camCost + accCost;
@@ -1540,7 +1562,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   };
 
   const overlay = { position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.92)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "24px 16px", overflowY: "auto" };
-  const box = { background: "#080808", border: `1px solid ${BR}`, borderRadius: 16, padding: "min(32px, 5vw)", width: "min(600px,96vw)", position: "relative", margin: "auto" };
+  const box = { background: "#080808", border: `1px solid ${BR}`, borderRadius: 14, padding: "min(20px, 3vw)", width: step === 2 ? "min(600px,96vw)" : "min(420px,96vw)", position: "relative", margin: "auto", transition: "width .3s" };
   const inpS = { padding: "11px 14px", background: "#0e0e0e", border: `1px solid ${BR}`, borderRadius: 8, color: TXT, fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "system-ui,sans-serif", transition: "border .2s" };
   const qtyBtn = (onClick, label) => (
     <button onClick={onClick} style={{ width: 26, height: 26, border: `1px solid ${BR}`, borderRadius: 5, background: "#111", color: TXT, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontFamily: "monospace" }}>{label}</button>
@@ -1555,394 +1577,718 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
         <div style={{ marginBottom: 24 }}>
           <Logo size={0.72} />
           {!done && (
-            <div style={{ display: "flex", gap: 6, marginTop: 20 }}>
-              {stepLabel.map((l, i) => (
-                <div key={i} style={{ flex: 1, textAlign: "center" }}>
-                  <div style={{ height: 2, background: step > i + 1 ? G : step === i + 1 ? G + "88" : "#1a1a1a", borderRadius: 1, marginBottom: 5, transition: "all .3s" }} />
-                  <div style={{ fontSize: 9, color: step >= i + 1 ? G : MUT, fontFamily: "system-ui,sans-serif", letterSpacing: 1 }}>{l.toUpperCase()}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* STEP 1 — chọn nhiều máy */}
-        {!done && step === 1 && (
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <div style={{ color: TXT, fontWeight: 600, fontSize: 15 }}>Chọn máy ảnh</div>
-              {totalCamSelected > 0 && (
-                <span style={{ background: G + "22", color: G, border: `1px solid ${G}44`, borderRadius: 99, padding: "3px 12px", fontSize: 11, fontWeight: 700 }}>
-                  Đã chọn {totalCamSelected} máy
-                </span>
-              )}
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 22 }}>
-              {availCams.map(c => {
-                const isSelected = (selCams[c.id] || 0) > 0;
+            <div style={{ display: "flex", alignItems: "center", marginTop: 22 }}>
+              {stepLabel.map((l, i) => {
+                const active = step === i + 1;
+                const done_ = step > i + 1;
                 return (
-                  <div key={c.id}
-                    style={{ border: `1px solid ${isSelected ? G : BR}`, borderRadius: 10, padding: 14, background: isSelected ? "#130f00" : "#0e0e0e", transition: "all .2s" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 14, cursor: "pointer" }} onClick={() => toggleCam(c)}>
-                      {c.images?.length > 0
-                        ? <img src={c.images[0]} alt={c.name} style={{ width: 52, height: 52, objectFit: "cover", borderRadius: 7, border: `1px solid ${BR}`, flexShrink: 0 }} />
-                        : <div style={{ width: 52, height: 52, background: "#111", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, flexShrink: 0 }}>{c.icon}</div>}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ color: isSelected ? G : TXT, fontWeight: 600, fontSize: 14 }}>{c.name}</div>
-                        <div style={{ color: MUT, fontSize: 11, marginTop: 2 }}>{c.desc}</div>
+                  <div key={i} style={{ display: "flex", alignItems: "center", flex: 1 }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: "0 0 auto" }}>
+                      <div style={{
+                        width: 28, height: 28, borderRadius: "50%",
+                        background: active ? G : done_ ? G + "33" : "transparent",
+                        border: `2px solid ${active || done_ ? G : "#333"}`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        transition: "all .3s", flexShrink: 0
+                      }}>
+                        {done_
+                          ? <span style={{ color: G, fontSize: 12, fontWeight: 900 }}>✓</span>
+                          : <span style={{ color: active ? "#000" : "#555", fontSize: 11, fontWeight: 800, fontFamily: "system-ui,sans-serif" }}>{i + 1}</span>
+                        }
                       </div>
-                      <div style={{ textAlign: "right", flexShrink: 0 }}>
-                        <div style={{ color: G, fontWeight: 700, fontSize: 14 }}>{fmtVND(c.price)}</div>
-                        <div style={{ color: MUT, fontSize: 10 }}>/ngày</div>
-                      </div>
-                      <div style={{ width: 22, height: 22, borderRadius: 5, border: `2px solid ${isSelected ? G : BR}`, background: isSelected ? G : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all .2s" }}>
-                        {isSelected && <span style={{ color: "#000", fontSize: 13, fontWeight: 900, lineHeight: 1 }}>✓</span>}
+                      <div style={{ fontSize: 8, color: active ? G : done_ ? G + "88" : "#444", fontFamily: "system-ui,sans-serif", letterSpacing: 0.8, marginTop: 5, whiteSpace: "nowrap", fontWeight: active ? 700 : 400 }}>
+                        {l.toUpperCase()}
                       </div>
                     </div>
-                    {/* qty control khi đã chọn */}
-                    {isSelected && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, paddingTop: 12, borderTop: `1px solid ${G}22` }}>
-                        <span style={{ color: MUT, fontSize: 11, flex: 1 }}>Số lượng máy:</span>
-                        {qtyBtn(() => setCamQty(c.id, (selCams[c.id] || 1) - 1, c.qty), "−")}
-                        <span style={{ color: G, fontWeight: 700, fontSize: 15, minWidth: 24, textAlign: "center" }}>{selCams[c.id]}</span>
-                        {qtyBtn(() => setCamQty(c.id, (selCams[c.id] || 1) + 1, c.qty), "+")}
-                        <span style={{ color: MUT, fontSize: 10 }}>/ {c.qty} máy có sẵn</span>
-                        <span style={{ color: G, fontSize: 12, fontWeight: 700, marginLeft: "auto" }}>+{fmtVND(c.price * (selCams[c.id] || 1))}/ngày</span>
-                      </div>
+                    {i < stepLabel.length - 1 && (
+                      <div style={{ flex: 1, height: 1, background: step > i + 1 ? G + "66" : "#222", margin: "0 6px", marginBottom: 18, transition: "all .3s" }} />
                     )}
                   </div>
                 );
               })}
             </div>
-            <button onClick={() => totalCamSelected > 0 && setStep(2)} disabled={totalCamSelected === 0}
-              style={{ width: "100%", padding: 13, background: totalCamSelected > 0 ? G : "#1a1a1a", color: totalCamSelected > 0 ? "#000" : MUT, border: "none", borderRadius: 8, cursor: totalCamSelected > 0 ? "pointer" : "not-allowed", fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif" }}>
-              Tiếp theo → {totalCamSelected > 0 && `(${totalCamSelected} máy)`}
-            </button>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* STEP 2 — thời gian + phụ kiện multi-qty */}
-        {!done && step === 2 && (
-          <div>
-            <button onClick={() => setStep(1)} style={{ background: "none", border: "none", color: MUT, cursor: "pointer", fontSize: 12, fontFamily: "system-ui,sans-serif", marginBottom: 16 }}>← Quay lại</button>
-            <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-              {DURATIONS.map(d => (
-                <button key={d.days} onClick={() => { setSelDur(d); setCustomDays(""); if (d.days !== 0.5) setSelShift(null); }}
-                  style={{ flex: 1, padding: "10px 4px", background: selDur?.days === d.days ? "#130f00" : "#0e0e0e", color: selDur?.days === d.days ? G : MUT, border: `1px solid ${selDur?.days === d.days ? G : BR}`, borderRadius: 7, cursor: "pointer", fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: selDur?.days === d.days ? 700 : 400 }}>{d.label}</button>
-              ))}
-            </div>
+        {/* STEP 1 — chọn nhiều máy */}
+        {!done && step === 1 && (() => {
+          // Tag map theo tên máy
+          const CAM_TAGS = {
+            "Fujifilm X-T20":   ["Mirrorless","24MP","4K","Film Simulation"],
+            "Sony ZV-E10":      ["Vlog","4K","APS-C"],
+            "DJI Pocket 3":     ["Gimbal","4K","Chống rung"],
+            "Canon EOS M50 II": ["Mirrorless","4K","WiFi"],
+            "GoPro Hero 12":    ["Action Cam","5.3K","Chống nước"],
+            "Nikon Z30":        ["Mirrorless","4K","60fps"],
+          };
+          const CAM_DETAIL = {
+            "Fujifilm X-T20":   ["Nhỏ gọn • Màu film đẹp • Dễ sử dụng","Phù hợp: du lịch, street, chân dung"],
+            "Sony ZV-E10":      ["Màn lật 180° • Quay vlog chuyên nghiệp","Phù hợp: vlog, review, du lịch"],
+            "DJI Pocket 3":     ["Gimbal tích hợp • Chống rung xuất sắc","Phù hợp: vlog, travel, cinematic"],
+            "Canon EOS M50 II": ["Lấy nét nhanh • Video 4K mượt","Phù hợp: vlog, sự kiện, chụp ảnh"],
+            "GoPro Hero 12":    ["Chống nước 10m • Quay 5.3K siêu nét","Phù hợp: thể thao, du lịch, phượt"],
+            "Nikon Z30":        ["Nhẹ • 4K 60fps • Lên màu đẹp","Phù hợp: vlog, sáng tạo nội dung"],
+          };
+          const CAM_POPULAR = ["Fujifilm X-T20"];
+          const [showAllAcc, setShowAllAcc_local] = [false, () => {}];
 
-            {/* ── CHỌN CA (chỉ hiện khi chọn 1 buổi) ── */}
-            {needShift && (
-              <div style={{ marginBottom: 16, background: "#080800", border: `1px solid ${G}33`, borderRadius: 10, padding: "14px 16px" }}>
-                <div style={{ color: G, fontSize: 11, fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>⏰ CHỌN CA THUÊ</div>
-                <div style={{ display: "flex", gap: 10 }}>
-                  {SHIFTS.map(sh => {
-                    const sel = selShift === sh.key;
-                    return (
-                      <button key={sh.key} onClick={() => setSelShift(sh.key)}
-                        style={{ flex: 1, padding: "14px 8px", background: sel ? "#1a1200" : "#0e0e0e", color: sel ? G : MUT, border: `2px solid ${sel ? G : BR}`, borderRadius: 10, cursor: "pointer", transition: "all .2s", textAlign: "center" }}>
-                        <div style={{ fontSize: 20, marginBottom: 4 }}>{sh.label.split(" ")[0]}</div>
-                        <div style={{ fontSize: 12, fontWeight: sel ? 700 : 400, fontFamily: "system-ui,sans-serif" }}>{sh.label.split(" ").slice(1).join(" ")}</div>
-                        <div style={{ fontSize: 10, color: sel ? G + "cc" : "#555", marginTop: 3, fontFamily: "system-ui,sans-serif" }}>{sh.time}</div>
-                        {sel && <div style={{ marginTop: 6, fontSize: 10, color: "#22c55e" }}>✓ Đã chọn</div>}
-                      </button>
-                    );
-                  })}
+          return (
+            <div>
+              {/* Header */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
+                <div>
+                  <div style={{ color: TXT, fontWeight: 700, fontSize: 18, letterSpacing: 0.3 }}>Chọn thiết bị</div>
+                  <div style={{ color: MUT, fontSize: 12, marginTop: 3, fontFamily: "system-ui,sans-serif" }}>Chọn máy ảnh / phụ kiện bạn muốn thuê</div>
                 </div>
-                {!selShift && <div style={{ color: "#f59e0b", fontSize: 11, marginTop: 10, fontFamily: "system-ui,sans-serif" }}>⚠️ Vui lòng chọn ca trước khi tiếp tục</div>}
-              </div>
-            )}
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ color: MUT, fontSize: 10, marginBottom: 5, letterSpacing: 1 }}>HOẶC NHẬP SỐ NGÀY</div>
-              <input style={inpS} type="number" min={1} value={customDays} onChange={e => { setCustomDays(e.target.value); setSelDur(null); }} placeholder="VD: 5" />
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ color: MUT, fontSize: 10, marginBottom: 8, letterSpacing: 1 }}>CHỌN NGÀY BẮT ĐẦU</div>
-              <BookingCalendar
-                selectedCams={selectedCamList.map(c => ({ id: c.id, qty: selCams[c.id] || 1, camQty: c.qty || 1 }))}
-                orders={orders}
-                pickDate={pickDate}
-                setPickDate={setPickDate}
-                days={days}
-                selShift={selShift}
-              />
-              <input style={{ ...inpS, fontSize: 12 }} type="date" value={pickDate} min={todayStr()} onChange={e => setPickDate(e.target.value)} />
-            </div>
-            {days > 0 && (days !== 0.5 || selShift) && (() => {
-              const ri = returnInfo();
-              if (!ri) return null;
-              const row = { display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" };
-              const label = { color:MUT, fontSize:11, whiteSpace:"nowrap", flexShrink:0, fontFamily:"system-ui,sans-serif" };
-              const val   = { color:TXT, fontWeight:700, fontSize:12, fontFamily:"system-ui,sans-serif" };
-              const badge = { color:G, fontWeight:600, background:G+"18", border:`1px solid ${G}44`, borderRadius:99, padding:"2px 10px", fontSize:11, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap" };
-              return (
-                <div style={{ background:"#0a0800", border:`1px solid ${G}33`, borderRadius:8, padding:"12px 14px", marginBottom:14 }}>
-                  {/* Nhận máy */}
-                  <div style={{ ...row, marginBottom:6 }}>
-                    <span style={label}>📦 Nhận máy:</span>
-                    <span style={badge}>{ri.pickTime}</span>
-                    <span style={{ ...val, color:MUT, fontSize:11 }}>{ri.pickDate}</span>
-                  </div>
-                  {/* Trả máy */}
-                  <div style={{ ...row, marginBottom:8 }}>
-                    <span style={label}>📅 Trả máy trước:</span>
-                    <span style={badge}>{ri.dropTime}</span>
-                    <span style={{ ...val, color:MUT, fontSize:11 }}>{ri.dropDate}</span>
-                  </div>
-                  {/* Tổng + tiền */}
-                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:6, paddingTop:8, borderTop:`1px solid ${BR}` }}>
-                    <span style={{ color:G, fontSize:11, fontFamily:"system-ui,sans-serif" }}>⏱ Tổng: <strong>{ri.totalLabel}</strong></span>
-                    <span style={{ color:G, fontWeight:700, fontSize:13, fontFamily:"system-ui,sans-serif" }}>{fmtVND(camCost)}</span>
-                  </div>
-                  {/* Phí trễ */}
-                  <div style={{ marginTop:8, padding:"7px 10px", background:"#1a0f00", border:"1px solid #f59e0b33", borderRadius:6, fontSize:10, fontFamily:"system-ui,sans-serif", color:"#f59e0b", display:"flex", flexDirection:"column", gap:3 }}>
-                    <span>⚠️ Trễ 1h đầu miễn phí · từ giờ thứ 2: +30.000 ₫/h</span>
-                    <span style={{ color:"#f87171" }}>🔴 Quá 6h → tính thêm 1 ngày thuê</span>
-                  </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {totalCamSelected > 0 && (
+                    <span style={{ background: G + "22", color: G, border: `1px solid ${G}44`, borderRadius: 99, padding: "4px 12px", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>
+                      ✓ {totalCamSelected} máy
+                    </span>
+                  )}
+                  <button onClick={() => setStep(2)}
+                    style={{ padding: "7px 12px", background: "#111", border: `1px solid ${BR}`, borderRadius: 8, color: MUT, fontSize: 11, cursor: "pointer", fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
+                    ⊞ Xem tất cả phụ kiện
+                  </button>
                 </div>
-              );
-            })()}
-
-            {/* Phụ kiện multi-select + qty */}
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
-                <span style={{ color: TXT, fontWeight: 600, fontSize: 14 }}>Phụ kiện đi kèm</span>
-                {days > 0 && accCost > 0 && (
-                  <span style={{ color:G, fontSize:12, fontWeight:700 }}>Tổng PK: {fmtVND(accCost)}</span>
-                )}
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {accessories.filter(a => a.active !== false).map(a => {
-                  const qty = selAcc[a.name] || 0;
-                  const isSelected = qty > 0;
-                  const maxQty = a.qty || 99;
-                  const unitPrice = days === 0.5 && a.priceShift ? a.priceShift : a.price;
-                  const multiplier = days === 0.5 && a.priceShift ? 1 : (days || 1);
-                  const lineTotal = unitPrice * qty * multiplier;
-                  const unitLabel = days === 0.5 ? "/buổi" : "/ngày";
+
+              {/* Camera list */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 18 }}>
+                {availCams.map(c => {
+                  const isSelected = (selCams[c.id] || 0) > 0;
+                  const tags = CAM_TAGS[c.name] || [];
+                  const details = CAM_DETAIL[c.name] || [c.desc];
+                  const isPopular = CAM_POPULAR.includes(c.name);
                   return (
-                    <div key={a.id} style={{ border: `1px solid ${isSelected ? G + "66" : BR}`, borderRadius: 8, padding: "10px 14px", background: isSelected ? "#0a0900" : "#0d0d0d", transition: "all .2s" }}>
-                      {/* Hàng chọn */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => toggleAcc(a.name)}>
-                        <div style={{ width: 18, height: 18, borderRadius: 4, border: `2px solid ${isSelected ? G : BR}`, background: isSelected ? G : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all .2s" }}>
-                          {isSelected && <span style={{ color: "#000", fontSize: 11, fontWeight: 900, lineHeight: 1 }}>✓</span>}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ color: isSelected ? TXT : MUT, fontSize: 13, fontFamily:"system-ui,sans-serif" }}>{a.name}</span>
-                          {a.desc && <div style={{ color: "#555", fontSize: 10, marginTop: 1, fontFamily:"system-ui,sans-serif" }}>{a.desc}</div>}
-                        </div>
-                        <div style={{ textAlign: "right", flexShrink: 0 }}>
-                          <span style={{ color: G, fontSize: 12, fontWeight: 700, fontFamily:"system-ui,sans-serif" }}>{fmtVND(unitPrice)}{unitLabel}</span>
-                          {days === 0.5 && a.priceShift && (
-                            <div style={{ color: "#555", fontSize: 10, fontFamily:"system-ui,sans-serif" }}>{fmtVND(a.price)}/ngày</div>
+                    <div key={c.id} style={{
+                      border: `1px solid ${isSelected ? G : "#222"}`,
+                      borderRadius: 12,
+                      background: isSelected ? "#0f0c00" : "#0e0e0e",
+                      transition: "all .2s",
+                      overflow: "hidden",
+                    }}>
+                      {/* Main row */}
+                      <div style={{ display: "flex", gap: 0, cursor: "pointer" }} onClick={() => toggleCam(c)}>
+                        {/* Ảnh */}
+                        <div style={{ width: 110, minHeight: 110, background: "#111", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, position: "relative", borderRight: `1px solid #1a1a1a` }}>
+                          {isPopular && (
+                            <div style={{ position: "absolute", top: 8, left: 8, background: G, color: "#000", fontSize: 9, fontWeight: 800, borderRadius: 4, padding: "2px 7px", fontFamily: "system-ui,sans-serif", letterSpacing: 0.5 }}>Phổ biến</div>
                           )}
+                          {c.images?.length > 0
+                            ? <img src={c.images[0]} alt={c.name} style={{ width: "100%", height: 110, objectFit: "cover" }} />
+                            : <span style={{ fontSize: 40 }}>{c.icon}</span>}
                         </div>
-                      </div>
-                      {/* Qty + breakdown khi chọn */}
-                      {isSelected && (
-                        <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid ${G}22` }}>
-                          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom: days > 0 ? 8 : 0 }}>
-                            <span style={{ color: MUT, fontSize: 11, fontFamily:"system-ui,sans-serif" }}>Số lượng:</span>
-                            {qtyBtn(() => setAccQty(a.name, qty - 1, maxQty), "−")}
-                            <span style={{ color: G, fontWeight: 700, fontSize: 14, minWidth: 20, textAlign: "center", fontFamily:"system-ui,sans-serif" }}>{qty}</span>
-                            {qtyBtn(() => setAccQty(a.name, qty + 1, maxQty), "+")}
-                            {maxQty < 99 && <span style={{ color: "#555", fontSize: 10, fontFamily:"system-ui,sans-serif" }}>/ {maxQty} cái</span>}
-                          </div>
-                          {days > 0 && (
-                            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", background:"#111", borderRadius:6, padding:"6px 10px" }}>
-                              <span style={{ color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif" }}>
-                                {qty} × {fmtVND(unitPrice)} × {days === 0.5 && a.priceShift ? fmtDays(days, selShift) : fmtDays(days, selShift)}
-                              </span>
-                              <span style={{ color:G, fontWeight:700, fontSize:12, fontFamily:"system-ui,sans-serif" }}>= {fmtVND(lineTotal)}</span>
+
+                        {/* Info */}
+                        <div style={{ flex: 1, padding: "12px 14px", minWidth: 0 }}>
+                          <div style={{ color: isSelected ? G : TXT, fontWeight: 700, fontSize: 15, marginBottom: 7, fontFamily: "system-ui,sans-serif" }}>{c.name}</div>
+                          {/* Tags */}
+                          {tags.length > 0 && (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 8 }}>
+                              {tags.map(t => (
+                                <span key={t} style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", color: "#888", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontFamily: "system-ui,sans-serif" }}>{t}</span>
+                              ))}
                             </div>
                           )}
+                          {/* Detail lines */}
+                          <div style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: 8 }}>
+                            {details.map((d, i) => (
+                              <div key={i} style={{ color: i === 0 ? "#888" : "#555", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>{d}</div>
+                            ))}
+                          </div>
+                          <div style={{ color: G, fontSize: 11, fontFamily: "system-ui,sans-serif", cursor: "pointer" }}>Xem chi tiết &gt;</div>
+                        </div>
+
+                        {/* Price + checkbox */}
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "14px 16px", gap: 10, flexShrink: 0 }}>
+                          <div style={{ textAlign: "center" }}>
+                            <div style={{ color: G, fontWeight: 800, fontSize: 16, fontFamily: "system-ui,sans-serif", whiteSpace: "nowrap" }}>
+                              {new Intl.NumberFormat("vi-VN").format(c.price)}đ
+                            </div>
+                            <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif" }}>/ ngày</div>
+                          </div>
+                          <div style={{
+                            width: 26, height: 26, borderRadius: 6,
+                            border: `2px solid ${isSelected ? G : "#444"}`,
+                            background: isSelected ? G : "transparent",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            flexShrink: 0, transition: "all .2s",
+                          }}>
+                            {isSelected && <span style={{ color: "#000", fontSize: 14, fontWeight: 900, lineHeight: 1 }}>✓</span>}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Qty row khi đã chọn */}
+                      {isSelected && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", background: "#0a0800", borderTop: `1px solid ${G}22` }}>
+                          <span style={{ color: MUT, fontSize: 11, flex: 1, fontFamily: "system-ui,sans-serif" }}>Số lượng:</span>
+                          {qtyBtn(() => setCamQty(c.id, (selCams[c.id] || 1) - 1, c.qty), "−")}
+                          <span style={{ color: G, fontWeight: 700, fontSize: 15, minWidth: 24, textAlign: "center", fontFamily: "system-ui,sans-serif" }}>{selCams[c.id]}</span>
+                          {qtyBtn(() => setCamQty(c.id, (selCams[c.id] || 1) + 1, c.qty), "+")}
+                          <span style={{ color: "#444", fontSize: 10, fontFamily: "system-ui,sans-serif" }}>/ {c.qty} có sẵn</span>
+                          <span style={{ color: G, fontSize: 12, fontWeight: 700, marginLeft: "auto", fontFamily: "system-ui,sans-serif" }}>+{fmtVND(c.price * (selCams[c.id] || 1))}/ngày</span>
                         </div>
                       )}
                     </div>
                   );
                 })}
               </div>
+
+              <button onClick={() => totalCamSelected > 0 && setStep(2)} disabled={totalCamSelected === 0}
+                style={{ width: "100%", padding: 15, background: totalCamSelected > 0 ? G : "#1a1a1a", color: totalCamSelected > 0 ? "#000" : MUT, border: "none", borderRadius: 10, cursor: totalCamSelected > 0 ? "pointer" : "not-allowed", fontWeight: 800, fontSize: 15, fontFamily: "system-ui,sans-serif", letterSpacing: 0.5 }}>
+                Tiếp theo →{totalCamSelected > 0 ? ` (${totalCamSelected} máy)` : ""}
+              </button>
             </div>
-            <button onClick={() => days > 0 && shiftReady && setStep(3)} disabled={days === 0 || !shiftReady}
-              style={{ width: "100%", padding: 13, background: days > 0 && shiftReady ? G : "#1a1a1a", color: days > 0 && shiftReady ? "#000" : MUT, border: "none", borderRadius: 8, cursor: days > 0 && shiftReady ? "pointer" : "not-allowed", fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif" }}>
-              {needShift && !selShift ? "Chọn ca để tiếp tục" : "Tiếp theo →"}
-            </button>
-          </div>
-        )}
+          );
+        })()}
 
-        {/* STEP 3 — xác nhận + thông tin */}
-        {!done && step === 3 && (
-          <div>
-            <button onClick={() => setStep(2)} style={{ background: "none", border: "none", color: MUT, cursor: "pointer", fontSize: 12, fontFamily: "system-ui,sans-serif", marginBottom: 16 }}>← Quay lại</button>
+        {/* STEP 2 — thời gian + phụ kiện — 2 cột desktop / 1 cột mobile */}
+        {!done && step === 2 && (() => {
+          const ri = days > 0 && (days !== 0.5 || selShift) ? returnInfo() : null;
+          const isMob = typeof window !== "undefined" && window.innerWidth < 720;
+          const phoneDisplay = siteContent?.phone || siteContent?.zalo || "0855 471 202";
 
-            {/* Tóm tắt đơn */}
-            <div style={{ background: "#0a0800", border: `1px solid ${G}33`, borderRadius: 9, padding: "14px 16px", marginBottom: 18 }}>
-              <div style={{ color: MUT, fontSize: 10, letterSpacing: 1, marginBottom: 10 }}>TÓM TẮT ĐƠN THUÊ</div>
-              {/* Danh sách máy */}
-              {selectedCamList.map(c => (
-                <div key={c.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 13 }}>
-                  <span style={{ color: TXT }}>📷 {c.name} <span style={{ color: MUT }}>×{selCams[c.id]}</span></span>
-                  <span style={{ color: G, fontWeight: 600 }}>{fmtVND(c.price * selCams[c.id] * days)}</span>
-                </div>
-              ))}
-              {/* Phụ kiện */}
-              {Object.entries(selAcc).length > 0 && (
-                <div style={{ borderTop: `1px solid ${BR}`, marginTop: 8, paddingTop: 8 }}>
-                  {Object.entries(selAcc).map(([name, qty]) => {
-                    const a = accessories.find(x => x.name === name);
-                    const unitP = days === 0.5 && a?.priceShift ? a.priceShift : (a?.price || 0);
-                    const mult  = days === 0.5 && a?.priceShift ? 1 : days;
-                    return (
-                      <div key={name} style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, fontSize: 12 }}>
-                        <span style={{ color: MUT }}>🎒 {name} ×{qty}</span>
-                        <span style={{ color: MUT }}>{fmtVND(unitP * qty * mult)}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              <div style={{ borderTop: `1px solid ${G}33`, marginTop: 10, paddingTop: 10 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: appliedDiscount ? 6 : 0 }}>
-                  <span style={{ color: MUT, fontSize: 12 }}>{fmtDays(days, selShift)} · từ {pickDate} → {endDate()}</span>
-                  <div style={{ textAlign: "right" }}>
-                    {appliedDiscount ? (
-                      <>
-                        <div style={{ color: MUT, fontSize: 12, textDecoration: "line-through" }}>{fmtVND(subtotal)}</div>
-                        <div style={{ color: "#22c55e", fontSize: 12 }}>- {fmtVND(discountAmt)} ({appliedDiscount.code})</div>
-                        <div style={{ color: G, fontWeight: 800, fontSize: 20 }}>{fmtVND(total)}</div>
-                      </>
-                    ) : (
-                      <div style={{ color: G, fontWeight: 800, fontSize: 20 }}>{fmtVND(total)}</div>
-                    )}
-                    <div style={{ color: MUT, fontSize: 10 }}>Tổng cộng</div>
+          // ── Sidebar (tóm tắt đơn) ──
+          const sidebar = (
+            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+              {/* TÓM TẮT ĐƠN THUÊ */}
+              <div style={{ background:"#0e0c08", border:`1px solid ${G}28`, borderRadius:14, padding:"18px 16px" }}>
+                <div style={{ color:MUT, fontSize:9, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", marginBottom:14, fontWeight:600 }}>TÓM TẮT ĐƠN THUÊ</div>
+                {/* Danh sách máy */}
+                {selectedCamList.map(c => (
+                  <div key={c.id} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
+                    <div style={{ width:44, height:44, background:"#111", borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0, border:`1px solid #222`, overflow:"hidden" }}>
+                      {c.images?.length > 0
+                        ? <img src={c.images[0]} alt={c.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                        : c.icon}
+                    </div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ color:TXT, fontWeight:700, fontSize:13, fontFamily:"system-ui,sans-serif" }}>{c.name}</div>
+                      <div style={{ color:MUT, fontSize:11, fontFamily:"system-ui,sans-serif" }}>x{selCams[c.id] || 1}</div>
+                    </div>
+                  </div>
+                ))}
+                <div style={{ borderTop:`1px solid #1e1a12`, marginBottom:12 }} />
+                {/* Chi tiết thời gian */}
+                {[
+                  { label:"Thời gian thuê", val: days > 0 ? fmtDays(days, selShift) : "—", highlight: true },
+                  { label:"Nhận máy",        val: ri ? `${ri.pickTime} · ${ri.pickDate}` : "—" },
+                  { label:"Trả máy trước",   val: ri ? `${ri.dropTime} · ${ri.dropDate}` : "—" },
+                ].map(({ label, val, highlight }) => (
+                  <div key={label} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+                    <span style={{ color:MUT, fontSize:11, fontFamily:"system-ui,sans-serif" }}>{label}</span>
+                    <span style={{ color: highlight ? G : TXT, fontWeight: highlight ? 700 : 500, fontSize:12, fontFamily:"system-ui,sans-serif", textAlign:"right", maxWidth:"55%" }}>{val}</span>
+                  </div>
+                ))}
+                {ri && (
+                  <>
+                    <div style={{ borderTop:`1px solid #1e1a12`, margin:"10px 0" }} />
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
+                      <span style={{ color:MUT, fontSize:11, fontFamily:"system-ui,sans-serif" }}>⏱ Tổng thời gian</span>
+                      <span style={{ color:G, fontWeight:700, fontSize:12, fontFamily:"system-ui,sans-serif" }}>{ri.totalLabel}</span>
+                    </div>
+                  </>
+                )}
+                <div style={{ borderTop:`1px solid #1e1a12`, marginTop:8, paddingTop:12 }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                    <span style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>Tổng cộng</span>
+                    <span style={{ color:G, fontWeight:900, fontSize:22, fontFamily:"system-ui,sans-serif" }}>
+                      {new Intl.NumberFormat("vi-VN").format(total)}đ
+                    </span>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* MÃ GIẢM GIÁ */}
-            <div style={{ marginBottom: 18 }}>
-              <div style={{ color: MUT, fontSize: 10, marginBottom: 6, letterSpacing: 1 }}>MÃ GIẢM GIÁ (TÙY CHỌN)</div>
-              {appliedDiscount ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#021a0a", border: "1px solid #22c55e44", borderRadius: 8, padding: "10px 14px" }}>
-                  <span style={{ color: "#22c55e", fontSize: 14 }}>✓</span>
-                  <span style={{ color: "#22c55e", fontWeight: 700, fontSize: 13, flex: 1 }}>{appliedDiscount.code} — Giảm {fmtVND(discountAmt)}</span>
-                  <button onClick={removeDiscount} style={{ background: "none", border: "none", color: MUT, cursor: "pointer", fontSize: 16, padding: 0, lineHeight: 1 }}>✕</button>
+              {/* Feature badges */}
+              <div style={{ background:"#0e0c08", border:`1px solid #1a1812`, borderRadius:14, padding:"16px" }}>
+                {[
+                  { icon:"📸", title:"Giữ máy dễ dàng",    desc:"Đặt nhanh, giữ máy trong vài phút" },
+                  { icon:"🎧", title:"Hỗ trợ 24/7",         desc:"Tư vấn nhanh chóng, tận tâm" },
+                  { icon:"🛡️", title:"An tâm tuyệt đối",    desc:"Bảo mật thông tin & thiết bị" },
+                ].map(({ icon, title, desc }) => (
+                  <div key={title} style={{ display:"flex", alignItems:"flex-start", gap:12, marginBottom:14, lastChild:{ marginBottom:0 } }}>
+                    <div style={{ width:36, height:36, background:"#161410", border:`1px solid #2a2620`, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>{icon}</div>
+                    <div>
+                      <div style={{ color:TXT, fontWeight:600, fontSize:12, fontFamily:"system-ui,sans-serif" }}>{title}</div>
+                      <div style={{ color:"#555", fontSize:11, fontFamily:"system-ui,sans-serif", marginTop:2 }}>{desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Cần hỗ trợ */}
+              <div style={{ background:"#0e0c08", border:`1px solid #1a1812`, borderRadius:14, padding:"14px 16px", display:"flex", alignItems:"center", gap:12 }}>
+                <div style={{ width:36, height:36, background:"#161410", border:`1px solid #2a2620`, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, flexShrink:0 }}>📞</div>
+                <div>
+                  <div style={{ color:TXT, fontSize:12, fontWeight:600, fontFamily:"system-ui,sans-serif" }}>Cần hỗ trợ?</div>
+                  <div style={{ color:MUT, fontSize:11, fontFamily:"system-ui,sans-serif" }}>Gọi ngay <span style={{ color:G, fontWeight:700 }}>{phoneDisplay}</span></div>
                 </div>
-              ) : (
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input
-                    style={{ ...inpS, flex: 1, textTransform: "uppercase", letterSpacing: 2, fontFamily: "monospace", marginBottom: 0 }}
-                    value={discountCode}
-                    onChange={e => { setDiscountCode(e.target.value.toUpperCase()); setDiscountMsg(null); }}
-                    onKeyDown={e => e.key === "Enter" && applyDiscount()}
-                    placeholder="NHẬP MÃ..."
-                  />
-                  <button onClick={applyDiscount}
-                    style={{ padding: "11px 16px", background: G + "22", border: `1px solid ${G}55`, color: G, borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "system-ui,sans-serif", whiteSpace: "nowrap" }}>
-                    Áp dụng
+              </div>
+            </div>
+          );
+
+          return (
+            <div>
+              {/* Back */}
+              <button onClick={() => setStep(1)} style={{ background:"none", border:"none", color:MUT, cursor:"pointer", fontSize:12, fontFamily:"system-ui,sans-serif", marginBottom:18, display:"flex", alignItems:"center", gap:5 }}>← Quay lại</button>
+
+              {/* 2-col grid */}
+              <div style={{ display:"grid", gridTemplateColumns: isMob ? "1fr" : "1fr 280px", gap:20, alignItems:"start" }}>
+
+                {/* ── CỘT TRÁI ── */}
+                <div>
+                  <div style={{ marginBottom:20 }}>
+                    <div style={{ color:TXT, fontWeight:700, fontSize:20, letterSpacing:0.2, marginBottom:4 }}>Chọn thời gian thuê</div>
+                    <div style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>Chọn ngày nhận và trả máy</div>
+                  </div>
+
+                  {/* Duration buttons */}
+                  <div style={{ display:"flex", gap:6, marginBottom:18, flexWrap:"wrap" }}>
+                    {DURATIONS.map(d => {
+                      const active = selDur?.days === d.days;
+                      return (
+                        <button key={d.days} onClick={() => { setSelDur(d); setCustomDays(""); if (d.days !== 0.5) setSelShift(null); }}
+                          style={{ flex:"1 1 auto", minWidth:60, padding:"10px 8px", background: active ? "#1a1200" : "#111", color: active ? G : "#aaa", border:`1px solid ${active ? G : "#222"}`, borderRadius:8, cursor:"pointer", fontSize:13, fontFamily:"system-ui,sans-serif", fontWeight: active ? 700 : 400, transition:"all .2s" }}>
+                          {d.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Chọn ca (chỉ khi 1 buổi) */}
+                  {needShift && (
+                    <div style={{ marginBottom:16, background:"#080800", border:`1px solid ${G}33`, borderRadius:10, padding:"14px 16px" }}>
+                      <div style={{ color:G, fontSize:10, fontWeight:700, letterSpacing:1.2, marginBottom:12, fontFamily:"system-ui,sans-serif" }}>⏰ CHỌN CA THUÊ</div>
+                      <div style={{ display:"flex", gap:10 }}>
+                        {SHIFTS.map(sh => {
+                          const sel = selShift === sh.key;
+                          return (
+                            <button key={sh.key} onClick={() => setSelShift(sh.key)}
+                              style={{ flex:1, padding:"14px 8px", background: sel ? "#1a1200" : "#0e0e0e", color: sel ? G : MUT, border:`2px solid ${sel ? G : BR}`, borderRadius:10, cursor:"pointer", transition:"all .2s", textAlign:"center" }}>
+                              <div style={{ fontSize:20, marginBottom:4 }}>{sh.label.split(" ")[0]}</div>
+                              <div style={{ fontSize:12, fontWeight: sel ? 700 : 400, fontFamily:"system-ui,sans-serif" }}>{sh.label.split(" ").slice(1).join(" ")}</div>
+                              <div style={{ fontSize:10, color: sel ? G+"cc" : "#555", marginTop:3, fontFamily:"system-ui,sans-serif" }}>{sh.time}</div>
+                              {sel && <div style={{ marginTop:6, fontSize:10, color:"#22c55e" }}>✓ Đã chọn</div>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {!selShift && <div style={{ color:"#f59e0b", fontSize:11, marginTop:10, fontFamily:"system-ui,sans-serif" }}>⚠️ Vui lòng chọn ca trước khi tiếp tục</div>}
+                    </div>
+                  )}
+
+                  {/* Nhập số ngày tuỳ chỉnh */}
+                  <div style={{ marginBottom:16 }}>
+                    <div style={{ color:"#555", fontSize:9, letterSpacing:1.5, marginBottom:6, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>HOẶC NHẬP SỐ NGÀY</div>
+                    <div style={{ position:"relative" }}>
+                      <input style={{ ...inpS, paddingRight:50 }} type="number" min={1} value={customDays}
+                        onChange={e => { setCustomDays(e.target.value); setSelDur(null); }} placeholder="VD: 5" />
+                      <span style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif", pointerEvents:"none" }}>ngày</span>
+                    </div>
+                  </div>
+
+                  {/* Calendar */}
+                  <div style={{ marginBottom:14 }}>
+                    <div style={{ color:"#555", fontSize:9, letterSpacing:1.5, marginBottom:8, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>CHỌN NGÀY BẮT ĐẦU</div>
+                    <BookingCalendar
+                      selectedCams={selectedCamList.map(c => ({ id:c.id, qty:selCams[c.id] || 1, camQty:c.qty || 1 }))}
+                      orders={orders} pickDate={pickDate} setPickDate={setPickDate} days={days} selShift={selShift}
+                    />
+                    <div style={{ position:"relative", marginTop:8 }}>
+                      <input style={{ ...inpS, fontSize:12 }} type="date" value={pickDate} min={todayStr()} onChange={e => setPickDate(e.target.value)} />
+                    </div>
+                  </div>
+
+                  {/* Thời gian dự kiến */}
+                  {ri && (
+                    <div style={{ background:"#0a0900", border:`1px solid #252010`, borderRadius:10, padding:"16px", marginBottom:16 }}>
+                      <div style={{ color:"#555", fontSize:9, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:600, marginBottom:14 }}>THỜI GIAN DỰ KIẾN</div>
+                      {[
+                        { icon:"📦", label:"Nhận máy",       time:ri.pickTime, date:ri.pickDate },
+                        { icon:"📅", label:"Trả máy trước",  time:ri.dropTime, date:ri.dropDate },
+                      ].map(({ icon, label, time, date }) => (
+                        <div key={label} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+                          <span style={{ fontSize:14, width:20, textAlign:"center" }}>{icon}</span>
+                          <span style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif", flex:1 }}>{label}</span>
+                          <span style={{ background:G+"22", color:G, border:`1px solid ${G}44`, borderRadius:6, padding:"3px 10px", fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif" }}>{time}</span>
+                          <span style={{ color:"#888", fontSize:12, fontFamily:"system-ui,sans-serif" }}>{date}</span>
+                        </div>
+                      ))}
+                      <div style={{ borderTop:`1px solid #1e1a12`, margin:"10px 0" }} />
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                        <span style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>⏱ Tổng thời gian</span>
+                        <span style={{ color:G, fontWeight:700, fontSize:13, fontFamily:"system-ui,sans-serif" }}>{ri.totalLabel}</span>
+                      </div>
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+                        <span style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>🏷 Thành tiền</span>
+                        <span style={{ color:G, fontWeight:800, fontSize:18, fontFamily:"system-ui,sans-serif" }}>{new Intl.NumberFormat("vi-VN").format(camCost)}đ</span>
+                      </div>
+                      {/* Lưu ý phí trễ */}
+                      <div style={{ background:"#100d00", border:"1px solid #2a2010", borderRadius:8, padding:"10px 12px" }}>
+                        <div style={{ color:"#666", fontSize:9, letterSpacing:1.2, fontFamily:"system-ui,sans-serif", fontWeight:600, marginBottom:8 }}>LƯU Ý THỜI GIAN</div>
+                        {[
+                          { color:"#22c55e", icon:"✅", text:"Trễ 1 giờ đầu miễn phí" },
+                          { color:"#f59e0b", icon:"⏱",  text:"Từ giờ thứ 2: +30.000đ/giờ" },
+                          { color:"#f87171", icon:"⏰", text:"Quá 6 giờ → tính thêm 1 ngày thuê" },
+                        ].map(({ color, icon, text }) => (
+                          <div key={text} style={{ display:"flex", alignItems:"center", gap:7, marginBottom:5 }}>
+                            <span style={{ fontSize:12 }}>{icon}</span>
+                            <span style={{ color, fontSize:11, fontFamily:"system-ui,sans-serif" }}>{text}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Phụ kiện */}
+                  <div style={{ marginBottom:20 }}>
+                    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+                      <span style={{ color:TXT, fontWeight:600, fontSize:14, fontFamily:"system-ui,sans-serif" }}>Phụ kiện đi kèm</span>
+                      {days > 0 && accCost > 0 && <span style={{ color:G, fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif" }}>+{fmtVND(accCost)}</span>}
+                    </div>
+                    <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                      {accessories.filter(a => a.active !== false).map(a => {
+                        const qty = selAcc[a.name] || 0;
+                        const isSel = qty > 0;
+                        const maxQty = a.qty || 99;
+                        const unitPrice = days === 0.5 && a.priceShift ? a.priceShift : a.price;
+                        const multiplier = days === 0.5 ? 1 : (days || 1);
+                        const lineTotal = unitPrice * qty * multiplier;
+                        return (
+                          <div key={a.id} style={{ border:`1px solid ${isSel ? G+"55" : "#1e1e1e"}`, borderRadius:10, padding:"12px 14px", background: isSel ? "#0a0900" : "#0d0d0d", transition:"all .2s" }}>
+                            <div style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer" }} onClick={() => toggleAcc(a.name)}>
+                              <div style={{ width:20, height:20, borderRadius:5, border:`2px solid ${isSel ? G : "#333"}`, background: isSel ? G : "transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all .2s" }}>
+                                {isSel && <span style={{ color:"#000", fontSize:12, fontWeight:900, lineHeight:1 }}>✓</span>}
+                              </div>
+                              <div style={{ flex:1, minWidth:0 }}>
+                                <span style={{ color: isSel ? TXT : "#888", fontSize:13, fontFamily:"system-ui,sans-serif" }}>{a.name}</span>
+                                {a.desc && <div style={{ color:"#444", fontSize:10, marginTop:2, fontFamily:"system-ui,sans-serif" }}>{a.desc}</div>}
+                              </div>
+                              <span style={{ color:G, fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif", flexShrink:0 }}>{fmtVND(a.price)}/ngày</span>
+                            </div>
+                            {isSel && (
+                              <div style={{ marginTop:10, paddingTop:8, borderTop:`1px solid ${G}22` }}>
+                                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom: days > 0 ? 8 : 0 }}>
+                                  <span style={{ color:MUT, fontSize:11, fontFamily:"system-ui,sans-serif" }}>Số lượng:</span>
+                                  {qtyBtn(() => setAccQty(a.name, qty-1, maxQty), "−")}
+                                  <span style={{ color:G, fontWeight:700, fontSize:14, minWidth:20, textAlign:"center", fontFamily:"system-ui,sans-serif" }}>{qty}</span>
+                                  {qtyBtn(() => setAccQty(a.name, qty+1, maxQty), "+")}
+                                  {maxQty < 99 && <span style={{ color:"#444", fontSize:10, fontFamily:"system-ui,sans-serif" }}>/ {maxQty} cái</span>}
+                                </div>
+                                {days > 0 && (
+                                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", background:"#111", borderRadius:6, padding:"6px 10px" }}>
+                                    <span style={{ color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif" }}>{qty} × {fmtVND(unitPrice)} × {fmtDays(days, selShift)}</span>
+                                    <span style={{ color:G, fontWeight:700, fontSize:12, fontFamily:"system-ui,sans-serif" }}>= {fmtVND(lineTotal)}</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Nút tiếp tục — chỉ hiện trong cột trái */}
+                  <button onClick={() => days > 0 && shiftReady && setStep(3)} disabled={days === 0 || !shiftReady}
+                    style={{ width:"100%", padding:15, background: days > 0 && shiftReady ? G : "#1a1a1a", color: days > 0 && shiftReady ? "#000" : MUT, border:"none", borderRadius:10, cursor: days > 0 && shiftReady ? "pointer" : "not-allowed", fontWeight:800, fontSize:15, fontFamily:"system-ui,sans-serif", letterSpacing:0.5 }}>
+                    {needShift && !selShift ? "Chọn ca để tiếp tục" : "Tiếp tục →"}
                   </button>
                 </div>
-              )}
-              {discountMsg && (
-                <div style={{ marginTop: 6, fontSize: 12, color: discountMsg.type === "ok" ? "#22c55e" : "#ef4444", fontFamily: "system-ui,sans-serif" }}>
-                  {discountMsg.text}
-                </div>
-              )}
-            </div>
 
-            {[["name", "Họ và tên *", "text"], ["phone", "Số điện thoại *", "tel"], ["zalo", "Zalo (để xác nhận đơn)", "tel"], ["address", "Địa chỉ nhận/trả máy", "text"]].map(([k, l, t]) => (
-              <div key={k} style={{ marginBottom: 12 }}>
-                <div style={{ color: MUT, fontSize: 10, marginBottom: 4, letterSpacing: 1 }}>{l.toUpperCase()}</div>
-                <input style={inpS} type={t} value={info[k]} onChange={e => setInfo(p => ({ ...p, [k]: e.target.value }))} placeholder={l} />
+                {/* ── CỘT PHẢI (sidebar) — chỉ trên desktop ── */}
+                {!isMob && sidebar}
               </div>
-            ))}
-            <div style={{ marginBottom: 18 }}>
-              <div style={{ color: MUT, fontSize: 10, marginBottom: 4, letterSpacing: 1 }}>GHI CHÚ</div>
-              <textarea style={{ ...inpS, resize: "vertical", minHeight: 70 }} value={info.note} onChange={e => setInfo(p => ({ ...p, note: e.target.value }))} placeholder="Yêu cầu đặc biệt..." />
+
+              {/* Sidebar trên mobile (hiện sau cột trái) */}
+              {isMob && <div style={{ marginTop:20 }}>{sidebar}</div>}
             </div>
-            <button onClick={() => info.name && info.phone && handleFinish()}
-              disabled={!info.name || !info.phone}
-              style={{ width: "100%", padding: 14, background: info.name && info.phone ? G : "#1a1a1a", color: info.name && info.phone ? "#000" : MUT, border: "none", borderRadius: 8, cursor: info.name && info.phone ? "pointer" : "not-allowed", fontWeight: 700, fontSize: 15, fontFamily: "system-ui,sans-serif" }}>
-              📸 Xác nhận đặt thuê · {fmtVND(total)}{appliedDiscount ? " 🏷️" : ""}
-            </button>
-          </div>
-        )}
+          );
+        })()}
+
+        {/* STEP 3 — xác nhận + thông tin */}
+        {!done && step === 3 && (() => {
+          const ri = returnInfo();
+          // Dùng BK_FormRow, BK_IconBox, BK_flatInp đã định nghĩa ngoài component để tránh lag nhập liệu
+
+          return (
+            <div style={{ paddingBottom:100 }}>
+              <button onClick={() => setStep(2)} style={{ background:"none", border:"none", color:MUT, cursor:"pointer", fontSize:12, fontFamily:"system-ui,sans-serif", marginBottom:18, display:"flex", alignItems:"center", gap:5 }}>← Quay lại</button>
+
+              {/* ── SUMMARY CARD ── */}
+              <div style={{ border:`1px solid #252010`, borderRadius:14, overflow:"hidden", marginBottom:22, background:"#0b0900" }}>
+                {selectedCamList.map((c, idx) => (
+                  <div key={c.id} style={{ display:"flex", alignItems:"center", gap:0, borderBottom: idx < selectedCamList.length - 1 ? `1px solid #1a1610` : "none" }}>
+                    {/* Ảnh */}
+                    <div style={{ width:80, height:64, background:"#111", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:26, overflow:"hidden" }}>
+                      {c.images?.length > 0
+                        ? <img src={c.images[0]} alt={c.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                        : c.icon}
+                    </div>
+                    {/* Info */}
+                    <div style={{ flex:1, padding:"12px 14px", minWidth:0 }}>
+                      <div style={{ color:G, fontSize:7, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:600, marginBottom:4 }}>TÓM TẮT ĐƠN THUÊ</div>
+                      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:5 }}>
+                        <span style={{ color:TXT, fontWeight:700, fontSize:13, fontFamily:"system-ui,sans-serif" }}>{c.name}</span>
+                        <span style={{ background:"#1a1a1a", border:`1px solid #333`, color:"#888", fontSize:9, borderRadius:4, padding:"1px 6px", fontFamily:"system-ui,sans-serif" }}>x{selCams[c.id] || 1}</span>
+                      </div>
+                      {ri && idx === 0 && (
+                        <div style={{ display:"flex", alignItems:"center", gap:6, color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif" }}>
+                          <span>📅</span>
+                          <span>{fmtDays(days, selShift)} · {ri.pickDate} → {ri.dropDate}</span>
+                        </div>
+                      )}
+                    </div>
+                    {/* Giá */}
+                    {idx === 0 && (
+                      <div style={{ padding:"10px 14px", textAlign:"right", flexShrink:0 }}>
+                        {appliedDiscount ? (
+                          <>
+                            <div style={{ color:MUT, fontSize:10, textDecoration:"line-through", fontFamily:"system-ui,sans-serif" }}>{new Intl.NumberFormat("vi-VN").format(subtotal)}đ</div>
+                            <div style={{ color:"#22c55e", fontSize:10, fontFamily:"system-ui,sans-serif" }}>-{new Intl.NumberFormat("vi-VN").format(discountAmt)}đ</div>
+                            <div style={{ color:G, fontWeight:900, fontSize:16, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap" }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</div>
+                          </>
+                        ) : (
+                          <div style={{ color:G, fontWeight:900, fontSize:16, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap" }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</div>
+                        )}
+                        <div style={{ color:"#555", fontSize:8, letterSpacing:1, fontFamily:"system-ui,sans-serif", marginTop:2 }}>TỔNG CỘNG</div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {/* Phụ kiện nếu có */}
+                {Object.entries(selAcc).length > 0 && (
+                  <div style={{ borderTop:`1px solid #181410`, padding:"10px 16px", display:"flex", flexWrap:"wrap", gap:6 }}>
+                    {Object.entries(selAcc).map(([name, qty]) => (
+                      <span key={name} style={{ background:"#111", border:`1px solid #222`, color:MUT, fontSize:10, borderRadius:4, padding:"3px 8px", fontFamily:"system-ui,sans-serif" }}>
+                        🎒 {name}{qty > 1 ? ` ×${qty}` : ""}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* ── FORM SECTION ── */}
+              <div style={{ color:G, fontSize:10, letterSpacing:2, fontFamily:"system-ui,sans-serif", fontWeight:700, marginBottom:12 }}>THÔNG TIN NGƯỜI THUÊ</div>
+
+              <div style={{ background:"#0c0a08", border:`1px solid #1e1a12`, borderRadius:14, overflow:"hidden", marginBottom:18 }}>
+                {/* Mã giảm giá */}
+                <BK_FormRow icon="🏷️" labelTop="MÃ GIẢM GIÁ" labelBottom="(TÙY CHỌN)">
+                  {appliedDiscount ? (
+                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                      <span style={{ color:"#22c55e", fontWeight:700, fontSize:12, flex:1, fontFamily:"system-ui,sans-serif" }}>✓ {appliedDiscount.code} — -{fmtVND(discountAmt)}</span>
+                      <button onClick={removeDiscount} style={{ background:"none", border:"none", color:"#555", cursor:"pointer", fontSize:14, padding:0, lineHeight:1 }}>✕</button>
+                    </div>
+                  ) : (
+                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                      <input style={{ ...BK_flatInp, fontFamily:"monospace", letterSpacing:2, fontSize:12 }}
+                        value={discountCode}
+                        onChange={e => { setDiscountCode(e.target.value.toUpperCase()); setDiscountMsg(null); }}
+                        onKeyDown={e => e.key === "Enter" && applyDiscount()}
+                        placeholder="Nhập mã giảm giá" />
+                      <button onClick={applyDiscount}
+                        style={{ padding:"6px 12px", background:`linear-gradient(135deg,${G},#a07830)`, color:"#000", border:"none", borderRadius:7, cursor:"pointer", fontSize:11, fontWeight:800, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap", flexShrink:0 }}>
+                        Áp dụng
+                      </button>
+                    </div>
+                  )}
+                </BK_FormRow>
+                {discountMsg && (
+                  <div style={{ padding:"6px 12px 8px 54px", fontSize:10, color: discountMsg.type==="ok" ? "#22c55e" : "#ef4444", fontFamily:"system-ui,sans-serif" }}>{discountMsg.text}</div>
+                )}
+
+                {/* Họ tên */}
+                <BK_FormRow icon="👤" labelTop="HỌ VÀ TÊN *">
+                  <input style={BK_flatInp} type="text" value={info.name}
+                    onChange={e => setInfo(p => ({ ...p, name: e.target.value }))} placeholder="Nhập họ và tên" />
+                </BK_FormRow>
+
+                {/* SĐT */}
+                <BK_FormRow icon="📞" labelTop="SỐ ĐIỆN THOẠI *">
+                  <input style={BK_flatInp} type="tel" value={info.phone}
+                    onChange={e => setInfo(p => ({ ...p, phone: e.target.value }))} placeholder="Nhập số điện thoại" />
+                </BK_FormRow>
+
+                {/* Zalo */}
+                <BK_FormRow icon="💬" labelTop="ZALO" labelBottom="(XÁC NHẬN ĐƠN)">
+                  <input style={BK_flatInp} type="tel" value={info.zalo}
+                    onChange={e => setInfo(p => ({ ...p, zalo: e.target.value }))} placeholder="Nhập Zalo" />
+                </BK_FormRow>
+
+                {/* Địa chỉ */}
+                <BK_FormRow icon="📍" labelTop="ĐỊA CHỈ" labelBottom="NHẬN / TRẢ MÁY">
+                  <input style={BK_flatInp} type="text" value={info.address}
+                    onChange={e => setInfo(p => ({ ...p, address: e.target.value }))} placeholder="Nhập địa chỉ nhận/trả máy" />
+                </BK_FormRow>
+
+                {/* Ghi chú */}
+                <BK_FormRow icon="📋" labelTop="GHI CHÚ" noBorder>
+                  <textarea style={{ ...BK_flatInp, resize:"vertical", minHeight:50, lineHeight:1.5 }}
+                    value={info.note}
+                    onChange={e => setInfo(p => ({ ...p, note: e.target.value }))}
+                    placeholder="Yêu cầu đặc biệt, lưu ý thêm..." />
+                </BK_FormRow>
+              </div>
+
+              {/* ── BOTTOM BAR (fixed) ── */}
+              <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"min(600px,100vw)", background:"linear-gradient(to top,#060606 80%,transparent)", padding:"16px 20px", zIndex:999, boxSizing:"border-box" }}>
+                <div style={{ background:"#0e0c08", border:`1px solid #2a2010`, borderRadius:12, padding:"12px 14px", display:"flex", alignItems:"center", gap:12, flexWrap:"wrap" }}>
+                  <div style={{ flex:1 }}>
+                    <div style={{ color:"#666", fontSize:8, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>TỔNG CỘNG</div>
+                    <div style={{ color:G, fontWeight:900, fontSize:18, fontFamily:"system-ui,sans-serif", marginTop:1 }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</div>
+                  </div>
+                  <button onClick={() => info.name && info.phone && handleFinish()}
+                    disabled={!info.name || !info.phone}
+                    style={{ padding:"11px 18px", background: info.name && info.phone ? `linear-gradient(135deg,${G},#a07830)` : "#1a1a1a", color: info.name && info.phone ? "#000" : "#444", border:"none", borderRadius:8, cursor: info.name && info.phone ? "pointer" : "not-allowed", fontWeight:800, fontSize:12, fontFamily:"system-ui,sans-serif", display:"flex", alignItems:"center", gap:6, whiteSpace:"nowrap", boxShadow: info.name && info.phone ? `0 4px 16px ${G}44` : "none", transition:"all .2s" }}>
+                    📅 XÁC NHẬN ĐẶT THUÊ
+                  </button>
+                </div>
+                {/* Trust badges */}
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:0, marginTop:8, flexWrap:"wrap" }}>
+                  {["🛡️ Thiết bị chính hãng", "🔍 Kiểm tra kỹ trước khi giao", "🎧 Hỗ trợ 24/7"].map((t, i, arr) => (
+                    <span key={t} style={{ display:"flex", alignItems:"center", gap:0 }}>
+                      <span style={{ color:"#444", fontSize:9, fontFamily:"system-ui,sans-serif" }}>{t}</span>
+                      {i < arr.length - 1 && <span style={{ color:"#2a2a2a", margin:"0 10px", fontSize:11 }}>|</span>}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* DONE */}
-        {done && (
-          <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
-            <div style={{ fontSize: 64, marginBottom: 12 }}>📸</div>
-            <div style={{ color: G, fontSize: 22, fontWeight: 700, fontFamily: "var(--font-display)", marginBottom: 6, letterSpacing: 1 }}>Đặt đơn thành công!</div>
-            <div style={{ color: MUT, fontSize: 13, marginBottom: 10 }}>Mã đơn của bạn</div>
-            <div style={{ color: TXT, fontSize: 28, fontWeight: 900, fontFamily: "monospace", letterSpacing: 5, background: "#111", padding: "12px 24px", borderRadius: 10, border: `1px solid ${G}44`, display: "inline-block", marginBottom: 12 }}>{orderId}</div>
-            <div style={{ color: MUT, fontSize: 14, marginBottom: 20 }}>
-              {appliedDiscount && <div style={{ color: "#22c55e", fontSize: 13, marginBottom: 6 }}>🏷️ Mã {appliedDiscount.code} — Đã giảm {fmtVND(discountAmt)}</div>}
-              Tổng: <span style={{ color: G, fontWeight: 700, fontSize: 16 }}>{fmtVND(total)}</span>
-            </div>
+        {done && (() => {
+          const zaloMsg = encodeURIComponent(
+            "Xin chào 92 KA MÊ RA! 📸\nMã đơn: " + orderId +
+            "\nThiết bị: " + selectedCamList.map(c => c.name + " x" + selCams[c.id]).join(", ") +
+            "\nThời gian: " + fmtDays(days, selShift) +
+            (appliedDiscount ? "\nMã giảm giá: " + appliedDiscount.code + " (-" + fmtVND(discountAmt) + ")" : "") +
+            "\nTổng tiền: " + fmtVND(total) +
+            "\nKhách: " + info.name + " | SĐT: " + info.phone
+          );
+          const zaloHref = siteContent.zaloLink
+            ? siteContent.zaloLink + "?text=" + zaloMsg
+            : "https://zalo.me/" + (siteContent.zalo || "").replace(/\s/g, "") + "?text=" + zaloMsg;
 
-            {/* QR thanh toán / liên hệ */}
-            {siteContent.zaloQR && (
-              <div style={{ margin: "0 auto 18px", maxWidth: 220 }}>
-                <div style={{ color: MUT, fontSize: 10, letterSpacing: 2, marginBottom: 10 }}>QUÉT QR ĐỂ LIÊN HỆ / ĐẶT CỌC</div>
-                <div style={{ background: "#fff", borderRadius: 12, padding: 10, display: "inline-block", boxShadow: `0 0 30px ${G}22` }}>
-                  <img src={siteContent.zaloQR} alt="Zalo QR" style={{ width: 180, height: 180, objectFit: "contain", display: "block" }} />
+          const copyFn = () => {
+            const accList = (() => { try { return Object.entries(selAcc).filter(([,q])=>q>0).map(([n,q])=>q>1?`${n} x${q}`:n).join(", ") || "Không có"; } catch { return "Không có"; } })();
+            const lines = [
+              "📋 ĐƠN THUÊ MÁY ẢNH 92KAMERA",
+              "━━━━━━━━━━━━━━━━━━━━━━",
+              `Mã đơn : ${orderId}`,
+              `📷 Máy  : ${selectedCamList.map(c => `${c.name}${selCams[c.id]>1?` x${selCams[c.id]}`:""}`).join(", ")}`,
+              `🎒 Phụ kiện: ${accList}`,
+              `⏱ Thời gian: ${fmtDays(days, selShift)}`,
+              appliedDiscount ? `🏷️ Mã giảm giá: ${appliedDiscount.code} (-${fmtVND(discountAmt)})` : null,
+              `💰 Tổng tiền: ${fmtVND(total)}`,
+              "━━━━━━━━━━━━━━━━━━━━━━",
+              `👤 Tên   : ${info.name}`,
+              `📞 SĐT   : ${info.phone}`,
+              info.address ? `📍 Địa chỉ: ${info.address}` : null,
+              info.note ? `💬 Ghi chú: ${info.note}` : null,
+              "━━━━━━━━━━━━━━━━━━━━━━",
+              "⏳ Trạng thái: Chờ xác nhận",
+            ].filter(Boolean).join("\n");
+            navigator.clipboard?.writeText(lines).catch(() => {});
+          };
+
+          return (
+            <div style={{ textAlign:"center", padding:"12px 8px 20px", position:"relative", overflow:"hidden" }}>
+              {/* Confetti SVG dots trang trí */}
+              <style>{`
+                @keyframes floatDot{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(-80px) rotate(360deg);opacity:0}}
+              `}</style>
+              {[...Array(14)].map((_, i) => {
+                const x = 5 + (i * 7) % 90;
+                const delay = (i * 0.18).toFixed(2);
+                const size = 4 + (i % 5) * 2;
+                const colors = [G, "#fff", G+"99", "#c8b06a", "#fff8e1"];
+                return (
+                  <div key={i} style={{
+                    position:"absolute", left:`${x}%`, top: 20 + (i % 4) * 18,
+                    width:size, height:size,
+                    background: colors[i % colors.length],
+                    borderRadius: i % 3 === 0 ? "50%" : 2,
+                    animation:`floatDot ${1.8 + (i%4)*0.3}s ease-out ${delay}s infinite`,
+                    pointerEvents:"none", zIndex:0, opacity:0.7
+                  }} />
+                );
+              })}
+
+              {/* Camera icon với flash effect */}
+              <div style={{ position:"relative", display:"inline-block", marginBottom:16, zIndex:1 }}>
+                {/* Glow */}
+                <div style={{ position:"absolute", top:"10%", left:"50%", transform:"translateX(-50%)", width:60, height:60, background:`radial-gradient(circle, #fff9 0%, ${G}66 40%, transparent 70%)`, borderRadius:"50%", pointerEvents:"none" }} />
+                <div style={{ fontSize:72, lineHeight:1, filter:"drop-shadow(0 0 16px rgba(201,168,76,0.5))" }}>📷</div>
+              </div>
+
+              {/* Title */}
+              <div style={{ color:G, fontSize:26, fontWeight:700, fontFamily:"var(--font-display)", marginBottom:6, letterSpacing:0.5, zIndex:1, position:"relative" }}>
+                Đặt đơn thành công!
+              </div>
+              <div style={{ color:MUT, fontSize:13, fontFamily:"system-ui,sans-serif", marginBottom:16, zIndex:1, position:"relative" }}>
+                Mã đơn của bạn
+              </div>
+
+              {/* Order ID */}
+              <div style={{ background:"#0f0f0f", border:`1px solid #2a2a2a`, borderRadius:12, padding:"14px 24px", display:"inline-block", marginBottom:14, zIndex:1, position:"relative", minWidth:240 }}>
+                <div style={{ color:TXT, fontSize:28, fontWeight:900, fontFamily:"monospace", letterSpacing:6 }}>{orderId}</div>
+              </div>
+
+              {/* Tổng tiền */}
+              <div style={{ marginBottom:20, zIndex:1, position:"relative" }}>
+                {appliedDiscount && (
+                  <div style={{ color:"#22c55e", fontSize:12, fontFamily:"system-ui,sans-serif", marginBottom:4 }}>
+                    🏷️ Mã {appliedDiscount.code} — Đã giảm {fmtVND(discountAmt)}
+                  </div>
+                )}
+                <span style={{ color:MUT, fontSize:14, fontFamily:"system-ui,sans-serif" }}>Tổng: </span>
+                <span style={{ color:G, fontWeight:800, fontSize:18, fontFamily:"system-ui,sans-serif" }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</span>
+              </div>
+
+              {/* QR nếu có */}
+              {siteContent.zaloQR && (
+                <div style={{ margin:"0 auto 18px", maxWidth:200, zIndex:1, position:"relative" }}>
+                  <div style={{ color:MUT, fontSize:9, letterSpacing:2, marginBottom:8, fontFamily:"system-ui,sans-serif" }}>QUÉT QR ĐỂ LIÊN HỆ</div>
+                  <div style={{ background:"#fff", borderRadius:10, padding:8, display:"inline-block", boxShadow:`0 0 30px ${G}22` }}>
+                    <img src={siteContent.zaloQR} alt="Zalo QR" style={{ width:160, height:160, objectFit:"contain", display:"block" }} />
+                  </div>
+                </div>
+              )}
+
+              {/* Nút Zalo — full width, xanh lá */}
+              <a href={zaloHref} target="_blank" rel="noopener noreferrer"
+                style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:10, width:"100%", padding:"15px 24px", background:"#06c755", color:"#fff", borderRadius:12, fontWeight:800, fontSize:16, textDecoration:"none", boxShadow:"0 6px 24px rgba(6,199,85,0.35)", marginBottom:12, boxSizing:"border-box", zIndex:1, position:"relative", transition:"opacity .2s" }}>
+                <span style={{ fontSize:20 }}>💬</span> Nhắn Zalo chốt đơn
+              </a>
+
+              {/* Notice box */}
+              <div style={{ background:"#021a0a", border:"1px solid #06c75533", borderRadius:10, padding:"12px 16px", marginBottom:18, display:"flex", alignItems:"center", gap:10, textAlign:"left", zIndex:1, position:"relative" }}>
+                <span style={{ fontSize:18, flexShrink:0 }}>🛡️</span>
+                <div>
+                  <div style={{ color:"#22c55e", fontSize:12, fontFamily:"system-ui,sans-serif", lineHeight:1.6 }}>
+                    Đơn thuê đã được tạo và xác nhận qua Zalo.<br/>
+                    Để được xử lý đơn nhanh hơn.
+                  </div>
                 </div>
               </div>
-            )}
 
-            {/* Nút Zalo */}
-            {(() => {
-              const zaloMsg = encodeURIComponent(
-                "Xin chào 92 KA MÊ RA! 📸\nMã đơn: " + orderId +
-                "\nThiết bị: " + selectedCamList.map(c => c.name + " x" + selCams[c.id]).join(", ") +
-                "\nThời gian: " + fmtDays(days, selShift) +
-                (appliedDiscount ? "\nMã giảm giá: " + appliedDiscount.code + " (-" + fmtVND(discountAmt) + ")" : "") +
-                "\nTổng tiền: " + fmtVND(total) +
-                "\nKhách: " + info.name + " | SĐT: " + info.phone
-              );
-              const base = siteContent.zaloLink
-                ? siteContent.zaloLink + "?text=" + zaloMsg
-                : "https://zalo.me/" + (siteContent.zalo || "").replace(/\s/g, "") + "?text=" + zaloMsg;
-              return (
-                <div style={{ marginBottom: 14 }}>
-                  <a href={base} target="_blank" rel="noopener noreferrer"
-                    style={{ display: "inline-block", padding: "14px 36px", background: "#06c755", color: "#fff", borderRadius: 10, fontWeight: 700, fontSize: 15, textDecoration: "none", boxShadow: "0 4px 20px rgba(6,199,85,0.3)" }}>
-                    💬 Nhắn Zalo chốt đơn
-                  </a>
-                </div>
-              );
-            })()}
+              {/* Sao chép đơn */}
+              <div style={{ marginBottom:10, zIndex:1, position:"relative" }}>
+                <CopyOrderBtn copyFn={copyFn} />
+              </div>
 
-            <div style={{ color: "#06c755", fontSize: 12, fontWeight: 800, marginBottom: 16, background: "#021a0a", border: "1px solid #06c75544", borderRadius: 8, padding: "10px 14px", fontFamily: "system-ui,sans-serif", lineHeight: 1.7 }}>
-              📌 Đơn thuê đã được tạo · Vui lòng xác nhận qua Zalo.<br/>Để được xử lý đơn nhanh hơn.
+              {/* Đóng */}
+              <button onClick={onClose}
+                style={{ width:"100%", padding:"13px 0", background:"#0e0e0e", color:"#888", border:`1px solid #1e1e1e`, borderRadius:10, cursor:"pointer", fontSize:14, fontFamily:"system-ui,sans-serif", transition:"background .2s", zIndex:1, position:"relative" }}>
+                Đóng
+              </button>
             </div>
-            <CopyOrderBtn copyFn={() => {
-              const accList = (() => { try { return Object.entries(selAcc).filter(([,q])=>q>0).map(([n,q])=>q>1?`${n} x${q}`:n).join(", ") || "Không có"; } catch { return "Không có"; } })();
-              const lines = [
-                "📋 ĐƠN THUÊ MÁY ẢNH 92KAMERA",
-                "━━━━━━━━━━━━━━━━━━━━━━",
-                `Mã đơn : ${orderId}`,
-                `📷 Máy  : ${selectedCamList.map(c => `${c.name}${selCams[c.id]>1?` x${selCams[c.id]}`:""}`).join(", ")}`,
-                `🎒 Phụ kiện: ${accList}`,
-                `⏱ Thời gian: ${fmtDays(days, selShift)}`,
-                appliedDiscount ? `🏷️ Mã giảm giá: ${appliedDiscount.code} (-${fmtVND(discountAmt)})` : null,
-                `💰 Tổng tiền: ${fmtVND(total)}`,
-                "━━━━━━━━━━━━━━━━━━━━━━",
-                `👤 Tên   : ${info.name}`,
-                `📞 SĐT   : ${info.phone}`,
-                info.address ? `📍 Địa chỉ: ${info.address}` : null,
-                info.note ? `💬 Ghi chú: ${info.note}` : null,
-                "━━━━━━━━━━━━━━━━━━━━━━",
-                "⏳ Trạng thái: Chờ xác nhận",
-              ].filter(Boolean).join("\n");
-              navigator.clipboard?.writeText(lines).catch(() => {});
-            }} />
-            <div style={{ marginTop: 10 }} />
-            <button onClick={onClose} style={{ width: "100%", padding: 12, background: "#111", color: MUT, border: `1px solid ${BR}`, borderRadius: 8, cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>Đóng</button>
-          </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );
@@ -3531,7 +3877,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
               const found = accessories.find(a => a.name === d.name);
               if (!found) return ss;
               const unitP = o.days === 0.5 && found.priceShift ? found.priceShift : found.price;
-              const mult  = o.days === 0.5 && found.priceShift ? 1 : o.days;
+              const mult  = o.days === 0.5 ? 1 : o.days;
               return ss + unitP * (d.qty || 1) * mult;
             }, 0);
           }, 0);
