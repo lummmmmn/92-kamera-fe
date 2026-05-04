@@ -436,13 +436,28 @@ function compressImage(file, maxW = 480, quality = 0.55) {
 // ── IMAGE UPLOADER ──
 function ImageUploader({ images = [], onChange, max = 3 }) {
   const fileRef = useRef();
+  const [uploading, setUploading] = useState(false);
+  const [uploadErr, setUploadErr] = useState(false);
 
   const handleFiles = async (files) => {
     const remaining = max - images.length;
     const toProcess = Array.from(files).slice(0, remaining).filter(f => f.type.startsWith("image/"));
     if (!toProcess.length) return;
-    const compressed = await Promise.all(toProcess.map(f => compressImage(f)));
-    onChange([...images, ...compressed]);
+    setUploading(true);
+    setUploadErr(false);
+    try {
+      const results = await Promise.all(toProcess.map(async (f) => {
+        const base64 = await compressImage(f);
+        const url = await uploadToStorage(base64);
+        // Nếu upload Storage thành công → dùng URL, không thì fallback base64
+        return url || base64;
+      }));
+      onChange([...images, ...results]);
+    } catch {
+      setUploadErr(true);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const removeImg = (i) => onChange(images.filter((_, idx) => idx !== i));
@@ -457,16 +472,27 @@ function ImageUploader({ images = [], onChange, max = 3 }) {
           </div>
         ))}
         {images.length < max && (
-          <button onClick={() => fileRef.current?.click()}
-            style={{ width: 72, height: 72, border: `2px dashed ${G}55`, borderRadius: 6, background: "#0a0a00", color: G, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, fontSize: 10, fontFamily: "system-ui,sans-serif" }}>
-            <span style={{ fontSize: 20 }}>+</span>
-            <span>Thêm ảnh</span>
+          <button onClick={() => !uploading && fileRef.current?.click()}
+            style={{ width: 72, height: 72, border: `2px dashed ${G}55`, borderRadius: 6, background: "#0a0a00", color: uploading ? MUT : G, cursor: uploading ? "not-allowed" : "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, fontSize: 10, fontFamily: "system-ui,sans-serif" }}>
+            {uploading ? (
+              <>
+                <span style={{ fontSize: 16, animation: "spin 1s linear infinite", display: "inline-block" }}>⏳</span>
+                <span>Đang tải...</span>
+              </>
+            ) : (
+              <>
+                <span style={{ fontSize: 20 }}>+</span>
+                <span>Thêm ảnh</span>
+              </>
+            )}
           </button>
         )}
       </div>
       <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: "none" }}
         onChange={e => { handleFiles(e.target.files); e.target.value = ""; }} />
-      {images.length > 0 && <div style={{ color: MUT, fontSize: 10 }}>{images.length}/{max} ảnh · Nhấn ✕ để xoá</div>}
+      {images.length > 0 && !uploading && <div style={{ color: MUT, fontSize: 10 }}>{images.length}/{max} ảnh · Nhấn ✕ để xoá</div>}
+      {uploading && <div style={{ color: G, fontSize: 10 }}>⏳ Đang upload ảnh lên server...</div>}
+      {uploadErr && <div style={{ color: RED, fontSize: 10 }}>⚠️ Upload lỗi, thử lại</div>}
     </div>
   );
 }
