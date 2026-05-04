@@ -392,7 +392,7 @@ function Logo({ light = true, size = 1 }) {
   const spread = clicked ? s(7) : 0;
   const tr = { transition: clicked ? "none" : "transform 0.5s cubic-bezier(.4,0,.2,1)" };
   return (
-    <div onClick={handleClick} style={{ display: "inline-flex", alignItems: "center", fontFamily: '"Times New Roman",Georgia,serif', color: col, userSelect: "none", cursor: "pointer" }}>
+    <div onClick={handleClick} style={{ display: "inline-flex", alignItems: "center", fontFamily: '"Times New Roman",Georgia,serif', color: col, userSelect: "none", cursor: "pointer", lineHeight: 1 }}>
       <div style={{ position: "relative", width: s(13), height: s(32), marginRight: s(9), flexShrink: 0 }}>
         <span style={{ ...tr, position: "absolute", top: 0, left: 0, width: s(13), height: s(16), borderLeft: `${bw}px solid ${col}`, borderTop: `${bw}px solid ${col}`, transform: `translate(${-spread}px,${-spread}px)` }} />
         <span style={{ ...tr, position: "absolute", bottom: 0, left: 0, width: s(13), height: s(16), borderLeft: `${bw}px solid ${col}`, borderBottom: `${bw}px solid ${col}`, transform: `translate(${-spread}px,${spread}px)` }} />
@@ -2949,104 +2949,166 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
   const navState = scrollY < 60 ? "top" : (scrollDir === "up" ? "visible" : "compact");
   const marquee = cameras.map(c => `${c.icon || "📷"} ${c.name}`);
 
+  const [navForceOpen, setNavForceOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // Reset force-open khi cuộn lên lại
+  useEffect(() => { if (scrollDir === "up") setNavForceOpen(false); }, [scrollDir]);
+  // Đóng menu khi cuộn
+  useEffect(() => { if (scrollDir === "down" && mobileMenuOpen) setMobileMenuOpen(false); }, [scrollDir, mobileMenuOpen]);
+  const isCollapsed = navState === "compact" && !navForceOpen;
+
   return (
     <div style={{ position: "relative", zIndex: 1, fontFamily: 'var(--font-display)', color: TXT }}>
       {/* NAV */}
-      <nav className="nav92" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, padding: navState === "top" ? "8px 20px 0" : "0" }}>
-        <div className={`nav-inner${navState !== "top" ? " scrolled" : ""}${navState === "compact" ? " compact" : ""}`}
-          style={{ display: "flex", alignItems: "center", padding: isMobile ? "6px 12px" : "0 16px", height: isMobile ? "auto" : (navState === "compact" ? 24 : 34), gap: isMobile ? 8 : 0, overflow: "hidden" }}>
+      <nav className="nav92" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, padding: isMobile ? "8px 10px" : "12px 16px", display: "flex", justifyContent: "center", pointerEvents: "none" }}>
 
-          {/* LOGO */}
-          <div onClick={handleLogoClick} style={{ cursor: "pointer", flexShrink: 0, marginRight: isMobile ? 0 : 20, transition: "transform .45s cubic-bezier(.4,0,.2,1)", transform: `scale(${navState === "compact" ? 0.82 : 1})`, transformOrigin: "left center", position: "relative" }}>
-            <Logo size={isMobile ? 0.47 : 0.47} />
-            {logoRipple && (
-              <div style={{ position: "fixed", inset: 0, zIndex: 9999, pointerEvents: "none", overflow: "hidden", background: "rgba(0,0,0,0)" }}>
-                {/* gold ripple circle expanding from top-left */}
-                <div style={{ position: "absolute", top: 40, left: 80, width: "200vmax", height: "200vmax", borderRadius: "50%", background: `radial-gradient(circle, rgba(201,168,76,0.18) 0%, rgba(201,168,76,0.06) 40%, transparent 70%)`, animation: "logoRipple 0.7s cubic-bezier(.2,0,.4,1) forwards", pointerEvents: "none" }} />
-                {/* dark wash overlay */}
-                <div style={{ position: "absolute", inset: 0, background: "#060606", animation: "pageWash 0.7s ease forwards", pointerEvents: "none" }} />
+        {/* ── MOBILE NAV: luôn hiện thanh cố định ── */}
+        {isMobile && (
+          <div style={{ pointerEvents: "all", width: "100%", display: "flex", flexDirection: "column" }}>
+            {/* Thanh chính */}
+            <div className={`nav-inner${navState !== "top" ? " scrolled" : ""}`}
+              style={{ display: "flex", alignItems: "center", padding: "0 10px 0 14px", height: 46, gap: 6, width: "100%", overflow: "visible" }}>
+
+              {/* LOGO */}
+              <div onClick={handleLogoClick} style={{ cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center" }}>
+                <Logo size={0.52} />
+                {logoRipple && (
+                  <div style={{ position: "fixed", inset: 0, zIndex: 9999, pointerEvents: "none", overflow: "hidden" }}>
+                    <div style={{ position: "absolute", top: 40, left: 80, width: "200vmax", height: "200vmax", borderRadius: "50%", background: `radial-gradient(circle, rgba(201,168,76,0.18) 0%, rgba(201,168,76,0.06) 40%, transparent 70%)`, animation: "logoRipple 0.7s cubic-bezier(.2,0,.4,1) forwards", pointerEvents: "none" }} />
+                    <div style={{ position: "absolute", inset: 0, background: "#060606", animation: "pageWash 0.7s ease forwards", pointerEvents: "none" }} />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* NAV LINKS — desktop only */}
-          {!isMobile && (
-            <>
-              <div className="nav-div" style={{ marginRight: 20 }} />
-              {[["MÁY ẢNH", "cameras"], ["PHỤ KIỆN", "accessories"], ["FEEDBACK", "feedback"], ["VỀ CHÚNG TÔI", "about"]].map(([t, id]) => (
-                <button key={t} className="nav-link"
-                  onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                  style={{ marginRight: 20 }}>{t}</button>
-              ))}
-              <div className="nav-div" />
-            </>
-          )}
+              <div style={{ flex: 1 }} />
 
-          {/* SPACER */}
-          <div style={{ flex: 1 }} />
-
-          {/* SOCIAL ICONS — desktop */}
-          {!isMobile && (
-            <div style={{ display: "flex", gap: 6, marginRight: 12 }}>
-              {/* YouTube */}
-              <button className="nav-social" title="YouTube"
-                onClick={() => { const u = siteContent.socialLinks?.youtube; if (u) window.open(u, "_blank"); }}
-                style={{ opacity: siteContent.socialLinks?.youtube ? 1 : 0.32, cursor: siteContent.socialLinks?.youtube ? "pointer" : "default" }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 00-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 001.46 6.42 29 29 0 001 12a29 29 0 00.46 5.58 2.78 2.78 0 001.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 001.95-1.96A29 29 0 0023 12a29 29 0 00-.46-5.58zM9.75 15.02V8.98L15.5 12l-5.75 3.02z"/></svg>
-              </button>
-              {/* Facebook */}
-              <button className="nav-social" title="Facebook"
-                onClick={() => { const u = siteContent.socialLinks?.facebook; if (u) window.open(u, "_blank"); }}
-                style={{ opacity: siteContent.socialLinks?.facebook ? 1 : 0.32, cursor: siteContent.socialLinks?.facebook ? "pointer" : "default" }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>
-              </button>
-              {/* TikTok */}
-              <button className="nav-social" title="TikTok"
-                onClick={() => { const u = siteContent.socialLinks?.tiktok; if (u) window.open(u, "_blank"); }}
-                style={{ opacity: siteContent.socialLinks?.tiktok ? 1 : 0.32, cursor: siteContent.socialLinks?.tiktok ? "pointer" : "default" }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.79a4.85 4.85 0 01-1.01-.1z"/></svg>
-              </button>
-              {/* Instagram */}
-              <button className="nav-social" title="Instagram"
-                onClick={() => { const u = siteContent.socialLinks?.instagram; if (u) window.open(u, "_blank"); }}
-                style={{ opacity: siteContent.socialLinks?.instagram ? 1 : 0.32, cursor: siteContent.socialLinks?.instagram ? "pointer" : "default" }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
-              </button>
-            </div>
-          )}
-
-          <div style={{ display: "flex", gap: isMobile ? 6 : 8, alignItems: "center" }}>
-            {/* USER */}
-            {loggedUser ? (
-              <button onClick={onOpenCustomer || onOpenLogin}
-                style={{ color: G, fontSize: isMobile ? 10 : 11, background: G + "15", border: `1px solid ${G}44`, padding: isMobile ? "4px" : "4px 12px 4px 4px", borderRadius: 99, cursor: "pointer", letterSpacing: 1, fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 7, boxShadow: `0 2px 8px ${G}22` }}>
-                <div style={{ width: isMobile ? 30 : 26, height: isMobile ? 30 : 26, borderRadius: "50%", background: G + "33", border: `1px solid ${G}55`, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}>
+              {/* Login / Avatar */}
+              {loggedUser ? (
+                <button onClick={onOpenCustomer || onOpenLogin}
+                  style={{ width: 32, height: 32, borderRadius: "50%", background: G + "22", border: `1px solid ${G}55`, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0, cursor: "pointer" }}>
                   {loggedUser.avatar ? <img src={loggedUser.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : loggedUser.name?.[0]?.toUpperCase()}
-                </div>
-                {!isMobile && <span style={{ maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{loggedUser.displayName || loggedUser.name}</span>}
-              </button>
-            ) : (
-              isMobile ? (
-                /* Mobile: icon button */
-                <button onClick={onOpenLogin}
-                  style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.04)", border: `1px solid rgba(255,255,255,0.1)`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={MUT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                    <circle cx="12" cy="7" r="4"/>
-                  </svg>
                 </button>
               ) : (
                 <button onClick={onOpenLogin}
-                  style={{ color: MUT, fontSize: 10, background: "rgba(255,255,255,0.03)", border: `1px solid rgba(255,255,255,0.08)`, padding: "7px 14px", borderRadius: 6, cursor: "pointer", letterSpacing: 2, transition: "all .2s", fontFamily: "system-ui,sans-serif", boxShadow: "0 2px 4px rgba(0,0,0,0.3)" }}
-                  onMouseEnter={e => { e.currentTarget.style.color = TXT; e.currentTarget.style.borderColor = `${G}55`; e.currentTarget.style.background = `${G}10`; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = MUT; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}>ĐĂNG NHẬP</button>
-              )
-            )}
+                  style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: `1px solid rgba(255,255,255,0.14)`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={MUT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </button>
+              )}
 
-            {/* 3D CTA BUTTON */}
-            <button className="btn-3d" onClick={onBook} style={{ fontSize: isMobile ? 10 : undefined, padding: isMobile ? "0 14px" : undefined, letterSpacing: isMobile ? 2 : undefined }}>THUÊ NGAY</button>
+              {/* THUÊ NGAY */}
+              <button className="btn-3d" onClick={onBook} style={{ fontSize: 10, padding: "8px 14px", letterSpacing: 2, flexShrink: 0, whiteSpace: "nowrap" }}>THUÊ NGAY</button>
+
+              {/* HAMBURGER */}
+              <button onClick={() => setMobileMenuOpen(o => !o)}
+                style={{ width: 32, height: 32, borderRadius: 8, background: mobileMenuOpen ? `${G}22` : "rgba(255,255,255,0.05)", border: `1px solid ${mobileMenuOpen ? G+"55" : "rgba(255,255,255,0.14)"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, transition: "all .2s" }}>
+                {mobileMenuOpen
+                  ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={MUT} strokeWidth="2" strokeLinecap="round"><line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="21" y2="17"/></svg>
+                }
+              </button>
+            </div>
+
+            {/* MOBILE DROPDOWN MENU */}
+            {mobileMenuOpen && (
+              <div style={{ marginTop: 6, background: "rgba(10,9,8,0.97)", border: `1px solid rgba(201,168,76,0.3)`, borderRadius: 16, backdropFilter: "blur(40px)", boxShadow: "0 12px 48px rgba(0,0,0,0.7), 0 0 24px rgba(201,168,76,0.1)", padding: "12px 0", animation: "navExpandIn .28s cubic-bezier(.4,0,.2,1)" }}>
+                {/* Nav links */}
+                {[["📷 MÁY ẢNH", "cameras"], ["🎒 PHỤ KIỆN", "accessories"], ["💬 FEEDBACK", "feedback"], ["📍 VỀ CHÚNG TÔI", "about"]].map(([t, id]) => (
+                  <button key={id}
+                    onClick={() => { document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }); setMobileMenuOpen(false); }}
+                    style={{ width: "100%", background: "none", border: "none", color: MUT, fontSize: 13, letterSpacing: 2, padding: "12px 20px", cursor: "pointer", fontFamily: "system-ui,sans-serif", fontWeight: 600, textAlign: "left", display: "flex", alignItems: "center", gap: 10, transition: "color .15s" }}
+                    onTouchStart={e => e.currentTarget.style.color = G}
+                    onTouchEnd={e => e.currentTarget.style.color = MUT}>
+                    {t}
+                  </button>
+                ))}
+                {/* Divider */}
+                <div style={{ height: 1, background: "rgba(201,168,76,0.15)", margin: "8px 16px" }} />
+                {/* Social icons */}
+                <div style={{ display: "flex", gap: 10, padding: "8px 20px", alignItems: "center" }}>
+                  <span style={{ color: "#555", fontSize: 10, letterSpacing: 2, fontFamily: "system-ui,sans-serif", marginRight: 4 }}>FOLLOW</span>
+                  {[
+                    { key: "youtube", title: "YouTube", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 00-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 001.46 6.42 29 29 0 001 12a29 29 0 00.46 5.58 2.78 2.78 0 001.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 001.95-1.96A29 29 0 0023 12a29 29 0 00-.46-5.58zM9.75 15.02V8.98L15.5 12l-5.75 3.02z"/></svg> },
+                    { key: "facebook", title: "Facebook", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg> },
+                    { key: "tiktok", title: "TikTok", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.79a4.85 4.85 0 01-1.01-.1z"/></svg> },
+                    { key: "instagram", title: "Instagram", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg> },
+                  ].map(({ key, title, icon }) => {
+                    const url = siteContent.socialLinks?.[key];
+                    return (
+                      <button key={key} className="nav-social" title={title}
+                        onClick={() => { if (url) window.open(url, "_blank"); }}
+                        style={{ opacity: url ? 1 : 0.3, cursor: url ? "pointer" : "default", width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {icon}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        )}
+
+        {/* ── DESKTOP: collapsed pill hoặc full bar ── */}
+        {!isMobile && (
+          <>
+            {isCollapsed && (
+              <button onClick={() => setNavForceOpen(true)}
+                style={{ pointerEvents: "all", background: "rgba(10,9,8,0.92)", border: "1px solid rgba(201,168,76,0.45)", borderRadius: 50, padding: "8px 18px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", backdropFilter: "blur(24px)", boxShadow: "0 0 20px rgba(201,168,76,0.2), 0 4px 16px rgba(0,0,0,0.6)", animation: "navCollapseIn .35s cubic-bezier(.4,0,.2,1)" }}>
+                <Logo size={0.38} />
+                <span style={{ color: "rgba(201,168,76,0.7)", fontSize: 10, letterSpacing: 2, fontFamily: "system-ui,sans-serif" }}>···</span>
+              </button>
+            )}
+            {!isCollapsed && (
+              <div className={`nav-inner${navState !== "top" ? " scrolled" : ""}`}
+                style={{ pointerEvents: "all", display: "flex", alignItems: "center", padding: "0 20px", height: 45, gap: 0, width: "100%", overflow: "visible", animation: "navExpandIn .38s cubic-bezier(.4,0,.2,1)", transformOrigin: "top center" }}>
+                <div onClick={handleLogoClick} style={{ cursor: "pointer", flexShrink: 0, marginRight: 16, position: "relative", display: "flex", alignItems: "center", alignSelf: "center" }}>
+                  <Logo size={0.58} />
+                  {logoRipple && (
+                    <div style={{ position: "fixed", inset: 0, zIndex: 9999, pointerEvents: "none", overflow: "hidden" }}>
+                      <div style={{ position: "absolute", top: 40, left: 80, width: "200vmax", height: "200vmax", borderRadius: "50%", background: `radial-gradient(circle, rgba(201,168,76,0.18) 0%, rgba(201,168,76,0.06) 40%, transparent 70%)`, animation: "logoRipple 0.7s cubic-bezier(.2,0,.4,1) forwards", pointerEvents: "none" }} />
+                      <div style={{ position: "absolute", inset: 0, background: "#060606", animation: "pageWash 0.7s ease forwards", pointerEvents: "none" }} />
+                    </div>
+                  )}
+                </div>
+                <div className="nav-div" style={{ marginRight: 16 }} />
+                {[["MÁY ẢNH", "cameras"], ["PHỤ KIỆN", "accessories"], ["FEEDBACK", "feedback"], ["VỀ CHÚNG TÔI", "about"]].map(([t, id]) => (
+                  <button key={t} className="nav-link"
+                    onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                    style={{ marginRight: 20 }}>{t}</button>
+                ))}
+                <div className="nav-div" />
+                <div style={{ flex: 1 }} />
+                <div className="nav-div" style={{ marginRight: 16 }} />
+                <div style={{ display: "flex", gap: 8, marginRight: 16 }}>
+                  <button className="nav-social" title="YouTube" onClick={() => { const u = siteContent.socialLinks?.youtube; if (u) window.open(u, "_blank"); }} style={{ opacity: siteContent.socialLinks?.youtube ? 1 : 0.35, cursor: siteContent.socialLinks?.youtube ? "pointer" : "default" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 00-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 001.46 6.42 29 29 0 001 12a29 29 0 00.46 5.58 2.78 2.78 0 001.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 001.95-1.96A29 29 0 0023 12a29 29 0 00-.46-5.58zM9.75 15.02V8.98L15.5 12l-5.75 3.02z"/></svg></button>
+                  <button className="nav-social" title="Facebook" onClick={() => { const u = siteContent.socialLinks?.facebook; if (u) window.open(u, "_blank"); }} style={{ opacity: siteContent.socialLinks?.facebook ? 1 : 0.35, cursor: siteContent.socialLinks?.facebook ? "pointer" : "default" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg></button>
+                  <button className="nav-social" title="TikTok" onClick={() => { const u = siteContent.socialLinks?.tiktok; if (u) window.open(u, "_blank"); }} style={{ opacity: siteContent.socialLinks?.tiktok ? 1 : 0.35, cursor: siteContent.socialLinks?.tiktok ? "pointer" : "default" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.79a4.85 4.85 0 01-1.01-.1z"/></svg></button>
+                  <button className="nav-social" title="Instagram" onClick={() => { const u = siteContent.socialLinks?.instagram; if (u) window.open(u, "_blank"); }} style={{ opacity: siteContent.socialLinks?.instagram ? 1 : 0.35, cursor: siteContent.socialLinks?.instagram ? "pointer" : "default" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></button>
+                </div>
+                <div className="nav-div" style={{ marginRight: 16 }} />
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+                  {loggedUser ? (
+                    <button onClick={onOpenCustomer || onOpenLogin}
+                      style={{ color: G, fontSize: 11, background: G + "15", border: `1px solid ${G}44`, padding: "4px 12px 4px 4px", borderRadius: 99, cursor: "pointer", letterSpacing: 1, fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 7, boxShadow: `0 2px 8px ${G}22`, flexShrink: 0 }}>
+                      <div style={{ width: 26, height: 26, borderRadius: "50%", background: G + "33", border: `1px solid ${G}55`, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}>
+                        {loggedUser.avatar ? <img src={loggedUser.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : loggedUser.name?.[0]?.toUpperCase()}
+                      </div>
+                      <span style={{ maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{loggedUser.displayName || loggedUser.name}</span>
+                    </button>
+                  ) : (
+                    <button onClick={onOpenLogin}
+                      style={{ color: TXT, fontSize: 10, background: "rgba(255,255,255,0.05)", border: `1px solid rgba(255,255,255,0.2)`, padding: "8px 18px 8px 13px", borderRadius: 99, cursor: "pointer", letterSpacing: 2, transition: "all .2s", fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 8, flexShrink: 0, whiteSpace: "nowrap", fontWeight: 600 }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = `${G}66`; e.currentTarget.style.background = `${G}12`; e.currentTarget.style.color = G; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = TXT; }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      ĐĂNG NHẬP
+                    </button>
+                  )}
+                  <button className="btn-3d" onClick={onBook} style={{ fontSize: 11, padding: "10px 22px", letterSpacing: 3, flexShrink: 0, whiteSpace: "nowrap" }}>THUÊ NGAY</button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </nav>
 
       {/* HERO */}
@@ -6019,6 +6081,8 @@ function AppRoot() {
         ::-webkit-scrollbar{width:4px;height:4px}
         ::-webkit-scrollbar-track{background:#060606}
         ::-webkit-scrollbar-thumb{background:#222;border-radius:2px}
+        @keyframes navCollapseIn{0%{opacity:0;transform:scale(0.85) translateY(-8px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+        @keyframes navExpandIn{0%{opacity:0;transform:scaleY(0.7) translateY(-10px)}100%{opacity:1;transform:scaleY(1) translateY(0)}}
         @keyframes floatY{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-9px)}}
         @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
         @keyframes pulseIn{0%{transform:scale(0.7);opacity:0}100%{transform:scale(1);opacity:1}}
@@ -6040,66 +6104,61 @@ function AppRoot() {
           will-change: padding;
         }
         .nav-inner{
-          background: linear-gradient(180deg, rgba(14,13,11,0.55) 0%, rgba(8,7,6,0.52) 100%);
-          border: 1px solid rgba(201,168,76,0.22);
-          border-radius: 12px;
+          background: linear-gradient(180deg, rgba(14,13,11,0.82) 0%, rgba(8,7,6,0.78) 100%);
+          border: 1px solid rgba(201,168,76,0.35);
+          border-radius: 50px;
           box-shadow:
-            0 2px 0 rgba(201,168,76,0.10),
-            0 8px 40px rgba(0,0,0,0.55),
-            0 1px 0 rgba(255,255,255,0.06) inset,
-            0 -1px 0 rgba(0,0,0,0.4) inset;
-          transform: perspective(900px) rotateX(1deg);
-          transform-origin: top center;
-          backdrop-filter: blur(32px) saturate(160%);
-          -webkit-backdrop-filter: blur(32px) saturate(160%);
+            0 0 0 1px rgba(201,168,76,0.08),
+            0 0 32px rgba(201,168,76,0.18),
+            0 8px 40px rgba(0,0,0,0.65),
+            0 1px 0 rgba(255,255,255,0.06) inset;
+          backdrop-filter: blur(40px) saturate(180%);
+          -webkit-backdrop-filter: blur(40px) saturate(180%);
           transition: height .4s cubic-bezier(.4,0,.2,1),
                       padding .4s cubic-bezier(.4,0,.2,1),
                       opacity .4s ease,
                       border-radius .4s ease,
-                      transform .4s cubic-bezier(.4,0,.2,1),
                       box-shadow .4s ease,
                       background .4s ease;
           overflow: hidden;
         }
         .nav-inner.scrolled{
-          background: linear-gradient(180deg, rgba(10,9,8,0.72) 0%, rgba(6,6,6,0.68) 100%);
-          border-radius: 0 0 12px 12px;
-          transform: perspective(900px) rotateX(0deg);
+          background: linear-gradient(180deg, rgba(10,9,8,0.88) 0%, rgba(6,6,6,0.85) 100%);
+          border-radius: 50px;
           box-shadow:
-            0 4px 0 rgba(201,168,76,0.09),
-            0 12px 48px rgba(0,0,0,0.65),
-            0 1px 0 rgba(255,255,255,0.05) inset;
+            0 0 0 1px rgba(201,168,76,0.06),
+            0 0 24px rgba(201,168,76,0.12),
+            0 12px 48px rgba(0,0,0,0.7);
           backdrop-filter: blur(40px) saturate(180%);
           -webkit-backdrop-filter: blur(40px) saturate(180%);
         }
         .nav-inner.compact{
-          background: linear-gradient(180deg, rgba(8,7,6,0.62) 0%, rgba(5,4,4,0.58) 100%);
-          border-top: none;
-          border-left: none;
-          border-right: none;
-          border-radius: 0;
-          box-shadow: 0 2px 16px rgba(0,0,0,0.5);
-          opacity: 0.82;
-          backdrop-filter: blur(24px) saturate(140%);
-          -webkit-backdrop-filter: blur(24px) saturate(140%);
+          background: linear-gradient(180deg, rgba(8,7,6,0.92) 0%, rgba(5,4,4,0.90) 100%);
+          border-radius: 50px;
+          border-color: rgba(201,168,76,0.22);
+          box-shadow: 0 0 12px rgba(201,168,76,0.1), 0 4px 24px rgba(0,0,0,0.7);
+          opacity: 0.96;
+          backdrop-filter: blur(40px) saturate(180%);
+          -webkit-backdrop-filter: blur(40px) saturate(180%);
         }
         .nav-link{
           position: relative;
-          color: #666;
-          font-size: 10px;
+          color: #b0a898;
+          font-size: 11px;
           background: none;
           border: none;
           cursor: pointer;
           letter-spacing: 2.5px;
           padding: 6px 2px;
           font-family: system-ui,sans-serif;
+          font-weight: 600;
           transition: color .2s;
         }
         .nav-link::after{
           content:'';
           position: absolute;
           bottom: 0; left: 50%; right: 50%;
-          height: 1px;
+          height: 1.5px;
           background: #c9a84c;
           transition: left .25s, right .25s;
         }
@@ -6108,39 +6167,36 @@ function AppRoot() {
 
         /* 3D gold CTA button */
         @keyframes glassShimmer{0%{left:-100%}100%{left:220%}}
-        @keyframes glowPulse{0%,100%{box-shadow:0 0 16px rgba(201,168,76,0.35),0 0 32px rgba(201,168,76,0.15),0 4px 20px rgba(0,0,0,0.5)}50%{box-shadow:0 0 24px rgba(201,168,76,0.55),0 0 48px rgba(201,168,76,0.25),0 4px 20px rgba(0,0,0,0.5)}}
+        @keyframes glowPulse{0%,100%{box-shadow:0 0 16px rgba(201,168,76,0.5),0 0 32px rgba(201,168,76,0.2),0 4px 20px rgba(0,0,0,0.4)}50%{box-shadow:0 0 24px rgba(201,168,76,0.7),0 0 48px rgba(201,168,76,0.3),0 4px 20px rgba(0,0,0,0.4)}}
         .btn-3d{
           position: relative;
           overflow: hidden;
-          background: linear-gradient(135deg,rgba(255,228,110,0.13) 0%,rgba(201,168,76,0.07) 50%,rgba(180,140,40,0.12) 100%);
-          color: #f0d878;
-          border: 1px solid rgba(201,168,76,0.6);
+          background: linear-gradient(135deg, #d4a832 0%, #c9a84c 40%, #b8922e 100%);
+          color: #000;
+          border: 1px solid rgba(255,220,100,0.5);
           padding: 10px 22px;
-          border-radius: 6px;
+          border-radius: 99px;
           cursor: pointer;
-          font-weight: 800;
+          font-weight: 900;
           font-size: 11px;
           letter-spacing: 3px;
           font-family: system-ui,sans-serif;
-          backdrop-filter: blur(18px) saturate(180%);
-          -webkit-backdrop-filter: blur(18px) saturate(180%);
           box-shadow:
-            0 1px 0 rgba(255,235,120,0.25) inset,
-            0 -1px 0 rgba(0,0,0,0.3) inset,
-            0 0 18px rgba(201,168,76,0.35),
-            0 0 36px rgba(201,168,76,0.12),
-            0 4px 20px rgba(0,0,0,0.5);
-          transform: translateY(0) perspective(400px) rotateX(0deg);
-          transition: transform .15s, box-shadow .15s, background .15s, color .15s, border-color .15s;
+            0 1px 0 rgba(255,235,120,0.35) inset,
+            0 0 20px rgba(201,168,76,0.5),
+            0 0 40px rgba(201,168,76,0.18),
+            0 4px 16px rgba(0,0,0,0.4);
+          transform: translateY(0);
+          transition: transform .15s, box-shadow .15s, background .15s;
           animation: glowPulse 3s ease-in-out infinite;
-          text-shadow: 0 0 12px rgba(255,220,80,0.6);
+          text-shadow: 0 1px 0 rgba(255,255,255,0.3);
         }
         .btn-3d::before{
           content:'';
           position:absolute;
           top:0;left:-100%;
           width:55%;height:100%;
-          background:linear-gradient(90deg,transparent,rgba(255,235,120,0.22),transparent);
+          background:linear-gradient(90deg,transparent,rgba(255,255,255,0.25),transparent);
           animation:glassShimmer 3.5s ease-in-out infinite;
           pointer-events:none;
         }
@@ -6149,48 +6205,46 @@ function AppRoot() {
           position:absolute;
           top:0;left:0;right:0;
           height:1px;
-          background:linear-gradient(90deg,transparent,rgba(255,240,140,0.5),transparent);
+          background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent);
           pointer-events:none;
         }
         .btn-3d:hover{
-          background: linear-gradient(135deg,rgba(255,228,110,0.22) 0%,rgba(201,168,76,0.13) 50%,rgba(180,140,40,0.2) 100%);
-          border-color: rgba(255,210,70,0.85);
-          color: #fff8c0;
-          transform: translateY(-2px) perspective(400px) rotateX(2deg);
+          background: linear-gradient(135deg, #e0b83a 0%, #d4a832 40%, #c49428 100%);
+          border-color: rgba(255,230,120,0.7);
+          color: #000;
+          transform: translateY(-2px);
           box-shadow:
-            0 1px 0 rgba(255,235,120,0.35) inset,
-            0 -1px 0 rgba(0,0,0,0.3) inset,
-            0 0 28px rgba(201,168,76,0.6),
-            0 0 56px rgba(201,168,76,0.22),
-            0 8px 28px rgba(0,0,0,0.5);
-          text-shadow: 0 0 18px rgba(255,220,80,0.9);
+            0 1px 0 rgba(255,235,120,0.4) inset,
+            0 0 28px rgba(201,168,76,0.7),
+            0 0 56px rgba(201,168,76,0.28),
+            0 8px 28px rgba(0,0,0,0.4);
           animation: none;
         }
         .btn-3d:active{
-          transform: translateY(2px) perspective(400px) rotateX(-1deg);
+          transform: translateY(1px);
           box-shadow:
-            0 0 10px rgba(201,168,76,0.25),
+            0 0 14px rgba(201,168,76,0.4),
             0 2px 10px rgba(0,0,0,0.4);
           animation: none;
         }
 
         /* Social icon buttons */
         .nav-social{
-          width: 30px; height: 30px;
-          border-radius: 6px;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.07);
+          width: 34px; height: 34px;
+          border-radius: 50%;
+          background: rgba(255,255,255,0.08);
+          border: 1px solid rgba(255,255,255,0.22);
           display: flex; align-items: center; justify-content: center;
           cursor: pointer;
-          color: #555;
+          color: #c8c0b0;
           transition: all .2s;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.04) inset;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.4);
         }
         .nav-social:hover{
-          background: rgba(201,168,76,0.12);
-          border-color: rgba(201,168,76,0.3);
+          background: rgba(201,168,76,0.18);
+          border-color: rgba(201,168,76,0.5);
           color: #c9a84c;
-          box-shadow: 0 3px 8px rgba(201,168,76,0.2), 0 1px 0 rgba(255,255,255,0.06) inset;
+          box-shadow: 0 0 14px rgba(201,168,76,0.35);
           transform: translateY(-1px);
         }
 
@@ -6211,7 +6265,7 @@ function AppRoot() {
         .nav-phone:hover{ color: #c9a84c; border-color: rgba(201,168,76,0.25); }
 
         /* divider */
-        .nav-div{ width:1px; height:20px; background: rgba(255,255,255,0.08); flex-shrink:0; }
+        .nav-div{ width:1px; height:22px; background: rgba(255,255,255,0.2); flex-shrink:0; }
 
         @media(max-width:767px){
           input,select,textarea{font-size:16px!important;}
