@@ -1880,8 +1880,8 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
       <div style={box}>
         <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", color: MUT, fontSize: 18, cursor: "pointer", lineHeight: 1 }}>✕</button>
         <div style={{ marginBottom: 24 }}>
-          {/* Logo — căn giữa */}
-          <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
+          {/* Logo — góc trái */}
+          <div style={{ display: "flex", justifyContent: "flex-start", width: "100%", marginBottom: 4 }}>
             <Logo size={0.72} />
           </div>
           {!done && (
@@ -2378,14 +2378,14 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                       </div>
                       {ri && idx === 0 && (
                         <div style={{ fontFamily:"system-ui,sans-serif" }}>
-                          <div style={{ color:MUT, fontSize:12, marginBottom:6 }}>
-                            {fmtDays(days, selShift)} · {ri.pickDate} → {ri.dropDate}
+                          <div style={{ color:MUT, fontSize:11, marginBottom:6, fontWeight:600 }}>
+                            {fmtDays(days, selShift)}
                           </div>
-                          <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-                            <span style={{ display:"inline-flex", alignItems:"center", gap:5, background:"#0a1a08", border:"1px solid #22c55e33", borderRadius:6, padding:"4px 10px", fontSize:11, color:"#22c55e", fontWeight:700 }}>
+                          <div style={{ display:"flex", gap:6, flexDirection:"column" }}>
+                            <span style={{ display:"inline-flex", alignItems:"center", gap:5, background:"#0a1a08", border:"1px solid #22c55e44", borderRadius:7, padding:"5px 10px", fontSize:11, color:"#22c55e", fontWeight:700, whiteSpace:"nowrap" }}>
                               Nhận: {ri.pickTime} · {ri.pickDate}
                             </span>
-                            <span style={{ display:"inline-flex", alignItems:"center", gap:5, background:"#1a0a08", border:"1px solid #f59e0b33", borderRadius:6, padding:"4px 10px", fontSize:11, color:"#f59e0b", fontWeight:700 }}>
+                            <span style={{ display:"inline-flex", alignItems:"center", gap:5, background:"#1a0a08", border:"1px solid #f59e0b44", borderRadius:7, padding:"5px 10px", fontSize:11, color:"#f59e0b", fontWeight:700, whiteSpace:"nowrap" }}>
                               Trả: {ri.dropTime} · {ri.dropDate}
                             </span>
                           </div>
