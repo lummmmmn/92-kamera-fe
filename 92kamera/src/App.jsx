@@ -6074,7 +6074,7 @@ function AppRoot() {
         @keyframes shootC{0%{opacity:0;transform:translate(0,0) rotate(-50deg)}4%{opacity:.6}70%{opacity:.2}100%{opacity:0;transform:translate(-260px,260px) rotate(-50deg)}}
         @keyframes twinkle{0%,100%{opacity:.12}50%{opacity:.45}}
         @keyframes splashDot{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.6);opacity:0.6}}
-        @keyframes contentIn{0%{opacity:0;filter:brightness(1.4)}40%{opacity:1}100%{opacity:1;filter:brightness(1)}}
+        @keyframes contentIn{0%{opacity:0}100%{opacity:1}}
         @keyframes logoRipple{0%{transform:translate(-50%,-50%) scale(0);opacity:0.8}100%{transform:translate(-50%,-50%) scale(1);opacity:0}}
         @keyframes pageWash{0%{opacity:0}35%{opacity:1}100%{opacity:1}}
         select option{background:#111;color:#f0e8d0}
