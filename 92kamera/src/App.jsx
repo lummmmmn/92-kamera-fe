@@ -2466,11 +2466,11 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                           <div style={{ color:MUT, fontSize:11, marginBottom:6, fontWeight:600 }}>
                             {fmtDays(days, selShift)}
                           </div>
-                          <div style={{ display:"flex", gap:6, flexDirection:"column" }}>
-                            <span style={{ display:"inline-flex", alignItems:"center", gap:5, background:"#0a1a08", border:"1px solid #22c55e44", borderRadius:7, padding:"5px 10px", fontSize:11, color:"#22c55e", fontWeight:700, whiteSpace:"nowrap" }}>
+                          <div style={{ display:"flex", gap:6, flexDirection:"column", alignItems:"flex-start" }}>
+                            <span style={{ display:"inline-flex", alignItems:"center", gap:5, background:"#0a1a08", border:"1px solid #22c55e44", borderRadius:7, padding:"5px 10px", fontSize:11, color:"#22c55e", fontWeight:700, whiteSpace:"nowrap", alignSelf:"flex-start" }}>
                               Nhận: {ri.pickTime} · {ri.pickDate}
                             </span>
-                            <span style={{ display:"inline-flex", alignItems:"center", gap:5, background:"#1a0a08", border:"1px solid #f59e0b44", borderRadius:7, padding:"5px 10px", fontSize:11, color:"#f59e0b", fontWeight:700, whiteSpace:"nowrap" }}>
+                            <span style={{ display:"inline-flex", alignItems:"center", gap:5, background:"#1a0a08", border:"1px solid #f59e0b44", borderRadius:7, padding:"5px 10px", fontSize:11, color:"#f59e0b", fontWeight:700, whiteSpace:"nowrap", alignSelf:"flex-start" }}>
                               Trả: {ri.dropTime} · {ri.dropDate}
                             </span>
                           </div>
@@ -3090,8 +3090,8 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
 
               {/* HAMBURGER */}
               <button
-                onPointerDown={(e) => { e.preventDefault(); setMobileMenuOpen(o => !o); }}
-                style={{ width: 32, height: 32, borderRadius: 8, background: mobileMenuOpen ? `${G}22` : "rgba(255,255,255,0.05)", border: `1px solid ${mobileMenuOpen ? G+"55" : "rgba(255,255,255,0.14)"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, transition: "all .2s", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
+                onClick={(e) => { e.stopPropagation(); setMobileMenuOpen(o => !o); }}
+                style={{ width: 44, height: 44, borderRadius: 8, background: mobileMenuOpen ? `${G}22` : "rgba(255,255,255,0.05)", border: `1px solid ${mobileMenuOpen ? G+"55" : "rgba(255,255,255,0.14)"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, transition: "all .2s", touchAction: "manipulation", WebkitTapHighlightColor: "transparent", userSelect: "none", WebkitUserSelect: "none" }}>
                 {mobileMenuOpen
                   ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={MUT} strokeWidth="2" strokeLinecap="round"><line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="21" y2="17"/></svg>
@@ -3101,12 +3101,14 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
 
             {/* MOBILE DROPDOWN MENU */}
             {mobileMenuOpen && (
+              <>
+              <div onClick={() => setMobileMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: -1 }} />
               <div style={{ marginTop: 6, background: "rgba(10,9,8,0.97)", border: `1px solid rgba(201,168,76,0.3)`, borderRadius: 16, backdropFilter: "blur(40px)", boxShadow: "0 12px 48px rgba(0,0,0,0.7), 0 0 24px rgba(201,168,76,0.1)", padding: "12px 0", animation: "navExpandIn .28s cubic-bezier(.4,0,.2,1)" }}>
                 {/* Nav links */}
                 {[["📷 MÁY ẢNH", "cameras"], ["🎒 PHỤ KIỆN", "accessories"], ["💬 FEEDBACK", "feedback"], ["📍 VỀ CHÚNG TÔI", "about"]].map(([t, id]) => (
                   <button key={id}
-                    onPointerDown={(e) => { e.preventDefault(); document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }); setMobileMenuOpen(false); }}
-                    style={{ width: "100%", background: "none", border: "none", color: MUT, fontSize: 13, letterSpacing: 2, padding: "12px 20px", cursor: "pointer", fontFamily: "system-ui,sans-serif", fontWeight: 600, textAlign: "left", display: "flex", alignItems: "center", gap: 10, transition: "color .15s", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
+                    onClick={() => { document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }); setMobileMenuOpen(false); }}
+                    style={{ width: "100%", background: "none", border: "none", color: MUT, fontSize: 13, letterSpacing: 2, padding: "14px 20px", cursor: "pointer", fontFamily: "system-ui,sans-serif", fontWeight: 600, textAlign: "left", display: "flex", alignItems: "center", gap: 10, transition: "color .15s", touchAction: "manipulation", WebkitTapHighlightColor: "transparent", userSelect: "none", WebkitUserSelect: "none" }}>
                     {t}
                   </button>
                 ))}
@@ -3132,6 +3134,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
                   })}
                 </div>
               </div>
+              </>
             )}
           </div>
         )}
@@ -3231,7 +3234,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
 
           {/* Label */}
           <div style={{ fontSize: 9.5, letterSpacing: 5, color: G, fontFamily: "system-ui,sans-serif", marginBottom: 18, opacity: 1, textShadow: `0 0 12px ${G}66` }}>
-            DỊCH VỤ CHO THUÊ MÁY ẢNH NÚI THÀNH · TAM KỲ
+            {isMobile ? <>DỊCH VỤ CHO THUÊ MÁY ẢNH<br/>NÚI THÀNH · TAM KỲ</> : "DỊCH VỤ CHO THUÊ MÁY ẢNH NÚI THÀNH · TAM KỲ"}
           </div>
 
           {/* Logo dùng component chuẩn */}
