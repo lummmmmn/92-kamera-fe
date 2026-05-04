@@ -3001,6 +3001,151 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
   );
 }
 
+// ── MOBILE FAB MENU (draggable floating circle) ──
+function MobileFAB({ mobileMenuOpen, setMobileMenuOpen, siteContent, onBook }) {
+  const fabRef = useRef(null);
+  const menuRef = useRef(null);
+  const posRef = useRef({ x: 14, y: 62 }); // default: góc trái, dưới navbar
+  const [pos, setPos] = useState({ x: 14, y: 62 });
+  const [open, setOpen] = useState(false);
+  const dragRef = useRef({ dragging: false, startX: 0, startY: 0, origX: 0, origY: 0, moved: false });
+
+  const clampPos = (x, y) => {
+    const W = window.innerWidth, H = window.innerHeight;
+    const size = 46;
+    return { x: Math.max(8, Math.min(W - size - 8, x)), y: Math.max(58, Math.min(H - size - 8, y)) };
+  };
+
+  const onPointerDown = (e) => {
+    if (e.button !== undefined && e.button !== 0 && e.type === "mousedown") return;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    dragRef.current = { dragging: true, startX: clientX, startY: clientY, origX: posRef.current.x, origY: posRef.current.y, moved: false };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+
+  const onPointerMove = (e) => {
+    if (!dragRef.current.dragging) return;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const dx = clientX - dragRef.current.startX;
+    const dy = clientY - dragRef.current.startY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) dragRef.current.moved = true;
+    if (dragRef.current.moved) {
+      const np = clampPos(dragRef.current.origX + dx, dragRef.current.origY + dy);
+      posRef.current = np;
+      setPos({ ...np });
+      if (open) setOpen(false);
+    }
+  };
+
+  const onPointerUp = () => {
+    if (!dragRef.current.dragging) return;
+    const wasMoved = dragRef.current.moved;
+    dragRef.current.dragging = false;
+    dragRef.current.moved = false;
+    if (!wasMoved) setOpen(o => !o);
+  };
+
+  // Đóng khi click ngoài
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (fabRef.current && !fabRef.current.contains(e.target) && menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", handler);
+    return () => document.removeEventListener("pointerdown", handler);
+  }, [open]);
+
+  // Tính vị trí menu (popup gần FAB, không ra ngoài màn hình)
+  const menuW = 220;
+  const menuH = 260;
+  let menuX = pos.x + 54;
+  let menuY = pos.y;
+  if (menuX + menuW > window.innerWidth - 8) menuX = pos.x - menuW - 8;
+  if (menuY + menuH > window.innerHeight - 8) menuY = window.innerHeight - menuH - 8;
+  if (menuY < 58) menuY = 58;
+
+  return (
+    <>
+      {/* FAB button */}
+      <div
+        ref={fabRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onTouchStart={onPointerDown}
+        onTouchMove={onPointerMove}
+        onTouchEnd={onPointerUp}
+        style={{
+          position: "fixed", left: pos.x, top: pos.y, zIndex: 300,
+          width: 46, height: 46, borderRadius: "50%",
+          background: open ? `radial-gradient(circle, ${G}44, ${G}22)` : "rgba(10,9,8,0.92)",
+          border: `2px solid ${open ? G : "rgba(201,168,76,0.5)"}`,
+          boxShadow: open ? `0 0 18px ${G}55, 0 4px 16px rgba(0,0,0,0.7)` : "0 0 12px rgba(201,168,76,0.25), 0 4px 12px rgba(0,0,0,0.6)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          cursor: "grab", touchAction: "none", userSelect: "none", WebkitUserSelect: "none",
+          backdropFilter: "blur(20px)",
+          transition: "border-color .2s, box-shadow .2s, background .2s",
+        }}
+      >
+        {open
+          ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(201,168,76,0.85)" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="21" y2="17"/></svg>
+        }
+        {/* Pulse ring khi đóng */}
+        {!open && <div style={{ position: "absolute", inset: -4, borderRadius: "50%", border: `1px solid rgba(201,168,76,0.25)`, animation: "fabPulse 2.4s ease-in-out infinite", pointerEvents: "none" }} />}
+      </div>
+
+      {/* Popup menu */}
+      {open && (
+        <div ref={menuRef} style={{
+          position: "fixed", left: menuX, top: menuY, zIndex: 299,
+          width: menuW, background: "rgba(10,9,8,0.97)",
+          border: "1px solid rgba(201,168,76,0.3)", borderRadius: 16,
+          backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)",
+          boxShadow: "0 12px 48px rgba(0,0,0,0.8), 0 0 24px rgba(201,168,76,0.1)",
+          padding: "10px 0", animation: "navExpandIn .22s cubic-bezier(.4,0,.2,1)",
+          touchAction: "auto",
+        }}>
+          {[["📷 MÁY ẢNH", "cameras"], ["🎒 PHỤ KIỆN", "accessories"], ["💬 FEEDBACK", "feedback"], ["📍 VỀ CHÚNG TÔI", "about"]].map(([t, id]) => (
+            <button key={id}
+              onClick={() => { document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }); setOpen(false); }}
+              style={{ width: "100%", background: "none", border: "none", color: "#999", fontSize: 12, letterSpacing: 2, padding: "13px 18px", cursor: "pointer", fontFamily: "system-ui,sans-serif", fontWeight: 600, textAlign: "left", display: "flex", alignItems: "center", gap: 10, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
+              {t}
+            </button>
+          ))}
+          <div style={{ height: 1, background: "rgba(201,168,76,0.15)", margin: "6px 14px" }} />
+          <div style={{ display: "flex", gap: 8, padding: "6px 18px", alignItems: "center", flexWrap: "wrap" }}>
+            <span style={{ color: "#555", fontSize: 9, letterSpacing: 2, fontFamily: "system-ui,sans-serif" }}>FOLLOW</span>
+            {[
+              { key: "youtube", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 00-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 001.46 6.42 29 29 0 001 12a29 29 0 00.46 5.58 2.78 2.78 0 001.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 001.95-1.96A29 29 0 0023 12a29 29 0 00-.46-5.58zM9.75 15.02V8.98L15.5 12l-5.75 3.02z"/></svg> },
+              { key: "facebook", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg> },
+              { key: "tiktok", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.79a4.85 4.85 0 01-1.01-.1z"/></svg> },
+              { key: "instagram", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg> },
+            ].map(({ key, icon }) => {
+              const url = siteContent?.socialLinks?.[key];
+              return (
+                <button key={key} onClick={() => { if (url) window.open(url, "_blank"); }}
+                  style={{ opacity: url ? 1 : 0.3, cursor: url ? "pointer" : "default", width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "#999", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
+                  {icon}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes fabPulse {
+          0%, 100% { transform: scale(1); opacity: 0.6; }
+          50% { transform: scale(1.35); opacity: 0; }
+        }
+      `}</style>
+    </>
+  );
+}
+
 // ── HOMEPAGE ──
 function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, isMobile, photos, feedbacks, loggedUser, onOpenLogin, onOpenCustomer }) {
   const [scrollY, setScrollY] = useState(0);
@@ -3087,55 +3232,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
 
               {/* THUÊ NGAY */}
               <button className="btn-3d" onClick={onBook} style={{ fontSize: 10, padding: "8px 14px", letterSpacing: 2, flexShrink: 0, whiteSpace: "nowrap", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>THUÊ NGAY</button>
-
-              {/* HAMBURGER */}
-              <button
-                onClick={(e) => { e.stopPropagation(); setMobileMenuOpen(o => !o); }}
-                style={{ width: 44, height: 44, borderRadius: 8, background: mobileMenuOpen ? `${G}22` : "rgba(255,255,255,0.05)", border: `1px solid ${mobileMenuOpen ? G+"55" : "rgba(255,255,255,0.14)"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, transition: "all .2s", touchAction: "manipulation", WebkitTapHighlightColor: "transparent", userSelect: "none", WebkitUserSelect: "none" }}>
-                {mobileMenuOpen
-                  ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                  : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={MUT} strokeWidth="2" strokeLinecap="round"><line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="21" y2="17"/></svg>
-                }
-              </button>
             </div>
-
-            {/* MOBILE DROPDOWN MENU */}
-            {mobileMenuOpen && (
-              <>
-              <div onClick={() => setMobileMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: -1 }} />
-              <div style={{ marginTop: 6, background: "rgba(10,9,8,0.97)", border: `1px solid rgba(201,168,76,0.3)`, borderRadius: 16, backdropFilter: "blur(40px)", boxShadow: "0 12px 48px rgba(0,0,0,0.7), 0 0 24px rgba(201,168,76,0.1)", padding: "12px 0", animation: "navExpandIn .28s cubic-bezier(.4,0,.2,1)" }}>
-                {/* Nav links */}
-                {[["📷 MÁY ẢNH", "cameras"], ["🎒 PHỤ KIỆN", "accessories"], ["💬 FEEDBACK", "feedback"], ["📍 VỀ CHÚNG TÔI", "about"]].map(([t, id]) => (
-                  <button key={id}
-                    onClick={() => { document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }); setMobileMenuOpen(false); }}
-                    style={{ width: "100%", background: "none", border: "none", color: MUT, fontSize: 13, letterSpacing: 2, padding: "14px 20px", cursor: "pointer", fontFamily: "system-ui,sans-serif", fontWeight: 600, textAlign: "left", display: "flex", alignItems: "center", gap: 10, transition: "color .15s", touchAction: "manipulation", WebkitTapHighlightColor: "transparent", userSelect: "none", WebkitUserSelect: "none" }}>
-                    {t}
-                  </button>
-                ))}
-                {/* Divider */}
-                <div style={{ height: 1, background: "rgba(201,168,76,0.15)", margin: "8px 16px" }} />
-                {/* Social icons */}
-                <div style={{ display: "flex", gap: 10, padding: "8px 20px", alignItems: "center" }}>
-                  <span style={{ color: "#555", fontSize: 10, letterSpacing: 2, fontFamily: "system-ui,sans-serif", marginRight: 4 }}>FOLLOW</span>
-                  {[
-                    { key: "youtube", title: "YouTube", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 00-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 001.46 6.42 29 29 0 001 12a29 29 0 00.46 5.58 2.78 2.78 0 001.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 001.95-1.96A29 29 0 0023 12a29 29 0 00-.46-5.58zM9.75 15.02V8.98L15.5 12l-5.75 3.02z"/></svg> },
-                    { key: "facebook", title: "Facebook", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg> },
-                    { key: "tiktok", title: "TikTok", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.79a4.85 4.85 0 01-1.01-.1z"/></svg> },
-                    { key: "instagram", title: "Instagram", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg> },
-                  ].map(({ key, title, icon }) => {
-                    const url = siteContent.socialLinks?.[key];
-                    return (
-                      <button key={key} className="nav-social" title={title}
-                        onClick={() => { if (url) window.open(url, "_blank"); }}
-                        style={{ opacity: url ? 1 : 0.3, cursor: url ? "pointer" : "default", width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        {icon}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              </>
-            )}
           </div>
         )}
 
@@ -3202,6 +3299,14 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
           </>
         )}
       </nav>
+
+      {/* ── MOBILE FAB MENU (floating draggable circle) ── */}
+      {isMobile && <MobileFAB
+        mobileMenuOpen={mobileMenuOpen}
+        setMobileMenuOpen={setMobileMenuOpen}
+        siteContent={siteContent}
+        onBook={onBook}
+      />}
 
       {/* HERO */}
       <div style={{ height: "100vh", position: "relative", overflow: "hidden", userSelect: "none" }}>
