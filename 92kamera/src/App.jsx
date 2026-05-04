@@ -863,6 +863,8 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
   const avatarRef = useRef();
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const isMobile = useMobile();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // ── Tự động refresh orders mỗi 30s khi đang xem tab đơn hàng ──
   const refreshOrders = useCallback(async (silent = false) => {
@@ -980,40 +982,123 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
 
   const orderStatusColor = { pending: "#60a5fa", confirmed: "#a78bfa", active: "#f59e0b", completed: "#22c55e", cancelled: "#6b7280" };
 
+  const TABS = [
+    ["dashboard", "⊞", "Dashboard"],
+    ["orders",    "≡", "Đơn thuê"],
+    ["feedbacks", "☆", "Feedback"],
+    ["badges",    "◎", "Huy hiệu"],
+    ["settings",  "✦", "Cài đặt"],
+  ];
+  const currentTab = TABS.find(([k]) => k === tab);
+
   return (
     <div style={{ minHeight: "100vh", background: BG, fontFamily: "system-ui,sans-serif", position: "relative", zIndex: 1 }}>
-      <style>{`*{box-sizing:border-box;} @keyframes pulseIn{0%{transform:scale(0.7);opacity:0}100%{transform:scale(1);opacity:1}} @keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <style>{`*{box-sizing:border-box;} @keyframes pulseIn{0%{transform:scale(0.7);opacity:0}100%{transform:scale(1);opacity:1}} @keyframes spin{to{transform:rotate(360deg)}} @keyframes cMenuIn{0%{opacity:0;transform:translateY(-8px) scale(0.96)}100%{opacity:1;transform:translateY(0) scale(1)}}`}</style>
 
       {/* Header */}
-      <div style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(6,6,6,0.82)", backdropFilter: "blur(32px) saturate(160%)", WebkitBackdropFilter: "blur(32px) saturate(160%)", borderBottom: `1px solid rgba(42,42,42,0.7)`, padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 4, overflowX: "auto", WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
-          {[
-            ["dashboard", "⊞",  "Dashboard"],
-            ["orders",    "≡",   "Đơn thuê"],
-            ["feedbacks", "☆",  "Feedback"],
-            ["badges",    "◎",  "Huy hiệu"],
-            ["settings",  "✦",  "Cài đặt"],
-          ].map(([k, ico, label]) => (
-            <button key={k} onClick={() => setTab(k)} style={{
-              padding: "16px 18px", background: "none", border: "none",
-              borderBottom: `2.5px solid ${tab === k ? G : "transparent"}`,
-              color: tab === k ? G : "#666",
-              fontWeight: tab === k ? 700 : 400,
-              fontSize: 13, cursor: "pointer",
-              fontFamily: "system-ui,sans-serif",
-              transition: "all .2s",
-              display: "flex", alignItems: "center", gap: 7,
-              whiteSpace: "nowrap",
+      {isMobile ? (
+        /* ── MOBILE: pill góc trái + dropdown ── */
+        <div style={{ position: "fixed", top: 10, left: 12, zIndex: 200 }}>
+          {/* Pill button */}
+          <button
+            onPointerDown={(e) => { e.preventDefault(); setMobileMenuOpen(o => !o); }}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              background: mobileMenuOpen ? `linear-gradient(135deg,${G}22,${G}11)` : "rgba(10,9,8,0.9)",
+              border: `1px solid ${mobileMenuOpen ? G+"66" : "rgba(201,168,76,0.35)"}`,
+              borderRadius: 50, padding: "8px 14px 8px 10px",
+              backdropFilter: "blur(32px)", WebkitBackdropFilter: "blur(32px)",
+              boxShadow: mobileMenuOpen
+                ? `0 0 0 3px ${G}22, 0 8px 32px rgba(0,0,0,0.7)`
+                : "0 4px 24px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,168,76,0.12)",
+              cursor: "pointer", transition: "all .22s", touchAction: "manipulation",
+              WebkitTapHighlightColor: "transparent",
             }}>
-              <span style={{ fontSize: 14, opacity: tab === k ? 1 : 0.6 }}>{ico}</span>
-              <span>{label}</span>
-            </button>
-          ))}
-        </div>
-        <button onClick={onBack} style={{ background: "none", border: `1px solid ${BR}`, color: MUT, padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 12, flexShrink: 0, marginLeft: 20, display: "flex", alignItems: "center", gap: 6, letterSpacing: 0.2 }}>← Trang chủ</button>
-      </div>
+            <span style={{ fontSize: 15, lineHeight: 1 }}>{currentTab?.[1]}</span>
+            <span style={{ color: G, fontSize: 12, fontWeight: 700, fontFamily: "system-ui,sans-serif", letterSpacing: 0.3 }}>{currentTab?.[2]}</span>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ marginLeft: 2, transition: "transform .22s", transform: mobileMenuOpen ? "rotate(180deg)" : "rotate(0deg)" }}>
+              <path d="M2 3.5L5 6.5L8 3.5" stroke={G} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
 
-      <div style={{ maxWidth: 1000, margin: "0 auto", padding: "32px 24px" }}>
+          {/* Dropdown menu */}
+          {mobileMenuOpen && (
+            <div style={{
+              position: "absolute", top: "calc(100% + 8px)", left: 0,
+              background: "rgba(10,9,8,0.97)", border: `1px solid rgba(201,168,76,0.28)`,
+              borderRadius: 16, backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)",
+              boxShadow: "0 16px 56px rgba(0,0,0,0.8), 0 0 24px rgba(201,168,76,0.1)",
+              minWidth: 190, padding: "8px 0",
+              animation: "cMenuIn .22s cubic-bezier(.4,0,.2,1)",
+              zIndex: 201,
+            }}>
+              {TABS.map(([k, ico, label]) => (
+                <button key={k}
+                  onPointerDown={(e) => { e.preventDefault(); setTab(k); setMobileMenuOpen(false); }}
+                  style={{
+                    width: "100%", background: "none", border: "none",
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "11px 18px", cursor: "pointer",
+                    borderLeft: `3px solid ${tab === k ? G : "transparent"}`,
+                    transition: "all .15s", touchAction: "manipulation",
+                    WebkitTapHighlightColor: "transparent",
+                  }}>
+                  <span style={{ fontSize: 15, width: 20, textAlign: "center" }}>{ico}</span>
+                  <span style={{ color: tab === k ? G : MUT, fontSize: 13, fontWeight: tab === k ? 700 : 400, fontFamily: "system-ui,sans-serif" }}>{label}</span>
+                  {tab === k && <span style={{ marginLeft: "auto", width: 6, height: 6, borderRadius: "50%", background: G, boxShadow: `0 0 8px ${G}` }} />}
+                </button>
+              ))}
+              {/* Divider */}
+              <div style={{ height: 1, background: "rgba(201,168,76,0.12)", margin: "6px 14px" }} />
+              {/* Trang chủ */}
+              <button
+                onPointerDown={(e) => { e.preventDefault(); onBack(); }}
+                style={{
+                  width: "100%", background: "none", border: "none",
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "11px 18px", cursor: "pointer",
+                  touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
+                }}>
+                <span style={{ fontSize: 14, width: 20, textAlign: "center", color: MUT }}>←</span>
+                <span style={{ color: MUT, fontSize: 13, fontFamily: "system-ui,sans-serif" }}>Trang chủ</span>
+              </button>
+            </div>
+          )}
+
+          {/* Backdrop để đóng menu */}
+          {mobileMenuOpen && (
+            <div
+              onPointerDown={(e) => { e.preventDefault(); setMobileMenuOpen(false); }}
+              style={{ position: "fixed", inset: 0, zIndex: -1 }}
+            />
+          )}
+        </div>
+      ) : (
+        /* ── DESKTOP: sticky header như cũ ── */
+        <div style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(6,6,6,0.82)", backdropFilter: "blur(32px) saturate(160%)", WebkitBackdropFilter: "blur(32px) saturate(160%)", borderBottom: `1px solid rgba(42,42,42,0.7)`, padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            {TABS.map(([k, ico, label]) => (
+              <button key={k} onClick={() => setTab(k)} style={{
+                padding: "16px 18px", background: "none", border: "none",
+                borderBottom: `2.5px solid ${tab === k ? G : "transparent"}`,
+                color: tab === k ? G : "#666",
+                fontWeight: tab === k ? 700 : 400,
+                fontSize: 13, cursor: "pointer",
+                fontFamily: "system-ui,sans-serif",
+                transition: "all .2s",
+                display: "flex", alignItems: "center", gap: 7,
+                whiteSpace: "nowrap",
+              }}>
+                <span style={{ fontSize: 14, opacity: tab === k ? 1 : 0.6 }}>{ico}</span>
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+          <button onClick={onBack} style={{ background: "none", border: `1px solid ${BR}`, color: MUT, padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 12, flexShrink: 0, marginLeft: 20, display: "flex", alignItems: "center", gap: 6, letterSpacing: 0.2 }}>← Trang chủ</button>
+        </div>
+      )}
+
+      <div style={{ maxWidth: 1000, margin: "0 auto", padding: isMobile ? "64px 16px 32px" : "32px 24px" }}>
 
         {/* Profile banner */}
         <div style={{ background:"linear-gradient(160deg,#100e02,#0c0a00)", border:`1px solid ${G}33`, borderRadius:20, padding:"28px 20px 24px", marginBottom:20, textAlign:"center", position:"relative", overflow:"hidden" }}>
@@ -2921,6 +3006,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
   const [scrollY, setScrollY] = useState(0);
   const [scrollDir, setScrollDir] = useState("up");
   const prevScrollY = useRef(0);
+  const scrollRaf = useRef(null);
   const [hov, setHov] = useState(null);
   const [ticker, setTicker] = useState(0);
   const [logoClick, setLogoClick] = useState(0);
@@ -2935,15 +3021,19 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
   };
   useEffect(() => {
     const h = () => {
-      const curr = window.scrollY;
-      if (curr > prevScrollY.current + 2) setScrollDir("down");
-      else if (curr < prevScrollY.current - 2) setScrollDir("up");
-      prevScrollY.current = curr;
-      setScrollY(curr);
+      if (scrollRaf.current) return;
+      scrollRaf.current = requestAnimationFrame(() => {
+        scrollRaf.current = null;
+        const curr = window.scrollY;
+        if (curr > prevScrollY.current + 8) setScrollDir("down");
+        else if (curr < prevScrollY.current - 8) setScrollDir("up");
+        prevScrollY.current = curr;
+        setScrollY(curr);
+      });
     };
     window.addEventListener("scroll", h, { passive: true });
     const t = setInterval(() => setTicker(p => (p + 1) % cameras.length), 3000);
-    return () => { window.removeEventListener("scroll", h); clearInterval(t); };
+    return () => { window.removeEventListener("scroll", h); clearInterval(t); if (scrollRaf.current) { cancelAnimationFrame(scrollRaf.current); scrollRaf.current = null; } };
   }, [cameras.length]);
   // navState: "top" | "visible" | "compact"
   const navState = scrollY < 60 ? "top" : (scrollDir === "up" ? "visible" : "compact");
@@ -2985,12 +3075,12 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
               {/* Login / Avatar */}
               {loggedUser ? (
                 <button onClick={onOpenCustomer || onOpenLogin}
-                  style={{ width: 32, height: 32, borderRadius: "50%", background: G + "22", border: `1px solid ${G}55`, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0, cursor: "pointer" }}>
+                  style={{ width: 32, height: 32, borderRadius: "50%", background: G + "22", border: `1px solid ${G}55`, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0, cursor: "pointer", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
                   {loggedUser.avatar ? <img src={loggedUser.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : loggedUser.name?.[0]?.toUpperCase()}
                 </button>
               ) : (
                 <button onClick={onOpenLogin}
-                  style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: `1px solid rgba(255,255,255,0.14)`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+                  style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: `1px solid rgba(255,255,255,0.14)`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={MUT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 </button>
               )}
@@ -2999,7 +3089,8 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
               <button className="btn-3d" onClick={onBook} style={{ fontSize: 10, padding: "8px 14px", letterSpacing: 2, flexShrink: 0, whiteSpace: "nowrap", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>THUÊ NGAY</button>
 
               {/* HAMBURGER */}
-              <button onClick={() => setMobileMenuOpen(o => !o)}
+              <button
+                onPointerDown={(e) => { e.preventDefault(); setMobileMenuOpen(o => !o); }}
                 style={{ width: 32, height: 32, borderRadius: 8, background: mobileMenuOpen ? `${G}22` : "rgba(255,255,255,0.05)", border: `1px solid ${mobileMenuOpen ? G+"55" : "rgba(255,255,255,0.14)"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, transition: "all .2s", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
                 {mobileMenuOpen
                   ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -3014,7 +3105,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
                 {/* Nav links */}
                 {[["📷 MÁY ẢNH", "cameras"], ["🎒 PHỤ KIỆN", "accessories"], ["💬 FEEDBACK", "feedback"], ["📍 VỀ CHÚNG TÔI", "about"]].map(([t, id]) => (
                   <button key={id}
-                    onClick={() => { document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }); setMobileMenuOpen(false); }}
+                    onPointerDown={(e) => { e.preventDefault(); document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }); setMobileMenuOpen(false); }}
                     style={{ width: "100%", background: "none", border: "none", color: MUT, fontSize: 13, letterSpacing: 2, padding: "12px 20px", cursor: "pointer", fontFamily: "system-ui,sans-serif", fontWeight: 600, textAlign: "left", display: "flex", alignItems: "center", gap: 10, transition: "color .15s", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
                     {t}
                   </button>
@@ -6123,6 +6214,12 @@ function AppRoot() {
         .nav-link, .nav-social, .btn-3d{
           touch-action: manipulation;
           -webkit-tap-highlight-color: transparent;
+        }
+        .nav92 button {
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
+          -webkit-user-select: none;
+          user-select: none;
         }
         .nav-inner.scrolled{
           background: linear-gradient(180deg, rgba(10,9,8,0.88) 0%, rgba(6,6,6,0.85) 100%);
