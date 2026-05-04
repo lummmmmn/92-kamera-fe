@@ -617,163 +617,194 @@ function MobileBackground() {
 }
 
 // ── FEEDBACK CARD (text-only, không ảnh) ──
-function FeedbackCard({ c, hov, onEnter, onLeave }) {
-  return (
-    <div
-      onMouseEnter={onEnter}
-      onMouseLeave={onLeave}
-      style={{ width: 240, flexShrink: 0, background: CARD, borderRadius: 14, overflow: "hidden", border: `1px solid ${hov ? G + "55" : BR}`, transition: "all .3s", transform: hov ? "translateY(-6px) scale(1.02)" : "none", boxShadow: hov ? `0 16px 40px rgba(201,168,76,0.1)` : "none", display: "flex", flexDirection: "column", padding: "18px 18px 14px" }}>
-
-      {/* Stars */}
-      <div style={{ marginBottom: 10 }}>
-        <span style={{ color: G, fontSize: 15 }}>{"★".repeat(c.rating)}</span>
-        <span style={{ color: "#2a2a2a", fontSize: 15 }}>{"★".repeat(5 - c.rating)}</span>
-      </div>
-
-      {/* Review text */}
-      <div style={{ color: TXT, fontSize: 12, lineHeight: 1.7, flex: 1, fontStyle: "italic", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 4, WebkitBoxOrient: "vertical" }}>
-        "{c.text || "Khách hàng hài lòng 😊"}"
-      </div>
-
-      {/* Footer */}
-      <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${BR}` }}>
-        <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif", marginBottom: 4 }}>📷 {c.camera}</div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ color: "#aaa", fontSize: 10, fontFamily: "system-ui,sans-serif", fontWeight: 600 }}>{c.userName}</div>
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            {c.type === "feedback" && <span style={{ background: G + "22", color: G, borderRadius: 99, padding: "2px 8px", fontSize: 9, fontFamily: "system-ui,sans-serif", fontWeight: 700, letterSpacing: .5 }}>ĐÃ THUÊ ✓</span>}
-            <span style={{ color: "#555", fontSize: 9, fontFamily: "system-ui,sans-serif" }}>{c.date}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── FEEDBACK MARQUEE (homepage social proof — shows approved photos + order feedbacks) ──
+// ── FEEDBACK STACK CARD ──
 function FeedbackMarquee({ photos, feedbacks, isMobile }) {
-  const [paused, setPaused] = useState(false);
-  const [hovCard, setHovCard] = useState(null);
+  const cards = (feedbacks || [])
+    .filter(f => f.status === "approved" && !f.hidden)
+    .map(f => ({
+      key: "fb_" + f.id,
+      rating: f.rating || 5,
+      text: f.text || "Khách hàng hài lòng 😊",
+      userName: f.userName || "Khách hàng",
+      camera: f.cameraName || "Máy ảnh",
+      date: f.date,
+    }));
 
-  const approvedPhotos = (photos || []).filter(p => p.status === "approved").map(p => ({
-    key: "ph_" + p.id, img: p.url, hasImg: true, rating: p.rating || 5,
-    text: p.caption, userName: p.userName, camera: p.cameraUsed || "Máy ảnh", date: p.date, type: "photo", extraImages: 0
-  }));
-  const approvedFeedbacks = (feedbacks || []).filter(f => f.status === "approved" && !f.hidden).map(f => ({
-    key: "fb_" + f.id,
-    img: f.images?.length > 0 ? f.images[0] : null,
-    hasImg: !!(f.images?.length > 0),
-    rating: f.rating || 5,
-    text: f.text, userName: f.userName, camera: f.cameraName || "Máy ảnh", date: f.date, type: "feedback",
-    extraImages: (f.images?.length || 0) > 1 ? f.images.length - 1 : 0
-  }));
+  const [idx, setIdx] = useState(0);
+  const [anim, setAnim] = useState(null); // "left" | "right" | null
+  const touchStartX = useRef(null);
+  const total = cards.length;
+  const avgRating = total ? (cards.reduce((s, c) => s + c.rating, 0) / total).toFixed(1) : "5.0";
 
-  const all = [...approvedPhotos, ...approvedFeedbacks];
-  const avgRating = all.length ? (all.reduce((s, c) => s + c.rating, 0) / all.length).toFixed(1) : "5.0";
+  const go = (dir) => {
+    if (anim || total <= 1) return;
+    setAnim(dir > 0 ? "left" : "right");
+    setTimeout(() => {
+      setIdx(i => (i + dir + total) % total);
+      setAnim(null);
+    }, 320);
+  };
 
-  const emptySection = (
-    <div id="feedback" style={{ padding: "72px 16px 64px", borderTop: `1px solid ${BR}`, background: "linear-gradient(180deg,#060606 0%,#080700 50%,#060606 100%)" }}>
-      <div style={{ textAlign: "center" }}>
-        <h2 style={{ fontSize: 30, fontWeight: 400, letterSpacing: 2, margin: "0 0 6px", color: TXT, fontFamily: 'var(--font-display)' }}>Feedback Khách Hàng</h2>
-        <div style={{ width: 36, height: 1, background: G, margin: "14px auto 20px" }} />
-        <div style={{ color: MUT, fontSize: 13, fontFamily: "system-ui,sans-serif" }}>Chưa có feedback nào được duyệt</div>
-      </div>
+  const onTouchStart = e => { touchStartX.current = e.touches[0].clientX; };
+  const onTouchEnd   = e => {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1);
+  };
+
+  const WRAP = isMobile ? "90vw" : 520;
+  const CARD_H = isMobile ? 260 : 300;
+
+  if (total === 0) return (
+    <div id="feedback" style={{ padding: "72px 16px 64px", borderTop: `1px solid ${BR}`, background: "linear-gradient(180deg,#060606 0%,#080700 50%,#060606 100%)", textAlign: "center" }}>
+      <h2 style={{ fontSize: 30, fontWeight: 400, letterSpacing: 2, margin: "0 0 14px", color: TXT, fontFamily: "var(--font-display)" }}>Feedback Khách Hàng</h2>
+      <div style={{ width: 36, height: 1, background: G, margin: "0 auto 20px" }} />
+      <div style={{ color: MUT, fontSize: 13, fontFamily: "system-ui,sans-serif" }}>Chưa có feedback nào được duyệt</div>
     </div>
   );
 
-  // ── HOOKS luôn ở đây, không đặt trong if/else ──
-  const fbScrollRef = useRef(null);
-  const fbPausedRef = useRef(false);
-  const fbIdxRef = useRef(0);
-  useEffect(() => {
-    if (!isMobile) return;
-    const el = fbScrollRef.current;
-    if (!el || all.length === 0) return;
-    const t = setInterval(() => {
-      if (fbPausedRef.current || !el) return;
-      const cards = el.querySelectorAll("[data-fbcard]");
-      if (!cards.length) return;
-      fbIdxRef.current = (fbIdxRef.current + 1) % cards.length;
-      const card = cards[fbIdxRef.current];
-      el.scrollTo({ left: card.offsetLeft - el.offsetLeft, behavior: "smooth" });
-    }, 2800);
-    const onTouch = () => { fbPausedRef.current = true; setTimeout(() => { fbPausedRef.current = false; }, 5000); };
-    el.addEventListener("touchstart", onTouch, { passive: true });
-    return () => { clearInterval(t); el.removeEventListener("touchstart", onTouch); };
-  }, [all.length, isMobile]);
-
-  if (all.length === 0) return emptySection;
-
-  // ── HEADER dùng chung ──
-  const header = (
-    <div style={{ textAlign: "center", marginBottom: 32, position: "relative", zIndex: 2, padding: "0 16px" }}>
-      <h2 style={{ fontSize: isMobile ? 24 : 30, fontWeight: 400, letterSpacing: 2, margin: "0 0 6px", color: TXT, fontFamily: 'var(--font-display)' }}>Feedback Khách Hàng</h2>
-      <div style={{ width: 36, height: 1, background: G, margin: "14px auto 12px" }} />
-      <div style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "#0e0e0e", border: `1px solid ${G}33`, borderRadius: 99, padding: "6px 20px", marginBottom: 18 }}>
-        <span style={{ color: G, fontSize: 16 }}>{"★".repeat(Math.round(parseFloat(avgRating)))}</span>
-        <span style={{ color: G, fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif" }}>{avgRating}</span>
-        <span style={{ color: MUT, fontSize: 11, fontFamily: "system-ui,sans-serif" }}>· {all.length} đánh giá</span>
-      </div>
-    </div>
-  );
-
-  // ── MOBILE: auto-scroll + vuốt tay ──
-  if (isMobile) {
-
-    return (
-      <div id="feedback" style={{ padding: "56px 0 52px", borderTop: `1px solid ${BR}`, background: "linear-gradient(180deg,#060606 0%,#080700 50%,#060606 100%)" }}>
-        <style>{`.fb-scroll::-webkit-scrollbar{display:none}.fb-scroll{-ms-overflow-style:none;scrollbar-width:none;}`}</style>
-        {header}
-        <div ref={fbScrollRef} className="fb-scroll"
-          style={{ display: "flex", gap: 16, overflowX: "auto", overflowY: "visible", scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch", paddingLeft: 20, paddingRight: 20, paddingBottom: 8 }}>
-          {all.map((c) => (
-            <div key={c.key} data-fbcard="1" style={{ scrollSnapAlign: "start", flexShrink: 0 }}>
-              <FeedbackCard c={c} hov={false} onEnter={() => {}} onLeave={() => {}} />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // ── DESKTOP: marquee animation ──
-  const minItems = 8;
-  let combined = [...all];
-  while (combined.length < minItems) combined = [...combined, ...all];
-  combined = [...combined, ...combined];
-  const dur = Math.max(30, combined.length * 3.5);
+  // Render tối đa 3 card trong stack (bottom → top)
+  const stackItems = [2, 1, 0].map(offset => ({
+    offset,
+    card: cards[(idx + offset) % total],
+    isTop: offset === 0,
+  }));
 
   return (
-    <div id="feedback" style={{ padding: "72px 0 64px", borderTop: `1px solid ${BR}`, overflow: "hidden", background: "linear-gradient(180deg,#060606 0%,#080700 50%,#060606 100%)", position: "relative" }}>
-      <style>{`
-        @keyframes scrollFeed{0%{transform:translateX(-50%)}100%{transform:translateX(0)}}
-      `}</style>
-      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 600, height: 300, background: `radial-gradient(ellipse,${G}06,transparent 70%)`, pointerEvents: "none" }} />
+    <div id="feedback" style={{ padding: isMobile ? "56px 16px 64px" : "80px 16px 88px", borderTop: `1px solid ${BR}`, background: "linear-gradient(180deg,#060606 0%,#080700 50%,#060606 100%)", overflow: "hidden" }}>
 
-      {header}
-      <div style={{ textAlign: "center", marginBottom: 16 }}>
-        <button onClick={() => setPaused(p => !p)}
-          style={{ background: paused ? G + "22" : "none", border: `1px solid ${paused ? G : BR}`, color: paused ? G : MUT, padding: "6px 22px", borderRadius: 99, fontSize: 10, cursor: "pointer", fontFamily: "system-ui,sans-serif", letterSpacing: 1.5, transition: "all .3s" }}>
-          {paused ? "▶ TIẾP TỤC" : "⏸ DỪNG"}
-        </button>
-      </div>
-
-      <div style={{ overflow: "hidden", position: "relative" }}>
-        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 120, background: "linear-gradient(to right,#060606,transparent)", zIndex: 2, pointerEvents: "none" }} />
-        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 120, background: "linear-gradient(to left,#060606,transparent)", zIndex: 2, pointerEvents: "none" }} />
-        <div style={{ display: "flex", gap: 20, width: "max-content", animation: `scrollFeed ${dur}s linear infinite`, animationPlayState: paused ? "paused" : "running", paddingLeft: 20 }}>
-          {combined.map((c, i) => (
-            <FeedbackCard key={c.key + "_" + i} c={c} hov={hovCard === i}
-              onEnter={() => { setHovCard(i); setPaused(true); }}
-              onLeave={() => { setHovCard(null); setPaused(false); }} />
-          ))}
+      {/* Header */}
+      <div style={{ textAlign: "center", marginBottom: 48 }}>
+        <div style={{ fontSize: 10, letterSpacing: 7, color: MUT, marginBottom: 14, fontFamily: "system-ui,sans-serif" }}>ĐÁNH GIÁ</div>
+        <h2 style={{ fontSize: isMobile ? 24 : 30, fontWeight: 400, letterSpacing: 2, margin: "0 0 14px", color: TXT, fontFamily: "var(--font-display)" }}>Feedback Khách Hàng</h2>
+        <div style={{ width: 36, height: 1, background: G, margin: "0 auto 16px" }} />
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#0e0e0e", border: `1px solid ${G}33`, borderRadius: 99, padding: "5px 18px" }}>
+          <span style={{ color: G, fontSize: 14 }}>{"★".repeat(Math.round(parseFloat(avgRating)))}</span>
+          <span style={{ color: G, fontWeight: 700, fontSize: 13, fontFamily: "system-ui,sans-serif" }}>{avgRating}</span>
+          <span style={{ color: MUT, fontSize: 11, fontFamily: "system-ui,sans-serif" }}>· {total} đánh giá</span>
         </div>
       </div>
+
+      {/* Stack */}
+      <div style={{ position: "relative", width: WRAP, height: CARD_H + 36, margin: "0 auto" }}
+        onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+
+        {total > 1 && stackItems.map(({ offset, card, isTop }) => {
+          const behind = offset; // 0=top, 1=mid, 2=bot
+          const rotate = behind === 1 ? 2 : behind === 2 ? -2.5 : 0;
+          const scaleV = 1 - behind * 0.05;
+          const yV     = behind * 14;
+          const opV    = 1 - behind * 0.18;
+
+          let transform = `translateY(${yV}px) scale(${scaleV}) rotate(${rotate}deg)`;
+          let transition = "transform 0.4s cubic-bezier(.2,.8,.3,1), opacity 0.4s ease";
+          let opacity = opV;
+
+          if (isTop && anim) {
+            transform = `translateX(${anim === "left" ? -110 : 110}%) rotate(${anim === "left" ? -10 : 10}deg) scale(0.9)`;
+            opacity = 0;
+            transition = "transform 0.32s cubic-bezier(.4,0,1,1), opacity 0.32s ease";
+          }
+
+          return (
+            <div key={card.key + "_" + behind} style={{
+              position: "absolute", inset: 0,
+              zIndex: 3 - behind,
+              transform, opacity, transition,
+            }}>
+              <div style={{
+                width: "100%", height: CARD_H,
+                background: behind === 0 ? "#141210" : "#111",
+                border: `1px solid ${behind === 0 ? G + "44" : BR}`,
+                borderRadius: 16,
+                padding: isMobile ? "28px 24px 24px" : "36px 40px 32px",
+                display: "flex", flexDirection: "column",
+                boxShadow: behind === 0 ? `0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px ${G}22` : "none",
+              }}>
+                {/* Stars */}
+                <div style={{ marginBottom: 20 }}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <span key={i} style={{ color: i < card.rating ? G : "#2a2a2a", fontSize: isMobile ? 18 : 20 }}>★</span>
+                  ))}
+                </div>
+
+                {/* Quote */}
+                <div style={{
+                  flex: 1,
+                  color: TXT, fontSize: isMobile ? 14 : 16,
+                  lineHeight: 1.9, fontStyle: "italic",
+                  fontFamily: "var(--font-display)",
+                  overflow: "hidden",
+                  display: "-webkit-box", WebkitLineClamp: 5, WebkitBoxOrient: "vertical",
+                }}>
+                  "{card.text}"
+                </div>
+
+                {/* Footer */}
+                <div style={{ marginTop: 24, paddingTop: 18, borderTop: `1px solid ${BR}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ color: TXT, fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: 600, marginBottom: 3 }}>{card.userName}</div>
+                    <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif" }}>📷 {card.camera}</div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                    <span style={{ background: G + "22", color: G, borderRadius: 99, padding: "2px 10px", fontSize: 9, fontFamily: "system-ui,sans-serif", fontWeight: 700, letterSpacing: .5 }}>ĐÃ THUÊ ✓</span>
+                    <span style={{ color: "#444", fontSize: 9, fontFamily: "system-ui,sans-serif" }}>{card.date}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Single card khi chỉ có 1 */}
+        {total === 1 && (
+          <div style={{ position: "absolute", inset: 0 }}>
+            <div style={{ width: "100%", height: CARD_H, background: "#141210", border: `1px solid ${G}44`, borderRadius: 16, padding: isMobile ? "28px 24px 24px" : "36px 40px 32px", display: "flex", flexDirection: "column", boxShadow: `0 20px 60px rgba(0,0,0,0.5)` }}>
+              <div style={{ marginBottom: 20 }}>
+                {Array.from({ length: 5 }).map((_, i) => <span key={i} style={{ color: i < cards[0].rating ? G : "#2a2a2a", fontSize: 20 }}>★</span>)}
+              </div>
+              <div style={{ flex: 1, color: TXT, fontSize: 16, lineHeight: 1.9, fontStyle: "italic", fontFamily: "var(--font-display)" }}>"{cards[0].text}"</div>
+              <div style={{ marginTop: 24, paddingTop: 18, borderTop: `1px solid ${BR}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <div style={{ color: TXT, fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: 600, marginBottom: 3 }}>{cards[0].userName}</div>
+                  <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif" }}>📷 {cards[0].camera}</div>
+                </div>
+                <span style={{ background: G + "22", color: G, borderRadius: 99, padding: "2px 10px", fontSize: 9, fontFamily: "system-ui,sans-serif", fontWeight: 700, letterSpacing: .5 }}>ĐÃ THUÊ ✓</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Controls */}
+      {total > 1 && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 24, marginTop: 32 }}>
+          <button onClick={() => go(-1)} disabled={!!anim}
+            style={{ width: 40, height: 40, borderRadius: "50%", border: `1px solid ${BR}`, background: "none", color: MUT, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all .2s" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = G; e.currentTarget.style.color = G; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = BR; e.currentTarget.style.color = MUT; }}>
+            ←
+          </button>
+          <div style={{ display: "flex", gap: 6 }}>
+            {cards.map((_, i) => (
+              <div key={i} onClick={() => { if (i !== idx) go(i > idx ? 1 : -1); }}
+                style={{ width: i === idx ? 20 : 6, height: 6, borderRadius: 3, background: i === idx ? G : "#2a2a2a", transition: "all .3s", cursor: "pointer" }} />
+            ))}
+          </div>
+          <button onClick={() => go(1)} disabled={!!anim}
+            style={{ width: 40, height: 40, borderRadius: "50%", border: `1px solid ${BR}`, background: "none", color: MUT, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all .2s" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = G; e.currentTarget.style.color = G; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = BR; e.currentTarget.style.color = MUT; }}>
+            →
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
-// ── CUSTOMER PHOTO FEED (kept for backward compat – used internally) ──
+// ── CUSTOMER PHOTO FEED (kept for backward compat) ──
 function CustomerFeed({ photos }) {
   return <FeedbackMarquee photos={photos} feedbacks={[]} />;
 }
@@ -3159,9 +3190,6 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         <div style={{ fontSize: 9, color: "#3a3a3a", letterSpacing: 3, fontFamily: "system-ui,sans-serif" }}>SCROLL</div>
       </div>
 
-      {/* CUSTOMER PHOTO FEED */}
-      <FeedbackMarquee photos={photos || []} feedbacks={feedbacks || []} isMobile={isMobile} />
-
       {/* CAMERAS — Featured Carousel */}
       <CameraFeatured id="cameras" cameras={cameras} orders={orders} onBook={onBook} isMobile={isMobile} />
 
@@ -3211,6 +3239,9 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
           </div></div>
         </div>
       </div>
+
+      {/* CUSTOMER PHOTO FEED */}
+      <FeedbackMarquee photos={photos || []} feedbacks={feedbacks || []} isMobile={isMobile} />
 
       {/* ABOUT */}
       <div id="about" style={{ padding: isMobile ? "56px 16px 72px" : "80px 60px 100px", maxWidth: 1000, margin: "0 auto", textAlign: "center" }}>
