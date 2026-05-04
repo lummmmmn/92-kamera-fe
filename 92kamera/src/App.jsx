@@ -2996,11 +2996,11 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
               )}
 
               {/* THUÊ NGAY */}
-              <button className="btn-3d" onClick={onBook} style={{ fontSize: 10, padding: "8px 14px", letterSpacing: 2, flexShrink: 0, whiteSpace: "nowrap" }}>THUÊ NGAY</button>
+              <button className="btn-3d" onClick={onBook} style={{ fontSize: 10, padding: "8px 14px", letterSpacing: 2, flexShrink: 0, whiteSpace: "nowrap", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>THUÊ NGAY</button>
 
               {/* HAMBURGER */}
               <button onClick={() => setMobileMenuOpen(o => !o)}
-                style={{ width: 32, height: 32, borderRadius: 8, background: mobileMenuOpen ? `${G}22` : "rgba(255,255,255,0.05)", border: `1px solid ${mobileMenuOpen ? G+"55" : "rgba(255,255,255,0.14)"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, transition: "all .2s" }}>
+                style={{ width: 32, height: 32, borderRadius: 8, background: mobileMenuOpen ? `${G}22` : "rgba(255,255,255,0.05)", border: `1px solid ${mobileMenuOpen ? G+"55" : "rgba(255,255,255,0.14)"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, transition: "all .2s", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
                 {mobileMenuOpen
                   ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={MUT} strokeWidth="2" strokeLinecap="round"><line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="21" y2="17"/></svg>
@@ -3015,9 +3015,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
                 {[["📷 MÁY ẢNH", "cameras"], ["🎒 PHỤ KIỆN", "accessories"], ["💬 FEEDBACK", "feedback"], ["📍 VỀ CHÚNG TÔI", "about"]].map(([t, id]) => (
                   <button key={id}
                     onClick={() => { document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }); setMobileMenuOpen(false); }}
-                    style={{ width: "100%", background: "none", border: "none", color: MUT, fontSize: 13, letterSpacing: 2, padding: "12px 20px", cursor: "pointer", fontFamily: "system-ui,sans-serif", fontWeight: 600, textAlign: "left", display: "flex", alignItems: "center", gap: 10, transition: "color .15s" }}
-                    onTouchStart={e => e.currentTarget.style.color = G}
-                    onTouchEnd={e => e.currentTarget.style.color = MUT}>
+                    style={{ width: "100%", background: "none", border: "none", color: MUT, fontSize: 13, letterSpacing: 2, padding: "12px 20px", cursor: "pointer", fontFamily: "system-ui,sans-serif", fontWeight: 600, textAlign: "left", display: "flex", alignItems: "center", gap: 10, transition: "color .15s", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
                     {t}
                   </button>
                 ))}
@@ -6120,7 +6118,11 @@ function AppRoot() {
                       border-radius .4s ease,
                       box-shadow .4s ease,
                       background .4s ease;
-          overflow: hidden;
+          overflow: visible;
+        }
+        .nav-link, .nav-social, .btn-3d{
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
         }
         .nav-inner.scrolled{
           background: linear-gradient(180deg, rgba(10,9,8,0.88) 0%, rgba(6,6,6,0.85) 100%);
