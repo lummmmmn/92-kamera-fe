@@ -2191,17 +2191,18 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                         </div>
                       </div>
 
-                      {/* Qty row khi đã chọn */}
+                      {/* Qty row khi đã chọn — Step 1 chưa có ngày, dùng tổng kho vật lý */}
                       {isSelected && (() => {
-                        const realAvail = getAvailQty(c.id, c.qty || 1, orders);
+                        const totalStock = c.qty || 1; // tổng số máy sở hữu
+                        const curQty = selCams[c.id] || 1;
                         return (
                         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#0a0800", borderTop: `1px solid ${G}22` }}>
                           <span style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif" }}>SL:</span>
-                          {qtyBtn(() => setCamQty(c.id, (selCams[c.id] || 1) - 1, realAvail), "−")}
-                          <span style={{ color: G, fontWeight: 700, fontSize: 14, minWidth: 20, textAlign: "center", fontFamily: "system-ui,sans-serif" }}>{selCams[c.id]}</span>
-                          {qtyBtn(() => setCamQty(c.id, (selCams[c.id] || 1) + 1, realAvail), "+")}
-                          <span style={{ color: realAvail === 0 ? RED : "#444", fontSize: 9, fontFamily: "system-ui,sans-serif", marginLeft: "auto" }}>
-                            {realAvail === 0 ? "⚠ hết kho" : `/ ${realAvail} sẵn`}
+                          {qtyBtn(() => setCamQty(c.id, curQty - 1, totalStock), "−")}
+                          <span style={{ color: G, fontWeight: 700, fontSize: 14, minWidth: 20, textAlign: "center", fontFamily: "system-ui,sans-serif" }}>{curQty}</span>
+                          {qtyBtn(() => setCamQty(c.id, curQty + 1, totalStock), "+")}
+                          <span style={{ color: "#444", fontSize: 9, fontFamily: "system-ui,sans-serif", marginLeft: "auto" }}>
+                            / {totalStock} máy
                           </span>
                         </div>
                         );
@@ -3064,7 +3065,6 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
             const brandMap = { fujifilm:"FUJIFILM", sony:"SONY", canon:"CANON", nikon:"NIKON", dji:"DJI", gopro:"GOPRO" };
             const b = brandMap[parts[0].toLowerCase()] || parts[0].toUpperCase();
             const m = parts.slice(1).join(" ");
-            const availQty = getAvailQty(cam.id, cam.qty || 1, orders);
             return (
               <div key={cam.id+"_"+i}
                 onMouseEnter={() => setCfPaused(true)}
