@@ -1903,7 +1903,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   const accCost = Object.entries(selAcc).reduce((s, [name, qty]) => {
     const a = accessories.find(x => x.name === name);
     if (!a) return s;
-    const unitPrice = days === 0.5 && a.priceShift ? a.priceShift : a.price;
+    const unitPrice = days === 0.5 ? (a.priceShift != null ? a.priceShift : Math.round(a.price / 2)) : a.price;
     const multiplier = days === 0.5 ? 1 : days;
     return s + unitPrice * qty * multiplier;
   }, 0);
@@ -2342,7 +2342,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                     // Rule: qty phụ kiện ≤ qty máy và ≤ tồn kho phụ kiện
                     const maxQty = Math.min(a.qty || 0, totalCamSelected || 0);
                     const canAdd = totalCamSelected > 0;
-                    const unitPrice = days === 0.5 && a.priceShift ? a.priceShift : a.price;
+                    const unitPrice = days === 0.5 ? (a.priceShift != null ? a.priceShift : Math.round(a.price / 2)) : a.price;
                     const multiplier = days === 0.5 ? 1 : (days || 1);
                     const lineTotal = unitPrice * qty * multiplier;
                     return (
@@ -2356,8 +2356,8 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                             {a.desc && <div style={{ color:"#444", fontSize:10, marginTop:1, fontFamily:"system-ui,sans-serif" }}>{a.desc}</div>}
                           </div>
                           <span style={{ color:G, fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif", flexShrink:0 }}>
-                            {fmtVND(days === 0.5 && a.priceShift ? a.priceShift : a.price)}/{days === 0.5 && a.priceShift ? "buổi" : "ngày"}
-                            {days === 0.5 && a.priceShift && (
+                            {fmtVND(unitPrice)}/{days === 0.5 ? "buổi" : "ngày"}
+                            {days === 0.5 && (
                               <span style={{ color:"#555", fontSize:9, fontWeight:400, marginLeft:4 }}>({fmtVND(a.price)}/ngày)</span>
                             )}
                           </span>
@@ -2514,11 +2514,12 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                   {Object.entries(selAcc).filter(([,q]) => q > 0).map(([name, qty]) => {
                     const acc = accessories.find(a => a.name === name);
                     if (!acc) return null;
-                    const unitPrice = days === 0.5 && acc.priceShift ? acc.priceShift : acc.price;
+                    const unitPrice = days === 0.5 ? (acc.priceShift != null ? acc.priceShift : Math.round(acc.price / 2)) : acc.price;
+                    const multiplier = days === 0.5 ? 1 : days;
                     return (
                       <div key={name} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
                         <span style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>🎒 {name}{qty > 1 ? ` ×${qty}` : ""}</span>
-                        <span style={{ color:TXT, fontSize:12, fontWeight:600, fontFamily:"system-ui,sans-serif" }}>{fmtVND(unitPrice * qty * days)}</span>
+                        <span style={{ color:TXT, fontSize:12, fontWeight:600, fontFamily:"system-ui,sans-serif" }}>{fmtVND(unitPrice * qty * multiplier)}</span>
                       </div>
                     );
                   })}
@@ -4918,7 +4919,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
             return s + o.accessoriesDetail.reduce((ss, d) => {
               const found = accessories.find(a => a.name === d.name);
               if (!found) return ss;
-              const unitP = o.days === 0.5 && found.priceShift ? found.priceShift : found.price;
+              const unitP = o.days === 0.5 ? (found.priceShift != null ? found.priceShift : Math.round(found.price / 2)) : found.price;
               const mult  = o.days === 0.5 ? 1 : o.days;
               return ss + unitP * (d.qty || 1) * mult;
             }, 0);
