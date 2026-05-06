@@ -4353,6 +4353,9 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   const [newOrderIds, setNewOrderIds] = useState(new Set());
   const [expandedOrder, setExpandedOrder] = useState(null);
   const deletedOrderIdsRef = useRef(new Set());
+  // FIX RACE: track orders admin vừa đổi locally — không cho WebSocket ghi đè trong 15s
+  const localOrderChangesRef = useRef(new Map()); // Map<orderId, timestampMs>
+  const LOCAL_LOCK_MS = 15000;
 
   // ── EXCEL EXPORT ──
   const [exportMonth, setExportMonth] = useState(() => new Date().toISOString().slice(0, 7));
@@ -4457,10 +4460,18 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
           const incoming = data.filter(o => !deletedOrderIdsRef.current.has(o.id));
           const newOnes = incoming.filter(o => !prevMap.has(o.id));
           count = newOnes.length;
-          // Merge: update existing orders (status, adminNote...) + add new ones
+          // Dọn entry cũ trong localOrderChangesRef
+          const now = Date.now();
+          for (const [id, ts] of localOrderChangesRef.current.entries()) {
+            if (now - ts > LOCAL_LOCK_MS) localOrderChangesRef.current.delete(id);
+          }
+          // Merge: CỐ ĐỊNH — không ghi đè order admin vừa đổi trong LOCAL_LOCK_MS
           const merged = prev.map(o => {
             const fresh = incoming.find(x => x.id === o.id);
-            return fresh ? { ...o, ...fresh } : o;
+            if (!fresh) return o;
+            const locTs = localOrderChangesRef.current.get(o.id);
+            if (locTs && (now - locTs) < LOCAL_LOCK_MS) return o; // giữ bản local
+            return { ...o, ...fresh };
           });
           if (newOnes.length > 0) {
             setNewOrderIds(ids => new Set([...ids, ...newOnes.map(o => o.id)]));
@@ -4469,6 +4480,8 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
           // Nếu có thay đổi status/field → trigger re-render
           const changed = prev.some(o => {
             const fresh = incoming.find(x => x.id === o.id);
+            const locTs = localOrderChangesRef.current.get(o.id);
+            if (locTs && (now - locTs) < LOCAL_LOCK_MS) return false;
             return fresh && (fresh.status !== o.status || fresh.adminNote !== o.adminNote);
           });
           return changed ? [...merged] : prev;
@@ -5254,6 +5267,8 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                           {Object.entries(ORDER_STATUSES).map(([s, l]) => (
                             <button key={s} onClick={() => {
                               setOrders(p => p.map(x => x.id === o.id ? { ...x, status: s } : x));
+                              // FIX RACE: đánh dấu đơn này vừa được admin sửa — lock 15s
+                              localOrderChangesRef.current.set(o.id, Date.now());
                               // Tăng usedCount khi đơn chuyển sang "completed" và có mã giảm giá
                               if (s === "completed" && o.status !== "completed" && o.discountCode) {
                                 setDiscounts(prev => prev.map(d => d.code === o.discountCode ? { ...d, usedCount: (d.usedCount || 0) + 1 } : d));
@@ -5264,7 +5279,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                             </button>
                           ))}
                         </div>
-                        <DeleteOrderBtn orderId={o.id} onDelete={() => { deletedOrderIdsRef.current.add(o.id); setOrders(p => p.filter(x => x.id !== o.id)); setExpandedOrder(null); }} />
+                        <DeleteOrderBtn orderId={o.id} onDelete={() => { deletedOrderIdsRef.current.add(o.id); localOrderChangesRef.current.set(o.id, Date.now()); setOrders(p => p.filter(x => x.id !== o.id)); setExpandedOrder(null); }} />
                       </div>
                     </div>
                   )}
@@ -5967,7 +5982,7 @@ function storageSet(key, val) {
   // 2. Invalidate cache để lần next fetch sẽ re-read từ Supabase
   invalidateCache(key);
   // 3. Debounce Supabase write — delay 5s, gộp nhiều cập nhật liên tiếp (cameras có ảnh lớn)
-  const debounceMs = key === STORE_KEYS.cameras || key === "cameras_img" ? 5000 : 2000;
+  const debounceMs = key === STORE_KEYS.cameras || key === "cameras_img" ? 5000 : key === STORE_KEYS.orders ? 500 : 2000;
   clearTimeout(_writeTimers[key]);
   _writeTimers[key] = setTimeout(() => {
     fetch(`${SB_URL}/rest/v1/${SB_TABLE}`, {
