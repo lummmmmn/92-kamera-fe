@@ -7,42 +7,71 @@ let _camIdNum = 100;
 const newOrderId = () => `#92K${String(_orderNum++).padStart(4, "0")}`;
 const newCamId = () => _camIdNum++;
 const fmtVND = (n) => new Intl.NumberFormat("vi-VN").format(n || 0) + " ₫";
-const fmtDays = (d, shift) => {
+const fmtDays = (d, shiftOrSession) => {
   if (d === 0.5) {
-    if (shift === "morning") return "Ca sáng (6h–12h)";
-    if (shift === "afternoon") return "Ca chiều (14h–20h)";
+    if (shiftOrSession === "morning") return "🌅 Ca sáng (6h–12h)";
+    if (shiftOrSession === "afternoon") return "🌇 Ca chiều (14h–20h)";
     return "1 buổi";
   }
   return `${d} ngày`;
 };
 const SHIFTS = [
-  { key: "morning",   label: "🌅 Ca Sáng",  time: "6:00 – 12:00" },
-  { key: "afternoon", label: "🌇 Ca Chiều", time: "14:00 – 20:00" },
+  { key: "morning",   label: "🌅 Ca Sáng",  time: "6:00 – 12:00",  session: "morning"   },
+  { key: "afternoon", label: "🌇 Ca Chiều", time: "14:00 – 20:00", session: "afternoon" },
 ];
 const todayStr = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 };
 
-// Tính số máy thực tế còn có thể thuê (shift-aware: ca sáng vs ca chiều)
-const doesShiftConflict = (o, targetShift) => {
-  // Nếu đơn hiện tại là full-day (days >= 1 hoặc không có shift) → luôn xung đột
-  if (!o.shift || o.days >= 1) return true;
-  // Nếu cả hai đều là buổi → chỉ xung đột nếu cùng ca
-  return o.shift === targetShift;
+// ── SESSION LOGIC (theo spec 10 bước) ──
+// session: "morning" | "afternoon" | "full"
+// full = chiếm cả ngày (block cả sáng + chiều)
+const getOrderSession = (o) => {
+  if (o.session) return o.session;            // đơn mới có session
+  if (o.shift) return o.shift;                // đơn cũ có shift (morning/afternoon)
+  return "full";                              // đơn cũ days>=1 → full
 };
-const getAvailQty = (camId, camQty, orders, targetDate, targetShift) => {
+const sessionConflicts = (oSession, targetSession) => {
+  if (oSession === "full" || targetSession === "full") return true;
+  return oSession === targetSession;          // cùng ca mới xung đột
+};
+
+// getAvailQty: trả về số lượng còn lại cho 1 item trong 1 ngày + session
+const getAvailQty = (camId, camQty, orders, targetDate, targetSession) => {
   const active = ["pending", "confirmed", "active"];
-  let rented = 0;
+  let used = 0;
   orders.filter(o => active.includes(o.status)).forEach(o => {
-    // Nếu có targetDate: lọc theo ngày
     if (targetDate && !isDateInOrder(targetDate, o)) return;
-    // Nếu có targetShift và đơn kia là buổi khác ca → không xung đột
-    if (targetDate && targetShift && o.days === 0.5 && o.shift && o.shift !== targetShift) return;
-    if (o.cameras) { const c = o.cameras.find(c => c.id === camId); if (c) rented += (c.qty || 1); }
-    else if (o.cameraId === camId) rented += 1;
+    if (targetDate && targetSession && !sessionConflicts(getOrderSession(o), targetSession)) return;
+    if (o.cameras) { const c = o.cameras.find(c => c.id === camId); if (c) used += (c.qty || 1); }
+    else if (o.cameraId === camId) used += 1;
   });
-  return Math.max(0, camQty - rented);
+  return Math.max(0, camQty - used);
+};
+
+// getAvailability: trả {morning, afternoon} cho 1 item trong 1 ngày
+const getAvailability = (itemId, itemTotal, orders, date) => {
+  const active = ["pending", "confirmed", "active"];
+  let usedMorning = 0, usedAfternoon = 0;
+  orders.filter(o => active.includes(o.status) && isDateInOrder(date, o)).forEach(o => {
+    const sess = getOrderSession(o);
+    const qty = (() => {
+      if (o.cameras) { const c = o.cameras.find(c => c.id === itemId); return c ? (c.qty || 1) : 0; }
+      return o.cameraId === itemId ? 1 : 0;
+    })();
+    if (sess === "full")      { usedMorning += qty; usedAfternoon += qty; }
+    if (sess === "morning")   { usedMorning += qty; }
+    if (sess === "afternoon") { usedAfternoon += qty; }
+  });
+  return { morning: Math.max(0, itemTotal - usedMorning), afternoon: Math.max(0, itemTotal - usedAfternoon) };
+};
+
+// getItemStatus: "trống" | "còn ít" | "hết" (dùng cho UI badge)
+const getItemStatus = (morning, afternoon) => {
+  if (morning <= 0 && afternoon <= 0) return "hết";
+  if (morning <= 1 || afternoon <= 1) return "còn ít";
+  return "trống";
 };
 // Helpers cho lịch thuê
 // 1 ngày = 24h: nhận 12:00 ngày X → trả 12:00 ngày X+1
@@ -107,7 +136,14 @@ const ORDERS_INIT = [
   { id: "#92K0003", cameraName: "GoPro Hero 12", cameraId: 5, accessories: ["Mic thu âm", "Pin dự phòng"], accessoriesDetail: [{ name: "Mic thu âm", qty: 1 }, { name: "Pin dự phòng", qty: 1 }], days: 1, total: 360000, name: "Lê Văn Cường", phone: "0923456789", zalo: "0923456789", address: "78 Nguyễn Huệ, Tam Kỳ", note: "", status: "confirmed", date: "2026-04-20", seen: true },
 ];
 const SITE_INIT = { zalo: "0855 471 202", address: "Thạnh Mỹ Xã Tam Mỹ Thành Phố Đà Nẵng", tagline: "Trải nghiệm máy ảnh · Bắt giữ khoảnh khắc", desc: "Chúng tôi cung cấp dịch vụ cho thuê máy ảnh khu vực Núi Thành - Tam Kỳ.", phone: "0855 471 202", slogan: "Dịch vụ cho thuê máy ảnh · Núi Thành - Tam Kỳ", stats: [["📸", "50+", "Lượt thuê / tháng"], ["🎬", "10+", "Loại thiết bị"], ["⭐", "98%", "Khách hài lòng"]], zaloLink: "", zaloQR: "", socialLinks: { youtube: "", facebook: "", tiktok: "", instagram: "" } };
-const DURATIONS = [{ label: "1 buổi", days: 0.5 }, { label: "1 ngày", days: 1 }, { label: "3 ngày", days: 3 }, { label: "7 ngày", days: 7 }, { label: "1 tháng", days: 30 }];
+const DURATIONS = [
+  { label: "🌅 Ca Sáng",  days: 0.5, session: "morning"   },
+  { label: "🌇 Ca Chiều", days: 0.5, session: "afternoon" },
+  { label: "☀️ Cả ngày",  days: 1,   session: "full"      },
+  { label: "3 ngày",      days: 3,   session: "full"      },
+  { label: "7 ngày",      days: 7,   session: "full"      },
+  { label: "1 tháng",     days: 30,  session: "full"      },
+];
 
 // ── NÚT SAO CHÉP ĐƠN (có feedback "Đã sao chép!") ──
 function CopyOrderBtn({ copyFn }) {
@@ -267,8 +303,9 @@ function OrderLookupWidget({ orders }) {
   const fmtD = (ds) => { try { return new Date(ds + "T00:00:00").toLocaleDateString("vi-VN", { day:"2-digit", month:"2-digit", year:"numeric" }); } catch { return ds; } };
   const getTime = (o, type) => {
     if (o.days === 0.5) {
-      if (type === "pick") return o.shift === "morning" ? "06:00" : o.shift === "afternoon" ? "14:00" : "--:--";
-      return o.shift === "morning" ? "12:00" : o.shift === "afternoon" ? "20:00" : "--:--";
+      const _s = o.session || o.shift;
+      if (type === "pick") return _s === "morning" ? "06:00" : _s === "afternoon" ? "14:00" : "--:--";
+      return _s === "morning" ? "12:00" : _s === "afternoon" ? "20:00" : "--:--";
     }
     return "12:00";
   };
@@ -1282,7 +1319,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                             <Badge status={o.status} />
                           </div>
                           <div style={{ color: TXT, fontSize: 13, fontWeight: 600 }}>📷 {o.cameraName}</div>
-                          <div style={{ color: MUT, fontSize: 11, marginTop: 3 }}>{o.date} · {fmtDays(o.days, o.shift)} · {fmtVND(o.total)}</div>
+                          <div style={{ color: MUT, fontSize: 11, marginTop: 3 }}>{o.date} · {fmtDays(o.days, o.session || o.shift)} · {fmtVND(o.total)}</div>
                         </div>
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
                           <div style={{ color: G, fontWeight: 800, fontSize: 16 }}>{fmtVND(o.total)}</div>
@@ -1303,8 +1340,8 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                           let pickTime = "", pickDate = "", dropTime = "", dropDate = "";
                           if (o.date && o.days) {
                             if (o.days === 0.5) {
-                              pickTime = o.shift === "morning" ? "06:00" : o.shift === "afternoon" ? "14:00" : "--:--";
-                              dropTime = o.shift === "morning" ? "12:00" : o.shift === "afternoon" ? "20:00" : "--:--";
+                              pickTime = (o.session||o.shift) === "morning" ? "06:00" : (o.session||o.shift) === "afternoon" ? "14:00" : "--:--";
+                              dropTime = (o.session||o.shift) === "morning" ? "12:00" : (o.session||o.shift) === "afternoon" ? "20:00" : "--:--";
                               pickDate = dropDate = fmtD(o.date);
                             } else {
                               pickTime = dropTime = "12:00";
@@ -1320,7 +1357,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                             `📷 Máy  : ${o.cameraName}`,
                             `🎒 Phụ kiện: ${accList}`,
                             `📅 Ngày thuê: ${o.date}`,
-                            `⏱ Thời gian: ${fmtDays(o.days, o.shift)}`,
+                            `⏱ Thời gian: ${fmtDays(o.days, o.session || o.shift)}`,
                             pickDate ? `Giờ nhận : ${pickTime} · ${pickDate}` : null,
                             dropDate ? `Giờ trả  : ${dropTime} · ${dropDate}` : null,
                             o.discountCode ? `🏷️ Mã giảm giá: ${o.discountCode} (-${fmtVND(o.discountAmt || 0)})` : null,
@@ -1628,7 +1665,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
 }
 
 // ── BOOKING CALENDAR (khách tự chọn ngày, thấy tình trạng máy) ──
-function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, selShift }) {
+function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, selSession }) {
   const now = new Date();
   const [cur, setCur] = useState({ y: now.getFullYear(), m: now.getMonth() });
   const { y, m } = cur;
@@ -1641,22 +1678,34 @@ function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, se
 
   const activeOrders = orders.filter(o => !["cancelled", "completed"].includes(o.status));
 
-  // Tính trạng thái ngày: "ok" | "low" | "full" | "past"
+  // Tính trạng thái ngày theo spec 10 bước
   const getDayStatus = (day) => {
     const ds = `${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
     if (ds < todayDate) return "past";
+
+    // Chưa chọn session (chưa chọn loại thuê): check cả 2 ca, full nếu cả 2 hết
+    if (!selSession) {
+      const results = ["morning", "afternoon"].map(sh => {
+        let anyFull = false, anyLow = false;
+        selectedCams.forEach(({ id, qty: need, camQty }) => {
+          const avail = getAvailQty(id, camQty, activeOrders, ds, sh);
+          if (avail < need) anyFull = true;
+          else if (avail <= 1 && camQty > 1) anyLow = true;
+        });
+        return anyFull ? "full" : anyLow ? "low" : "ok";
+      });
+      if (results.every(r => r === "full")) return "full";
+      if (results.some(r => r === "full")) return "low";
+      if (results.some(r => r === "low")) return "low";
+      return "ok";
+    }
+
+    // Đã có session: check đúng theo session đó
     let anyFull = false, anyLow = false;
     selectedCams.forEach(({ id, qty: need, camQty }) => {
-      let rented = 0;
-      activeOrders.filter(o => isDateInOrder(ds, o)).forEach(o => {
-        // Nếu đang chọn ca buổi và đơn kia cũng là buổi khác ca → không xung đột
-        if (days === 0.5 && selShift && o.days === 0.5 && o.shift && o.shift !== selShift) return;
-        if (o.cameras) { const c = o.cameras.find(c => c.id === id); if (c) rented += (c.qty || 1); }
-        else if (o.cameraId === id) rented += 1;
-      });
-      const avail = Math.max(0, camQty - rented);
+      const avail = getAvailQty(id, camQty, activeOrders, ds, selSession);
       if (avail < need) anyFull = true;
-      else if (avail <= 1) anyLow = true;
+      else if (avail <= 1 && camQty > 1) anyLow = true;
     });
     if (anyFull) return "full";
     if (anyLow) return "low";
@@ -1676,11 +1725,29 @@ function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, se
     return ds === endDs;
   };
 
-  const statusStyle = (st, isStart, isInRange, isEnd) => {
+  // Kiểm tra toàn bộ range có ngày nào bị "full" không
+  const rangeConflictDates = (() => {
+    if (!pickDate || days <= 1) return [];
+    const conflicts = [];
+    for (let i = 1; i < Math.ceil(days); i++) {
+      const ds = dateAddDays(pickDate, i);
+      let isFull = false;
+      selectedCams.forEach(({ id, qty: need, camQty }) => {
+        const avail = getAvailQty(id, camQty, activeOrders.filter(o => isDateInOrder(ds, o)), ds, selSession || "full");
+        if (avail < need) isFull = true;
+      });
+      if (isFull) conflicts.push(ds);
+    }
+    return conflicts;
+  })();
+  const rangeHasConflict = rangeConflictDates.length > 0;
+
+  const statusStyle = (st, isStart, isInRange, isEnd, isRangeConflict) => {
     if (st === "past") return { bg:"transparent", border:"transparent", color:"#333", cursor:"default", shadow:"none", fw:400 };
     if (st === "full") return { bg:"#1a0505", border:"#cc333344", color:"#cc3333", cursor:"not-allowed", shadow:"none", fw:400 };
-    if (isStart) return { bg:G+"33", border:G, color:G, cursor:"pointer", shadow:`0 0 0 2px ${G}55, 0 0 16px ${G}44`, fw:800 };
+    if (isStart) return { bg:G+"33", border: rangeHasConflict ? "#cc3333" : G, color: rangeHasConflict ? "#e87878" : G, cursor:"pointer", shadow: rangeHasConflict ? `0 0 0 2px #cc333344` : `0 0 0 2px ${G}55, 0 0 16px ${G}44`, fw:800 };
     if (isEnd)   return { bg:G+"22", border:G+"bb", color:G, cursor:"pointer", shadow:`0 0 0 1px ${G}44, 0 0 10px ${G}33`, fw:700 };
+    if (isRangeConflict) return { bg:"#1a0505", border:"#cc333366", color:"#cc3333", cursor:"not-allowed", shadow:"none", fw:600 };
     if (isInRange) return { bg:"#1f1600", border:G+"55", color:G+"cc", cursor:"pointer", shadow:"none", fw:500 };
     if (st === "low") return { bg:"#120a00", border:"#f59e0b44", color:"#f59e0b", cursor:"pointer", shadow:"none", fw:400 };
     return { bg:"#0d0d0d", border:BR, color:TXT, cursor:"pointer", shadow:"none", fw:400 };
@@ -1690,11 +1757,10 @@ function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, se
   const touchMoved = useRef(false);
   const touchOrigin = useRef({ x: 0, y: 0 });
 
-  const handleClick = (day, st) => {
+  const handleClick = (day, st, isRangeConflict) => {
     if (touchMoved.current) return;
-    if (st === "past" || st === "full") return;
+    if (st === "past" || st === "full" || isRangeConflict) return;
     const ds = `${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-    // Click lại ngày đang chọn → bỏ chọn
     if (ds === pickDate) { setPickDate(""); return; }
     setPickDate(ds);
   };
@@ -1728,25 +1794,36 @@ function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, se
       >
         {cells.map((day, i) => {
           if (!day) return <div key={`e${i}`} />;
-          const st = selectedCams.length ? getDayStatus(day) : (day < parseInt(todayDate.split("-")[2]) && m === now.getMonth() && y === now.getFullYear() ? "past" : "ok");
+          const st = selectedCams.length ? getDayStatus(day) : (ds => ds < todayDate ? "past" : "ok")(`${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`);
           const ds = `${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
           const isStart = ds === pickDate;
           const isEnd = getIsEnd(day);
           const isInRange = getInRange(day);
-          const { bg, border, color, cursor, shadow, fw } = statusStyle(st, isStart, isInRange, isEnd);
+          const isRangeConflict = !isStart && isInRange && rangeConflictDates.includes(ds);
+          const { bg, border, color, cursor, shadow, fw } = statusStyle(st, isStart, isInRange, isEnd, isRangeConflict);
           const isToday = ds === todayDate;
           return (
-            <div key={day} onClick={() => handleClick(day, st)}
+            <div key={day} onClick={() => handleClick(day, st, isRangeConflict)}
               style={{ textAlign:"center", padding:"6px 2px", borderRadius:5, background:bg, border:`1px solid ${border}`, color, cursor, fontSize:11, fontFamily:"system-ui,sans-serif", fontWeight: (isStart||isEnd||isInRange) ? fw : (isToday ? 700 : 400), position:"relative", transition:"all .1s", userSelect:"none", boxShadow: shadow }}>
               {day}
               {isToday && !isStart && !isEnd && <div style={{ position:"absolute", bottom:2, left:"50%", transform:"translateX(-50%)", width:3, height:3, borderRadius:"50%", background:G }} />}
-              {st === "full" && <div style={{ position:"absolute", bottom:2, left:"50%", transform:"translateX(-50%)", fontSize:6, color:"#cc3333" }}>✕</div>}
-              {isStart && <div style={{ position:"absolute", bottom:1, left:"50%", transform:"translateX(-50%)", fontSize:7, color:G, fontWeight:700 }}>▶</div>}
-              {isEnd   && <div style={{ position:"absolute", bottom:1, left:"50%", transform:"translateX(-50%)", fontSize:7, color:G, fontWeight:700 }}>◀</div>}
+              {(st === "full" || isRangeConflict) && <div style={{ position:"absolute", bottom:2, left:"50%", transform:"translateX(-50%)", fontSize:6, color:"#cc3333" }}>✕</div>}
+              {isStart && <div style={{ position:"absolute", bottom:1, left:"50%", transform:"translateX(-50%)", fontSize:7, color: rangeHasConflict ? "#cc3333" : G, fontWeight:700 }}>▶</div>}
+              {isEnd && !rangeHasConflict && <div style={{ position:"absolute", bottom:1, left:"50%", transform:"translateX(-50%)", fontSize:7, color:G, fontWeight:700 }}>◀</div>}
             </div>
           );
         })}
       </div>
+
+      {/* Range conflict warning */}
+      {rangeHasConflict && (
+        <div style={{ marginTop:10, padding:"9px 12px", background:"#1a0505", border:"1px solid #cc333366", borderRadius:8, display:"flex", alignItems:"center", gap:8 }}>
+          <span style={{ fontSize:14 }}>⚠️</span>
+          <span style={{ color:"#ef4444", fontSize:11, fontFamily:"system-ui,sans-serif" }}>
+            Máy hết vào ngày <strong>{rangeConflictDates.map(d => d.split("-")[2]+"/"+d.split("-")[1]).join(", ")}</strong> trong khoảng thuê này — vui lòng chọn ngày khác.
+          </span>
+        </div>
+      )}
 
       {/* Legend */}
       <div style={{ display:"flex", gap:12, marginTop:10, flexWrap:"wrap" }}>
@@ -1800,7 +1877,6 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   // selCams: { [camId]: qty }
   const [selCams, setSelCams] = useState(() => preselectedCamId ? { [preselectedCamId]: 1 } : {});
   const [selDur, setSelDur] = useState(null);
-  const [selShift, setSelShift] = useState(null); // "morning" | "afternoon" — chỉ dùng khi days=0.5
   const [customDays, setCustomDays] = useState("");
   const [pickDate, setPickDate] = useState(todayStr());
   // selAcc: { [accName]: qty }
@@ -1817,8 +1893,8 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   const [discountExpanded, setDiscountExpanded] = useState(false);
 
   const days = selDur ? selDur.days : (parseInt(customDays) || 0);
-  const needShift = days === 0.5; // phải chọn ca khi thuê 1 buổi
-  const shiftReady = !needShift || !!selShift; // đủ điều kiện tiếp tục
+  // session: lấy từ selDur nếu có, custom days luôn là "full"
+  const selSession = selDur ? selDur.session : (days >= 1 ? "full" : null);
   const availCams = cameras.filter(c => c.status === "available");
   const selectedCamList = availCams.filter(c => selCams[c.id] > 0);
   const totalCamSelected = Object.values(selCams).reduce((s, q) => s + (q || 0), 0);
@@ -1884,8 +1960,8 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
     const fmtDate = (ds) => new Date(ds + "T00:00:00").toLocaleDateString("vi-VN", { day:"2-digit", month:"2-digit", year:"numeric" });
 
     if (days === 0.5) {
-      const isM = selShift === "morning";
-      const isA = selShift === "afternoon";
+      const isM = selSession === "morning";
+      const isA = selSession === "afternoon";
       return {
         pickTime:  isM ? "06:00" : isA ? "14:00" : "--:--",
         pickDate:  fmtDate(pickDate),
@@ -1945,7 +2021,8 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
       accessories: accNames,
       accessoriesDetail: Object.entries(selAcc).map(([name, qty]) => ({ name, qty })),
       days, subtotal, discountCode: appliedDiscount?.code || null, discountAmt, total,
-      shift: days === 0.5 ? selShift : null,
+      session: selSession || "full",
+      shift: days === 0.5 ? selSession : null, // backward compat
       ...info, status: "pending", date: pickDate, seen: false, userPhone: loggedUser?.phone || info.phone, userEmail: loggedUser?.email || ""
     });
     setDone(true);
@@ -2115,15 +2192,20 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                       </div>
 
                       {/* Qty row khi đã chọn */}
-                      {isSelected && (
+                      {isSelected && (() => {
+                        const realAvail = getAvailQty(c.id, c.qty || 1, orders);
+                        return (
                         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#0a0800", borderTop: `1px solid ${G}22` }}>
                           <span style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif" }}>SL:</span>
-                          {qtyBtn(() => setCamQty(c.id, (selCams[c.id] || 1) - 1, c.qty), "−")}
+                          {qtyBtn(() => setCamQty(c.id, (selCams[c.id] || 1) - 1, realAvail), "−")}
                           <span style={{ color: G, fontWeight: 700, fontSize: 14, minWidth: 20, textAlign: "center", fontFamily: "system-ui,sans-serif" }}>{selCams[c.id]}</span>
-                          {qtyBtn(() => setCamQty(c.id, (selCams[c.id] || 1) + 1, c.qty), "+")}
-                          <span style={{ color: "#444", fontSize: 9, fontFamily: "system-ui,sans-serif", marginLeft: "auto" }}>/ {c.qty} sẵn</span>
+                          {qtyBtn(() => setCamQty(c.id, (selCams[c.id] || 1) + 1, realAvail), "+")}
+                          <span style={{ color: realAvail === 0 ? RED : "#444", fontSize: 9, fontFamily: "system-ui,sans-serif", marginLeft: "auto" }}>
+                            {realAvail === 0 ? "⚠ hết kho" : `/ ${realAvail} sẵn`}
+                          </span>
                         </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   );
                 })}
@@ -2139,7 +2221,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 
         {/* STEP 2 — thời gian + phụ kiện — 2 cột desktop / 1 cột mobile */}
         {!done && step === 2 && (() => {
-          const ri = days > 0 && (days !== 0.5 || selShift) ? returnInfo() : null;
+          const ri = days > 0 && (days !== 0.5 || selSession) ? returnInfo() : null;
           const isMob = typeof window !== "undefined" && window.innerWidth < 720;
           const phoneDisplay = siteContent?.phone || siteContent?.zalo || "0855 471 202";
 
@@ -2189,7 +2271,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                     <div style={{ borderTop:`1px solid #1e1a12`, marginBottom:10 }} />
                     {/* Chi tiết thời gian */}
                     {[
-                      { label:"Thời gian thuê", val: days > 0 ? fmtDays(days, selShift) : "—", highlight: true },
+                      { label:"Thời gian thuê", val: days > 0 ? fmtDays(days, selSession) : "—", highlight: true },
                       { label:"Nhận máy",        val: ri ? `${ri.pickTime} · ${ri.pickDate}` : "—" },
                       { label:"Trả máy trước",   val: ri ? `${ri.dropTime} · ${ri.dropDate}` : "—" },
                     ].map(({ label, val, highlight }) => (
@@ -2224,17 +2306,25 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                   <span style={{ color:TXT, fontWeight:700, fontSize:15, fontFamily:"system-ui,sans-serif" }}>Phụ kiện đi kèm</span>
                   {days > 0 && accCost > 0 && <span style={{ color:G, fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif" }}>+{fmtVND(accCost)}</span>}
                 </div>
+                {/* Rule: phải có máy mới chọn phụ kiện */}
+                {totalCamSelected === 0 && (
+                  <div style={{ background:"#1a0e00", border:"1px solid #f59e0b44", borderRadius:8, padding:"8px 12px", marginBottom:10, color:"#f59e0b", fontSize:11, fontFamily:"system-ui,sans-serif" }}>
+                    ⚠️ Chọn ít nhất 1 máy ảnh để thêm phụ kiện
+                  </div>
+                )}
                 <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
                   {accessories.filter(a => a.active !== false).map(a => {
                     const qty = selAcc[a.name] || 0;
                     const isSel = qty > 0;
-                    const maxQty = a.qty || 99;
+                    // Rule: qty phụ kiện ≤ qty máy và ≤ tồn kho phụ kiện
+                    const maxQty = Math.min(a.qty || 0, totalCamSelected || 0);
+                    const canAdd = totalCamSelected > 0;
                     const unitPrice = days === 0.5 && a.priceShift ? a.priceShift : a.price;
                     const multiplier = days === 0.5 ? 1 : (days || 1);
                     const lineTotal = unitPrice * qty * multiplier;
                     return (
-                      <div key={a.id} style={{ border:`1px solid ${isSel ? G+"55" : "#1e1e1e"}`, borderRadius:10, padding:"10px 13px", background: isSel ? "#0a0900" : "#0d0d0d", transition:"all .2s" }}>
-                        <div style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer" }} onClick={() => toggleAcc(a.name)}>
+                      <div key={a.id} style={{ border:`1px solid ${isSel ? G+"55" : "#1e1e1e"}`, borderRadius:10, padding:"10px 13px", background: isSel ? "#0a0900" : "#0d0d0d", transition:"all .2s", opacity: canAdd ? 1 : 0.45 }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:10, cursor: canAdd ? "pointer" : "not-allowed" }} onClick={() => canAdd && toggleAcc(a.name)}>
                           <div style={{ width:18, height:18, borderRadius:4, border:`2px solid ${isSel ? G : "#333"}`, background: isSel ? G : "transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all .2s" }}>
                             {isSel && <span style={{ color:"#000", fontSize:11, fontWeight:900, lineHeight:1 }}>✓</span>}
                           </div>
@@ -2251,11 +2341,11 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                               {qtyBtn(() => setAccQty(a.name, qty-1, maxQty), "−")}
                               <span style={{ color:G, fontWeight:700, fontSize:14, minWidth:20, textAlign:"center", fontFamily:"system-ui,sans-serif" }}>{qty}</span>
                               {qtyBtn(() => setAccQty(a.name, qty+1, maxQty), "+")}
-                              {maxQty < 99 && <span style={{ color:"#444", fontSize:10, fontFamily:"system-ui,sans-serif" }}>/ {maxQty} cái</span>}
+                              <span style={{ color:"#444", fontSize:10, fontFamily:"system-ui,sans-serif" }}>/ tối đa {maxQty}</span>
                             </div>
                             {days > 0 && (
                               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", background:"#111", borderRadius:6, padding:"5px 10px" }}>
-                                <span style={{ color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif" }}>{qty} × {fmtVND(unitPrice)} × {fmtDays(days, selShift)}</span>
+                                <span style={{ color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif" }}>{qty} × {fmtVND(unitPrice)} × {fmtDays(days, selSession)}</span>
                                 <span style={{ color:G, fontWeight:700, fontSize:12, fontFamily:"system-ui,sans-serif" }}>= {fmtVND(lineTotal)}</span>
                               </div>
                             )}
@@ -2270,43 +2360,37 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               {/* ── THỜI GIAN THUÊ — trải full width ── */}
               <div style={{ marginBottom:16 }}>
                 <div style={{ color:"#555", fontSize:9, letterSpacing:1.5, marginBottom:8, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>THỜI GIAN THUÊ</div>
-                <div style={{ display:"grid", gridTemplateColumns:`repeat(${DURATIONS.length},1fr)`, gap:6, marginBottom:14 }}>
+                <div style={{ display:"grid", gridTemplateColumns:`repeat(3,1fr)`, gap:6, marginBottom:14 }}>
                   {DURATIONS.map(d => {
-                    const active = selDur?.days === d.days;
+                    const active = selDur?.days === d.days && selDur?.session === d.session;
                     return (
-                      <button key={d.days} onClick={() => { setSelDur(d); setCustomDays(""); if (d.days !== 0.5) setSelShift(null); }}
-                        style={{ padding:"11px 4px", background: active ? "#1a1200" : "#111", color: active ? G : "#aaa", border:`1px solid ${active ? G : "#222"}`, borderRadius:8, cursor:"pointer", fontSize:12, fontFamily:"system-ui,sans-serif", fontWeight: active ? 700 : 400, transition:"all .2s", textAlign:"center" }}>
+                      <button key={d.label} onClick={() => { setSelDur(d); setCustomDays(""); }}
+                        style={{ padding:"11px 4px", background: active ? "#1a1200" : "#111", color: active ? G : "#aaa", border:`1px solid ${active ? G : "#222"}`, borderRadius:8, cursor:"pointer", fontSize:11, fontFamily:"system-ui,sans-serif", fontWeight: active ? 700 : 400, transition:"all .2s", textAlign:"center" }}>
                         {d.label}
+                        {active && <div style={{ fontSize:9, color:G+"cc", marginTop:3 }}>✓ Đã chọn</div>}
                       </button>
                     );
                   })}
                 </div>
 
-                {/* Chọn ca (chỉ khi 1 buổi) */}
-                {needShift && (
-                  <div style={{ marginBottom:14, background:"#080800", border:`1px solid ${G}33`, borderRadius:10, padding:"12px 14px" }}>
-                    <div style={{ color:G, fontSize:10, fontWeight:700, letterSpacing:1.2, marginBottom:10, fontFamily:"system-ui,sans-serif" }}>⏰ CHỌN CA THUÊ</div>
-                    <div style={{ display:"flex", gap:10 }}>
-                      {SHIFTS.map(sh => {
-                        const sel = selShift === sh.key;
-                        return (
-                          <button key={sh.key} onClick={() => setSelShift(sh.key)}
-                            style={{ flex:1, padding:"12px 8px", background: sel ? "#1a1200" : "#0e0e0e", color: sel ? G : MUT, border:`2px solid ${sel ? G : BR}`, borderRadius:10, cursor:"pointer", transition:"all .2s", textAlign:"center" }}>
-                            <div style={{ fontSize:18, marginBottom:3 }}>{sh.label.split(" ")[0]}</div>
-                            <div style={{ fontSize:12, fontWeight: sel ? 700 : 400, fontFamily:"system-ui,sans-serif" }}>{sh.label.split(" ").slice(1).join(" ")}</div>
-                            <div style={{ fontSize:10, color: sel ? G+"cc" : "#555", marginTop:2, fontFamily:"system-ui,sans-serif" }}>{sh.time}</div>
-                            {sel && <div style={{ marginTop:4, fontSize:10, color:"#22c55e" }}>✓ Đã chọn</div>}
-                          </button>
-                        );
-                      })}
+                {/* Session badge: hiện thị ca đang chọn */}
+                {selSession && days === 0.5 && (
+                  <div style={{ marginBottom:14, background:"#080800", border:`1px solid ${G}33`, borderRadius:10, padding:"10px 14px", display:"flex", alignItems:"center", gap:10 }}>
+                    <span style={{ fontSize:20 }}>{selSession === "morning" ? "🌅" : "🌇"}</span>
+                    <div>
+                      <div style={{ color:G, fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif" }}>
+                        {selSession === "morning" ? "Ca Sáng: 6:00 – 12:00" : "Ca Chiều: 14:00 – 20:00"}
+                      </div>
+                      <div style={{ color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif", marginTop:2 }}>
+                        Phụ kiện theo ca này — check kho riêng
+                      </div>
                     </div>
-                    {!selShift && <div style={{ color:"#f59e0b", fontSize:11, marginTop:8, fontFamily:"system-ui,sans-serif" }}>⚠️ Vui lòng chọn ca trước khi tiếp tục</div>}
                   </div>
                 )}
 
                 {/* Nhập số ngày tuỳ chỉnh */}
                 <div style={{ marginBottom:14 }}>
-                  <div style={{ color:"#555", fontSize:9, letterSpacing:1.5, marginBottom:6, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>HOẶC NHẬP SỐ NGÀY</div>
+                  <div style={{ color:"#555", fontSize:9, letterSpacing:1.5, marginBottom:6, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>HOẶC NHẬP SỐ NGÀY (≥1, session = cả ngày)</div>
                   <div style={{ position:"relative" }}>
                     <input style={{ ...inpS, paddingRight:50 }} type="number" min={1} value={customDays}
                       onChange={e => { setCustomDays(e.target.value); setSelDur(null); }} placeholder="VD: 5" />
@@ -2320,10 +2404,22 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                 {/* Calendar */}
                 <div>
                   <div style={{ color:"#555", fontSize:9, letterSpacing:1.5, marginBottom:8, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>CHỌN NGÀY BẮT ĐẦU</div>
-                  <BookingCalendar
-                    selectedCams={selectedCamList.map(c => ({ id:c.id, qty:selCams[c.id] || 1, camQty:c.qty || 1 }))}
-                    orders={orders} pickDate={pickDate} setPickDate={setPickDate} days={days} selShift={selShift}
-                  />
+                  <div style={{ position:"relative" }}>
+                    <BookingCalendar
+                      selectedCams={selectedCamList.map(c => ({ id:c.id, qty:selCams[c.id] || 1, camQty:c.qty || 1 }))}
+                      orders={orders} pickDate={pickDate} setPickDate={setPickDate} days={days} selSession={selSession}
+                    />
+                    {/* Blur overlay khi chưa chọn loại thuê */}
+                    {!selSession && !days && (
+                      <div style={{ position:"absolute", inset:0, background:"rgba(6,6,6,0.72)", borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", backdropFilter:"blur(3px)", zIndex:10 }}>
+                        <div style={{ textAlign:"center" }}>
+                          <div style={{ fontSize:24, marginBottom:8 }}>⏰</div>
+                          <div style={{ color:G, fontWeight:700, fontSize:13, fontFamily:"system-ui,sans-serif" }}>Chọn thời gian thuê trước</div>
+                          <div style={{ color:MUT, fontSize:11, marginTop:4, fontFamily:"system-ui,sans-serif" }}>Ca sáng, ca chiều hoặc cả ngày</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   <div style={{ position:"relative", marginTop:8 }}>
                     <input style={{ ...inpS, fontSize:12 }} type="date" value={pickDate} min={todayStr()} onChange={e => setPickDate(e.target.value)} />
                   </div>
@@ -2378,7 +2474,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                   {selectedCamList.map(c => (
                     <div key={c.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
                       <span style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>
-                        📷 {c.name}{(selCams[c.id] || 0) > 1 ? ` ×${selCams[c.id]}` : ""} · {fmtDays(days, selShift)}
+                        📷 {c.name}{(selCams[c.id] || 0) > 1 ? ` ×${selCams[c.id]}` : ""} · {fmtDays(days, selSession)}
                       </span>
                       <span style={{ color:TXT, fontSize:12, fontWeight:600, fontFamily:"system-ui,sans-serif" }}>
                         {fmtVND(c.price * (selCams[c.id] || 0) * days)}
@@ -2427,9 +2523,9 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               )}
 
               {/* Nút tiếp tục */}
-              <button onClick={() => days > 0 && shiftReady && setStep(3)} disabled={days === 0 || !shiftReady}
-                style={{ width:"100%", padding:15, background: days > 0 && shiftReady ? G : "#1a1a1a", color: days > 0 && shiftReady ? "#000" : MUT, border:"none", borderRadius:10, cursor: days > 0 && shiftReady ? "pointer" : "not-allowed", fontWeight:800, fontSize:15, fontFamily:"system-ui,sans-serif", letterSpacing:0.5 }}>
-                {needShift && !selShift ? "Chọn ca để tiếp tục" : "Tiếp tục →"}
+              <button onClick={() => days > 0 && selSession && setStep(3)} disabled={days === 0 || !selSession}
+                style={{ width:"100%", padding:15, background: days > 0 && selSession ? G : "#1a1a1a", color: days > 0 && selSession ? "#000" : MUT, border:"none", borderRadius:10, cursor: days > 0 && selSession ? "pointer" : "not-allowed", fontWeight:800, fontSize:15, fontFamily:"system-ui,sans-serif", letterSpacing:0.5 }}>
+                {!days ? "Chọn thời gian thuê" : !selSession ? "Chọn ca thuê" : "Tiếp tục →"}
               </button>
             </div>
           );
@@ -2464,7 +2560,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                       {ri && idx === 0 && (
                         <div style={{ fontFamily:"system-ui,sans-serif" }}>
                           <div style={{ color:MUT, fontSize:11, marginBottom:6, fontWeight:600 }}>
-                            {fmtDays(days, selShift)}
+                            {fmtDays(days, selSession)}
                           </div>
                           <div style={{ display:"flex", gap:6, flexDirection:"column", alignItems:"flex-start" }}>
                             <span style={{ display:"inline-flex", alignItems:"center", gap:5, background:"#0a1a08", border:"1px solid #22c55e44", borderRadius:7, padding:"5px 10px", fontSize:11, color:"#22c55e", fontWeight:700, whiteSpace:"nowrap", alignSelf:"flex-start" }}>
@@ -2656,7 +2752,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
           const zaloMsg = encodeURIComponent(
             "Xin chào 92 KA MÊ RA! 📸\nMã đơn: " + orderId +
             "\nThiết bị: " + selectedCamList.map(c => c.name + " x" + selCams[c.id]).join(", ") +
-            "\nThời gian: " + fmtDays(days, selShift) +
+            "\nThời gian: " + fmtDays(days, selSession) +
             (appliedDiscount ? "\nMã giảm giá: " + appliedDiscount.code + " (-" + fmtVND(discountAmt) + ")" : "") +
             "\nTổng tiền: " + fmtVND(total) +
             "\nKhách: " + info.name + " | SĐT: " + info.phone
@@ -2674,7 +2770,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               `Mã đơn : ${orderId}`,
               `📷 Máy  : ${selectedCamList.map(c => `${c.name}${selCams[c.id]>1?` x${selCams[c.id]}`:""}`).join(", ")}`,
               `🎒 Phụ kiện: ${accList}`,
-              `⏱ Thời gian: ${fmtDays(days, selShift)}`,
+              `⏱ Thời gian: ${fmtDays(days, selSession)}`,
               ri2 ? `📦 Giờ nhận : ${ri2.pickTime} · ${ri2.pickDate}` : null,
               ri2 ? `📅 Giờ trả  : ${ri2.dropTime} · ${ri2.dropDate}` : null,
               appliedDiscount ? `🏷️ Mã giảm giá: ${appliedDiscount.code} (-${fmtVND(discountAmt)})` : null,
@@ -3858,7 +3954,7 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
                           <Badge status={o.status} />
                         </div>
                         <div style={{ color: TXT, fontSize: 12, marginTop: 4 }}>{o.cameraName}</div>
-                        <div style={{ color: MUT, fontSize: 11, marginTop: 2 }}>{fmtDays(o.days, o.shift)} · {fmtVND(o.total)}</div>
+                        <div style={{ color: MUT, fontSize: 11, marginTop: 2 }}>{fmtDays(o.days, o.session || o.shift)} · {fmtVND(o.total)}</div>
                         <div style={{ marginTop: 8 }}>
                           <CopyOrderBtn copyFn={() => {
                             const accList = Array.isArray(o.accessories) && o.accessories.length > 0 ? o.accessories.join(", ") : "Không có";
@@ -3866,8 +3962,8 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
                             let pickTime = "", pickDate = "", dropTime = "", dropDate = "";
                             if (o.date && o.days) {
                               if (o.days === 0.5) {
-                                pickTime = o.shift === "morning" ? "06:00" : o.shift === "afternoon" ? "14:00" : "--:--";
-                                dropTime = o.shift === "morning" ? "12:00" : o.shift === "afternoon" ? "20:00" : "--:--";
+                                pickTime = (o.session||o.shift) === "morning" ? "06:00" : (o.session||o.shift) === "afternoon" ? "14:00" : "--:--";
+                                dropTime = (o.session||o.shift) === "morning" ? "12:00" : (o.session||o.shift) === "afternoon" ? "20:00" : "--:--";
                                 pickDate = dropDate = fmtD(o.date);
                               } else {
                                 pickTime = dropTime = "12:00";
@@ -3883,7 +3979,7 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
                               `📷 Máy  : ${o.cameraName}`,
                               `🎒 Phụ kiện: ${accList}`,
                               `📅 Ngày thuê: ${o.date}`,
-                              `⏱ Thời gian: ${fmtDays(o.days, o.shift)}`,
+                              `⏱ Thời gian: ${fmtDays(o.days, o.session || o.shift)}`,
                               pickDate ? `Giờ nhận : ${pickTime} · ${pickDate}` : null,
                               dropDate ? `Giờ trả  : ${dropTime} · ${dropDate}` : null,
                               o.discountCode ? `🏷️ Mã giảm giá: ${o.discountCode} (-${fmtVND(o.discountAmt || 0)})` : null,
@@ -3954,7 +4050,7 @@ const CAM_PALETTE = ["#c9a84c","#e05252","#52a8e0","#52e0a8","#e0a852","#a852e0"
 function RentalCalendar({ orders, cameras }) {
   const now = new Date();
   const [cur, setCur] = useState({ y: now.getFullYear(), m: now.getMonth() });
-  const [selDay, setSelDay] = useState(null);
+  const [selDay, setSelDay] = useState(() => now.getDate());
   const { y, m } = cur;
 
   const camColorMap = {};
@@ -3980,6 +4076,26 @@ function RentalCalendar({ orders, cameras }) {
   const selDateStr = selDay ? `${y}-${String(m+1).padStart(2,"0")}-${String(selDay).padStart(2,"0")}` : null;
   const selOrders = selDay ? getDay(selDay) : [];
 
+  // Pre-compute trạng thái tồn kho theo spec §4+§5 — morning/afternoon riêng từng camera
+  const dayAvailMap = {};
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    // Mỗi camera: tính {morning, afternoon} rồi getItemStatus
+    const camAvails = cameras.map(c => {
+      const { morning, afternoon } = getAvailability(c.id, c.qty || 1, orders, ds);
+      return { morning, afternoon, status: getItemStatus(morning, afternoon) };
+    });
+    // Ngày "hết" = TẤT CẢ camera đều hết cả sáng lẫn chiều
+    const allFull = cameras.length > 0 && camAvails.every(a => a.status === "hết");
+    // Ngày "còn ít" = ít nhất 1 camera còn ít hoặc hết, nhưng chưa phải tất cả hết
+    const hasLow  = !allFull && camAvails.some(a => a.status !== "trống");
+    // qtys worst-case mỗi camera cho legend
+    const qtys = camAvails.map(a => Math.min(a.morning, a.afternoon));
+    const morningQtys   = camAvails.map(a => a.morning);
+    const afternoonQtys = camAvails.map(a => a.afternoon);
+    dayAvailMap[ds] = { camAvails, qtys, morningQtys, afternoonQtys, allFull, hasLow };
+  }
+
   const navBtn = { background:"#111", border:`1px solid ${BR}`, color:TXT, padding:"6px 16px", borderRadius:6, cursor:"pointer", fontSize:13, fontFamily:"system-ui,sans-serif" };
 
   return (
@@ -3989,9 +4105,11 @@ function RentalCalendar({ orders, cameras }) {
         <h2 style={{ margin:0, color:TXT, fontWeight:600, fontSize:18, fontFamily:"system-ui,sans-serif" }}>📅 Lịch thuê máy</h2>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
           <button style={navBtn} onClick={() => { setCur(p => { const d = new Date(p.y, p.m-1, 1); return { y:d.getFullYear(), m:d.getMonth() }; }); setSelDay(null); }}>◀</button>
-          <span style={{ color:G, fontWeight:700, fontSize:14, fontFamily:"system-ui,sans-serif", minWidth:160, textAlign:"center" }}>{monthLabel}</span>
+          <span style={{ color:G, fontWeight:700, fontSize:14, fontFamily:"system-ui,sans-serif", minWidth:160, textAlign:"center" }}>
+            {monthLabel}{selDay ? <span style={{ color:MUT, fontSize:11, fontWeight:400 }}> · {selDay}/{m+1}</span> : ""}
+          </span>
           <button style={navBtn} onClick={() => { setCur(p => { const d = new Date(p.y, p.m+1, 1); return { y:d.getFullYear(), m:d.getMonth() }; }); setSelDay(null); }}>▶</button>
-          <button style={{ ...navBtn, color:G, borderColor:G+"44" }} onClick={() => { setCur({ y:now.getFullYear(), m:now.getMonth() }); setSelDay(null); }}>Hôm nay</button>
+          <button style={{ ...navBtn, color:G, borderColor:G+"44" }} onClick={() => { setCur({ y:now.getFullYear(), m:now.getMonth() }); setSelDay(now.getDate()); }}>Hôm nay</button>
         </div>
       </div>
 
@@ -4011,9 +4129,11 @@ function RentalCalendar({ orders, cameras }) {
           const isToday = ds === todayDate;
           const isSel = selDay === day;
           const isPast = ds < todayDate;
+          const avail = dayAvailMap[ds] || { hasLow: false, allFull: false };
+          const { hasLow: hasFullCam, allFull } = avail;
           return (
             <div key={day} onClick={() => setSelDay(isSel ? null : day)}
-              style={{ minHeight:60, borderRadius:6, background: isSel ? "#1a1500" : "#0d0d0d", border:`1px solid ${isSel ? G : isToday ? G+"55" : BR}`, padding:"6px 8px", cursor:"pointer", transition:"border .15s", opacity: isPast && !dayOrders.length ? 0.4 : 1 }}>
+              style={{ minHeight:60, borderRadius:6, background: isSel ? "#1a1500" : allFull ? "#160505" : "#0d0d0d", border:`1px solid ${isSel ? G : isToday ? G+"55" : allFull ? "#cc333333" : BR}`, padding:"6px 8px", cursor:"pointer", transition:"border .15s", opacity: isPast && !dayOrders.length ? 0.4 : 1 }}>
               <div style={{ fontSize:11, fontWeight: isToday ? 700 : 400, color: isToday ? G : TXT, fontFamily:"system-ui,sans-serif", marginBottom:4 }}>
                 {day}{isToday && <span style={{ fontSize:7, marginLeft:3, color:G }}>●</span>}
               </div>
@@ -4024,6 +4144,12 @@ function RentalCalendar({ orders, cameras }) {
                 })}
                 {dayOrders.length > 6 && <span style={{ fontSize:8, color:MUT, lineHeight:"8px" }}>+{dayOrders.length-6}</span>}
               </div>
+              {allFull && !isPast && (
+                <div style={{ fontSize:7, color:"#cc3333", fontWeight:700, fontFamily:"system-ui,sans-serif", marginTop:2, letterSpacing:0.5 }}>HẾT</div>
+              )}
+              {!allFull && hasFullCam && !isPast && (
+                <div style={{ fontSize:7, color:"#f59e0b", fontWeight:700, fontFamily:"system-ui,sans-serif", marginTop:2, letterSpacing:0.5 }}>CÒN ÍT</div>
+              )}
             </div>
           );
         })}
@@ -4047,7 +4173,7 @@ function RentalCalendar({ orders, cameras }) {
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ color:TXT, fontSize:12, fontWeight:600, fontFamily:"system-ui,sans-serif" }}>{o.cameraName} · {o.name}</div>
                       <div style={{ color:MUT, fontSize:11, fontFamily:"system-ui,sans-serif", marginTop:2 }}>
-                        {o.id} · {o.date} → {dateAddDays(o.date, o.days)} · {fmtDays(o.days, o.shift)} · {fmtVND(o.total)}
+                        {o.id} · {o.date} → {dateAddDays(o.date, o.days)} · {fmtDays(o.days, o.session || o.shift)} · {fmtVND(o.total)}
                       </div>
                     </div>
                     <span style={{ display:"inline-block", padding:"3px 9px", borderRadius:99, fontSize:10, fontWeight:700, background:cfg.color+"22", color:cfg.color, border:`1px solid ${cfg.color}44`, whiteSpace:"nowrap", flexShrink:0 }}>{cfg.label}</span>
@@ -4058,19 +4184,41 @@ function RentalCalendar({ orders, cameras }) {
         </div>
       )}
 
-      {/* Legend */}
-      <div style={{ marginTop:18, display:"flex", flexWrap:"wrap", gap:12, padding:"12px 14px", background:"#0d0d0d", borderRadius:8, border:`1px solid ${BR}` }}>
-        <span style={{ color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif", letterSpacing:1 }}>CHÚ THÍCH:</span>
-        {cameras.map((c, i) => {
-          const qty = getAvailQty(c.id, c.qty || 1, orders);
-          return (
-            <div key={c.id} style={{ display:"flex", alignItems:"center", gap:5 }}>
-              <div style={{ width:10, height:10, borderRadius:2, background:CAM_PALETTE[i%CAM_PALETTE.length] }} />
-              <span style={{ color:MUT, fontSize:11, fontFamily:"system-ui,sans-serif" }}>{c.name}</span>
-              <span style={{ color: qty === 0 ? RED : qty <= 1 ? "#f59e0b" : "#22c55e", fontSize:10, fontWeight:700 }}>({qty} còn)</span>
-            </div>
-          );
-        })}
+      {/* Legend — hiển thị sáng/chiều riêng theo spec §5 */}
+      <div style={{ marginTop:18, padding:"12px 14px", background:"#0d0d0d", borderRadius:8, border:`1px solid ${BR}` }}>
+        <span style={{ color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif", letterSpacing:1, display:"block", marginBottom:8 }}>
+          CHÚ THÍCH{selDateStr ? ` · ${selDay}/${m+1}/${y}` : " · Tổng kho"}
+        </span>
+        <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+          {cameras.map((c, i) => {
+            let statusLabel, morning, afternoon;
+            if (selDateStr && dayAvailMap[selDateStr]) {
+              // Đang chọn ngày → hiện morning/afternoon riêng (spec §5)
+              const a = dayAvailMap[selDateStr].camAvails[i];
+              morning   = a?.morning ?? 0;
+              afternoon = a?.afternoon ?? 0;
+              statusLabel = getItemStatus(morning, afternoon);
+            } else {
+              // Không chọn ngày → hiện tổng kho
+              morning = afternoon = c.qty || 1;
+              statusLabel = "trống";
+            }
+            const statusColor = statusLabel === "hết" ? RED : statusLabel === "còn ít" ? "#f59e0b" : "#22c55e";
+            return (
+              <div key={c.id} style={{ display:"flex", alignItems:"center", gap:6, background:"#111", border:`1px solid #1e1e1e`, borderRadius:7, padding:"5px 10px" }}>
+                <div style={{ width:9, height:9, borderRadius:2, background:CAM_PALETTE[i%CAM_PALETTE.length], flexShrink:0 }} />
+                <span style={{ color:MUT, fontSize:11, fontFamily:"system-ui,sans-serif" }}>{c.name}</span>
+                {selDateStr ? (
+                  <span style={{ color:statusColor, fontSize:10, fontWeight:700, fontFamily:"system-ui,sans-serif" }}>
+                    🌅{morning} · 🌇{afternoon}
+                  </span>
+                ) : (
+                  <span style={{ color:"#22c55e", fontSize:10, fontWeight:700 }}>({c.qty || 1} máy)</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -4209,7 +4357,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
           o.zalo || "",
           o.address || "",
           o.cameraName,
-          fmtDays(o.days, o.shift),
+          fmtDays(o.days, o.session || o.shift),
           (o.accessories || []).join(", "),
           o.discountCode || "",
           o.discountAmt || 0,
@@ -4911,8 +5059,29 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                 <div style={{ color: TXT, fontSize: 12, fontWeight: 600 }}>Xuất báo cáo Excel</div>
                 <div style={{ color: MUT, fontSize: 10 }}>Danh sách đơn + tổng kết doanh thu theo tháng</div>
               </div>
-              <input type="month" value={exportMonth} onChange={e => setExportMonth(e.target.value)}
-                style={{ padding: "7px 10px", background: "#0d0d0d", border: `1px solid ${BR2}`, borderRadius: 7, color: TXT, fontSize: 12, fontFamily: "system-ui,sans-serif", outline: "none", marginLeft: "auto" }} />
+              {/* Month navigator */}
+              <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
+                <button
+                  onClick={() => {
+                    const [y, m] = exportMonth.split("-").map(Number);
+                    const d = new Date(y, m - 2);
+                    setExportMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);
+                  }}
+                  style={{ width: 28, height: 28, background: "#0d0d0d", border: `1px solid ${BR2}`, borderRadius: 6, color: TXT, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "system-ui,sans-serif" }}>
+                  ‹
+                </button>
+                <input type="month" value={exportMonth} onChange={e => setExportMonth(e.target.value)}
+                  style={{ padding: "6px 10px", background: "#0d0d0d", border: `1px solid ${G}55`, borderRadius: 7, color: G, fontSize: 12, fontFamily: "system-ui,sans-serif", outline: "none", fontWeight: 700, textAlign: "center", cursor: "pointer" }} />
+                <button
+                  onClick={() => {
+                    const [y, m] = exportMonth.split("-").map(Number);
+                    const d = new Date(y, m);
+                    setExportMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);
+                  }}
+                  style={{ width: 28, height: 28, background: "#0d0d0d", border: `1px solid ${BR2}`, borderRadius: 6, color: TXT, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "system-ui,sans-serif" }}>
+                  ›
+                </button>
+              </div>
               <button onClick={handleExportExcel} disabled={exporting}
                 style={{ padding: "8px 18px", background: exporting ? "#111" : "#0d2010", color: exporting ? MUT : "#22c55e", border: "1px solid #22c55e44", borderRadius: 7, cursor: exporting ? "not-allowed" : "pointer", fontWeight: 700, fontSize: 12, fontFamily: "system-ui,sans-serif", whiteSpace: "nowrap", transition: "all .2s" }}>
                 {exporting ? "⏳ Đang xuất..." : "⬇️ Tải Excel"}
@@ -4959,7 +5128,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                     </div>
                     <div style={{ textAlign: "right" }}>
                       <div style={{ color: G, fontSize: 18, fontWeight: 800 }}>{fmtVND(o.total)}</div>
-                      <div style={{ color: MUT, fontSize: 11 }}>{fmtDays(o.days, o.shift)}</div>
+                      <div style={{ color: MUT, fontSize: 11 }}>{fmtDays(o.days, o.session || o.shift)}</div>
                     </div>
                   </div>
 
@@ -4968,7 +5137,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                     <div style={{ borderTop: `1px solid ${BR2}`, padding: "14px 18px" }}>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
                         <span style={{ padding: "3px 10px", background: "#111", border: `1px solid ${BR2}`, borderRadius: 99, color: TXT, fontSize: 11 }}>📷 {o.cameraName}</span>
-                        {o.shift && <span style={{ padding: "3px 10px", background: o.shift === "morning" ? "#0a0800" : "#080010", border: `1px solid ${o.shift === "morning" ? "#f59e0b44" : "#818cf844"}`, borderRadius: 99, color: o.shift === "morning" ? "#f59e0b" : "#818cf8", fontSize: 11 }}>{o.shift === "morning" ? "🌅 Ca sáng 6h–12h" : "🌇 Ca chiều 14h–20h"}</span>}
+                        {(() => { const sess = o.session || o.shift; return (sess === "morning" || sess === "afternoon") ? <span style={{ padding: "3px 10px", background: sess === "morning" ? "#0a0800" : "#080010", border: `1px solid ${sess === "morning" ? "#f59e0b44" : "#818cf844"}`, borderRadius: 99, color: sess === "morning" ? "#f59e0b" : "#818cf8", fontSize: 11 }}>{sess === "morning" ? "🌅 Ca sáng 6h–12h" : "🌇 Ca chiều 14h–20h"}</span> : null; })()}
                         {o.accessories.map(a => <span key={a} style={{ padding: "3px 10px", background: "#111", border: `1px solid ${BR2}`, borderRadius: 99, color: MUT, fontSize: 11 }}>{a}</span>)}
                       </div>
 
@@ -4978,8 +5147,9 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                         const fmtD = (ds) => new Date(ds + "T00:00:00").toLocaleDateString("vi-VN", { day:"2-digit", month:"2-digit", year:"numeric" });
                         let pickTime, pickDate, dropTime, dropDate;
                         if (o.days === 0.5) {
-                          pickTime = o.shift === "morning" ? "06:00" : o.shift === "afternoon" ? "14:00" : "--:--";
-                          dropTime = o.shift === "morning" ? "12:00" : o.shift === "afternoon" ? "20:00" : "--:--";
+                          const _sess = o.session || o.shift;
+                          pickTime = _sess === "morning" ? "06:00" : _sess === "afternoon" ? "14:00" : "--:--";
+                          dropTime = _sess === "morning" ? "12:00" : _sess === "afternoon" ? "20:00" : "--:--";
                           pickDate = dropDate = fmtD(o.date);
                         } else {
                           pickTime = dropTime = "12:00";
@@ -5009,8 +5179,8 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                           let pickTime, pickDate, dropTime, dropDate;
                           if (o.date && o.days) {
                             if (o.days === 0.5) {
-                              pickTime = o.shift === "morning" ? "06:00" : o.shift === "afternoon" ? "14:00" : "--:--";
-                              dropTime = o.shift === "morning" ? "12:00" : o.shift === "afternoon" ? "20:00" : "--:--";
+                              pickTime = (o.session||o.shift) === "morning" ? "06:00" : (o.session||o.shift) === "afternoon" ? "14:00" : "--:--";
+                              dropTime = (o.session||o.shift) === "morning" ? "12:00" : (o.session||o.shift) === "afternoon" ? "20:00" : "--:--";
                               pickDate = dropDate = fmtD(o.date);
                             } else {
                               pickTime = dropTime = "12:00";
@@ -5026,7 +5196,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                             `📷 Máy  : ${o.cameraName}`,
                             `🎒 Phụ kiện: ${accList}`,
                             `📅 Ngày thuê: ${o.date}`,
-                            `⏱ Thời gian: ${fmtDays(o.days, o.shift)}`,
+                            `⏱ Thời gian: ${fmtDays(o.days, o.session || o.shift)}`,
                             pickDate ? `📦 Giờ nhận : ${pickTime} · ${pickDate}` : null,
                             dropDate ? `📅 Giờ trả  : ${dropTime} · ${dropDate}` : null,
                             o.discountCode ? `🏷️ Mã giảm giá: ${o.discountCode} (-${fmtVND(o.discountAmt || 0)})` : null,
