@@ -50,6 +50,23 @@ const getAvailQty = (camId, camQty, orders, targetDate, targetSession) => {
   return Math.max(0, camQty - used);
 };
 
+// getAccAvailQty: trả số lượng phụ kiện còn lại cho 1 ngày + session
+const getAccAvailQty = (accName, accQty, orders, targetDate, targetSession) => {
+  const active = ["pending", "confirmed", "active"];
+  let used = 0;
+  orders.filter(o => active.includes(o.status)).forEach(o => {
+    if (targetDate && !isDateInOrder(targetDate, o)) return;
+    if (targetDate && targetSession && !sessionConflicts(getOrderSession(o), targetSession)) return;
+    if (o.accessoriesDetail) {
+      const d = o.accessoriesDetail.find(x => x.name === accName);
+      if (d) used += (d.qty || 1);
+    } else if (o.accessories && o.accessories.includes(accName)) {
+      used += 1;
+    }
+  });
+  return Math.max(0, accQty - used);
+};
+
 // getAvailability: trả {morning, afternoon} cho 1 item trong 1 ngày
 const getAvailability = (itemId, itemTotal, orders, date) => {
   const active = ["pending", "confirmed", "active"];
@@ -1895,6 +1912,27 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   const days = selDur ? selDur.days : (parseInt(customDays) || 0);
   // session: lấy từ selDur nếu có, custom days luôn là "full"
   const selSession = selDur ? selDur.session : (days >= 1 ? "full" : null);
+
+  // Auto-bỏ chọn phụ kiện hết kho khi đổi ngày / ca
+  useEffect(() => {
+    if (!pickDate || !days) return;
+    const activeOrds = orders.filter(o => !["cancelled","completed"].includes(o.status));
+    const sess = selSession || "full";
+    setSelAcc(prev => {
+      const next = { ...prev };
+      let changed = false;
+      Object.keys(next).forEach(name => {
+        const acc = accessories.find(a => a.name === name);
+        if (!acc) return;
+        const avail = getAccAvailQty(name, acc.qty || 0, activeOrds, pickDate, sess);
+        if (avail <= 0) { delete next[name]; changed = true; }
+        else if (next[name] > avail) { next[name] = avail; changed = true; }
+      });
+      return changed ? next : prev;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pickDate, selSession, days]);
+
   const availCams = cameras.filter(c => c.status === "available");
   const selectedCamList = availCams.filter(c => selCams[c.id] > 0);
   const totalCamSelected = Object.values(selCams).reduce((s, q) => s + (q || 0), 0);
@@ -2339,37 +2377,60 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                   {accessories.filter(a => a.active !== false).map(a => {
                     const qty = selAcc[a.name] || 0;
                     const isSel = qty > 0;
-                    // Rule: qty phụ kiện ≤ qty máy và ≤ tồn kho phụ kiện
-                    const maxQty = Math.min(a.qty || 0, totalCamSelected || 0);
-                    const canAdd = totalCamSelected > 0;
+                    // Tính tồn kho thực tế theo ngày + ca (giống logic máy ảnh)
+                    const activeOrds = orders.filter(o => !["cancelled","completed"].includes(o.status));
+                    const availStock = pickDate && (selSession || days >= 1)
+                      ? getAccAvailQty(a.name, a.qty || 0, activeOrds, pickDate, selSession || "full")
+                      : (a.qty || 0);
+                    const isOutOfStock = availStock <= 0;
+                    const isLowStock = !isOutOfStock && availStock <= 1 && (a.qty || 0) > 1;
+                    // maxQty: không vượt tồn kho thực tế và không vượt số máy chọn
+                    const maxQty = Math.min(availStock, totalCamSelected || 0);
+                    const canAdd = totalCamSelected > 0 && !isOutOfStock;
                     const unitPrice = days === 0.5 ? (a.priceShift != null ? a.priceShift : Math.round(a.price / 2)) : a.price;
                     const multiplier = days === 0.5 ? 1 : (days || 1);
                     const lineTotal = unitPrice * qty * multiplier;
                     return (
-                      <div key={a.id} style={{ border:`1px solid ${isSel ? G+"55" : "#1e1e1e"}`, borderRadius:10, padding:"10px 13px", background: isSel ? "#0a0900" : "#0d0d0d", transition:"all .2s", opacity: canAdd ? 1 : 0.45 }}>
+                      <div key={a.id} style={{ border:`1px solid ${isOutOfStock ? "#cc333344" : isSel ? G+"55" : "#1e1e1e"}`, borderRadius:10, padding:"10px 13px", background: isOutOfStock ? "#0d0505" : isSel ? "#0a0900" : "#0d0d0d", transition:"all .2s", opacity: totalCamSelected > 0 ? 1 : 0.45 }}>
                         <div style={{ display:"flex", alignItems:"center", gap:10, cursor: canAdd ? "pointer" : "not-allowed" }} onClick={() => canAdd && toggleAcc(a.name)}>
-                          <div style={{ width:18, height:18, borderRadius:4, border:`2px solid ${isSel ? G : "#333"}`, background: isSel ? G : "transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all .2s" }}>
-                            {isSel && <span style={{ color:"#000", fontSize:11, fontWeight:900, lineHeight:1 }}>✓</span>}
+                          <div style={{ width:18, height:18, borderRadius:4, border:`2px solid ${isOutOfStock ? "#cc3333" : isSel ? G : "#333"}`, background: isOutOfStock ? "#cc333322" : isSel ? G : "transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all .2s" }}>
+                            {isOutOfStock
+                              ? <span style={{ color:"#cc3333", fontSize:10, fontWeight:900, lineHeight:1 }}>✕</span>
+                              : isSel && <span style={{ color:"#000", fontSize:11, fontWeight:900, lineHeight:1 }}>✓</span>
+                            }
                           </div>
                           <div style={{ flex:1, minWidth:0 }}>
-                            <span style={{ color: isSel ? TXT : "#888", fontSize:13, fontFamily:"system-ui,sans-serif" }}>{a.name}</span>
+                            <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
+                              <span style={{ color: isOutOfStock ? "#666" : isSel ? TXT : "#888", fontSize:13, fontFamily:"system-ui,sans-serif", textDecoration: isOutOfStock ? "line-through" : "none" }}>{a.name}</span>
+                              {isOutOfStock && (
+                                <span style={{ background:"#cc333322", color:"#cc3333", border:"1px solid #cc333355", borderRadius:4, padding:"1px 6px", fontSize:9, fontWeight:700, fontFamily:"system-ui,sans-serif", letterSpacing:.5 }}>HẾT</span>
+                              )}
+                              {isLowStock && !isOutOfStock && (
+                                <span style={{ background:"#f59e0b22", color:"#f59e0b", border:"1px solid #f59e0b55", borderRadius:4, padding:"1px 6px", fontSize:9, fontWeight:700, fontFamily:"system-ui,sans-serif", letterSpacing:.5 }}>CÒN {availStock}</span>
+                              )}
+                            </div>
                             {a.desc && <div style={{ color:"#444", fontSize:10, marginTop:1, fontFamily:"system-ui,sans-serif" }}>{a.desc}</div>}
+                            {isOutOfStock && pickDate && (
+                              <div style={{ color:"#cc333388", fontSize:9, marginTop:2, fontFamily:"system-ui,sans-serif" }}>Không còn trong ngày / ca này</div>
+                            )}
                           </div>
-                          <span style={{ color:G, fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif", flexShrink:0 }}>
+                          <span style={{ color: isOutOfStock ? "#555" : G, fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif", flexShrink:0 }}>
                             {fmtVND(unitPrice)}/{days === 0.5 ? "buổi" : "ngày"}
                             {days === 0.5 && (
                               <span style={{ color:"#555", fontSize:9, fontWeight:400, marginLeft:4 }}>({fmtVND(a.price)}/ngày)</span>
                             )}
                           </span>
                         </div>
-                        {isSel && (
+                        {isSel && !isOutOfStock && (
                           <div style={{ marginTop:8, paddingTop:8, borderTop:`1px solid ${G}22` }}>
                             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom: days > 0 ? 7 : 0 }}>
                               <span style={{ color:MUT, fontSize:11, fontFamily:"system-ui,sans-serif" }}>Số lượng:</span>
                               {qtyBtn(() => setAccQty(a.name, qty-1, maxQty), "−")}
                               <span style={{ color:G, fontWeight:700, fontSize:14, minWidth:20, textAlign:"center", fontFamily:"system-ui,sans-serif" }}>{qty}</span>
                               {qtyBtn(() => setAccQty(a.name, qty+1, maxQty), "+")}
-                              <span style={{ color:"#444", fontSize:10, fontFamily:"system-ui,sans-serif" }}>/ tối đa {maxQty}</span>
+                              <span style={{ color: availStock < (a.qty||0) ? "#f59e0b" : "#444", fontSize:10, fontFamily:"system-ui,sans-serif" }}>
+                                / {a.qty} kho{availStock < (a.qty||0) ? ` · còn ${availStock}` : ""}
+                              </span>
                             </div>
                             {days > 0 && (
                               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", background:"#111", borderRadius:6, padding:"5px 10px" }}>
