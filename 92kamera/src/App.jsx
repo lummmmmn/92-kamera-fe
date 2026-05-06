@@ -2007,7 +2007,21 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
     setSelAcc(p => { if (q === 0) { const n = { ...p }; delete n[name]; return n; } return { ...p, [name]: q }; });
   };
 
+  const [submitError, setSubmitError] = useState(null);
+
   const handleFinish = () => {
+    // ── BUG FIX 2: Validate kho tại thời điểm submit ──
+    const activeOrds = orders.filter(o => !["cancelled", "completed"].includes(o.status));
+    for (const cam of selectedCamList) {
+      const need = selCams[cam.id] || 1;
+      const avail = getAvailQty(cam.id, cam.qty, activeOrds, pickDate, selSession || "full");
+      if (avail < need) {
+        setSubmitError(`❌ "${cam.name}" chỉ còn ${avail} máy cho ngày/ca này. Vui lòng quay lại điều chỉnh số lượng.`);
+        return;
+      }
+    }
+    setSubmitError(null);
+
     const id = newOrderId();
     setOrderId(id);
     const camNames = selectedCamList.map(c => `${c.name}${selCams[c.id] > 1 ? ` x${selCams[c.id]}` : ""}`).join(", ");
@@ -2191,18 +2205,26 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                         </div>
                       </div>
 
-                      {/* Qty row khi đã chọn — Step 1 chưa có ngày, dùng tổng kho vật lý */}
+                      {/* Qty row khi đã chọn — BUG FIX 1: dùng getAvailQty để sync với kho thực tế */}
                       {isSelected && (() => {
-                        const totalStock = c.qty || 1; // tổng số máy sở hữu
+                        const totalStock = c.qty || 1; // tổng kho admin cài
                         const curQty = selCams[c.id] || 1;
+                        // Tính available qty từ orders thực tế (sync với admin thay đổi + chặn overbooking)
+                        const activeOrds = orders.filter(o => !["cancelled","completed"].includes(o.status));
+                        const availM = getAvailQty(c.id, totalStock, activeOrds, pickDate, "morning");
+                        const availA = getAvailQty(c.id, totalStock, activeOrds, pickDate, "afternoon");
+                        const maxAvail = selSession
+                          ? getAvailQty(c.id, totalStock, activeOrds, pickDate, selSession)
+                          : Math.max(availM, availA);
+                        const maxSel = Math.max(0, maxAvail);
                         return (
                         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#0a0800", borderTop: `1px solid ${G}22` }}>
                           <span style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif" }}>SL:</span>
-                          {qtyBtn(() => setCamQty(c.id, curQty - 1, totalStock), "−")}
-                          <span style={{ color: G, fontWeight: 700, fontSize: 14, minWidth: 20, textAlign: "center", fontFamily: "system-ui,sans-serif" }}>{curQty}</span>
-                          {qtyBtn(() => setCamQty(c.id, curQty + 1, totalStock), "+")}
-                          <span style={{ color: "#444", fontSize: 9, fontFamily: "system-ui,sans-serif", marginLeft: "auto" }}>
-                            / {totalStock} máy
+                          {qtyBtn(() => setCamQty(c.id, curQty - 1, maxSel), "−")}
+                          <span style={{ color: maxSel === 0 ? RED : G, fontWeight: 700, fontSize: 14, minWidth: 20, textAlign: "center", fontFamily: "system-ui,sans-serif" }}>{curQty}</span>
+                          {qtyBtn(() => setCamQty(c.id, curQty + 1, maxSel), "+")}
+                          <span style={{ color: maxAvail < totalStock ? "#f59e0b" : "#444", fontSize: 9, fontFamily: "system-ui,sans-serif", marginLeft: "auto" }}>
+                            / {totalStock} máy{maxAvail < totalStock ? ` · còn ${maxAvail}` : ""}
                           </span>
                         </div>
                         );
@@ -2706,6 +2728,12 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 
               {/* ── BOTTOM BAR (fixed) ── */}
               <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"min(660px,100vw)", background:"linear-gradient(to top,#060606 88%,transparent)", padding:"14px 18px 18px", zIndex:999, boxSizing:"border-box" }}>
+                {/* BUG FIX 2: Lỗi validate kho */}
+                {submitError && (
+                  <div style={{ marginBottom:8, padding:"9px 14px", background:"#1a0505", border:"1px solid #cc333366", borderRadius:9, color:"#ef4444", fontSize:12, fontFamily:"system-ui,sans-serif", lineHeight:1.5 }}>
+                    {submitError}
+                  </div>
+                )}
                 {/* Tổng tiền row */}
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10, padding:"0 2px" }}>
                   <span style={{ color:"#666", fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>TỔNG CỘNG</span>
