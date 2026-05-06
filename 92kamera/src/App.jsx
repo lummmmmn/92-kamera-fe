@@ -2355,7 +2355,12 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                             <span style={{ color: isSel ? TXT : "#888", fontSize:13, fontFamily:"system-ui,sans-serif" }}>{a.name}</span>
                             {a.desc && <div style={{ color:"#444", fontSize:10, marginTop:1, fontFamily:"system-ui,sans-serif" }}>{a.desc}</div>}
                           </div>
-                          <span style={{ color:G, fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif", flexShrink:0 }}>{fmtVND(a.price)}/ngày</span>
+                          <span style={{ color:G, fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif", flexShrink:0 }}>
+                            {fmtVND(days === 0.5 && a.priceShift ? a.priceShift : a.price)}/{days === 0.5 && a.priceShift ? "buổi" : "ngày"}
+                            {days === 0.5 && a.priceShift && (
+                              <span style={{ color:"#555", fontSize:9, fontWeight:400, marginLeft:4 }}>({fmtVND(a.price)}/ngày)</span>
+                            )}
+                          </span>
                         </div>
                         {isSel && (
                           <div style={{ marginTop:8, paddingTop:8, borderTop:`1px solid ${G}22` }}>
