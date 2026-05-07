@@ -6278,87 +6278,65 @@ function FlowBg() {
 }
 
 // ── SPLASH SCREEN ──
+// phase: 0=invisible, 1=fade-in logo, 2=show tagline, 3=iris-close+exit
 function SplashScreen({ onDone }) {
-  // phase: 0=spread, 1=converge, 2=hold, 3=release+iris close
   const [phase, setPhase] = useState(0);
   const isMob = useMobile();
+  // Dùng ref để lưu onDone — tránh useEffect chạy lại khi parent re-render tạo function mới
+  const onDoneRef = useRef(onDone);
+  useEffect(() => { onDoneRef.current = onDone; }, [onDone]);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase(1), 80);
-    const t2 = setTimeout(() => setPhase(2), 1300);
-    const t3 = setTimeout(() => setPhase(3), 2500);
-    const t4 = setTimeout(() => onDone(), 3350);
-    return () => [t1,t2,t3,t4].forEach(clearTimeout);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onDone]);
+    // Tất cả timers chỉ chạy 1 lần duy nhất (deps = [])
+    const t1 = setTimeout(() => setPhase(1), 60);   // fade in logo ngay
+    const t2 = setTimeout(() => setPhase(2), 900);  // show tagline
+    const t3 = setTimeout(() => setPhase(3), 1700); // iris close
+    const t4 = setTimeout(() => onDoneRef.current?.(), 2300); // xong
+    return () => [t1, t2, t3, t4].forEach(clearTimeout);
+  }, []); // ← [] cố định, không phụ thuộc onDone → không bao giờ restart
 
-  const sz  = isMob ? 1.45 : 2.2;
-  const s   = n => n * sz;
-  const bw  = 2.5;
+  const sz = isMob ? 1.45 : 2.2;
+  const s  = n => n * sz;
+  const bw = 2.5;
   const col = "#f0e8d0";
 
-  // Phase 0 → toả xa; phase 3 → toả ra nhẹ (release trước iris); còn lại = 0
-  const sp = phase === 0 ? (isMob ? 55 : 75)
-           : phase === 3 ? (isMob ? 22 : 32)
-           : 0;
+  // Bracket spread chỉ ở phase 0
+  const sp = phase === 0 ? (isMob ? 48 : 65) : 0;
+  const brTr = "transform 0.85s cubic-bezier(.16,1,.3,1), opacity 0.7s ease";
 
-  // Transition bracket: chụm lại dùng spring; release (phase3) dùng ease-out nhanh
-  const brTr = phase === 3
-    ? "transform 0.28s cubic-bezier(.4,0,1,1), opacity 0.28s ease"
-    : "transform 1s cubic-bezier(.16,1,.3,1), opacity 0.8s ease";
-
-  const glowOp = phase >= 1 ? (phase === 3 ? 0.22 : 0.13) : 0.03;
-
-  // Iris: clip-path thu về tâm → wipe đóng như ống kính máy ảnh
-  const irisStyle = phase === 3 ? {
-    clipPath: "circle(0% at 50% 50%)",
-    transition: "clip-path 0.72s cubic-bezier(.7,0,.3,1) 0.18s",
-  } : {
-    clipPath: "circle(150% at 50% 50%)",
-    transition: "none",
-  };
+  // Iris wipe ra khi phase 3
+  const irisStyle = phase >= 3
+    ? { clipPath: "circle(0% at 50% 50%)", transition: "clip-path 0.55s cubic-bezier(.7,0,.3,1) 0.05s" }
+    : { clipPath: "circle(150% at 50% 50%)", transition: "none" };
 
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 9999,
       background: "#060606",
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      pointerEvents: "none",
-      overflow: "hidden",
+      pointerEvents: "none", overflow: "hidden",
       ...irisStyle,
     }}>
 
-      {/* ── Ambient glow ── */}
+      {/* Ambient glow */}
       <div style={{
         position: "absolute", top: "50%", left: "50%",
         transform: "translate(-50%,-50%)",
-        width: isMob ? 400 : 620, height: isMob ? 260 : 400,
-        background: `radial-gradient(ellipse, rgba(201,168,76,${glowOp}) 0%, transparent 70%)`,
-        transition: "background 1s ease",
+        width: isMob ? 360 : 580, height: isMob ? 240 : 360,
+        background: `radial-gradient(ellipse, rgba(201,168,76,${phase >= 1 ? 0.11 : 0.02}) 0%, transparent 70%)`,
+        transition: "background 0.9s ease",
         pointerEvents: "none",
       }} />
 
-      {/* ── Flash ring khi converge xong (phase2) ── */}
-      <div style={{
-        position: "absolute", top: "50%", left: "50%",
-        width: isMob ? 200 : 320, height: isMob ? 200 : 320,
-        borderRadius: "50%",
-        border: "1px solid rgba(201,168,76,0.35)",
-        transform: phase >= 2 ? "translate(-50%,-50%) scale(1)" : "translate(-50%,-50%) scale(0.3)",
-        opacity: phase === 2 ? 0.6 : 0,
-        transition: phase === 2
-          ? "transform 0.9s cubic-bezier(.16,1,.3,1), opacity 0.5s ease"
-          : phase === 3 ? "opacity 0.2s ease" : "none",
-        pointerEvents: "none",
-      }} />
-
-      {/* ── LOGO ── */}
+      {/* LOGO */}
       <div style={{
         display: "inline-flex", alignItems: "center",
         fontFamily: '"Times New Roman",Georgia,serif',
         color: col, userSelect: "none", position: "relative",
+        opacity: phase >= 1 ? 1 : 0,
+        transform: phase >= 1 ? "scale(1)" : "scale(0.94)",
+        transition: "opacity 0.6s ease, transform 0.6s cubic-bezier(.2,.8,.3,1)",
       }}>
-
         {/* Bracket trái */}
         <div style={{ position: "relative", width: s(13), height: s(32), marginRight: s(9), flexShrink: 0 }}>
           <span style={{
@@ -6366,7 +6344,7 @@ function SplashScreen({ onDone }) {
             width: s(13), height: s(16),
             borderLeft: `${bw}px solid ${col}`, borderTop: `${bw}px solid ${col}`,
             transform: `translate(${-sp}px,${-sp}px)`,
-            opacity: phase === 0 ? 0.2 : 1,
+            opacity: phase === 0 ? 0 : 1,
             transition: brTr,
           }} />
           <span style={{
@@ -6374,18 +6352,15 @@ function SplashScreen({ onDone }) {
             width: s(13), height: s(16),
             borderLeft: `${bw}px solid ${col}`, borderBottom: `${bw}px solid ${col}`,
             transform: `translate(${-sp}px,${sp}px)`,
-            opacity: phase === 0 ? 0.2 : 1,
+            opacity: phase === 0 ? 0 : 1,
             transition: brTr,
           }} />
         </div>
 
-        {/* Text 92 KA MÊ RA */}
+        {/* Text */}
         <span style={{
           fontSize: s(20), fontWeight: 400, letterSpacing: s(1.5),
           whiteSpace: "nowrap", display: "inline-flex", alignItems: "center",
-          opacity: phase >= 1 ? 1 : 0,
-          transform: phase >= 1 ? "translateY(0) scale(1)" : "translateY(10px) scale(0.96)",
-          transition: "opacity 0.7s ease 0.45s, transform 0.7s cubic-bezier(.2,.8,.3,1) 0.45s",
         }}>
           <span>92</span>
           <span style={{ marginLeft: s(10) }}>KA</span>
@@ -6406,7 +6381,7 @@ function SplashScreen({ onDone }) {
             width: s(13), height: s(16),
             borderRight: `${bw}px solid ${col}`, borderTop: `${bw}px solid ${col}`,
             transform: `translate(${sp}px,${-sp}px)`,
-            opacity: phase === 0 ? 0.2 : 1,
+            opacity: phase === 0 ? 0 : 1,
             transition: brTr,
           }} />
           <span style={{
@@ -6414,34 +6389,34 @@ function SplashScreen({ onDone }) {
             width: s(13), height: s(16),
             borderRight: `${bw}px solid ${col}`, borderBottom: `${bw}px solid ${col}`,
             transform: `translate(${sp}px,${sp}px)`,
-            opacity: phase === 0 ? 0.2 : 1,
+            opacity: phase === 0 ? 0 : 1,
             transition: brTr,
           }} />
         </div>
       </div>
 
-      {/* ── Tagline ── */}
+      {/* Tagline */}
       <div style={{
         color: "#a09070",
         fontSize: isMob ? 9 : 10,
         letterSpacing: isMob ? 4 : 6,
         fontFamily: "system-ui,sans-serif",
         textTransform: "uppercase",
-        marginTop: isMob ? 20 : 28,
+        marginTop: isMob ? 18 : 26,
         opacity: phase >= 2 ? 1 : 0,
-        transform: phase >= 2 ? "translateY(0)" : "translateY(5px)",
-        transition: "opacity 0.6s ease 0.1s, transform 0.6s ease 0.1s",
+        transform: phase >= 2 ? "translateY(0)" : "translateY(6px)",
+        transition: "opacity 0.5s ease, transform 0.5s ease",
         textAlign: "center",
         padding: "0 16px",
       }}>Dịch vụ cho thuê máy ảnh</div>
 
-      {/* ── Đường vàng dưới tagline ── */}
+      {/* Đường vàng */}
       <div style={{
-        width: phase >= 2 ? (isMob ? 100 : 140) : 0,
+        width: phase >= 2 ? (isMob ? 90 : 130) : 0,
         height: 1,
-        background: "linear-gradient(to right, transparent, #c9a84c66, transparent)",
+        background: "linear-gradient(to right, transparent, #c9a84c55, transparent)",
         marginTop: isMob ? 10 : 14,
-        transition: "width 0.6s cubic-bezier(.4,0,.2,1) 0.2s",
+        transition: "width 0.5s cubic-bezier(.4,0,.2,1) 0.1s",
       }} />
     </div>
   );
@@ -6613,7 +6588,9 @@ function AppRoot() {
     setOrders(prev => [{ ...order, seen: false }, ...prev]);
   }, [setOrders]);
 
-  if (!splashDone) return <SplashScreen onDone={() => setSplashDone(true)} />;
+  // useCallback giữ reference ổn định → SplashScreen's useEffect([]) không restart
+  const handleSplashDone = useCallback(() => setSplashDone(true), []);
+  if (!splashDone) return <SplashScreen onDone={handleSplashDone} />;
   if (!ready) return (
     <div style={{ minHeight: "100vh", background: BG, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ textAlign: "center" }}>
