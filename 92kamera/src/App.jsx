@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense, Component } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from "recharts";
+import { Package, Calendar, Clock } from "lucide-react";
 
 // ── HELPERS ──
 let _camIdNum = 100;
@@ -1329,7 +1330,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
               <div style={{ textAlign: "center", padding: "48px 0", color: MUT }}>
                 <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
                 <div style={{ fontSize: 14 }}>Chưa có đơn thuê nào</div>
-                {onOpenBooking && <button onClick={onOpenBooking} className="btn-3d" style={{ marginTop: 16, padding: "10px 24px", borderRadius: 6, fontSize: 12, letterSpacing: 2 }}>Thuê ngay</button>}
+                {onOpenBooking && <button onClick={onOpenBooking} className="btn-3d" style={{ marginTop: 16, padding: "10px 24px", borderRadius: 6, fontSize: 12, letterSpacing: 2 }}>Gửi yêu cầu thuê</button>}
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -2677,64 +2678,101 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 
               {/* ── SUMMARY CARD ── */}
               <div style={{ border:`1px solid #252010`, borderRadius:14, overflow:"hidden", marginBottom:14, background:"#0b0900" }}>
-                {selectedCamList.map((c, idx) => (
-                  <div key={c.id} style={{ display:"flex", alignItems:"center", gap:0, borderBottom: idx < selectedCamList.length - 1 ? `1px solid #1a1610` : "none" }}>
-                    {/* Ảnh */}
-                    <div style={{ width:80, height:64, background:"#111", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:26, overflow:"hidden" }}>
-                      {c.images?.length > 0
-                        ? <img src={c.images[0]} alt={c.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
-                        : c.icon}
+                <div style={{ display:"flex", alignItems:"stretch", minHeight:160 }}>
+                  {/* ── CỘT TRÁI: danh sách máy ── */}
+                  <div style={{ flex:1, minWidth:0, borderRight:`1px solid #252010` }}>
+                    {/* Header */}
+                    <div style={{ display:"flex", alignItems:"center", gap:8, padding:"13px 16px", borderBottom:`1px solid #1e1a10` }}>
+                      <Package size={15} color={G} strokeWidth={2} />
+                      <span style={{ color:G, fontSize:9, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>
+                        SẢN PHẨM TRONG ĐƠN ({selectedCamList.length})
+                      </span>
                     </div>
-                    {/* Info */}
-                    <div style={{ flex:1, padding:"14px 16px", minWidth:0 }}>
-                      <div style={{ color:G, fontSize:9, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700, marginBottom:6 }}>TÓM TẮT ĐƠN THUÊ</div>
-                      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
-                        <span style={{ color:TXT, fontWeight:700, fontSize:15, fontFamily:"system-ui,sans-serif" }}>{c.name}</span>
-                        <span style={{ background:"#1a1a1a", border:`1px solid #333`, color:"#888", fontSize:10, borderRadius:4, padding:"1px 7px", fontFamily:"system-ui,sans-serif" }}>x{selCams[c.id] || 1}</span>
-                      </div>
-                      {ri && idx === 0 && (
-                        <div style={{ fontFamily:"system-ui,sans-serif" }}>
-                          <div style={{ color:MUT, fontSize:11, marginBottom:6, fontWeight:600 }}>
-                            {fmtDays(days, selSession)}
-                          </div>
-                          <div style={{ display:"flex", gap:6, flexDirection:"column", alignItems:"flex-start" }}>
-                            <span style={{ display:"inline-flex", alignItems:"center", gap:5, background:"#0a1a08", border:"1px solid #22c55e44", borderRadius:7, padding:"5px 10px", fontSize:11, color:"#22c55e", fontWeight:700, whiteSpace:"nowrap", alignSelf:"flex-start" }}>
-                              Nhận: {ri.pickTime} · {ri.pickDate}
-                            </span>
-                            <span style={{ display:"inline-flex", alignItems:"center", gap:5, background:"#1a0a08", border:"1px solid #f59e0b44", borderRadius:7, padding:"5px 10px", fontSize:11, color:"#f59e0b", fontWeight:700, whiteSpace:"nowrap", alignSelf:"flex-start" }}>
-                              Trả: {ri.dropTime} · {ri.dropDate}
-                            </span>
-                          </div>
+                    {/* Danh sách */}
+                    {selectedCamList.map((c, idx) => (
+                      <div key={c.id} style={{ display:"flex", alignItems:"center", gap:14, padding:"14px 16px", borderBottom: idx < selectedCamList.length - 1 ? `1px solid #161410` : "none" }}>
+                        <div style={{ width:76, height:76, borderRadius:10, overflow:"hidden", flexShrink:0, background:"#111", display:"flex", alignItems:"center", justifyContent:"center", fontSize:24 }}>
+                          {c.images?.length > 0
+                            ? <img src={c.images[0]} alt={c.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                            : c.icon}
                         </div>
-                      )}
-                    </div>
-                    {/* Giá */}
-                    {idx === 0 && (
-                      <div style={{ padding:"14px 16px", textAlign:"right", flexShrink:0 }}>
-                        {appliedDiscount ? (
-                          <>
-                            <div style={{ color:MUT, fontSize:11, textDecoration:"line-through", fontFamily:"system-ui,sans-serif" }}>{new Intl.NumberFormat("vi-VN").format(subtotal)}đ</div>
-                            <div style={{ color:"#22c55e", fontSize:11, fontFamily:"system-ui,sans-serif" }}>-{new Intl.NumberFormat("vi-VN").format(discountAmt)}đ</div>
-                            <div style={{ color:G, fontWeight:900, fontSize:18, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap" }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</div>
-                          </>
-                        ) : (
-                          <div style={{ color:G, fontWeight:900, fontSize:18, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap" }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</div>
-                        )}
-                        <div style={{ color:"#666", fontSize:9, letterSpacing:1, fontFamily:"system-ui,sans-serif", marginTop:3 }}>TỔNG CỘNG</div>
+                        <div>
+                          <div style={{ color:TXT, fontWeight:700, fontSize:15, fontFamily:"system-ui,sans-serif", marginBottom:8 }}>{c.name}</div>
+                          <span style={{ background:"#1c1c1c", border:`1px solid #2e2e2e`, color:"#888", fontSize:11, borderRadius:6, padding:"3px 12px", fontFamily:"system-ui,sans-serif", letterSpacing:0.5 }}>x{selCams[c.id] || 1}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {/* Phụ kiện nếu có */}
+                    {Object.entries(selAcc).length > 0 && (
+                      <div style={{ borderTop:`1px solid #181410`, padding:"10px 16px", display:"flex", flexWrap:"wrap", gap:6 }}>
+                        {Object.entries(selAcc).map(([name, qty]) => (
+                          <span key={name} style={{ background:"#111", border:`1px solid #222`, color:MUT, fontSize:10, borderRadius:4, padding:"3px 8px", fontFamily:"system-ui,sans-serif" }}>
+                            🎒 {name}{qty > 1 ? ` ×${qty}` : ""}
+                          </span>
+                        ))}
                       </div>
                     )}
                   </div>
-                ))}
-                {/* Phụ kiện nếu có */}
-                {Object.entries(selAcc).length > 0 && (
-                  <div style={{ borderTop:`1px solid #181410`, padding:"10px 16px", display:"flex", flexWrap:"wrap", gap:6 }}>
-                    {Object.entries(selAcc).map(([name, qty]) => (
-                      <span key={name} style={{ background:"#111", border:`1px solid #222`, color:MUT, fontSize:10, borderRadius:4, padding:"3px 8px", fontFamily:"system-ui,sans-serif" }}>
-                        🎒 {name}{qty > 1 ? ` ×${qty}` : ""}
-                      </span>
-                    ))}
+
+                  {/* ── CỘT PHẢI: thông tin đơn thuê ── */}
+                  <div style={{ flex:1, minWidth:0 }}>
+                    {/* Header */}
+                    <div style={{ display:"flex", alignItems:"center", gap:8, padding:"13px 16px", borderBottom:`1px solid #1e1a10` }}>
+                      <Calendar size={15} color={G} strokeWidth={2} />
+                      <span style={{ color:G, fontSize:9, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>THÔNG TIN ĐƠN THUÊ</span>
+                    </div>
+                    {/* Nội dung */}
+                    <div style={{ padding:"6px 16px", display:"flex", flexDirection:"column", gap:0 }}>
+                      {/* Ca thuê */}
+                      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 0", borderBottom:`1px solid #161410` }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                          <Clock size={15} color="#666" strokeWidth={1.8} />
+                          <span style={{ color:MUT, fontSize:13, fontFamily:"system-ui,sans-serif" }}>Ca thuê</span>
+                        </div>
+                        <span style={{ color:TXT, fontSize:13, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>
+                          {selSession === "morning" ? "Ca sáng (6h–12h)" : selSession === "afternoon" ? "Ca chiều (14h–20h)" : days >= 1 ? `${days} ngày` : fmtDays(days, selSession)}
+                        </span>
+                      </div>
+                      {/* Nhận máy */}
+                      {ri && (
+                        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 0", borderBottom:`1px solid #161410` }}>
+                          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                            <Calendar size={15} color="#22c55e" strokeWidth={1.8} />
+                            <span style={{ color:MUT, fontSize:13, fontFamily:"system-ui,sans-serif" }}>Nhận máy</span>
+                          </div>
+                          <span style={{ color:"#22c55e", fontSize:13, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>
+                            {ri.pickTime} · {ri.pickDate}
+                          </span>
+                        </div>
+                      )}
+                      {/* Trả máy */}
+                      {ri && (
+                        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 0" }}>
+                          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                            <Calendar size={15} color="#f59e0b" strokeWidth={1.8} />
+                            <span style={{ color:MUT, fontSize:13, fontFamily:"system-ui,sans-serif" }}>Trả máy</span>
+                          </div>
+                          <span style={{ color:"#f59e0b", fontSize:13, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>
+                            {ri.dropTime} · {ri.dropDate}
+                          </span>
+                        </div>
+                      )}
+                      {/* Tổng tiền */}
+                      <div style={{ borderTop:`1px solid #1e1a10`, marginTop:4, paddingTop:10, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                        <span style={{ color:"#555", fontSize:9, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>TỔNG CỘNG</span>
+                        <div style={{ textAlign:"right" }}>
+                          {appliedDiscount && (
+                            <>
+                              <div style={{ color:MUT, fontSize:10, textDecoration:"line-through", fontFamily:"system-ui,sans-serif" }}>{new Intl.NumberFormat("vi-VN").format(subtotal)}đ</div>
+                              <div style={{ color:"#22c55e", fontSize:10, fontFamily:"system-ui,sans-serif" }}>-{new Intl.NumberFormat("vi-VN").format(discountAmt)}đ</div>
+                            </>
+                          )}
+                          <div style={{ color:G, fontWeight:900, fontSize:17, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap" }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
 
               {/* ── FORM STYLES ── */}
@@ -3121,7 +3159,7 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
                     </div>
                     <button onClick={() => onBook(cam)} className="btn-3d"
                       style={{ borderRadius:3,fontSize:9,letterSpacing:2,animation:"none",padding:"7px 15px" }}>
-                      THUÊ NGAY
+                      GỬI YÊU CẦU THUÊ
                     </button>
                   </div>
                 </div>
@@ -3225,7 +3263,7 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
                     </div>
                     <button onClick={e=>{e.stopPropagation(); onBook(cam);}} className="btn-3d"
                       style={{ borderRadius:3,fontSize:9,letterSpacing:2,animation:"none",padding:"7px 14px" }}>
-                      THUÊ NGAY
+                      GỬI YÊU CẦU THUÊ
                     </button>
                   </div>
                 </div>
@@ -3467,8 +3505,8 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
                 </button>
               )}
 
-              {/* THUÊ NGAY */}
-              <button className="btn-3d" onClick={onBook} style={{ fontSize: 10, padding: "8px 14px", letterSpacing: 2, flexShrink: 0, whiteSpace: "nowrap", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>THUÊ NGAY</button>
+              {/* GỬI YÊU CẦU THUÊ */}
+              <button className="btn-3d" onClick={onBook} style={{ fontSize: 10, padding: "8px 14px", letterSpacing: 2, flexShrink: 0, whiteSpace: "nowrap", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>GỬI YÊU CẦU THUÊ</button>
             </div>
           </div>
         )}
@@ -3529,7 +3567,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
                       ĐĂNG NHẬP
                     </button>
                   )}
-                  <button className="btn-3d" onClick={onBook} style={{ fontSize: 11, padding: "10px 22px", letterSpacing: 3, flexShrink: 0, whiteSpace: "nowrap" }}>THUÊ NGAY</button>
+                  <button className="btn-3d" onClick={onBook} style={{ fontSize: 11, padding: "10px 22px", letterSpacing: 3, flexShrink: 0, whiteSpace: "nowrap" }}>GỬI YÊU CẦU THUÊ</button>
                 </div>
               </div>
             )}
@@ -3590,7 +3628,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
 
           {/* CTA Buttons */}
           <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
-            <button onClick={onBook} className="btn-3d" style={{ padding: "11px 28px", borderRadius: 3, fontSize: 11, letterSpacing: 3 }}>THUÊ NGAY</button>
+            <button onClick={onBook} className="btn-3d" style={{ padding: "11px 28px", borderRadius: 3, fontSize: 11, letterSpacing: 3 }}>GỬI YÊU CẦU THUÊ</button>
             <OrderLookupWidget orders={orders} />
           </div>
         </div>
