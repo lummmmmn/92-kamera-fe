@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense, Component } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from "recharts";
-import { Package, Calendar, Clock } from "lucide-react";
 
 // ── HELPERS ──
 let _camIdNum = 100;
@@ -33,6 +32,27 @@ const todayStr = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 };
+
+// ── TYPEWRITER HOOK ──
+function useTypewriter(text, speed = 55, startDelay = 400) {
+  const [displayed, setDisplayed] = useState("");
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    setDisplayed("");
+    setDone(false);
+    let i = 0;
+    const t0 = setTimeout(() => {
+      const iv = setInterval(() => {
+        i++;
+        setDisplayed(text.slice(0, i));
+        if (i >= text.length) { clearInterval(iv); setDone(true); }
+      }, speed);
+      return () => clearInterval(iv);
+    }, startDelay);
+    return () => clearTimeout(t0);
+  }, [text, speed, startDelay]);
+  return { displayed, done };
+}
 
 // ── SESSION LOGIC (theo spec 10 bước) ──
 // session: "morning" | "afternoon" | "full"
@@ -166,7 +186,7 @@ const ORDERS_INIT = [
   { id: "#92K0002", cameraName: "Sony ZV-E10", cameraId: 2, accessories: [], accessoriesDetail: [], days: 7, total: 1260000, name: "Trần Thị Bình", phone: "0912345678", zalo: "0912345678", address: "45 Lê Lợi, Hội An", note: "Cần thêm pin", status: "completed", date: "2026-04-10", seen: true },
   { id: "#92K0003", cameraName: "GoPro Hero 12", cameraId: 5, accessories: ["Mic thu âm", "Pin dự phòng"], accessoriesDetail: [{ name: "Mic thu âm", qty: 1 }, { name: "Pin dự phòng", qty: 1 }], days: 1, total: 360000, name: "Lê Văn Cường", phone: "0923456789", zalo: "0923456789", address: "78 Nguyễn Huệ, Tam Kỳ", note: "", status: "confirmed", date: "2026-04-20", seen: true },
 ];
-const SITE_INIT = { zalo: "0855 471 202", address: "Thạnh Mỹ Xã Tam Mỹ Thành Phố Đà Nẵng", tagline: "Trải nghiệm máy ảnh · Bắt giữ khoảnh khắc", desc: "Chúng tôi cung cấp dịch vụ cho thuê máy ảnh khu vực Núi Thành - Tam Kỳ.", phone: "0855 471 202", slogan: "Dịch vụ cho thuê máy ảnh · Núi Thành - Tam Kỳ", stats: [["📸", "50+", "Lượt thuê / tháng"], ["🎬", "10+", "Loại thiết bị"], ["⭐", "98%", "Khách hài lòng"]], zaloLink: "", zaloQR: "", socialLinks: { youtube: "", facebook: "", tiktok: "", instagram: "" } };
+const SITE_INIT = { zalo: "0855 471 202", address: "Thạnh Mỹ Xã Tam Mỹ Thành Phố Đà Nẵng", tagline: "Trải nghiệm máy ảnh · Bắt giữ khoảnh khắc", desc: "Chúng tôi cung cấp dịch vụ cho thuê máy ảnh khu vực Núi Thành - Tam Kỳ.", phone: "0855 471 202", slogan: "Dịch vụ cho thuê máy ảnh · Núi Thành - Tam Kỳ", stats: [["📸", "50+", "Lượt thuê / tháng"], ["🎬", "10+", "Loại thiết bị"], ["⭐", "98%", "Khách hài lòng"]], zaloLink: "", zaloQR: "", socialLinks: { youtube: "", facebook: "", tiktok: "", instagram: "" }, secretText: "" };
 const DURATIONS = [
   { label: "🌅 Ca Sáng",  days: 0.5, session: "morning"   },
   { label: "🌇 Ca Chiều", days: 0.5, session: "afternoon" },
@@ -2319,8 +2339,9 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               </div>
 
               <button onClick={() => selectedCamList.length > 0 && setStep(2)} disabled={selectedCamList.length === 0}
-                style={{ width: "100%", padding: 15, background: selectedCamList.length > 0 ? G : "#1a1a1a", color: selectedCamList.length > 0 ? "#000" : MUT, border: "none", borderRadius: 10, cursor: selectedCamList.length > 0 ? "pointer" : "not-allowed", fontWeight: 800, fontSize: 15, fontFamily: "system-ui,sans-serif", letterSpacing: 0.5 }}>
-                Tiếp theo →{selectedCamList.length > 0 ? ` (${totalCamSelected} máy)` : ""}
+                className="bk-next"
+                style={{ width:"100%", padding:15, background: selectedCamList.length > 0 ? G : "#1a1a1a", color: selectedCamList.length > 0 ? "#000" : MUT, border:"none", borderRadius:10, cursor: selectedCamList.length > 0 ? "pointer" : "not-allowed", fontWeight:800, fontSize:15, fontFamily:"system-ui,sans-serif", letterSpacing:0.5 }}>
+                <span style={{position:"relative",zIndex:1}}>Tiếp theo →{selectedCamList.length > 0 ? ` (${totalCamSelected} máy)` : ""}</span>
               </button>
             </div>
           );
@@ -2405,7 +2426,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
           return (
             <div>
               {/* Back */}
-              <button onClick={() => setStep(1)} style={{ background:"none", border:"none", color:MUT, cursor:"pointer", fontSize:12, fontFamily:"system-ui,sans-serif", marginBottom:16, display:"flex", alignItems:"center", gap:5 }}>← Quay lại</button>
+              <button onClick={() => setStep(1)} className="bk-back" style={{ background:"none", border:"none", color:MUT, cursor:"pointer", fontSize:12, fontFamily:"system-ui,sans-serif", marginBottom:16, display:"flex", alignItems:"center", gap:5 }}><span style={{position:"relative",zIndex:1}}>← Quay lại</span></button>
 
               {/* ── PHỤKIỆN — trên cùng ── */}
               <div style={{ marginBottom:20 }}>
@@ -2660,8 +2681,9 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 
               {/* Nút tiếp tục */}
               <button onClick={() => days > 0 && selSession && pickDate && setStep(3)} disabled={days === 0 || !selSession || !pickDate}
+                className="bk-next"
                 style={{ width:"100%", padding:15, background: days > 0 && selSession && pickDate ? G : "#1a1a1a", color: days > 0 && selSession && pickDate ? "#000" : MUT, border:"none", borderRadius:10, cursor: days > 0 && selSession && pickDate ? "pointer" : "not-allowed", fontWeight:800, fontSize:15, fontFamily:"system-ui,sans-serif", letterSpacing:0.5 }}>
-                {!days ? "Chọn thời gian thuê" : !selSession ? "Chọn ca thuê" : !pickDate ? "Chọn ngày bắt đầu" : "Tiếp tục →"}
+                <span style={{position:"relative",zIndex:1}}>{!days ? "Chọn thời gian thuê" : !selSession ? "Chọn ca thuê" : !pickDate ? "Chọn ngày bắt đầu" : "Tiếp tục →"}</span>
               </button>
             </div>
           );
@@ -2674,7 +2696,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 
           return (
             <div style={{ paddingBottom:68 }}>
-              <button onClick={() => setStep(2)} style={{ background:"none", border:"none", color:MUT, cursor:"pointer", fontSize:12, fontFamily:"system-ui,sans-serif", marginBottom:18, display:"flex", alignItems:"center", gap:5 }}>← Quay lại</button>
+              <button onClick={() => setStep(2)} className="bk-back" style={{ background:"none", border:"none", color:MUT, cursor:"pointer", fontSize:12, fontFamily:"system-ui,sans-serif", marginBottom:18, display:"flex", alignItems:"center", gap:5 }}><span style={{position:"relative",zIndex:1}}>← Quay lại</span></button>
 
               {/* ── SUMMARY CARD ── */}
               <div style={{ border:`1px solid #252010`, borderRadius:14, overflow:"hidden", marginBottom:14, background:"#0b0900" }}>
@@ -2683,28 +2705,28 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                   <div style={{ flex:1, minWidth:0, borderRight:`1px solid #252010` }}>
                     {/* Header */}
                     <div style={{ display:"flex", alignItems:"center", gap:8, padding:"13px 16px", borderBottom:`1px solid #1e1a10` }}>
-                      <Package size={15} color={G} strokeWidth={2} />
+                      <span style={{ fontSize:15 }}>📦</span>
                       <span style={{ color:G, fontSize:9, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>
-                        SẢN PHẨM TRONG ĐƠN ({selectedCamList.length})
+                        THIẾT BỊ ({selectedCamList.length})
                       </span>
                     </div>
                     {/* Danh sách */}
                     {selectedCamList.map((c, idx) => (
                       <div key={c.id} style={{ display:"flex", alignItems:"center", gap:14, padding:"14px 16px", borderBottom: idx < selectedCamList.length - 1 ? `1px solid #161410` : "none" }}>
-                        <div style={{ width:76, height:76, borderRadius:10, overflow:"hidden", flexShrink:0, background:"#111", display:"flex", alignItems:"center", justifyContent:"center", fontSize:24 }}>
+                        <div style={{ width:82, height:82, borderRadius:10, overflow:"hidden", flexShrink:0, background:"#111", display:"flex", alignItems:"center", justifyContent:"center", fontSize:26, border:"1px solid #222" }}>
                           {c.images?.length > 0
                             ? <img src={c.images[0]} alt={c.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
                             : c.icon}
                         </div>
-                        <div>
-                          <div style={{ color:TXT, fontWeight:700, fontSize:15, fontFamily:"system-ui,sans-serif", marginBottom:8 }}>{c.name}</div>
-                          <span style={{ background:"#1c1c1c", border:`1px solid #2e2e2e`, color:"#888", fontSize:11, borderRadius:6, padding:"3px 12px", fontFamily:"system-ui,sans-serif", letterSpacing:0.5 }}>x{selCams[c.id] || 1}</span>
+                        <div style={{ minWidth:0 }}>
+                          <div style={{ color:TXT, fontWeight:700, fontSize:15, fontFamily:"system-ui,sans-serif", marginBottom:8, lineHeight:1.3 }}>{c.name}</div>
+                          <span style={{ background:"#181818", border:"1px solid #2e2e2e", color:"#777", fontSize:12, borderRadius:6, padding:"3px 12px", fontFamily:"system-ui,sans-serif", fontWeight:600 }}>x{selCams[c.id] || 1}</span>
                         </div>
                       </div>
                     ))}
                     {/* Phụ kiện nếu có */}
                     {Object.entries(selAcc).length > 0 && (
-                      <div style={{ borderTop:`1px solid #181410`, padding:"10px 16px", display:"flex", flexWrap:"wrap", gap:6 }}>
+                      <div style={{ borderTop:`1px solid #181410`, padding:"10px 14px", display:"flex", flexWrap:"wrap", gap:6 }}>
                         {Object.entries(selAcc).map(([name, qty]) => (
                           <span key={name} style={{ background:"#111", border:`1px solid #222`, color:MUT, fontSize:10, borderRadius:4, padding:"3px 8px", fontFamily:"system-ui,sans-serif" }}>
                             🎒 {name}{qty > 1 ? ` ×${qty}` : ""}
@@ -2718,47 +2740,47 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                   <div style={{ flex:1, minWidth:0 }}>
                     {/* Header */}
                     <div style={{ display:"flex", alignItems:"center", gap:8, padding:"13px 16px", borderBottom:`1px solid #1e1a10` }}>
-                      <Calendar size={15} color={G} strokeWidth={2} />
-                      <span style={{ color:G, fontSize:9, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>THÔNG TIN ĐƠN THUÊ</span>
+                      <span style={{ fontSize:15 }}>📅</span>
+                      <span style={{ color:G, fontSize:9, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>LỊCH THUÊ</span>
                     </div>
                     {/* Nội dung */}
-                    <div style={{ padding:"6px 16px", display:"flex", flexDirection:"column", gap:0 }}>
+                    <div style={{ padding:"6px 16px 10px", display:"flex", flexDirection:"column", gap:0 }}>
                       {/* Ca thuê */}
-                      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 0", borderBottom:`1px solid #161410` }}>
+                      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"13px 0", borderBottom:`1px solid #161410` }}>
                         <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                          <Clock size={15} color="#666" strokeWidth={1.8} />
+                          <span style={{ fontSize:14, opacity:0.6 }}>🕐</span>
                           <span style={{ color:MUT, fontSize:13, fontFamily:"system-ui,sans-serif" }}>Ca thuê</span>
                         </div>
-                        <span style={{ color:TXT, fontSize:13, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>
+                        <span style={{ color:TXT, fontSize:13, fontFamily:"system-ui,sans-serif", fontWeight:600, textAlign:"right" }}>
                           {selSession === "morning" ? "Ca sáng (6h–12h)" : selSession === "afternoon" ? "Ca chiều (14h–20h)" : days >= 1 ? `${days} ngày` : fmtDays(days, selSession)}
                         </span>
                       </div>
                       {/* Nhận máy */}
                       {ri && (
-                        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 0", borderBottom:`1px solid #161410` }}>
+                        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"13px 0", borderBottom:`1px solid #161410` }}>
                           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                            <Calendar size={15} color="#22c55e" strokeWidth={1.8} />
+                            <span style={{ fontSize:14, color:"#22c55e" }}>📅</span>
                             <span style={{ color:MUT, fontSize:13, fontFamily:"system-ui,sans-serif" }}>Nhận máy</span>
                           </div>
-                          <span style={{ color:"#22c55e", fontSize:13, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>
+                          <span style={{ color:"#22c55e", fontSize:13, fontFamily:"system-ui,sans-serif", fontWeight:700, textAlign:"right" }}>
                             {ri.pickTime} · {ri.pickDate}
                           </span>
                         </div>
                       )}
                       {/* Trả máy */}
                       {ri && (
-                        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 0" }}>
+                        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"13px 0", borderBottom:`1px solid #161410` }}>
                           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                            <Calendar size={15} color="#f59e0b" strokeWidth={1.8} />
+                            <span style={{ fontSize:14, color:"#f59e0b" }}>📅</span>
                             <span style={{ color:MUT, fontSize:13, fontFamily:"system-ui,sans-serif" }}>Trả máy</span>
                           </div>
-                          <span style={{ color:"#f59e0b", fontSize:13, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>
+                          <span style={{ color:"#f59e0b", fontSize:13, fontFamily:"system-ui,sans-serif", fontWeight:700, textAlign:"right" }}>
                             {ri.dropTime} · {ri.dropDate}
                           </span>
                         </div>
                       )}
                       {/* Tổng tiền */}
-                      <div style={{ borderTop:`1px solid #1e1a10`, marginTop:4, paddingTop:10, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                      <div style={{ paddingTop:12, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
                         <span style={{ color:"#555", fontSize:9, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>TỔNG CỘNG</span>
                         <div style={{ textAlign:"right" }}>
                           {appliedDiscount && (
@@ -2785,6 +2807,41 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                 .bk-disc-body.closed { max-height: 0; opacity: 0; }
                 .bk-cta:hover:not(:disabled) { box-shadow: 0 6px 32px rgba(201,168,76,0.45) !important; transform: translateY(-1px); }
                 .bk-cta { transition: all .2s ease !important; }
+
+                /* ── Interactive Hover: Nút Tiếp theo ── */
+                .bk-next {
+                  position: relative; overflow: hidden;
+                  transition: color .35s ease;
+                  z-index: 0;
+                }
+                .bk-next::before {
+                  content: '';
+                  position: absolute; inset: 0;
+                  background: #c9a84c;
+                  transform: translateX(-101%);
+                  transition: transform .38s cubic-bezier(.4,0,.2,1);
+                  z-index: 0;
+                }
+                .bk-next:not(:disabled):hover::before { transform: translateX(0); }
+                .bk-next:not(:disabled):hover { color: #000 !important; }
+                .bk-next:disabled { cursor: not-allowed; }
+
+                /* ── Interactive Hover: Nút Quay lại ── */
+                .bk-back {
+                  position: relative; overflow: hidden;
+                  transition: color .3s ease, border-color .3s ease;
+                  z-index: 0;
+                }
+                .bk-back::before {
+                  content: '';
+                  position: absolute; inset: 0;
+                  background: #1e1a10;
+                  transform: translateX(101%);
+                  transition: transform .35s cubic-bezier(.4,0,.2,1);
+                  z-index: 0;
+                }
+                .bk-back:hover::before { transform: translateX(0); }
+                .bk-back:hover { color: #c9a84c !important; border-color: #3a3010 !important; }
               `}</style>
 
               {/* ── FORM SECTION ── */}
@@ -3422,6 +3479,178 @@ function MobileFAB({ mobileMenuOpen, setMobileMenuOpen, siteContent, onBook }) {
 }
 
 // ── HOMEPAGE ──
+// ── STAT COUNT-UP ──
+function useCountUp(target, duration = 1400, started = false) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    if (!started) return;
+    let startTime = null;
+    const num = parseFloat(target.replace(/[^0-9.]/g, "")) || 0;
+    const raf = (ts) => {
+      if (!startTime) startTime = ts;
+      const prog = Math.min((ts - startTime) / duration, 1);
+      const ease = 1 - Math.pow(1 - prog, 3);
+      setVal(Math.round(num * ease));
+      if (prog < 1) requestAnimationFrame(raf);
+    };
+    requestAnimationFrame(raf);
+  }, [started, target, duration]);
+  const suffix = target.replace(/[0-9.]/g, "");
+  return val + suffix;
+}
+
+const STAT_ICONS = {
+  "Lượt thuê / tháng": (
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+      <circle cx="12" cy="13" r="4"/>
+    </svg>
+  ),
+  "Loại thiết bị": (
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="3" width="20" height="14" rx="2"/>
+      <circle cx="12" cy="10" r="3"/>
+      <circle cx="12" cy="10" r="6" strokeDasharray="2 2"/>
+      <line x1="8" y1="21" x2="16" y2="21"/>
+      <line x1="12" y1="17" x2="12" y2="21"/>
+    </svg>
+  ),
+  "Khách hài lòng": (
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+    </svg>
+  ),
+};
+
+function StatCard({ icon, num, label, delay = 0 }) {
+  const ref = useRef(null);
+  const [started, setStarted] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { setTimeout(() => setStarted(true), delay); obs.disconnect(); }
+    }, { threshold: 0.4 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [delay]);
+  const display = useCountUp(num, 1600, started);
+  return (
+    <div ref={ref} style={{
+      padding: "36px 20px", border: `1px solid ${BR}`, borderRadius: 12, background: CARD,
+      display: "flex", flexDirection: "column", alignItems: "center", gap: 14,
+      transition: "border-color .3s, box-shadow .3s",
+      position: "relative", overflow: "hidden",
+    }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = `${G}55`; e.currentTarget.style.boxShadow = `0 0 32px ${G}18`; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = BR; e.currentTarget.style.boxShadow = "none"; }}
+    >
+      {/* Glow backdrop */}
+      <div style={{ position:"absolute", top:0, left:"50%", transform:"translateX(-50%)", width:120, height:80, background:`radial-gradient(ellipse,${G}18,transparent 70%)`, pointerEvents:"none" }} />
+      <div style={{ color: G, opacity: 0.85 }}>{icon}</div>
+      <div style={{ fontSize: 40, fontWeight: 700, color: G, fontFamily: "system-ui,sans-serif", lineHeight: 1, letterSpacing: -1 }}>{display}</div>
+      <div style={{ fontSize: 10, color: MUT, letterSpacing: 3, fontFamily: "system-ui,sans-serif" }}>{label.toUpperCase()}</div>
+    </div>
+  );
+}
+
+// ── SECRET TITLE (easter egg — hover / press-hold để lộ mã KM) ──
+function SecretTitle({ defaultText, secretText, isMobile, fontSize }) {
+  const [revealed, setRevealed] = useState(false);
+  const [glitching, setGlitching] = useState(false);
+  const holdRef = useRef(null);
+  const hasSecret = secretText && secretText.trim().length > 0;
+
+  const reveal = () => {
+    if (!hasSecret) return;
+    setGlitching(true);
+    setTimeout(() => { setRevealed(true); setGlitching(false); }, 320);
+  };
+  const hide = () => {
+    if (!hasSecret) return;
+    setGlitching(true);
+    setTimeout(() => { setRevealed(false); setGlitching(false); }, 320);
+  };
+
+  // desktop
+  const onMouseEnter = () => reveal();
+  const onMouseLeave = () => hide();
+
+  // mobile — press & hold 400ms
+  const onTouchStart = () => {
+    holdRef.current = setTimeout(() => reveal(), 400);
+  };
+  const onTouchEnd = () => {
+    clearTimeout(holdRef.current);
+    setTimeout(() => hide(), 1200);
+  };
+
+  const display = revealed ? secretText : defaultText;
+
+  return (
+    <>
+      <style>{`
+        @keyframes glitchShift {
+          0%   { clip-path: inset(0 0 85% 0); transform: translate(-4px,0); opacity:1; }
+          20%  { clip-path: inset(30% 0 50% 0); transform: translate(4px,0); }
+          40%  { clip-path: inset(60% 0 20% 0); transform: translate(-3px,0); }
+          60%  { clip-path: inset(10% 0 70% 0); transform: translate(3px,0); }
+          80%  { clip-path: inset(80% 0 5%  0); transform: translate(-2px,0); }
+          100% { clip-path: inset(0 0 0   0); transform: translate(0,0); opacity:0; }
+        }
+        .secret-title { position: relative; cursor: ${hasSecret ? "pointer" : "default"}; display: inline-block; user-select: none; }
+        .secret-title::before, .secret-title::after {
+          content: attr(data-text);
+          position: absolute; left: 0; top: 0; width: 100%;
+          overflow: hidden; pointer-events: none;
+          opacity: 0;
+        }
+        .secret-title.glitching::before {
+          opacity: 1;
+          color: #c9a84c; text-shadow: -3px 0 #ff003c;
+          animation: glitchShift 0.32s steps(1) forwards;
+        }
+        .secret-title.glitching::after {
+          opacity: 1;
+          color: #c9a84c; text-shadow: 3px 0 #00e5ff;
+          animation: glitchShift 0.32s steps(1) reverse forwards;
+        }
+        .secret-title.revealed {
+          color: #c9a84c;
+          text-shadow: 0 0 24px rgba(201,168,76,0.7), 0 0 48px rgba(201,168,76,0.3);
+        }
+      `}</style>
+      <h2
+        className={`secret-title${glitching ? " glitching" : ""}${revealed ? " revealed" : ""}`}
+        data-text={display}
+        onMouseEnter={!isMobile ? onMouseEnter : undefined}
+        onMouseLeave={!isMobile ? onMouseLeave : undefined}
+        onTouchStart={isMobile ? onTouchStart : undefined}
+        onTouchEnd={isMobile ? onTouchEnd : undefined}
+        style={{
+          fontSize, fontWeight: 400, letterSpacing: revealed ? 6 : 2,
+          marginBottom: 28, fontFamily: '"Times New Roman",Georgia,serif',
+          transition: "color .3s, text-shadow .3s, letter-spacing .4s",
+          WebkitTapHighlightColor: "transparent",
+        }}
+      >
+        {display}
+      </h2>
+    </>
+  );
+}
+
+function HeroTagline({ isMobile }) {
+  const FULL_TEXT = "Trải nghiệm máy ảnh · Bắt trọn khoảnh khắc";
+  const { displayed, done } = useTypewriter(FULL_TEXT, 52, 600);
+  return (
+    <div style={{ marginTop: 20, marginBottom: 32, fontSize: isMobile ? 14 : 18, letterSpacing: isMobile ? 2 : 3, color: "#c0b8a8", fontFamily: 'var(--font-display)', fontStyle: "italic", fontWeight: 300, lineHeight: 2, textShadow: "0 1px 8px rgba(0,0,0,0.8)" }}>
+      <span className="text-type">{displayed}</span>
+      <span className={`text-type__cursor${done ? " text-type__cursor--hidden" : ""}`}>|</span>
+    </div>
+  );
+}
+
 function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, isMobile, photos, feedbacks, loggedUser, onOpenLogin, onOpenCustomer }) {
   const [scrollY, setScrollY] = useState(0);
   const [scrollDir, setScrollDir] = useState("up");
@@ -3612,19 +3841,16 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         {/* ── Hero content — left-aligned ── */}
         <div style={{ position: "absolute", top: "50%", transform: "translateY(-50%)", left: isMobile ? 20 : 60, zIndex: 4, maxWidth: isMobile ? "90%" : 520 }}>
 
-          {/* Label */}
-          <div style={{ fontSize: 9.5, letterSpacing: 5, color: G, fontFamily: "system-ui,sans-serif", marginBottom: 18, opacity: 1, textShadow: `0 0 12px ${G}66` }}>
-            {isMobile ? <>DỊCH VỤ CHO THUÊ MÁY ẢNH<br/>NÚI THÀNH · TAM KỲ</> : "DỊCH VỤ CHO THUÊ MÁY ẢNH NÚI THÀNH · TAM KỲ"}
-          </div>
-
           {/* Logo dùng component chuẩn */}
           <Logo size={isMobile ? 1.6 : 2.4} />
 
-          {/* Tagline 2 dòng */}
-          <div style={{ marginTop: 20, marginBottom: 32 }}>
-            <div style={{ fontSize: isMobile ? 14 : 18, letterSpacing: isMobile ? 2 : 3, color: "#c0b8a8", fontFamily: 'var(--font-display)', fontStyle: "italic", fontWeight: 300, lineHeight: 2, textShadow: "0 1px 8px rgba(0,0,0,0.8)" }}>Trải nghiệm máy ảnh</div>
-            <div style={{ fontSize: isMobile ? 14 : 18, letterSpacing: isMobile ? 2 : 3, color: "#c0b8a8", fontFamily: 'var(--font-display)', fontStyle: "italic", fontWeight: 300, lineHeight: 2, textShadow: "0 1px 8px rgba(0,0,0,0.8)" }}>Bắt giữ khoảnh khắc</div>
+          {/* Label — dưới logo */}
+          <div style={{ fontSize: 9.5, letterSpacing: 5, color: G, fontFamily: "system-ui,sans-serif", marginTop: 14, opacity: 1, textShadow: `0 0 12px ${G}66` }}>
+            {isMobile ? <>DỊCH VỤ CHO THUÊ MÁY ẢNH<br/>NÚI THÀNH · TAM KỲ</> : "DỊCH VỤ CHO THUÊ MÁY ẢNH · NÚI THÀNH - TAM KỲ"}
           </div>
+
+          {/* Tagline 1 dòng — typewriter */}
+          <HeroTagline isMobile={isMobile} />
 
           {/* CTA Buttons */}
           <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
@@ -3702,15 +3928,16 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       {/* ABOUT */}
       <div id="about" style={{ padding: isMobile ? "56px 16px 72px" : "80px 60px 100px", maxWidth: 1000, margin: "0 auto", textAlign: "center" }}>
         <div style={{ fontSize: 10, letterSpacing: 7, color: MUT, marginBottom: 16, fontFamily: "system-ui,sans-serif" }}>VỀ CHÚNG TÔI</div>
-        <h2 style={{ fontSize: isMobile ? 26 : 34, fontWeight: 400, letterSpacing: 2, marginBottom: 28, fontFamily: '"Times New Roman",Georgia,serif' }}>92 KA MÊ RA</h2>
+        <SecretTitle
+          defaultText="92 KA MÊ RA"
+          secretText={siteContent.secretText || ""}
+          isMobile={isMobile}
+          fontSize={isMobile ? 26 : 34}
+        />
         <p style={{ color: MUT, fontSize: isMobile ? 13 : 15, lineHeight: 2, maxWidth: 680, margin: "0 auto 64px" }}>{siteContent.desc}</p>
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(auto-fill,minmax(130px,1fr))" : "repeat(3,1fr)", gap: isMobile ? 14 : 40, marginTop: 48 }}>
-          {siteContent.stats.map(([e, n, l]) => (
-            <div key={n} style={{ padding: "28px 20px", border: `1px solid ${BR}`, borderRadius: 10, background: CARD }}>
-              <div style={{ fontSize: 36, marginBottom: 10 }}>{e}</div>
-              <div style={{ fontSize: 36, fontWeight: 700, color: G, marginBottom: 8, fontFamily: "system-ui,sans-serif" }}>{n}</div>
-              <div style={{ fontSize: 11, color: MUT, letterSpacing: 2, fontFamily: "system-ui,sans-serif" }}>{l.toUpperCase()}</div>
-            </div>
+          {siteContent.stats.map(([e, n, l], i) => (
+            <StatCard key={l} icon={STAT_ICONS[l] || <span style={{ fontSize: 36 }}>{e}</span>} num={n} label={l} delay={i * 180} />
           ))}
         </div>
       </div>
@@ -3727,6 +3954,10 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
 
       {/* QR góc phải — hover để phóng to */}
       <style>{`
+        .text-type{ display:inline-block; white-space:pre-wrap; }
+        .text-type__cursor{ margin-left:0.25rem; display:inline-block; opacity:1; animation:cursorBlink 1s step-end infinite; }
+        .text-type__cursor--hidden{ display:none; }
+        @keyframes cursorBlink{ 0%,100%{opacity:1} 50%{opacity:0} }
         .qr-corner{ position:fixed; bottom:20px; right:20px; z-index:999; cursor:pointer; }
         .qr-wrap{
           display:flex; flex-direction:column; align-items:center; gap:6px;
@@ -5724,6 +5955,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                   { k: "slogan", l: "Slogan header (dòng nhỏ trên logo)" },
                   { k: "tagline", l: "Tagline (dòng nghiêng dưới logo)" },
                   { k: "desc", l: "Mô tả về chúng tôi (trang About)" },
+                  { k: "secretText", l: "🔒 Chữ bí mật (hover/giữ vào tên 92 KA MÊ RA)" },
                 ].map(f => (
                   <div key={f.k} style={{ marginBottom: 13 }}>
                     <div style={{ color: MUT, fontSize: 10, marginBottom: 4, letterSpacing: 1 }}>{f.l.toUpperCase()}</div>
@@ -6731,7 +6963,9 @@ function AppRoot() {
           padding: 6px 2px;
           font-family: system-ui,sans-serif;
           font-weight: 600;
-          transition: color .2s;
+          transition: color .22s, transform .22s cubic-bezier(.34,1.56,.64,1), text-shadow .22s, filter .22s;
+          transform: translateY(0);
+          will-change: transform;
         }
         .nav-link::after{
           content:'';
@@ -6741,18 +6975,52 @@ function AppRoot() {
           background: #c9a84c;
           transition: left .25s, right .25s;
         }
-        .nav-link:hover{ color: #f0e8d0; }
+        .nav-link:hover{
+          color: #fff5d6;
+          transform: translateY(-5px);
+          text-shadow: 0 0 18px rgba(201,168,76,0.7), 0 0 40px rgba(201,168,76,0.3);
+          filter: brightness(1.25);
+        }
         .nav-link:hover::after{ left: 0; right: 0; }
+        .nav-link:hover + .nav-link{
+          transform: translateY(-2px);
+          filter: brightness(1.08);
+        }
 
-        /* 3D gold CTA button */
-        @keyframes glassShimmer{0%{left:-100%}100%{left:220%}}
-        @keyframes glowPulse{0%,100%{box-shadow:0 0 16px rgba(201,168,76,0.5),0 0 32px rgba(201,168,76,0.2),0 4px 20px rgba(0,0,0,0.4)}50%{box-shadow:0 0 24px rgba(201,168,76,0.7),0 0 48px rgba(201,168,76,0.3),0 4px 20px rgba(0,0,0,0.4)}}
+        /* ── LIQUID METAL CTA BUTTON ── */
+        @keyframes liqFlow{
+          0%   { background-position: 0% 50%; }
+          50%  { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        @keyframes liqShimmer1{
+          0%   { left: -120%; opacity: 0; }
+          10%  { opacity: 1; }
+          90%  { opacity: 1; }
+          100% { left: 200%;  opacity: 0; }
+        }
+        @keyframes liqShimmer2{
+          0%   { left: -120%; opacity: 0; }
+          15%  { opacity: 0.6; }
+          85%  { opacity: 0.6; }
+          100% { left: 200%;  opacity: 0; }
+        }
+        @keyframes liqGlow{
+          0%,100% { box-shadow: 0 0 18px rgba(201,168,76,0.55), 0 0 38px rgba(201,168,76,0.2), 0 4px 18px rgba(0,0,0,0.45); }
+          50%      { box-shadow: 0 0 30px rgba(220,185,80,0.8),  0 0 60px rgba(201,168,76,0.35), 0 4px 18px rgba(0,0,0,0.45); }
+        }
         .btn-3d{
           position: relative;
           overflow: hidden;
-          background: linear-gradient(135deg, #d4a832 0%, #c9a84c 40%, #b8922e 100%);
-          color: #000;
-          border: 1px solid rgba(255,220,100,0.5);
+          background: linear-gradient(
+            120deg,
+            #8a6820 0%, #d4a832 18%, #f5d060 32%,
+            #c9a84c 48%, #e8c054 60%, #b8922e 75%,
+            #d4a832 88%, #8a6820 100%
+          );
+          background-size: 280% 280%;
+          color: #1a0f00;
+          border: 1px solid rgba(255,228,100,0.55);
           padding: 10px 22px;
           border-radius: 99px;
           cursor: pointer;
@@ -6760,51 +7028,63 @@ function AppRoot() {
           font-size: 11px;
           letter-spacing: 3px;
           font-family: system-ui,sans-serif;
+          text-shadow: 0 1px 0 rgba(255,255,200,0.45);
           box-shadow:
-            0 1px 0 rgba(255,235,120,0.35) inset,
-            0 0 20px rgba(201,168,76,0.5),
-            0 0 40px rgba(201,168,76,0.18),
-            0 4px 16px rgba(0,0,0,0.4);
+            0 1px 0 rgba(255,240,130,0.4) inset,
+            0 -1px 0 rgba(0,0,0,0.3) inset;
           transform: translateY(0);
-          transition: transform .15s, box-shadow .15s, background .15s;
-          animation: glowPulse 3s ease-in-out infinite;
-          text-shadow: 0 1px 0 rgba(255,255,255,0.3);
+          transition: transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s, filter .2s;
+          animation: liqFlow 4s ease infinite, liqGlow 2.5s ease-in-out infinite;
+          will-change: transform;
         }
         .btn-3d::before{
           content:'';
-          position:absolute;
-          top:0;left:-100%;
-          width:55%;height:100%;
-          background:linear-gradient(90deg,transparent,rgba(255,255,255,0.25),transparent);
-          animation:glassShimmer 3.5s ease-in-out infinite;
-          pointer-events:none;
+          position: absolute;
+          top: -20%; left: -120%;
+          width: 45%; height: 140%;
+          background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(255,255,220,0.15) 30%,
+            rgba(255,255,255,0.55) 50%,
+            rgba(255,255,220,0.15) 70%,
+            transparent 100%
+          );
+          transform: skewX(-18deg);
+          animation: liqShimmer1 2.8s ease-in-out infinite;
+          pointer-events: none;
         }
         .btn-3d::after{
           content:'';
-          position:absolute;
-          top:0;left:0;right:0;
-          height:1px;
-          background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent);
-          pointer-events:none;
+          position: absolute;
+          top: -20%; left: -120%;
+          width: 25%; height: 140%;
+          background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(255,255,255,0.3) 50%,
+            transparent 100%
+          );
+          transform: skewX(-12deg);
+          animation: liqShimmer2 2.8s ease-in-out infinite 0.9s;
+          pointer-events: none;
         }
         .btn-3d:hover{
-          background: linear-gradient(135deg, #e0b83a 0%, #d4a832 40%, #c49428 100%);
-          border-color: rgba(255,230,120,0.7);
-          color: #000;
-          transform: translateY(-2px);
+          transform: translateY(-5px);
+          filter: brightness(1.15) saturate(1.2);
           box-shadow:
-            0 1px 0 rgba(255,235,120,0.4) inset,
-            0 0 28px rgba(201,168,76,0.7),
-            0 0 56px rgba(201,168,76,0.28),
-            0 8px 28px rgba(0,0,0,0.4);
-          animation: none;
+            0 1px 0 rgba(255,240,130,0.5) inset,
+            0 -1px 0 rgba(0,0,0,0.3) inset,
+            0 0 32px rgba(220,180,50,0.8),
+            0 0 64px rgba(201,168,76,0.35),
+            0 12px 36px rgba(0,0,0,0.5);
         }
         .btn-3d:active{
           transform: translateY(1px);
+          filter: brightness(0.95);
           box-shadow:
             0 0 14px rgba(201,168,76,0.4),
             0 2px 10px rgba(0,0,0,0.4);
-          animation: none;
         }
 
         /* Social icon buttons */
@@ -6816,15 +7096,17 @@ function AppRoot() {
           display: flex; align-items: center; justify-content: center;
           cursor: pointer;
           color: #c8c0b0;
-          transition: all .2s;
+          transition: all .22s cubic-bezier(.34,1.56,.64,1);
           box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+          will-change: transform;
         }
         .nav-social:hover{
           background: rgba(201,168,76,0.18);
           border-color: rgba(201,168,76,0.5);
           color: #c9a84c;
-          box-shadow: 0 0 14px rgba(201,168,76,0.35);
-          transform: translateY(-1px);
+          box-shadow: 0 0 18px rgba(201,168,76,0.45), 0 4px 12px rgba(0,0,0,0.4);
+          transform: translateY(-5px) scale(1.12);
+          filter: brightness(1.3);
         }
 
         /* phone number */
