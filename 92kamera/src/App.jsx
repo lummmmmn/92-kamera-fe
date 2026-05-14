@@ -3839,7 +3839,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         </div>
 
         {/* ── Hero content — left-aligned ── */}
-        <div style={{ position: "absolute", top: "50%", transform: "translateY(-50%)", left: isMobile ? 20 : 60, zIndex: 4, maxWidth: isMobile ? "90%" : 520 }}>
+        <div style={{ position: "absolute", top: "50%", transform: "translateY(-62%)", left: isMobile ? 20 : 60, zIndex: 4, maxWidth: isMobile ? "90%" : 520 }}>
 
           {/* Logo dùng component chuẩn */}
           <Logo size={isMobile ? 1.6 : 2.4} />
