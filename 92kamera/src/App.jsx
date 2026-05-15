@@ -637,7 +637,7 @@ function LensBackground({ isMob }) {
             width: "100%", height: "100%",
             objectFit: "cover",
             objectPosition: isMob ? "64% center" : "center center",
-            filter: "brightness(1.04) contrast(1.02) saturate(1.02)",
+            filter: "brightness(0.94) contrast(1.04) saturate(0.98)",
             transform: `translate(${shiftX}px, ${shiftY}px) scale(1.035)`,
             transition: "transform 0.2s cubic-bezier(0.25,0.46,0.45,0.94)",
             willChange: "transform",
@@ -668,7 +668,7 @@ function LensBackground({ isMob }) {
 
       <div style={{
         position: "absolute", inset: 0,
-        background: "linear-gradient(to bottom, rgba(20,60,98,0.16) 0%, rgba(255,255,255,0.02) 26%, rgba(255,255,255,0.01) 72%, rgba(45,95,142,0.14) 100%)",
+        background: "linear-gradient(to bottom, rgba(18,50,82,0.24) 0%, rgba(30,75,115,0.08) 26%, rgba(30,75,115,0.06) 72%, rgba(32,78,120,0.22) 100%)",
         pointerEvents: "none",
       }} />
 
@@ -710,7 +710,7 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
   const avgRating = total ? (cards.reduce((s, c) => s + c.rating, 0) / total).toFixed(1) : "5.0";
 
   if (total === 0) return (
-    <div id="feedback" style={{ padding: "72px 16px 64px", borderTop: `1px solid ${BR}`, background: "linear-gradient(180deg,#060606 0%,#080700 50%,#060606 100%)", textAlign: "center" }}>
+    <div id="feedback" style={{ padding: "72px 16px 64px", borderTop: `1px solid ${BR}`, background: "linear-gradient(180deg, rgba(57,101,142,0.82) 0%, rgba(34,74,113,0.92) 52%, rgba(24,58,94,0.96) 100%)", textAlign: "center" }}>
       <h2 style={{ fontSize: 30, fontWeight: 400, letterSpacing: 2, margin: "0 0 14px", color: TXT, fontFamily: "var(--font-display)" }}>Feedback Khách Hàng</h2>
       <div style={{ width: 36, height: 1, background: G, margin: "0 auto 20px" }} />
       <div style={{ color: MUT, fontSize: 13, fontFamily: "system-ui,sans-serif" }}>Chưa có feedback nào được duyệt</div>
@@ -724,7 +724,7 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
   const dur = Math.max(35, band.length * 4);
 
   return (
-    <div id="feedback" style={{ padding: isMobile ? "56px 0 52px" : "72px 0 64px", borderTop: `1px solid ${BR}`, background: "linear-gradient(180deg,#060606 0%,#080700 50%,#060606 100%)", overflow: "hidden" }}>
+    <div id="feedback" style={{ padding: isMobile ? "56px 0 52px" : "72px 0 64px", borderTop: `1px solid ${BR}`, background: "linear-gradient(180deg, rgba(57,101,142,0.82) 0%, rgba(34,74,113,0.92) 52%, rgba(24,58,94,0.96) 100%)", overflow: "hidden" }}>
       <style>{`@keyframes marqueeRun{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}`}</style>
 
       {/* Header */}
@@ -732,7 +732,7 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
         <div style={{ fontSize: 10, letterSpacing: 7, color: MUT, marginBottom: 14, fontFamily: "system-ui,sans-serif" }}>ĐÁNH GIÁ</div>
         <h2 style={{ fontSize: isMobile ? 24 : 30, fontWeight: 400, letterSpacing: 2, margin: "0 0 14px", color: TXT, fontFamily: "var(--font-display)" }}>Feedback Khách Hàng</h2>
         <div style={{ width: 36, height: 1, background: G, margin: "0 auto 16px" }} />
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#0e0e0e", border: `1px solid ${G}33`, borderRadius: 99, padding: "5px 18px" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(230,244,255,0.12)", border: `1px solid rgba(235,248,255,0.26)`, borderRadius: 99, padding: "5px 18px" }}>
           <span style={{ color: G, fontSize: 14 }}>{"★".repeat(Math.round(parseFloat(avgRating)))}</span>
           <span style={{ color: G, fontWeight: 700, fontSize: 13, fontFamily: "system-ui,sans-serif" }}>{avgRating}</span>
           <span style={{ color: MUT, fontSize: 11, fontFamily: "system-ui,sans-serif" }}>· {total} đánh giá</span>
@@ -745,8 +745,8 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
         onMouseLeave={() => setPaused(false)}>
 
         {/* Fade edges */}
-        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 80, background: "linear-gradient(to right,#060606,transparent)", zIndex: 2, pointerEvents: "none" }} />
-        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 80, background: "linear-gradient(to left,#060606,transparent)", zIndex: 2, pointerEvents: "none" }} />
+        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 80, background: "linear-gradient(to right, rgba(34,74,113,0.96), transparent)", zIndex: 2, pointerEvents: "none" }} />
+        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 80, background: "linear-gradient(to left, rgba(34,74,113,0.96), transparent)", zIndex: 2, pointerEvents: "none" }} />
 
         <div style={{
           display: "flex", gap: 16,
@@ -758,15 +758,15 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
             <div key={c.key + "_" + i} style={{
               width: isMobile ? 240 : 280,
               flexShrink: 0,
-              background: CARD,
-              border: `1px solid ${BR}`,
+              background: "rgba(230,244,255,0.10)",
+              border: `1px solid rgba(235,248,255,0.18)`,
               borderRadius: 12,
               padding: "20px 22px 18px",
               display: "flex", flexDirection: "column", gap: 10,
               transition: "border-color .3s",
             }}
               onMouseEnter={e => e.currentTarget.style.borderColor = G + "55"}
-              onMouseLeave={e => e.currentTarget.style.borderColor = BR}
+              onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(235,248,255,0.18)"}
             >
               {/* Stars */}
               <div>
@@ -3171,11 +3171,11 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
     };
     const shortDesc = (desc) => desc.split(/[,，、]/)[0].trim().toUpperCase();
     return (
-      <div id={id} style={{ padding: "72px 0 56px", background: BG, overflow: "hidden" }}>
+      <div id={id} style={{ padding: "72px 0 56px", background: "linear-gradient(180deg, rgba(62,108,150,0.88) 0%, rgba(35,76,115,0.95) 58%, rgba(24,58,94,0.98) 100%)", overflow: "hidden", borderTop: "1px solid rgba(235,248,255,0.16)" }}>
         <style>{`.cam-scroll::-webkit-scrollbar{display:none}.cam-scroll{-ms-overflow-style:none;scrollbar-width:none;}`}</style>
         <div style={{ padding: "0 16px 40px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
           <div>
-            <div style={{ fontSize:9, letterSpacing:7, color:MUT, fontFamily:"system-ui,sans-serif", marginBottom:6 }}>BỘ SƯU TẬP</div>
+            <div style={{ fontSize:9, letterSpacing:7, color:"rgba(226,242,255,0.68)", fontFamily:"system-ui,sans-serif", marginBottom:6 }}>BỘ SƯU TẬP</div>
             <h2 style={{ fontSize:24, fontWeight:400, letterSpacing:2, margin:0, color:TXT, fontFamily:'var(--font-display)' }}>Máy Ảnh Cho Thuê</h2>
           </div>
         </div>
@@ -3186,9 +3186,9 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
             const isAct = i === active;
             return (
               <div key={cam.id} data-camcard="1"
-                style={{ scrollSnapAlign:"start", flexShrink:0, width:"calc(100vw - 48px)", height:320, borderRadius:4, overflow:"hidden", border:`1px solid ${isAct ? G+"66" : BR}`, position:"relative", background:"#060606" }}>
+                style={{ scrollSnapAlign:"start", flexShrink:0, width:"calc(100vw - 48px)", height:320, borderRadius:4, overflow:"hidden", border:`1px solid ${isAct ? G+"77" : "rgba(235,248,255,0.20)"}`, position:"relative", background:"rgba(20,54,88,0.72)", boxShadow:"0 14px 34px rgba(15,45,78,0.28)" }}>
                 <div style={{ position:"absolute", inset:0, zIndex:0 }}><CamImage cam={cam} height={320} /></div>
-                <div style={{ position:"absolute", inset:0, zIndex:1, background:"linear-gradient(to top,rgba(6,6,6,0.92) 0%,rgba(6,6,6,0.3) 60%,transparent 100%)", pointerEvents:"none" }} />
+                <div style={{ position:"absolute", inset:0, zIndex:1, background:"linear-gradient(to top,rgba(10,34,58,0.84) 0%,rgba(18,56,88,0.34) 60%,transparent 100%)", pointerEvents:"none" }} />
                 <div style={{ position:"absolute", bottom:0, left:0, right:0, zIndex:2, padding:"0 20px 20px" }}>
                   <div style={{ fontSize:8,letterSpacing:4,color:"rgba(255,255,255,0.5)",fontFamily:"system-ui,sans-serif",marginBottom:4,fontWeight:600 }}>{brand}</div>
                   <div style={{ fontSize:28,fontWeight:700,letterSpacing:0.5,color:"#fff",lineHeight:1,marginBottom:5,fontFamily:"system-ui,sans-serif",textShadow:"0 2px 12px rgba(0,0,0,0.8)" }}>{model}</div>
@@ -3263,12 +3263,12 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
   const dur = Math.max(30, combined.length * 3.5);
 
   return (
-    <div id={id} style={{ padding: "96px 0 80px", background: BG, overflow: "hidden", position: "relative" }}>
+    <div id={id} style={{ padding: "96px 0 80px", background: "linear-gradient(180deg, rgba(62,108,150,0.88) 0%, rgba(35,76,115,0.95) 58%, rgba(24,58,94,0.98) 100%)", overflow: "hidden", position: "relative", borderTop: "1px solid rgba(235,248,255,0.16)" }}>
       <style>{`@keyframes scrollCam{0%{transform:translateX(-50%)}100%{transform:translateX(0)}}`}</style>
       <div style={{ position:"absolute", top:"50%", left:"50%", transform:"translate(-50%,-50%)", width:600, height:300, background:`radial-gradient(ellipse,${G}06,transparent 70%)`, pointerEvents:"none" }} />
 
       <div style={{ textAlign:"center", marginBottom:32, position:"relative", zIndex:2 }}>
-        <div style={{ fontSize:9, letterSpacing:7, color:MUT, fontFamily:"system-ui,sans-serif", marginBottom:14 }}>BỘ SƯU TẬP</div>
+        <div style={{ fontSize:9, letterSpacing:7, color:"rgba(226,242,255,0.68)", fontFamily:"system-ui,sans-serif", marginBottom:14 }}>BỘ SƯU TẬP</div>
         <h2 style={{ fontSize:30, fontWeight:400, letterSpacing:2, margin:"0 0 6px", color:TXT, fontFamily:"var(--font-display)" }}>Máy Ảnh Cho Thuê</h2>
         <div style={{ width:36, height:1, background:G, margin:"14px auto 18px" }} />
         <button onClick={() => setCfPaused(p => !p)}
@@ -3278,8 +3278,8 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
       </div>
 
       <div style={{ overflow:"hidden", position:"relative" }}>
-        <div style={{ position:"absolute", left:0, top:0, bottom:0, width:120, background:"linear-gradient(to right,#060606,transparent)", zIndex:2, pointerEvents:"none" }} />
-        <div style={{ position:"absolute", right:0, top:0, bottom:0, width:120, background:"linear-gradient(to left,#060606,transparent)", zIndex:2, pointerEvents:"none" }} />
+        <div style={{ position:"absolute", left:0, top:0, bottom:0, width:120, background:"linear-gradient(to right, rgba(35,76,115,0.98), transparent)", zIndex:2, pointerEvents:"none" }} />
+        <div style={{ position:"absolute", right:0, top:0, bottom:0, width:120, background:"linear-gradient(to left, rgba(35,76,115,0.98), transparent)", zIndex:2, pointerEvents:"none" }} />
         <div style={{ display:"flex", gap:20, width:"max-content", animation:`scrollCam ${dur}s linear infinite`, animationPlayState: cfPaused ? "paused" : "running", paddingLeft:20 }}>
           {combined.map((cam, i) => {
             const parts = cam.name.split(" ");
@@ -3290,10 +3290,10 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
               <div key={cam.id+"_"+i}
                 onMouseEnter={() => setCfPaused(true)}
                 onMouseLeave={() => setCfPaused(false)}
-                style={{ flexShrink:0, width:280, height:360, borderRadius:4, overflow:"hidden", border:`1px solid ${G}44`, position:"relative", background:"#060606", cursor:"pointer" }}
+                style={{ flexShrink:0, width:280, height:360, borderRadius:4, overflow:"hidden", border:`1px solid rgba(235,248,255,0.22)`, position:"relative", background:"rgba(20,54,88,0.72)", cursor:"pointer", boxShadow:"0 16px 36px rgba(15,45,78,0.30)" }}
                 onClick={() => onBook(cam)}>
                 <div style={{ position:"absolute", inset:0, zIndex:0 }}><CamImage cam={cam} height={360} /></div>
-                <div style={{ position:"absolute", inset:0, zIndex:1, background:"linear-gradient(to top,rgba(6,6,6,0.92) 0%,rgba(6,6,6,0.4) 50%,rgba(6,6,6,0.1) 100%)", pointerEvents:"none" }} />
+                <div style={{ position:"absolute", inset:0, zIndex:1, background:"linear-gradient(to top,rgba(10,34,58,0.86) 0%,rgba(18,56,88,0.42) 50%,rgba(18,56,88,0.12) 100%)", pointerEvents:"none" }} />
                 <div style={{ position:"absolute", bottom:0, left:0, right:0, zIndex:2, padding:"0 20px 20px" }}>
                   <div style={{ fontSize:8,letterSpacing:4,color:"rgba(255,255,255,0.45)",fontFamily:"system-ui,sans-serif",marginBottom:4,fontWeight:600 }}>{b}</div>
                   <div style={{ fontSize:26,fontWeight:700,color:"#fff",lineHeight:1,marginBottom:6,fontFamily:"system-ui,sans-serif",textShadow:"0 2px 12px rgba(0,0,0,0.8)" }}>{m}</div>
@@ -3428,7 +3428,7 @@ function MobileFAB({ mobileMenuOpen, setMobileMenuOpen, siteContent, onBook }) {
           {[["📷 MÁY ẢNH", "cameras"], ["🎒 PHỤ KIỆN", "accessories"], ["💬 FEEDBACK", "feedback"], ["📍 VỀ CHÚNG TÔI", "about"]].map(([t, id]) => (
             <button key={id}
               onClick={() => { document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }); setOpen(false); }}
-              style={{ width: "100%", background: "none", border: "none", color: "#999", fontSize: 12, letterSpacing: 2, padding: "13px 18px", cursor: "pointer", fontFamily: "system-ui,sans-serif", fontWeight: 600, textAlign: "left", display: "flex", alignItems: "center", gap: 10, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
+              style={{ width: "100%", background: "none", border: "none", color: "rgba(230,244,255,0.78)", fontSize: 12, letterSpacing: 2, padding: "13px 18px", cursor: "pointer", fontFamily: "system-ui,sans-serif", fontWeight: 600, textAlign: "left", display: "flex", alignItems: "center", gap: 10, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
               {t}
             </button>
           ))}
@@ -3861,7 +3861,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       <CameraFeatured id="cameras" cameras={cameras} orders={orders} onBook={onBook} isMobile={isMobile} />
 
       {/* ACCESSORIES */}
-      <div id="accessories" style={{ padding: isMobile ? "40px 16px 72px" : "60px 60px 100px", maxWidth: 1280, margin: "0 auto" }}>
+      <div id="accessories" style={{ padding: isMobile ? "40px 16px 72px" : "60px 60px 100px", background: "linear-gradient(180deg, rgba(24,58,94,0.98) 0%, rgba(35,76,115,0.96) 100%)", borderTop: "1px solid rgba(235,248,255,0.12)" }}><div style={{ maxWidth: 1280, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <div style={{ fontSize: 10, letterSpacing: 7, color: MUT, marginBottom: 14, fontFamily: "system-ui,sans-serif" }}>PHỤ KIỆN</div>
           <h2 style={{ fontSize: 34, fontWeight: 400, letterSpacing: 2, margin: 0 }}>Bổ Sung Trang Thiết Bị</h2>
@@ -3869,25 +3869,25 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         </div>
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: isMobile ? 10 : 16 }}>
           {accessories.map(a => (
-            <div key={a.id} style={{ background: CARD, border: `1px solid ${BR}`, borderRadius: 8, padding: "16px 18px", textAlign: "center", transition: "all .2s", cursor: "pointer" }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = G + "55"; e.currentTarget.style.background = "#110f00"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = BR; e.currentTarget.style.background = CARD; }}>
+            <div key={a.id} style={{ background: "rgba(230,244,255,0.10)", border: `1px solid rgba(235,248,255,0.18)`, borderRadius: 8, padding: "16px 18px", textAlign: "center", transition: "all .2s", cursor: "pointer", boxShadow: "0 10px 24px rgba(15,45,78,0.18)" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = G + "55"; e.currentTarget.style.background = "rgba(230,244,255,0.18)"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(235,248,255,0.18)"; e.currentTarget.style.background = "rgba(230,244,255,0.10)"; }}>
               <div style={{ color: TXT, fontWeight: 500, marginBottom: 6, fontSize: 13, fontFamily: '"Times New Roman",Georgia,serif' }}>{a.name}</div>
               <div style={{ color: G, fontWeight: 700, fontSize: 14, fontFamily: '"Times New Roman",Georgia,serif' }}>{fmtVND(a.price)}<span style={{ color: MUT, fontSize: 10, fontFamily: '"Times New Roman",Georgia,serif' }}>/ngày</span></div>
             </div>
           ))}
         </div>
-      </div>
+      </div></div>
 
       {/* CTA */}
-      <div style={{ borderTop: `1px solid ${BR}`, borderBottom: `1px solid ${BR}`, padding: isMobile ? "44px 16px" : "72px 60px", textAlign: "center", background: "#0a0800", position: "relative", overflow: "hidden" }}>
+      <div style={{ borderTop: `1px solid rgba(235,248,255,0.14)`, borderBottom: `1px solid rgba(235,248,255,0.14)`, padding: isMobile ? "44px 16px" : "72px 60px", textAlign: "center", background: "linear-gradient(180deg, rgba(35,76,115,0.96) 0%, rgba(24,58,94,0.98) 100%)", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 500, height: 500, background: `radial-gradient(circle,${G}08,transparent 70%)`, pointerEvents: "none" }} />
         <div style={{ position: "relative" }}>
           <div style={{ fontSize: 10, letterSpacing: 7, color: MUT, marginBottom: 16, fontFamily: "system-ui,sans-serif" }}>ĐẶT THUÊ NGAY HÔM NAY</div>
           <h2 style={{ fontSize: 36, fontWeight: 400, letterSpacing: 2, margin: "0 0 10px" }}>Không cần đăng ký tài khoản</h2>
           <p style={{ color: MUT, fontSize: 14, marginBottom: 32, letterSpacing: 1 }}>Chọn máy → Chọn ngày → Chốt Zalo. Đơn giản vậy thôi.</p>
           <button onClick={onBook} className="btn-3d" style={{ padding: "16px 56px", borderRadius: 2, fontSize: 13, letterSpacing: 3 }}>BẮT ĐẦU ĐẶT THUÊ</button>
-          <div style={{ marginTop: 28, display: "flex", justifyContent: "center" }}><div style={{ display: "inline-flex", border: `1px solid ${BR}`, borderRadius: 6, overflow: "hidden", background: "rgba(6,6,6,0.55)", backdropFilter: "blur(12px)" }}>
+          <div style={{ marginTop: 28, display: "flex", justifyContent: "center" }}><div style={{ display: "inline-flex", border: `1px solid rgba(235,248,255,0.22)`, borderRadius: 6, overflow: "hidden", background: "rgba(230,244,255,0.12)", backdropFilter: "blur(12px)" }}>
             <div style={{ padding: "11px 28px", display: "flex", alignItems: "center", gap: 10 }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
               <div style={{ textAlign: "left" }}>
@@ -3895,7 +3895,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
                 <div style={{ fontSize: 8.5, letterSpacing: 2, color: TXT, fontFamily: "system-ui,sans-serif", fontWeight: 600, lineHeight: 1.4 }}>NHANH GỌN</div>
               </div>
             </div>
-            <div style={{ width: 1, background: BR, margin: "10px 0" }} />
+            <div style={{ width: 1, background: "rgba(235,248,255,0.20)", margin: "10px 0" }} />
             <div style={{ padding: "11px 28px", display: "flex", alignItems: "center", gap: 10 }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
               <div style={{ textAlign: "left" }}>
@@ -3911,7 +3911,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       <FeedbackMarquee photos={photos || []} feedbacks={feedbacks || []} isMobile={isMobile} />
 
       {/* ABOUT */}
-      <div id="about" style={{ padding: isMobile ? "56px 16px 72px" : "80px 60px 100px", maxWidth: 1000, margin: "0 auto", textAlign: "center" }}>
+      <div id="about" style={{ padding: isMobile ? "56px 16px 72px" : "80px 60px 100px", background: "linear-gradient(180deg, rgba(24,58,94,0.98) 0%, rgba(35,76,115,0.96) 100%)", borderTop: "1px solid rgba(235,248,255,0.12)" }}><div style={{ maxWidth: 1000, margin: "0 auto", textAlign: "center" }}>
         <div style={{ fontSize: 10, letterSpacing: 7, color: MUT, marginBottom: 16, fontFamily: "system-ui,sans-serif" }}>VỀ CHÚNG TÔI</div>
         <SecretTitle
           defaultText="92 KA MÊ RA"
@@ -3925,16 +3925,16 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
             <StatCard key={l} icon={STAT_ICONS[l] || <span style={{ fontSize: 36 }}>{e}</span>} num={n} label={l} delay={i * 180} />
           ))}
         </div>
-      </div>
+      </div></div>
 
       {/* FOOTER */}
-      <footer style={{ borderTop: `1px solid ${BR}`, padding: isMobile ? "20px 16px" : "28px 60px", display: "flex", flexWrap: "wrap", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 10 : 16 }}>
+      <footer style={{ borderTop: `1px solid rgba(235,248,255,0.14)`, background: "linear-gradient(180deg, rgba(35,76,115,0.96) 0%, rgba(24,58,94,0.98) 100%)", padding: isMobile ? "20px 16px" : "28px 60px", display: "flex", flexWrap: "wrap", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 10 : 16 }}>
         <Logo size={0.7} />
-        <div style={{ color: "#999", fontSize: 12, fontFamily: "system-ui,sans-serif", letterSpacing: 1, display: "grid", gridTemplateColumns: "auto auto 1fr", gap: "2px 4px" }}>
+        <div style={{ color: "rgba(230,244,255,0.78)", fontSize: 12, fontFamily: "system-ui,sans-serif", letterSpacing: 1, display: "grid", gridTemplateColumns: "auto auto 1fr", gap: "2px 4px" }}>
           <span>Hotline</span><span>:</span><span>{siteContent.zalo}</span>
           <span>Địa chỉ</span><span>:</span><span>{siteContent.address}</span>
         </div>
-        <div style={{ color: "#666", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>© 2026 92 KA MÊ RA/abc2z</div>
+        <div style={{ color: "rgba(230,244,255,0.52)", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>© 2026 92 KA MÊ RA/abc2z</div>
       </footer>
 
       {/* QR góc phải — hover để phóng to */}
@@ -4174,7 +4174,7 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
       <div
         className="login-card-92k"
         style={{
-          background: "linear-gradient(160deg, #111009 0%, #0a0a08 60%, #080807 100%)",
+          background: "linear-gradient(160deg, rgba(61,105,145,0.88) 0%, rgba(34,74,113,0.96) 60%, rgba(24,58,94,0.98) 100%)",
           border: "1px solid rgba(201,168,76,0.18)",
           borderRadius: 20,
           padding: "32px 36px 36px",
