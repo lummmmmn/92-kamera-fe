@@ -3522,19 +3522,25 @@ function StatCard({ icon, num, label, delay = 0 }) {
   const display = useCountUp(num, 1600, started);
   return (
     <div ref={ref} style={{
-      padding: "36px 20px", border: `1px solid ${BR}`, borderRadius: 12, background: CARD,
+      padding: "34px 20px",
+      border: "1px solid rgba(235,248,255,0.22)",
+      borderRadius: 12,
+      background: "linear-gradient(180deg, rgba(124,166,205,0.34) 0%, rgba(47,91,132,0.30) 100%)",
       display: "flex", flexDirection: "column", alignItems: "center", gap: 14,
-      transition: "border-color .3s, box-shadow .3s",
+      transition: "border-color .3s, box-shadow .3s, background .3s",
       position: "relative", overflow: "hidden",
+      boxShadow: "0 16px 34px rgba(15,45,78,0.24), inset 0 1px 0 rgba(255,255,255,0.18)",
+      backdropFilter: "blur(22px) saturate(140%)",
+      WebkitBackdropFilter: "blur(22px) saturate(140%)",
     }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = `${G}55`; e.currentTarget.style.boxShadow = `0 0 32px ${G}18`; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = BR; e.currentTarget.style.boxShadow = "none"; }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.42)"; e.currentTarget.style.boxShadow = "0 18px 40px rgba(15,45,78,0.30), 0 0 24px rgba(177,218,248,0.18), inset 0 1px 0 rgba(255,255,255,0.24)"; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(235,248,255,0.22)"; e.currentTarget.style.boxShadow = "0 16px 34px rgba(15,45,78,0.24), inset 0 1px 0 rgba(255,255,255,0.18)"; }}
     >
       {/* Glow backdrop */}
-      <div style={{ position:"absolute", top:0, left:"50%", transform:"translateX(-50%)", width:120, height:80, background:`radial-gradient(ellipse,${G}18,transparent 70%)`, pointerEvents:"none" }} />
-      <div style={{ color: G, opacity: 0.85 }}>{icon}</div>
-      <div style={{ fontSize: 40, fontWeight: 700, color: G, fontFamily: "system-ui,sans-serif", lineHeight: 1, letterSpacing: -1 }}>{display}</div>
-      <div style={{ fontSize: 10, color: MUT, letterSpacing: 3, fontFamily: "system-ui,sans-serif" }}>{label.toUpperCase()}</div>
+      <div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse at 50% 18%, rgba(235,248,255,0.16) 0%, rgba(158,213,248,0.08) 35%, transparent 72%)", pointerEvents:"none" }} />
+      <div style={{ color: "rgba(255,224,113,0.92)", opacity: 1, filter: "drop-shadow(0 2px 12px rgba(11,42,74,0.45))", position:"relative" }}>{icon}</div>
+      <div style={{ fontSize: 40, fontWeight: 800, color: "#ffe073", fontFamily: "system-ui,sans-serif", lineHeight: 1, letterSpacing: -1, textShadow: "0 2px 14px rgba(7,34,62,0.72), 0 0 16px rgba(255,224,113,0.22)", position:"relative" }}>{display}</div>
+      <div style={{ fontSize: 10.5, color: "rgba(245,251,255,0.88)", letterSpacing: 3, fontWeight: 700, textShadow: "0 1px 8px rgba(7,34,62,0.72)", fontFamily: "system-ui,sans-serif", position:"relative" }}>{label.toUpperCase()}</div>
     </div>
   );
 }
@@ -3629,7 +3635,7 @@ function HeroTagline({ isMobile }) {
   const FULL_TEXT = "Trải nghiệm máy ảnh · Bắt trọn khoảnh khắc";
   const { displayed, done } = useTypewriter(FULL_TEXT, 52, 600);
   return (
-    <div style={{ marginTop: 20, marginBottom: 32, fontSize: isMobile ? 14 : 18, letterSpacing: isMobile ? 2 : 3, color: "#c0b8a8", fontFamily: 'var(--font-display)', fontStyle: "italic", fontWeight: 300, lineHeight: 2, textShadow: "0 1px 8px rgba(0,0,0,0.8)" }}>
+    <div style={{ marginTop: 20, marginBottom: 32, fontSize: isMobile ? 14 : 18, letterSpacing: isMobile ? 2 : 3, color: isMobile ? "#123552" : "#edf7ff", fontFamily: 'var(--font-display)', fontStyle: "italic", fontWeight: isMobile ? 600 : 300, lineHeight: 2, textShadow: isMobile ? "0 1px 0 rgba(255,255,255,0.45), 0 4px 16px rgba(255,255,255,0.28)" : "0 1px 8px rgba(0,0,0,0.8)" }}>
       <span className="text-type">{displayed}</span>
       <span className={`text-type__cursor${done ? " text-type__cursor--hidden" : ""}`}>|</span>
     </div>
@@ -3799,6 +3805,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
 
       {/* HERO */}
       <div style={{ height: "100vh", position: "relative", overflow: "hidden", userSelect: "none" }}>
+        {isMobile && <div style={{ position: "absolute", inset: 0, zIndex: 2, pointerEvents: "none", background: "linear-gradient(90deg, rgba(226,241,252,0.88) 0%, rgba(210,232,248,0.72) 44%, rgba(169,210,240,0.34) 72%, rgba(80,145,196,0.08) 100%)" }} />}
 
         {/* ── Camera specs top-right ── */}
         {!isMobile && <div style={{ position: "absolute", top: 100, right: 48, textAlign: "right", zIndex: 4 }}>
@@ -3819,18 +3826,20 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         {/* ── Camera specs bottom-left ── */}
         <div style={{ position: "absolute", bottom: isMobile ? 100 : 56, left: isMobile ? 20 : 48, zIndex: 4 }}>
           {["ISO 400", "F 1.8", "1/50"].map(t => (
-            <div key={t} style={{ fontSize: 11, letterSpacing: 2, color: "rgba(230,244,255,0.78)", textShadow: "0 1px 8px rgba(24,70,112,0.40)", fontFamily: "system-ui,sans-serif", lineHeight: 1.9 }}>{t}</div>
+            <div key={t} style={{ fontSize: 11, letterSpacing: 2, color: isMobile ? "#143a59" : "rgba(230,244,255,0.78)", fontWeight: isMobile ? 800 : 400, textShadow: isMobile ? "0 1px 0 rgba(255,255,255,0.45), 0 4px 12px rgba(255,255,255,0.24)" : "0 1px 8px rgba(24,70,112,0.40)", fontFamily: "system-ui,sans-serif", lineHeight: 1.9 }}>{t}</div>
           ))}
         </div>
 
         {/* ── Hero content — left-aligned ── */}
-        <div style={{ position: "absolute", top: "50%", transform: "translateY(-62%)", left: isMobile ? 20 : 60, zIndex: 4, maxWidth: isMobile ? "90%" : 520 }}>
+        <div style={{ position: "absolute", top: "50%", transform: "translateY(-62%)", left: isMobile ? 20 : 60, zIndex: 4, maxWidth: isMobile ? "90%" : 520, padding: isMobile ? "18px 16px 20px" : 0, borderRadius: isMobile ? 14 : 0, background: isMobile ? "linear-gradient(135deg, rgba(238,248,255,0.58), rgba(205,230,247,0.24))" : "transparent", boxShadow: isMobile ? "0 14px 36px rgba(36,86,128,0.18), inset 0 1px 0 rgba(255,255,255,0.40)" : "none", backdropFilter: isMobile ? "blur(6px)" : "none", WebkitBackdropFilter: isMobile ? "blur(6px)" : "none" }}>
 
           {/* Logo dùng component chuẩn */}
-          <Logo size={isMobile ? 1.6 : 2.4} />
+          <div style={{ filter: isMobile ? "drop-shadow(0 2px 0 rgba(255,255,255,0.45)) drop-shadow(0 8px 18px rgba(255,255,255,0.22))" : "drop-shadow(0 2px 14px rgba(0,0,0,0.45))" }}>
+            <Logo light={!isMobile} size={isMobile ? 1.6 : 2.4} />
+          </div>
 
           {/* Label — dưới logo */}
-          <div style={{ fontSize: 9.5, letterSpacing: 5, color: G, fontFamily: "system-ui,sans-serif", marginTop: 14, opacity: 1, textShadow: `0 0 12px ${G}66` }}>
+          <div style={{ fontSize: 9.5, letterSpacing: 5, color: isMobile ? "#153b5b" : G, fontFamily: "system-ui,sans-serif", marginTop: 14, opacity: 1, fontWeight: isMobile ? 800 : 600, textShadow: isMobile ? "0 1px 0 rgba(255,255,255,0.50), 0 4px 14px rgba(255,255,255,0.30)" : `0 0 12px ${G}66` }}>
             {isMobile ? <>DỊCH VỤ CHO THUÊ MÁY ẢNH<br/>NÚI THÀNH · TAM KỲ</> : "DỊCH VỤ CHO THUÊ MÁY ẢNH · NÚI THÀNH - TAM KỲ"}
           </div>
 
@@ -3854,7 +3863,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       {/* Scroll cue */}
       <div style={{ position: "fixed", bottom: 32, left: "50%", transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 5, zIndex: 5, animation: "floatY 2.2s ease-in-out infinite" }}>
         <div style={{ width: 1, height: 36, background: `linear-gradient(to bottom,transparent,${G}88)` }} />
-        <div style={{ fontSize: 9, color: "rgba(230,244,255,0.78)", textShadow: "0 1px 8px rgba(24,70,112,0.40)", letterSpacing: 3, fontFamily: "system-ui,sans-serif" }}>SCROLL</div>
+        <div style={{ fontSize: 9, color: isMobile ? "#143a59" : "rgba(230,244,255,0.78)", fontWeight: isMobile ? 800 : 400, textShadow: isMobile ? "0 1px 0 rgba(255,255,255,0.45), 0 4px 12px rgba(255,255,255,0.24)" : "0 1px 8px rgba(24,70,112,0.40)", letterSpacing: 3, fontFamily: "system-ui,sans-serif" }}>SCROLL</div>
       </div>
 
       {/* CAMERAS — Featured Carousel */}
