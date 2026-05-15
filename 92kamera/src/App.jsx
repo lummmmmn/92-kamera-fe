@@ -3730,9 +3730,9 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
           <>
             {isCollapsed && (
               <button onClick={() => setNavForceOpen(true)}
-                style={{ pointerEvents: "all", background: "rgba(10,9,8,0.92)", border: "1px solid rgba(201,168,76,0.45)", borderRadius: 50, padding: "8px 18px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", backdropFilter: "blur(24px)", boxShadow: "0 0 20px rgba(201,168,76,0.2), 0 4px 16px rgba(0,0,0,0.6)", animation: "navCollapseIn .35s cubic-bezier(.4,0,.2,1)" }}>
+                style={{ pointerEvents: "all", background: "rgba(72,118,160,0.56)", border: "1px solid rgba(230,244,255,0.34)", borderRadius: 50, padding: "8px 18px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", backdropFilter: "blur(24px)", boxShadow: "0 0 18px rgba(177,218,248,0.18), 0 4px 16px rgba(16,50,84,0.28)", animation: "navCollapseIn .35s cubic-bezier(.4,0,.2,1)" }}>
                 <Logo size={0.38} />
-                <span style={{ color: "rgba(201,168,76,0.7)", fontSize: 10, letterSpacing: 2, fontFamily: "system-ui,sans-serif" }}>···</span>
+                <span style={{ color: "rgba(238,248,255,0.82)", fontSize: 10, letterSpacing: 2, fontFamily: "system-ui,sans-serif" }}>···</span>
               </button>
             )}
             {!isCollapsed && (
@@ -3774,9 +3774,9 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
                     </button>
                   ) : (
                     <button onClick={onOpenLogin}
-                      style={{ color: TXT, fontSize: 10, background: "rgba(255,255,255,0.05)", border: `1px solid rgba(255,255,255,0.2)`, padding: "8px 18px 8px 13px", borderRadius: 99, cursor: "pointer", letterSpacing: 2, transition: "all .2s", fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 8, flexShrink: 0, whiteSpace: "nowrap", fontWeight: 600 }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = `${G}66`; e.currentTarget.style.background = `${G}12`; e.currentTarget.style.color = G; }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = TXT; }}>
+                      style={{ color: "rgba(245,251,255,0.94)", fontSize: 10, background: "rgba(230,244,255,0.12)", border: `1px solid rgba(235,248,255,0.34)`, padding: "8px 18px 8px 13px", borderRadius: 99, cursor: "pointer", letterSpacing: 2, transition: "all .2s", fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 8, flexShrink: 0, whiteSpace: "nowrap", fontWeight: 600 }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.58)"; e.currentTarget.style.background = "rgba(238,248,255,0.22)"; e.currentTarget.style.color = "#ffffff"; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(235,248,255,0.34)"; e.currentTarget.style.background = "rgba(230,244,255,0.12)"; e.currentTarget.style.color = "rgba(245,251,255,0.94)"; }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                       ĐĂNG NHẬP
                     </button>
@@ -3803,23 +3803,23 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         {/* ── Camera specs top-right ── */}
         {!isMobile && <div style={{ position: "absolute", top: 100, right: 48, textAlign: "right", zIndex: 4 }}>
           {["4K", "24FPS", "WB 5600K"].map(t => (
-            <div key={t} style={{ fontSize: 11, letterSpacing: 3, color: "#5a5550", fontFamily: "system-ui,sans-serif", lineHeight: 2 }}>{t}</div>
+            <div key={t} style={{ fontSize: 11, letterSpacing: 3, color: "rgba(230,244,255,0.84)", textShadow: "0 1px 8px rgba(24,70,112,0.42)", fontFamily: "system-ui,sans-serif", lineHeight: 2 }}>{t}</div>
           ))}
         </div>}
 
         {/* ── Battery top-right bottom ── */}
         {!isMobile && <div style={{ position: "absolute", bottom: 56, right: 48, display: "flex", alignItems: "center", gap: 8, zIndex: 4 }}>
-          <div style={{ fontSize: 11, letterSpacing: 2, color: "#4a4540", fontFamily: "system-ui,sans-serif" }}>87%</div>
-          <div style={{ position: "relative", width: 28, height: 13, border: `1px solid #4a4540`, borderRadius: 3 }}>
-            <div style={{ position: "absolute", right: -4, top: "50%", transform: "translateY(-50%)", width: 3, height: 7, background: "#4a4540", borderRadius: "0 1px 1px 0" }} />
-            <div style={{ margin: 2, height: "calc(100% - 4px)", width: "87%", background: "#5a6a4a", borderRadius: 1 }} />
+          <div style={{ fontSize: 11, letterSpacing: 2, color: "rgba(230,244,255,0.80)", textShadow: "0 1px 8px rgba(24,70,112,0.42)", fontFamily: "system-ui,sans-serif" }}>87%</div>
+          <div style={{ position: "relative", width: 28, height: 13, border: `1px solid rgba(230,244,255,0.72)`, borderRadius: 3 }}>
+            <div style={{ position: "absolute", right: -4, top: "50%", transform: "translateY(-50%)", width: 3, height: 7, background: "rgba(230,244,255,0.72)", borderRadius: "0 1px 1px 0" }} />
+            <div style={{ margin: 2, height: "calc(100% - 4px)", width: "87%", background: "rgba(255,225,120,0.86)", borderRadius: 1 }} />
           </div>
         </div>}
 
         {/* ── Camera specs bottom-left ── */}
         <div style={{ position: "absolute", bottom: isMobile ? 100 : 56, left: isMobile ? 20 : 48, zIndex: 4 }}>
           {["ISO 400", "F 1.8", "1/50"].map(t => (
-            <div key={t} style={{ fontSize: 11, letterSpacing: 2, color: "#4a4540", fontFamily: "system-ui,sans-serif", lineHeight: 1.9 }}>{t}</div>
+            <div key={t} style={{ fontSize: 11, letterSpacing: 2, color: "rgba(230,244,255,0.78)", textShadow: "0 1px 8px rgba(24,70,112,0.40)", fontFamily: "system-ui,sans-serif", lineHeight: 1.9 }}>{t}</div>
           ))}
         </div>
 
@@ -3854,7 +3854,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       {/* Scroll cue */}
       <div style={{ position: "fixed", bottom: 32, left: "50%", transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 5, zIndex: 5, animation: "floatY 2.2s ease-in-out infinite" }}>
         <div style={{ width: 1, height: 36, background: `linear-gradient(to bottom,transparent,${G}88)` }} />
-        <div style={{ fontSize: 9, color: "#3a3a3a", letterSpacing: 3, fontFamily: "system-ui,sans-serif" }}>SCROLL</div>
+        <div style={{ fontSize: 9, color: "rgba(230,244,255,0.78)", textShadow: "0 1px 8px rgba(24,70,112,0.40)", letterSpacing: 3, fontFamily: "system-ui,sans-serif" }}>SCROLL</div>
       </div>
 
       {/* CAMERAS — Featured Carousel */}
@@ -6890,16 +6890,16 @@ function AppRoot() {
           will-change: padding;
         }
         .nav-inner{
-          background: linear-gradient(180deg, rgba(14,13,11,0.82) 0%, rgba(8,7,6,0.78) 100%);
-          border: 1px solid rgba(201,168,76,0.35);
+          background: linear-gradient(180deg, rgba(124,166,205,0.46) 0%, rgba(69,112,153,0.34) 100%);
+          border: 1px solid rgba(230,244,255,0.34);
           border-radius: 50px;
           box-shadow:
-            0 0 0 1px rgba(201,168,76,0.08),
-            0 0 32px rgba(201,168,76,0.18),
-            0 8px 40px rgba(0,0,0,0.65),
-            0 1px 0 rgba(255,255,255,0.06) inset;
-          backdrop-filter: blur(40px) saturate(180%);
-          -webkit-backdrop-filter: blur(40px) saturate(180%);
+            0 0 0 1px rgba(255,255,255,0.10),
+            0 0 30px rgba(175,215,245,0.20),
+            0 8px 34px rgba(18,55,92,0.28),
+            0 1px 0 rgba(255,255,255,0.28) inset;
+          backdrop-filter: blur(34px) saturate(150%);
+          -webkit-backdrop-filter: blur(34px) saturate(150%);
           transition: height .4s cubic-bezier(.4,0,.2,1),
                       padding .4s cubic-bezier(.4,0,.2,1),
                       opacity .4s ease,
@@ -6919,27 +6919,27 @@ function AppRoot() {
           user-select: none;
         }
         .nav-inner.scrolled{
-          background: linear-gradient(180deg, rgba(10,9,8,0.88) 0%, rgba(6,6,6,0.85) 100%);
+          background: linear-gradient(180deg, rgba(92,137,179,0.54) 0%, rgba(48,88,128,0.44) 100%);
           border-radius: 50px;
           box-shadow:
-            0 0 0 1px rgba(201,168,76,0.06),
-            0 0 24px rgba(201,168,76,0.12),
-            0 12px 48px rgba(0,0,0,0.7);
-          backdrop-filter: blur(40px) saturate(180%);
-          -webkit-backdrop-filter: blur(40px) saturate(180%);
+            0 0 0 1px rgba(255,255,255,0.08),
+            0 0 22px rgba(170,214,246,0.14),
+            0 12px 42px rgba(16,50,84,0.34);
+          backdrop-filter: blur(34px) saturate(150%);
+          -webkit-backdrop-filter: blur(34px) saturate(150%);
         }
         .nav-inner.compact{
-          background: linear-gradient(180deg, rgba(8,7,6,0.92) 0%, rgba(5,4,4,0.90) 100%);
+          background: linear-gradient(180deg, rgba(74,119,160,0.60) 0%, rgba(37,75,114,0.50) 100%);
           border-radius: 50px;
-          border-color: rgba(201,168,76,0.22);
-          box-shadow: 0 0 12px rgba(201,168,76,0.1), 0 4px 24px rgba(0,0,0,0.7);
+          border-color: rgba(226,244,255,0.26);
+          box-shadow: 0 0 14px rgba(177,218,248,0.14), 0 4px 24px rgba(16,50,84,0.34);
           opacity: 0.96;
           backdrop-filter: blur(40px) saturate(180%);
           -webkit-backdrop-filter: blur(40px) saturate(180%);
         }
         .nav-link{
           position: relative;
-          color: #b0a898;
+          color: rgba(235,247,255,0.82);
           font-size: 11px;
           background: none;
           border: none;
@@ -6957,13 +6957,13 @@ function AppRoot() {
           position: absolute;
           bottom: 0; left: 50%; right: 50%;
           height: 1.5px;
-          background: #c9a84c;
+          background: rgba(255,232,145,0.92);
           transition: left .25s, right .25s;
         }
         .nav-link:hover{
-          color: #fff5d6;
+          color: #ffffff;
           transform: translateY(-5px);
-          text-shadow: 0 0 18px rgba(201,168,76,0.7), 0 0 40px rgba(201,168,76,0.3);
+          text-shadow: 0 0 14px rgba(220,240,255,0.80), 0 0 30px rgba(110,178,230,0.32);
           filter: brightness(1.25);
         }
         .nav-link:hover::after{ left: 0; right: 0; }
@@ -6999,13 +6999,13 @@ function AppRoot() {
           overflow: hidden;
           background: linear-gradient(
             120deg,
-            #8a6820 0%, #d4a832 18%, #f5d060 32%,
-            #c9a84c 48%, #e8c054 60%, #b8922e 75%,
-            #d4a832 88%, #8a6820 100%
+            #c39a30 0%, #e7bd47 18%, #ffe179 32%,
+            #e8bf4d 48%, #f6d56c 60%, #d1a237 75%,
+            #eac35a 88%, #b98b29 100%
           );
           background-size: 280% 280%;
-          color: #1a0f00;
-          border: 1px solid rgba(255,228,100,0.55);
+          color: #142b44;
+          border: 1px solid rgba(255,238,154,0.72);
           padding: 10px 22px;
           border-radius: 99px;
           cursor: pointer;
@@ -7076,20 +7076,20 @@ function AppRoot() {
         .nav-social{
           width: 34px; height: 34px;
           border-radius: 50%;
-          background: rgba(255,255,255,0.08);
-          border: 1px solid rgba(255,255,255,0.22);
+          background: rgba(230,244,255,0.15);
+          border: 1px solid rgba(235,248,255,0.32);
           display: flex; align-items: center; justify-content: center;
           cursor: pointer;
-          color: #c8c0b0;
+          color: rgba(238,248,255,0.82);
           transition: all .22s cubic-bezier(.34,1.56,.64,1);
-          box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+          box-shadow: 0 2px 8px rgba(18,55,92,0.22);
           will-change: transform;
         }
         .nav-social:hover{
-          background: rgba(201,168,76,0.18);
-          border-color: rgba(201,168,76,0.5);
-          color: #c9a84c;
-          box-shadow: 0 0 18px rgba(201,168,76,0.45), 0 4px 12px rgba(0,0,0,0.4);
+          background: rgba(238,248,255,0.24);
+          border-color: rgba(255,255,255,0.55);
+          color: #ffffff;
+          box-shadow: 0 0 18px rgba(210,236,255,0.42), 0 4px 12px rgba(18,55,92,0.22);
           transform: translateY(-5px) scale(1.12);
           filter: brightness(1.3);
         }
@@ -7111,7 +7111,7 @@ function AppRoot() {
         .nav-phone:hover{ color: #c9a84c; border-color: rgba(201,168,76,0.25); }
 
         /* divider */
-        .nav-div{ width:1px; height:22px; background: rgba(255,255,255,0.2); flex-shrink:0; }
+        .nav-div{ width:1px; height:22px; background: rgba(238,248,255,0.28); flex-shrink:0; }
 
         @media(max-width:767px){
           input,select,textarea{font-size:16px!important;}
