@@ -370,11 +370,11 @@ function OrderLookupWidget({ orders }) {
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <button onClick={toggle} style={{
           display: "flex", alignItems: "center", gap: 8,
-          background: open ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.06)",
-          border: `1px solid ${open ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.2)"}`,
+          background: open ? "rgba(94,145,188,0.34)" : "rgba(230,244,255,0.12)",
+          border: `1px solid ${open ? "rgba(235,248,255,0.42)" : "rgba(235,248,255,0.28)"}`,
           borderRadius: open ? "8px 8px 0 0" : 8,
           padding: "10px 18px", cursor: "pointer", transition: "all .25s",
-          color: "#e0d8c8", fontSize: 12, fontFamily: "system-ui,sans-serif", letterSpacing: 2, fontWeight: 600,
+          color: "rgba(245,251,255,0.92)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12)", fontSize: 12, fontFamily: "system-ui,sans-serif", letterSpacing: 2, fontWeight: 700,
         }}>
           {/* Kính lúp SVG */}
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
@@ -3403,31 +3403,31 @@ function MobileFAB({ mobileMenuOpen, setMobileMenuOpen, siteContent, onBook }) {
         style={{
           position: "fixed", left: pos.x, top: pos.y, zIndex: 300,
           width: 46, height: 46, borderRadius: "50%",
-          background: open ? `radial-gradient(circle, ${G}44, ${G}22)` : "rgba(10,9,8,0.92)",
-          border: `2px solid ${open ? G : "rgba(201,168,76,0.5)"}`,
-          boxShadow: open ? `0 0 18px ${G}55, 0 4px 16px rgba(0,0,0,0.7)` : "0 0 12px rgba(201,168,76,0.25), 0 4px 12px rgba(0,0,0,0.6)",
+          background: open ? "radial-gradient(circle, rgba(255,224,115,0.18), rgba(48,96,138,0.78))" : "rgba(50,96,138,0.76)",
+          border: `2px solid ${open ? G : "rgba(235,248,255,0.30)"}`,
+          boxShadow: open ? `0 0 18px ${G}38, 0 4px 16px rgba(12,42,70,0.46)` : "0 0 14px rgba(177,218,248,0.18), 0 4px 14px rgba(12,42,70,0.38), inset 0 1px 0 rgba(255,255,255,0.14)",
           display: "flex", alignItems: "center", justifyContent: "center",
           cursor: "grab", touchAction: "none", userSelect: "none", WebkitUserSelect: "none",
-          backdropFilter: "blur(20px)",
+          backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
           transition: "border-color .2s, box-shadow .2s, background .2s",
         }}
       >
         {open
           ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(201,168,76,0.85)" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="21" y2="17"/></svg>
+          : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,224,115,0.92)" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="21" y2="17"/></svg>
         }
         {/* Pulse ring khi đóng */}
-        {!open && <div style={{ position: "absolute", inset: -4, borderRadius: "50%", border: `1px solid rgba(201,168,76,0.25)`, animation: "fabPulse 2.4s ease-in-out infinite", pointerEvents: "none" }} />}
+        {!open && <div style={{ position: "absolute", inset: -4, borderRadius: "50%", border: `1px solid rgba(235,248,255,0.18)`, animation: "fabPulse 2.4s ease-in-out infinite", pointerEvents: "none" }} />}
       </div>
 
       {/* Popup menu */}
       {open && (
         <div ref={menuRef} style={{
           position: "fixed", left: menuX, top: menuY, zIndex: 299,
-          width: menuW, background: "rgba(10,9,8,0.97)",
-          border: "1px solid rgba(201,168,76,0.3)", borderRadius: 16,
+          width: menuW, background: "linear-gradient(160deg, rgba(54,99,140,0.94), rgba(22,58,91,0.96))",
+          border: "1px solid rgba(235,248,255,0.22)", borderRadius: 16,
           backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)",
-          boxShadow: "0 12px 48px rgba(0,0,0,0.8), 0 0 24px rgba(201,168,76,0.1)",
+          boxShadow: "0 12px 42px rgba(12,42,70,0.48), inset 0 1px 0 rgba(255,255,255,0.12)",
           padding: "10px 0", animation: "navExpandIn .22s cubic-bezier(.4,0,.2,1)",
           touchAction: "auto",
         }}>
@@ -3438,9 +3438,9 @@ function MobileFAB({ mobileMenuOpen, setMobileMenuOpen, siteContent, onBook }) {
               {t}
             </button>
           ))}
-          <div style={{ height: 1, background: "rgba(201,168,76,0.15)", margin: "6px 14px" }} />
+          <div style={{ height: 1, background: "rgba(235,248,255,0.16)", margin: "6px 14px" }} />
           <div style={{ display: "flex", gap: 8, padding: "6px 18px", alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ color: "#555", fontSize: 9, letterSpacing: 2, fontFamily: "system-ui,sans-serif" }}>FOLLOW</span>
+            <span style={{ color: "rgba(226,241,252,0.68)", fontSize: 9, letterSpacing: 2, fontFamily: "system-ui,sans-serif" }}>FOLLOW</span>
             {[
               { key: "youtube", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 00-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 001.46 6.42 29 29 0 001 12a29 29 0 00.46 5.58 2.78 2.78 0 001.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 001.95-1.96A29 29 0 0023 12a29 29 0 00-.46-5.58zM9.75 15.02V8.98L15.5 12l-5.75 3.02z"/></svg> },
               { key: "facebook", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg> },
@@ -3450,7 +3450,7 @@ function MobileFAB({ mobileMenuOpen, setMobileMenuOpen, siteContent, onBook }) {
               const url = siteContent?.socialLinks?.[key];
               return (
                 <button key={key} onClick={() => { if (url) window.open(url, "_blank"); }}
-                  style={{ opacity: url ? 1 : 0.3, cursor: url ? "pointer" : "default", width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "#999", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
+                  style={{ opacity: url ? 1 : 0.38, cursor: url ? "pointer" : "default", width: 32, height: 32, borderRadius: 8, background: "rgba(230,244,255,0.10)", border: "1px solid rgba(235,248,255,0.16)", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(245,251,255,0.78)", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
                   {icon}
                 </button>
               );
@@ -3811,7 +3811,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
 
       {/* HERO */}
       <div style={{ height: "100vh", position: "relative", overflow: "hidden", userSelect: "none" }}>
-        {isMobile && <div style={{ position: "absolute", inset: 0, zIndex: 2, pointerEvents: "none", background: "linear-gradient(90deg, rgba(9,34,58,0.76) 0%, rgba(18,55,88,0.58) 44%, rgba(42,97,139,0.18) 74%, rgba(80,145,196,0.02) 100%)" }} />}
+        {isMobile && <div style={{ position: "absolute", inset: 0, zIndex: 2, pointerEvents: "none", background: "linear-gradient(90deg, rgba(8,31,54,0.84) 0%, rgba(18,55,88,0.66) 48%, rgba(42,97,139,0.24) 76%, rgba(80,145,196,0.04) 100%)" }} />}
 
         {/* ── Camera specs top-right ── */}
         {!isMobile && <div style={{ position: "absolute", top: 100, right: 48, textAlign: "right", zIndex: 4 }}>
@@ -3837,7 +3837,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         </div>
 
         {/* ── Hero content — left-aligned ── */}
-        <div style={{ position: "absolute", top: "50%", transform: "translateY(-62%)", left: isMobile ? 20 : 60, zIndex: 4, maxWidth: isMobile ? "90%" : 520, padding: isMobile ? "18px 16px 20px" : 0, borderRadius: isMobile ? 14 : 0, background: isMobile ? "linear-gradient(135deg, rgba(18,55,88,0.42), rgba(8,31,54,0.24))" : "transparent", border: isMobile ? "1px solid rgba(235,248,255,0.14)" : "none", boxShadow: isMobile ? "0 16px 38px rgba(9,34,58,0.24), inset 0 1px 0 rgba(255,255,255,0.12)" : "none", backdropFilter: isMobile ? "blur(7px)" : "none", WebkitBackdropFilter: isMobile ? "blur(7px)" : "none" }}>
+        <div style={{ position: "absolute", top: "50%", transform: "translateY(-62%)", left: isMobile ? 16 : 60, right: isMobile ? 16 : "auto", zIndex: 4, maxWidth: isMobile ? "none" : 520, padding: isMobile ? "18px 18px 20px" : 0, borderRadius: isMobile ? 14 : 0, background: isMobile ? "linear-gradient(135deg, rgba(30,73,112,0.58), rgba(9,35,60,0.44))" : "transparent", border: isMobile ? "1px solid rgba(235,248,255,0.18)" : "none", boxShadow: isMobile ? "0 16px 38px rgba(9,34,58,0.26), inset 0 1px 0 rgba(255,255,255,0.14)" : "none", backdropFilter: isMobile ? "blur(8px)" : "none", WebkitBackdropFilter: isMobile ? "blur(8px)" : "none" }}>
 
           {/* Logo dùng component chuẩn */}
           <div style={{ filter: isMobile ? "drop-shadow(0 2px 12px rgba(6,28,50,0.72))" : "drop-shadow(0 2px 14px rgba(0,0,0,0.45))" }}>
@@ -4181,15 +4181,15 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
   return (
     <>
     {/* Backdrop with subtle grain */}
-    <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "linear-gradient(180deg, rgba(50,94,133,0.72), rgba(16,46,74,0.86))", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "linear-gradient(180deg, rgba(12,38,64,0.92), rgba(9,31,54,0.96))", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(7px)", WebkitBackdropFilter: "blur(7px)" }}>
 
       {/* Ambient gold glows in background */}
-      <div style={{ position: "absolute", width: 360, height: 360, borderRadius: "50%", background: "radial-gradient(circle, rgba(230,244,255,0.14) 0%, transparent 70%)", top: "20%", left: "50%", transform: "translateX(-50%)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", width: 360, height: 360, borderRadius: "50%", background: "radial-gradient(circle, rgba(230,244,255,0.06) 0%, transparent 72%)", top: "20%", left: "50%", transform: "translateX(-50%)", pointerEvents: "none" }} />
 
       <div
         className="login-card-92k"
         style={{
-          background: "linear-gradient(160deg, rgba(61,105,145,0.88) 0%, rgba(34,74,113,0.96) 60%, rgba(24,58,94,0.98) 100%)",
+          background: "linear-gradient(160deg, rgba(45,89,129,0.92) 0%, rgba(22,58,91,0.98) 58%, rgba(11,38,64,0.99) 100%)",
           border: "1px solid rgba(235,248,255,0.24)",
           borderRadius: 20,
           padding: "32px 36px 36px",
