@@ -1884,7 +1884,7 @@ function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, se
 // ── STABLE components — defined OUTSIDE BookingModal to avoid remount-on-render lag ──
 const BK_flatInp = {
   background: "#0d0b08",
-  border: "1px solid rgba(201,168,76,0.18)",
+  border: "1px solid rgba(200,218,234,0.18)",
   borderRadius: 12,
   outline: "none",
   color: "#f0e8d0",
@@ -2697,11 +2697,48 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               )}
 
               {/* Nút tiếp tục */}
-              <button onClick={() => days > 0 && selSession && pickDate && setStep(3)} disabled={days === 0 || !selSession || !pickDate}
-                className="bk-next"
-                style={{ width:"100%", padding:15, background: days > 0 && selSession && pickDate ? G : "#1a1a1a", color: days > 0 && selSession && pickDate ? "#000" : MUT, border:"none", borderRadius:10, cursor: days > 0 && selSession && pickDate ? "pointer" : "not-allowed", fontWeight:800, fontSize:15, fontFamily:"system-ui,sans-serif", letterSpacing:0.5 }}>
-                <span style={{position:"relative",zIndex:1}}>{!days ? "Chọn thời gian thuê" : !selSession ? "Chọn ca thuê" : !pickDate ? "Chọn ngày bắt đầu" : "Tiếp tục →"}</span>
-              </button>
+              {(() => {
+                // ── BUG FIX: kiểm tra conflict ngày trước khi cho bấm Tiếp tục ──
+                const _activeOrds = orders.filter(o => !["cancelled","completed"].includes(o.status));
+                const _sess = selSession || "full";
+                // 1) Ngày bắt đầu bị hết máy không?
+                const startDateFull = !!(pickDate && selectedCamList.length > 0 && selectedCamList.some(c =>
+                  getAvailQty(c.id, c.qty, _activeOrds, pickDate, _sess) < (selCams[c.id] || 1)
+                ));
+                // 2) Có ngày nào trong range bị hết không? (chỉ áp dụng khi days > 1)
+                const rangeBlocked = (() => {
+                  if (!pickDate || days <= 1) return false;
+                  for (let i = 1; i < Math.ceil(days); i++) {
+                    const ds = dateAddDays(pickDate, i);
+                    if (selectedCamList.some(c => getAvailQty(c.id, c.qty, _activeOrds, ds, _sess) < (selCams[c.id] || 1))) return true;
+                  }
+                  return false;
+                })();
+                const hasConflict = startDateFull || rangeBlocked;
+                const canGo = days > 0 && selSession && pickDate && !hasConflict;
+                const btnLabel = !days ? "Chọn thời gian thuê"
+                  : !selSession ? "Chọn ca thuê"
+                  : !pickDate ? "Chọn ngày bắt đầu"
+                  : hasConflict ? "⛔ Máy đã hết — vui lòng chọn ngày khác"
+                  : "Tiếp tục →";
+                return (
+                  <>
+                    {hasConflict && pickDate && (
+                      <div style={{ marginBottom:10, padding:"10px 14px", background:"#1a0505", border:"1px solid #ef444466", borderRadius:8, display:"flex", alignItems:"center", gap:8 }}>
+                        <span style={{ fontSize:14 }}>🚫</span>
+                        <span style={{ color:"#ef4444", fontSize:12, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>
+                          {startDateFull ? "Máy đã hết vào ngày bạn chọn." : "Máy đã hết trong một số ngày của khoảng thuê này."}{" "}Vui lòng chọn ngày khác để tiếp tục.
+                        </span>
+                      </div>
+                    )}
+                    <button onClick={() => canGo && setStep(3)} disabled={!canGo}
+                      className="bk-next"
+                      style={{ width:"100%", padding:15, background: canGo ? G : hasConflict ? "#2a0505" : "#1a1a1a", color: canGo ? "#000" : hasConflict ? "#ef4444" : MUT, border: hasConflict ? "1px solid #ef444466" : "none", borderRadius:10, cursor: canGo ? "pointer" : "not-allowed", fontWeight:800, fontSize:15, fontFamily:"system-ui,sans-serif", letterSpacing:0.5 }}>
+                      <span style={{position:"relative",zIndex:1}}>{btnLabel}</span>
+                    </button>
+                  </>
+                );
+              })()}
             </div>
           );
         })()}
@@ -2816,13 +2853,13 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 
               {/* ── FORM STYLES ── */}
               <style>{`
-                .bk-inp:focus { border-color: rgba(201,168,76,0.6) !important; box-shadow: 0 0 0 3px rgba(201,168,76,0.12) !important; }
+                .bk-inp:focus { border-color: rgba(200,218,234,0.65) !important; box-shadow: 0 0 0 3px rgba(200,218,234,0.13) !important; }
                 .bk-inp::placeholder { color: #444; }
                 .bk-inp { caret-color: #c8daea; }
                 .bk-disc-body { overflow: hidden; transition: max-height .3s ease, opacity .3s ease; }
                 .bk-disc-body.open { max-height: 100px; opacity: 1; }
                 .bk-disc-body.closed { max-height: 0; opacity: 0; }
-                .bk-cta:hover:not(:disabled) { box-shadow: 0 6px 32px rgba(201,168,76,0.45) !important; transform: translateY(-1px); }
+                .bk-cta:hover:not(:disabled) { box-shadow: 0 6px 32px rgba(200,218,234,0.38) !important; transform: translateY(-1px); }
                 .bk-cta { transition: all .2s ease !important; }
 
                 /* ── Interactive Hover: Nút Tiếp theo ── */
@@ -2858,7 +2895,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                   z-index: 0;
                 }
                 .bk-back:hover::before { transform: translateX(0); }
-                .bk-back:hover { color: #c9a84c !important; border-color: #3a3010 !important; }
+                .bk-back:hover { color: #c8daea !important; border-color: #0a1a30 !important; }
               `}</style>
 
               {/* ── FORM SECTION ── */}
@@ -2907,7 +2944,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                         placeholder="Nhập mã..."
                       />
                       <button onClick={() => { applyDiscount(); setDiscountExpanded(false); }}
-                        style={{ padding:"0 16px", background:`linear-gradient(135deg,${G},#a07830)`, color:"#000", border:"none", borderRadius:12, cursor:"pointer", fontSize:12, fontWeight:800, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap", flexShrink:0, minHeight:44 }}>
+                        style={{ padding:"0 16px", background:`linear-gradient(135deg,${G},#0d4a7a)`, color:"#000", border:"none", borderRadius:12, cursor:"pointer", fontSize:12, fontWeight:800, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap", flexShrink:0, minHeight:44 }}>
                         Áp dụng
                       </button>
                     </div>
@@ -2971,17 +3008,17 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                 {/* CTA full width */}
                 <button
                   className="bk-cta"
-                  onClick={() => info.name && info.phone && handleFinish()}
-                  disabled={!info.name || !info.phone}
+                  onClick={() => info.name && info.phone && info.zalo && info.address && handleFinish()}
+                  disabled={!info.name || !info.phone || !info.zalo || !info.address}
                   style={{
                     width:"100%", padding:"15px 24px",
-                    background: info.name && info.phone ? `linear-gradient(135deg, #d4a93a 0%, ${G} 50%, #a07830 100%)` : "#1a1a1a",
-                    color: info.name && info.phone ? "#000" : "#444",
+                    background: info.name && info.phone && info.zalo && info.address ? `linear-gradient(135deg, #0d3b6e 0%, #c8daea 55%, #1a5a9e 100%)` : "#1a1a1a",
+                    color: info.name && info.phone && info.zalo && info.address ? "#000" : "#444",
                     border:"none", borderRadius:14,
-                    cursor: info.name && info.phone ? "pointer" : "not-allowed",
+                    cursor: info.name && info.phone && info.zalo && info.address ? "pointer" : "not-allowed",
                     fontWeight:900, fontSize:15, fontFamily:"system-ui,sans-serif",
                     letterSpacing:1,
-                    boxShadow: info.name && info.phone ? `0 4px 24px rgba(201,168,76,0.35)` : "none",
+                    boxShadow: info.name && info.phone && info.zalo && info.address ? `0 4px 24px rgba(200,218,234,0.32)` : "none",
                     boxSizing:"border-box",
                   }}>
                   Xác nhận đặt thuê
@@ -3104,17 +3141,17 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                 </div>
               )}
 
-              {/* Nút Zalo — full width, xanh lá */}
+              {/* Nút Zalo — full width, xanh navy */}
               <a href={zaloHref} target="_blank" rel="noopener noreferrer"
-                style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:10, width:"100%", padding:"15px 24px", background:"#06c755", color:"#fff", borderRadius:12, fontWeight:800, fontSize:16, textDecoration:"none", boxShadow:"0 6px 24px rgba(6,199,85,0.35)", marginBottom:12, boxSizing:"border-box", zIndex:1, position:"relative", transition:"opacity .2s" }}>
+                style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:10, width:"100%", padding:"15px 24px", background:`linear-gradient(135deg, #0d3b6e 0%, #c8daea 55%, #1a5a9e 100%)`, color:"#000", borderRadius:12, fontWeight:800, fontSize:16, textDecoration:"none", boxShadow:"0 6px 24px rgba(200,218,234,0.32)", marginBottom:12, boxSizing:"border-box", zIndex:1, position:"relative", transition:"opacity .2s" }}>
                 <span style={{ fontSize:20 }}>💬</span> Nhắn Zalo chốt đơn
               </a>
 
               {/* Notice box */}
-              <div style={{ background:"#021a0a", border:"1px solid #06c75533", borderRadius:10, padding:"12px 16px", marginBottom:18, display:"flex", alignItems:"center", gap:10, textAlign:"left", zIndex:1, position:"relative" }}>
+              <div style={{ background:"#040d1a", border:"1px solid #c8daea33", borderRadius:10, padding:"12px 16px", marginBottom:18, display:"flex", alignItems:"center", gap:10, textAlign:"left", zIndex:1, position:"relative" }}>
                 <span style={{ fontSize:18, flexShrink:0 }}>🛡️</span>
                 <div>
-                  <div style={{ color:"#22c55e", fontSize:12, fontFamily:"system-ui,sans-serif", lineHeight:1.6 }}>
+                  <div style={{ color:"#c8daea", fontSize:12, fontFamily:"system-ui,sans-serif", lineHeight:1.6 }}>
                     Đơn thuê đã được tạo và xác nhận qua Zalo.<br/>
                     Để được xử lý đơn nhanh hơn.
                   </div>
@@ -3667,7 +3704,7 @@ function HeroTagline({ isMobile }) {
   const FULL_TEXT = "Trải nghiệm máy ảnh · Bắt trọn khoảnh khắc";
   const { displayed, done } = useTypewriter(FULL_TEXT, 52, 600);
   return (
-    <div style={{ marginTop: 20, marginBottom: 32, fontSize: isMobile ? 14 : 18, letterSpacing: isMobile ? 2 : 3, color: "#fff", fontFamily: 'var(--font-display)', fontStyle: "italic", fontWeight: isMobile ? 600 : 300, lineHeight: 2, textShadow: "0 1px 4px rgba(2,10,24,0.55), 0 3px 10px rgba(2,10,24,0.35)" }}>
+    <div style={{ marginTop: 20, marginBottom: 32, fontSize: isMobile ? 14 : 18, letterSpacing: isMobile ? 2 : 3, color: "#fff", fontFamily: 'var(--font-display)', fontStyle: "italic", fontWeight: isMobile ? 600 : 300, lineHeight: 2, textShadow: "0 1px 3px rgba(0,6,20,0.96), 0 2px 10px rgba(0,6,20,0.80), 0 5px 22px rgba(0,6,20,0.58)" }}>
       <span className="text-type">{displayed}</span>
       <span className={`text-type__cursor${done ? " text-type__cursor--hidden" : ""}`}>|</span>
     </div>
@@ -3838,17 +3875,23 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       {/* HERO */}
       <div style={{ height: "100vh", position: "relative", overflow: "hidden", userSelect: "none" }}>
 
+        {/* ── Galaxy diagonal light beam — mượt, không cạnh cứng ── */}
+        <div style={{ position: "absolute", inset: 0, zIndex: 2, pointerEvents: "none" }}>
+          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 72% 80% at -5% -8%, rgba(3,13,48,0.91) 0%, rgba(8,30,82,0.65) 28%, rgba(16,50,110,0.34) 50%, rgba(22,65,122,0.12) 68%, transparent 84%)", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 45% 55% at -2% 5%, rgba(4,18,64,0.60) 0%, rgba(10,38,100,0.26) 42%, transparent 68%)", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", top: 0, left: 0, width: "55%", bottom: 0, background: "linear-gradient(to right, rgba(2,8,26,0.28) 0%, rgba(2,8,26,0.14) 55%, transparent 100%)", filter: "blur(18px)", pointerEvents: "none" }} />
+        </div>
 
         {/* ── Camera specs top-right ── */}
         {!isMobile && <div style={{ position: "absolute", top: 100, right: 48, textAlign: "right", zIndex: 4 }}>
           {["4K", "24FPS", "WB 5600K"].map(t => (
-            <div key={t} style={{ fontSize: 11, letterSpacing: 3, color: "rgba(230,244,255,0.84)", textShadow: "0 1px 8px rgba(24,70,112,0.42)", fontFamily: "system-ui,sans-serif", lineHeight: 2 }}>{t}</div>
+            <div key={t} style={{ fontSize: 11, letterSpacing: 3, color: "rgba(230,244,255,0.88)", textShadow: "0 1px 4px rgba(0,10,28,0.90), 0 2px 14px rgba(0,10,28,0.65)", fontFamily: "system-ui,sans-serif", lineHeight: 2 }}>{t}</div>
           ))}
         </div>}
 
         {/* ── Battery top-right bottom ── */}
         {!isMobile && <div style={{ position: "absolute", bottom: 56, right: 48, display: "flex", alignItems: "center", gap: 8, zIndex: 4 }}>
-          <div style={{ fontSize: 11, letterSpacing: 2, color: "rgba(230,244,255,0.80)", textShadow: "0 1px 8px rgba(24,70,112,0.42)", fontFamily: "system-ui,sans-serif" }}>87%</div>
+          <div style={{ fontSize: 11, letterSpacing: 2, color: "rgba(230,244,255,0.85)", textShadow: "0 1px 4px rgba(0,10,28,0.90), 0 2px 14px rgba(0,10,28,0.65)", fontFamily: "system-ui,sans-serif" }}>87%</div>
           <div style={{ position: "relative", width: 28, height: 13, border: `1px solid rgba(230,244,255,0.72)`, borderRadius: 3 }}>
             <div style={{ position: "absolute", right: -4, top: "50%", transform: "translateY(-50%)", width: 3, height: 7, background: "rgba(230,244,255,0.72)", borderRadius: "0 1px 1px 0" }} />
             <div style={{ margin: 2, height: "calc(100% - 4px)", width: "87%", background: "rgba(255,225,120,0.86)", borderRadius: 1 }} />
@@ -3858,20 +3901,20 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         {/* ── Camera specs bottom-left ── */}
         <div style={{ position: "absolute", bottom: isMobile ? 100 : 56, left: isMobile ? 20 : 48, zIndex: 4 }}>
           {["ISO 400", "F 1.8", "1/50"].map(t => (
-            <div key={t} style={{ fontSize: 11, letterSpacing: 2, color: isMobile ? "#fff" : "rgba(230,244,255,0.78)", fontWeight: isMobile ? 700 : 400, textShadow: isMobile ? "0 1px 4px rgba(2,10,24,0.6)" : "0 1px 8px rgba(24,70,112,0.40)", fontFamily: "system-ui,sans-serif", lineHeight: 1.9 }}>{t}</div>
+            <div key={t} style={{ fontSize: 11, letterSpacing: 2, color: isMobile ? "#fff" : "rgba(230,244,255,0.85)", fontWeight: isMobile ? 700 : 400, textShadow: isMobile ? "0 1px 4px rgba(0,6,20,0.98), 0 2px 12px rgba(0,6,20,0.80)" : "0 1px 4px rgba(0,10,28,0.90), 0 2px 14px rgba(0,10,28,0.65)", fontFamily: "system-ui,sans-serif", lineHeight: 1.9 }}>{t}</div>
           ))}
         </div>
 
         {/* ── Hero content — left-aligned ── */}
-        <div style={{ position: "absolute", top: "50%", transform: "translateY(-62%)", left: isMobile ? 16 : 60, right: isMobile ? 16 : "auto", zIndex: 4, maxWidth: isMobile ? "none" : 520, padding: isMobile ? "10px 4px 16px" : 0, background: "transparent", border: "none", boxShadow: "none" }}>
+        <div style={{ position: "absolute", top: "50%", transform: "translateY(-62%)", left: isMobile ? 16 : 60, right: isMobile ? 16 : "auto", zIndex: 5, maxWidth: isMobile ? "none" : 520, padding: isMobile ? "10px 4px 16px" : 0, background: "transparent", border: "none", boxShadow: "none" }}>
 
           {/* Logo dùng component chuẩn */}
-          <div style={{ filter: "drop-shadow(0 2px 6px rgba(2,10,24,0.55)) drop-shadow(0 0 18px rgba(2,10,24,0.3))" }}>
+          <div style={{ filter: "drop-shadow(0 2px 8px rgba(0,6,20,0.92)) drop-shadow(0 0 24px rgba(0,6,20,0.68)) drop-shadow(0 4px 18px rgba(0,6,20,0.50))" }}>
             <Logo light={true} size={isMobile ? 1.6 : 2.4} />
           </div>
 
           {/* Label — dưới logo */}
-          <div style={{ fontSize: 9.5, letterSpacing: 5, color: "#fff", fontFamily: "system-ui,sans-serif", marginTop: 14, fontWeight: 800, textShadow: "0 1px 4px rgba(2,10,24,0.6), 0 3px 10px rgba(2,10,24,0.4)" }}>
+          <div style={{ fontSize: 9.5, letterSpacing: 5, color: "#fff", fontFamily: "system-ui,sans-serif", marginTop: 14, fontWeight: 800, textShadow: "0 1px 3px rgba(0,6,20,0.98), 0 2px 10px rgba(0,6,20,0.85), 0 4px 22px rgba(0,6,20,0.65)" }}>
             {isMobile ? <>DỊCH VỤ CHO THUÊ MÁY ẢNH<br/>NÚI THÀNH · TAM KỲ</> : "DỊCH VỤ CHO THUÊ MÁY ẢNH · NÚI THÀNH - TAM KỲ"}
           </div>
 
@@ -3895,7 +3938,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       {/* Scroll cue */}
       <div style={{ position: "fixed", bottom: 32, left: "50%", transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 5, zIndex: 5, animation: "floatY 2.2s ease-in-out infinite" }}>
         <div style={{ width: 1, height: 36, background: `linear-gradient(to bottom,transparent,${G}88)` }} />
-        <div style={{ fontSize: 9, color: isMobile ? "rgba(245,251,255,0.86)" : "rgba(230,244,255,0.78)", fontWeight: isMobile ? 700 : 400, textShadow: isMobile ? "0 2px 10px rgba(8,32,56,0.72)" : "0 1px 8px rgba(24,70,112,0.40)", letterSpacing: 3, fontFamily: "system-ui,sans-serif" }}>SCROLL</div>
+        <div style={{ fontSize: 9, color: isMobile ? "rgba(245,251,255,0.92)" : "rgba(230,244,255,0.84)", fontWeight: isMobile ? 700 : 500, textShadow: isMobile ? "0 1px 4px rgba(0,6,20,0.96), 0 2px 12px rgba(0,6,20,0.75)" : "0 1px 4px rgba(0,10,28,0.85), 0 2px 14px rgba(0,10,28,0.60)", letterSpacing: 3, fontFamily: "system-ui,sans-serif" }}>SCROLL</div>
       </div>
 
       {/* CAMERAS — Featured Carousel */}
