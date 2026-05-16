@@ -137,7 +137,7 @@ const isDateInOrder = (dateStr, o) => {
   return dateStr >= o.date && dateStr < endDate;
 };
 
-const G = "#c9a84c", BG = "#060606", CARD = "#161410", BR = "#2a2a2a", TXT = "#f0e8d0", MUT = "#999", RED = "#cc3333";
+const G = "#c8daea", BG = "#060606", CARD = "#161410", BR = "#2a2a2a", TXT = "#f0e8d0", MUT = "#999", RED = "#ef4444";
 const CARD2 = "#0d0d0d", BR2 = "#1a1a1a";
 
 // ── GOOGLE OAUTH ──
@@ -213,14 +213,14 @@ function DeleteOrderBtn({ orderId, onDelete }) {
   const [confirm, setConfirm] = useState(false);
   if (!confirm) return (
     <button onClick={() => setConfirm(true)}
-      style={{ marginTop: 12, padding: "6px 14px", background: "#1a0505", color: "#cc3333", border: "1px solid #cc333344", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600, fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 5 }}>
+      style={{ marginTop: 12, padding: "6px 14px", background: "#1a0505", color: "#ef4444", border: "1px solid #ef444444", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600, fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 5 }}>
       🗑️ Xoá đơn này
     </button>
   );
   return (
-    <div style={{ marginTop: 12, background: "#1a0505", border: "1px solid #cc333366", borderRadius: 8, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+    <div style={{ marginTop: 12, background: "#1a0505", border: "1px solid #ef444466", borderRadius: 8, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
       <span style={{ color: "#ef4444", fontSize: 12, fontFamily: "system-ui,sans-serif" }}>⚠️ Xác nhận xoá <strong>{orderId}</strong>? Không thể hoàn tác!</span>
-      <button onClick={onDelete} style={{ padding: "5px 14px", background: "#cc3333", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 700, fontSize: 11, fontFamily: "system-ui,sans-serif" }}>Xoá</button>
+      <button onClick={onDelete} style={{ padding: "5px 14px", background: "#ef4444", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 700, fontSize: 11, fontFamily: "system-ui,sans-serif" }}>Xoá</button>
       <button onClick={() => setConfirm(false)} style={{ padding: "5px 12px", background: "#111", color: "#999", border: "1px solid #333", borderRadius: 6, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>Huỷ</button>
     </div>
   );
@@ -392,7 +392,7 @@ function OrderLookupWidget({ orders }) {
           </button>
         )}
         {open && lastRefresh && (
-          <span style={{ fontSize: 9, color: "#3a3a3a", fontFamily: "system-ui,sans-serif", letterSpacing: 1 }}>
+          <span style={{ fontSize: 9, color: "#777", fontFamily: "system-ui,sans-serif", letterSpacing: 1 }}>
             {lastRefresh.toLocaleTimeString("vi-VN", { hour:"2-digit", minute:"2-digit", second:"2-digit" })}
           </span>
         )}
@@ -459,7 +459,7 @@ function OrderLookupWidget({ orders }) {
                 </div>
 
                 {/* Hint refresh */}
-                <div style={{ marginTop: 8, color: "#2a2a2a", fontSize: 9, fontFamily: "system-ui,sans-serif", letterSpacing: 1 }}>
+                <div style={{ marginTop: 8, color: "#666", fontSize: 9, fontFamily: "system-ui,sans-serif", letterSpacing: 1 }}>
                   Nhấn ↻ để cập nhật trạng thái mới nhất
                 </div>
               </div>
@@ -902,7 +902,7 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
               <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
                 {[1,2,3,4,5].map(s => (
                   <button key={s} onClick={() => setRating(s)} onMouseEnter={() => setHovStar(s)} onMouseLeave={() => setHovStar(0)}
-                    style={{ background: "none", border: "none", cursor: "pointer", fontSize: 34, color: s <= (hovStar || rating) ? G : "#2a2a2a", padding: 2, lineHeight: 1, transition: "all .1s", transform: s <= (hovStar || rating) ? "scale(1.15)" : "scale(1)" }}>★</button>
+                    style={{ background: "none", border: "none", cursor: "pointer", fontSize: 34, color: s <= (hovStar || rating) ? G : "#3a3a3a", padding: 2, lineHeight: 1, transition: "all .1s", transform: s <= (hovStar || rating) ? "scale(1.15)" : "scale(1)" }}>★</button>
                 ))}
                 <span style={{ color: G, fontSize: 13, marginLeft: 8, fontFamily: "system-ui,sans-serif", fontWeight: 600, minWidth: 90 }}>{starLabels[hovStar || rating]}</span>
               </div>
@@ -919,7 +919,7 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
               style={{ width: "100%", padding: 14, background: G, color: "#000", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif", boxShadow: `0 0 24px ${G}44` }}>
               {isEditing ? "✏️ Cập nhật đánh giá" : "🌟 Gửi đánh giá"}
             </button>
-            <div style={{ color: "#333", fontSize: 11, textAlign: "center", marginTop: 10, fontFamily: "system-ui,sans-serif" }}>
+            <div style={{ color: "#777", fontSize: 11, textAlign: "center", marginTop: 10, fontFamily: "system-ui,sans-serif" }}>
               {isEditing ? "⚠️ Cập nhật sẽ gửi lại để admin duyệt" : "Nhận xét sẽ chờ admin duyệt trước khi công khai"}
             </div>
           </>
@@ -1124,7 +1124,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                     WebkitTapHighlightColor: "transparent",
                   }}>
                   <span style={{ fontSize: 15, width: 20, textAlign: "center" }}>{ico}</span>
-                  <span style={{ color: tab === k ? "#ffe073" : customerMuted, fontSize: 13, fontWeight: tab === k ? 700 : 400, fontFamily: "system-ui,sans-serif" }}>{label}</span>
+                  <span style={{ color: tab === k ? G : customerMuted, fontSize: 13, fontWeight: tab === k ? 700 : 400, fontFamily: "system-ui,sans-serif" }}>{label}</span>
                   {tab === k && <span style={{ marginLeft: "auto", width: 6, height: 6, borderRadius: "50%", background: G, boxShadow: `0 0 8px ${G}` }} />}
                 </button>
               ))}
@@ -1161,7 +1161,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
               <button key={k} onClick={() => setTab(k)} style={{
                 padding: "16px 18px", background: "none", border: "none",
                 borderBottom: `2.5px solid ${tab === k ? G : "transparent"}`,
-                color: tab === k ? "#ffe073" : customerMuted,
+                color: tab === k ? G : customerMuted,
                 fontWeight: tab === k ? 700 : 400,
                 fontSize: 13, cursor: "pointer",
                 fontFamily: "system-ui,sans-serif",
@@ -1213,7 +1213,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
               {badges.slice(-2).map((b, i, arr) => {
                 const isActive = i === arr.length - 1;
                 return (
-                  <span key={b.label} style={{ background: isActive ? b.col+"1a" : "transparent", color: isActive ? b.col : "#484838", border:`1px solid ${isActive ? b.col+"55" : "#2a2a20"}`, borderRadius:99, padding:"5px 13px", fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif", display:"inline-flex", alignItems:"center", gap:5 }}>
+                  <span key={b.label} style={{ background: isActive ? b.col+"1a" : "transparent", color: isActive ? b.col : "rgba(226,241,252,0.28)", border:`1px solid ${isActive ? b.col+"55" : "rgba(226,241,252,0.12)"}`, borderRadius:99, padding:"5px 13px", fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif", display:"inline-flex", alignItems:"center", gap:5 }}>
                     <span>{b.icon}</span><span>{b.label}</span>
                   </span>
                 );
@@ -1320,7 +1320,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
               <div style={{ color: TXT, fontWeight: 700, fontSize: 17 }}>Đơn thuê của tôi</div>
               <button onClick={() => refreshOrders(false)} disabled={refreshing}
-                style={{ padding: "6px 12px", background: "rgba(230,244,255,0.10)", color: refreshing ? customerMuted : "#ffe073", border: `1px solid ${refreshing ? customerBorder : G + "66"}`, borderRadius: 6, cursor: refreshing ? "default" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 5, transition: "all .2s" }}>
+                style={{ padding: "6px 12px", background: "rgba(230,244,255,0.10)", color: refreshing ? customerMuted : G, border: `1px solid ${refreshing ? customerBorder : G + "66"}`, borderRadius: 6, cursor: refreshing ? "default" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 5, transition: "all .2s" }}>
                 <span style={{ display: "inline-block", animation: refreshing ? "spin 1s linear infinite" : "none" }}>🔄</span>
                 {refreshing ? "Đang tải..." : "Làm mới"}
               </button>
@@ -1331,7 +1331,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
               {["all","pending","confirmed","active","completed","cancelled"].map(s => (
                 <button key={s} onClick={() => setFilterStatus(s)}
-                  style={{ padding: "7px 14px", background: filterStatus === s ? "rgba(255,224,115,0.18)" : "rgba(230,244,255,0.08)", color: filterStatus === s ? "#ffe073" : customerMuted, border: `1px solid ${filterStatus === s ? G + "66" : customerBorder}`, borderRadius: 99, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", fontWeight: filterStatus === s ? 700 : 400, transition: "all .15s" }}>
+                  style={{ padding: "7px 14px", background: filterStatus === s ? "rgba(255,224,115,0.18)" : "rgba(230,244,255,0.08)", color: filterStatus === s ? G : customerMuted, border: `1px solid ${filterStatus === s ? G + "66" : customerBorder}`, borderRadius: 99, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", fontWeight: filterStatus === s ? 700 : 400, transition: "all .15s" }}>
                   {s === "all" ? "Tất cả" : (STATUS_CFG[s]?.label || s)}
                 </button>
               ))}
@@ -1370,7 +1370,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                       </div>
                       {/* Status progress for active orders */}
                       {o.status === "active" && (
-                        <div style={{ background: "rgba(245,158,11,0.12)", border: `1px solid #f59e0b44`, borderRadius: 6, padding: "8px 12px", marginBottom: 10, fontSize: 11, color: "#ffe073" }}>
+                        <div style={{ background: "rgba(245,158,11,0.12)", border: `1px solid #f59e0b44`, borderRadius: 6, padding: "8px 12px", marginBottom: 10, fontSize: 11, color: G }}>
                           🎬 Đang thuê · Nhớ giữ gìn thiết bị cẩn thận nhé!
                         </div>
                       )}
@@ -1423,7 +1423,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                         )}
                         {hasFeedback && fbStatus === "pending" && (
                           <button onClick={() => setFbOrder(o)}
-                            style={{ padding: "8px 20px", background: "rgba(255,224,115,0.14)", color: "#ffe073", border: `1px solid ${G}66`, borderRadius: 6, cursor: "pointer", fontWeight: 700, fontSize: 12, fontFamily: "system-ui,sans-serif" }}>
+                            style={{ padding: "8px 20px", background: "rgba(255,224,115,0.14)", color: G, border: `1px solid ${G}66`, borderRadius: 6, cursor: "pointer", fontWeight: 700, fontSize: 12, fontFamily: "system-ui,sans-serif" }}>
                             ✏️ Sửa đánh giá
                           </button>
                         )}
@@ -1786,11 +1786,11 @@ function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, se
   const rangeHasConflict = rangeConflictDates.length > 0;
 
   const statusStyle = (st, isStart, isInRange, isEnd, isRangeConflict) => {
-    if (st === "past") return { bg:"transparent", border:"transparent", color:"#333", cursor:"default", shadow:"none", fw:400 };
-    if (st === "full") return { bg:"#1a0505", border:"#cc333344", color:"#cc3333", cursor:"not-allowed", shadow:"none", fw:400 };
-    if (isStart) return { bg:G+"33", border: rangeHasConflict ? "#cc3333" : G, color: rangeHasConflict ? "#e87878" : G, cursor:"pointer", shadow: rangeHasConflict ? `0 0 0 2px #cc333344` : `0 0 0 2px ${G}55, 0 0 16px ${G}44`, fw:800 };
+    if (st === "past") return { bg:"transparent", border:"transparent", color:"#555", cursor:"default", shadow:"none", fw:400 };
+    if (st === "full") return { bg:"#1a0505", border:"#ef444444", color:"#ef4444", cursor:"not-allowed", shadow:"none", fw:400 };
+    if (isStart) return { bg:G+"33", border: rangeHasConflict ? "#ef4444" : G, color: rangeHasConflict ? "#f87171" : G, cursor:"pointer", shadow: rangeHasConflict ? `0 0 0 2px #ef444444` : `0 0 0 2px ${G}55, 0 0 16px ${G}44`, fw:800 };
     if (isEnd)   return { bg:G+"22", border:G+"bb", color:G, cursor:"pointer", shadow:`0 0 0 1px ${G}44, 0 0 10px ${G}33`, fw:700 };
-    if (isRangeConflict) return { bg:"#1a0505", border:"#cc333366", color:"#cc3333", cursor:"not-allowed", shadow:"none", fw:600 };
+    if (isRangeConflict) return { bg:"#1a0505", border:"#ef444466", color:"#ef4444", cursor:"not-allowed", shadow:"none", fw:600 };
     if (isInRange) return { bg:"#1f1600", border:G+"55", color:G+"cc", cursor:"pointer", shadow:"none", fw:500 };
     if (st === "low") return { bg:"#120a00", border:"#f59e0b44", color:"#f59e0b", cursor:"pointer", shadow:"none", fw:400 };
     return { bg:"#0d0d0d", border:BR, color:TXT, cursor:"pointer", shadow:"none", fw:400 };
@@ -1850,8 +1850,8 @@ function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, se
               style={{ textAlign:"center", padding:"6px 2px", borderRadius:5, background:bg, border:`1px solid ${border}`, color, cursor, fontSize:11, fontFamily:"system-ui,sans-serif", fontWeight: (isStart||isEnd||isInRange) ? fw : (isToday ? 700 : 400), position:"relative", transition:"all .1s", userSelect:"none", boxShadow: shadow }}>
               {day}
               {isToday && !isStart && !isEnd && <div style={{ position:"absolute", bottom:2, left:"50%", transform:"translateX(-50%)", width:3, height:3, borderRadius:"50%", background:G }} />}
-              {(st === "full" || isRangeConflict) && <div style={{ position:"absolute", bottom:2, left:"50%", transform:"translateX(-50%)", fontSize:6, color:"#cc3333" }}>✕</div>}
-              {isStart && <div style={{ position:"absolute", bottom:1, left:"50%", transform:"translateX(-50%)", fontSize:7, color: rangeHasConflict ? "#cc3333" : G, fontWeight:700 }}>▶</div>}
+              {(st === "full" || isRangeConflict) && <div style={{ position:"absolute", bottom:2, left:"50%", transform:"translateX(-50%)", fontSize:6, color:"#ef4444" }}>✕</div>}
+              {isStart && <div style={{ position:"absolute", bottom:1, left:"50%", transform:"translateX(-50%)", fontSize:7, color: rangeHasConflict ? "#ef4444" : G, fontWeight:700 }}>▶</div>}
               {isEnd && !rangeHasConflict && <div style={{ position:"absolute", bottom:1, left:"50%", transform:"translateX(-50%)", fontSize:7, color:G, fontWeight:700 }}>◀</div>}
             </div>
           );
@@ -1860,7 +1860,7 @@ function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, se
 
       {/* Range conflict warning */}
       {rangeHasConflict && (
-        <div style={{ marginTop:10, padding:"9px 12px", background:"#1a0505", border:"1px solid #cc333366", borderRadius:8, display:"flex", alignItems:"center", gap:8 }}>
+        <div style={{ marginTop:10, padding:"9px 12px", background:"#1a0505", border:"1px solid #ef444466", borderRadius:8, display:"flex", alignItems:"center", gap:8 }}>
           <span style={{ fontSize:14 }}>⚠️</span>
           <span style={{ color:"#ef4444", fontSize:11, fontFamily:"system-ui,sans-serif" }}>
             Máy hết vào ngày <strong>{rangeConflictDates.map(d => d.split("-")[2]+"/"+d.split("-")[1]).join(", ")}</strong> trong khoảng thuê này — vui lòng chọn ngày khác.
@@ -1870,7 +1870,7 @@ function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, se
 
       {/* Legend */}
       <div style={{ display:"flex", gap:12, marginTop:10, flexWrap:"wrap" }}>
-        {[["#0d0d0d",BR,TXT,"Trống"],["#120a00","#f59e0b44","#f59e0b","Còn ít"],["#1a0505","#cc333344","#cc3333","Hết máy"],[G+"33",G,G,"Đang chọn"]].map(([bg,bd,col,lbl])=>(
+        {[["#0d0d0d",BR,TXT,"Trống"],["#120a00","#f59e0b44","#f59e0b","Còn ít"],["#1a0505","#ef444444","#ef4444","Hết máy"],[G+"33",G,G,"Đang chọn"]].map(([bg,bd,col,lbl])=>(
           <div key={lbl} style={{ display:"flex", alignItems:"center", gap:4 }}>
             <div style={{ width:10, height:10, borderRadius:2, background:bg, border:`1px solid ${bd}` }} />
             <span style={{ color:MUT, fontSize:9, fontFamily:"system-ui,sans-serif" }}>{lbl}</span>
@@ -2449,11 +2449,11 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                     const multiplier = days === 0.5 ? 1 : days;
                     const lineTotal = days > 0 ? unitPrice * qty * multiplier : 0;
                     return (
-                      <div key={a.id} style={{ border:`1px solid ${isOutOfStock ? "#cc333344" : isSel ? G+"55" : "#1e1e1e"}`, borderRadius:10, padding:"10px 13px", background: isOutOfStock ? "#0d0505" : isSel ? "#0a0900" : "#0d0d0d", transition:"all .2s", opacity: totalCamSelected > 0 ? 1 : 0.45 }}>
+                      <div key={a.id} style={{ border:`1px solid ${isOutOfStock ? "#ef444444" : isSel ? G+"55" : "#1e1e1e"}`, borderRadius:10, padding:"10px 13px", background: isOutOfStock ? "#0d0505" : isSel ? "#0a0900" : "#0d0d0d", transition:"all .2s", opacity: totalCamSelected > 0 ? 1 : 0.45 }}>
                         <div style={{ display:"flex", alignItems:"center", gap:10, cursor: canAdd ? "pointer" : "not-allowed" }} onClick={() => canAdd && toggleAcc(a.name)}>
-                          <div style={{ width:18, height:18, borderRadius:4, border:`2px solid ${isOutOfStock ? "#cc3333" : isSel ? G : "#333"}`, background: isOutOfStock ? "#cc333322" : isSel ? G : "transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all .2s" }}>
+                          <div style={{ width:18, height:18, borderRadius:4, border:`2px solid ${isOutOfStock ? "#ef4444" : isSel ? G : "#333"}`, background: isOutOfStock ? "#ef444422" : isSel ? G : "transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all .2s" }}>
                             {isOutOfStock
-                              ? <span style={{ color:"#cc3333", fontSize:10, fontWeight:900, lineHeight:1 }}>✕</span>
+                              ? <span style={{ color:"#ef4444", fontSize:10, fontWeight:900, lineHeight:1 }}>✕</span>
                               : isSel && <span style={{ color:"#000", fontSize:11, fontWeight:900, lineHeight:1 }}>✓</span>
                             }
                           </div>
@@ -2461,21 +2461,21 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                             <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
                               <span style={{ color: isOutOfStock ? "#666" : isSel ? TXT : "#888", fontSize:13, fontFamily:"system-ui,sans-serif", textDecoration: isOutOfStock ? "line-through" : "none" }}>{a.name}</span>
                               {isOutOfStock && (
-                                <span style={{ background:"#cc333322", color:"#cc3333", border:"1px solid #cc333355", borderRadius:4, padding:"1px 6px", fontSize:9, fontWeight:700, fontFamily:"system-ui,sans-serif", letterSpacing:.5 }}>HẾT</span>
+                                <span style={{ background:"#ef444422", color:"#ef4444", border:"1px solid #ef444455", borderRadius:4, padding:"1px 6px", fontSize:9, fontWeight:700, fontFamily:"system-ui,sans-serif", letterSpacing:.5 }}>HẾT</span>
                               )}
                               {isLowStock && !isOutOfStock && (
                                 <span style={{ background:"#f59e0b22", color:"#f59e0b", border:"1px solid #f59e0b55", borderRadius:4, padding:"1px 6px", fontSize:9, fontWeight:700, fontFamily:"system-ui,sans-serif", letterSpacing:.5 }}>CÒN {availStock}</span>
                               )}
                             </div>
-                            {a.desc && <div style={{ color:"#444", fontSize:10, marginTop:1, fontFamily:"system-ui,sans-serif" }}>{a.desc}</div>}
+                            {a.desc && <div style={{ color:"#666", fontSize:10, marginTop:1, fontFamily:"system-ui,sans-serif" }}>{a.desc}</div>}
                             {isOutOfStock && pickDate && (
-                              <div style={{ color:"#cc333388", fontSize:9, marginTop:2, fontFamily:"system-ui,sans-serif" }}>Không còn trong ngày / ca này</div>
+                              <div style={{ color:"#ef444488", fontSize:9, marginTop:2, fontFamily:"system-ui,sans-serif" }}>Không còn trong ngày / ca này</div>
                             )}
                           </div>
                           <span style={{ color: isOutOfStock ? "#555" : G, fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif", flexShrink:0 }}>
                             {fmtVND(unitPrice)}/{days === 0.5 ? "buổi" : "ngày"}
                             {days === 0.5 && (
-                              <span style={{ color:"#555", fontSize:9, fontWeight:400, marginLeft:4 }}>({fmtVND(a.price)}/ngày)</span>
+                              <span style={{ color:"#777", fontSize:9, fontWeight:400, marginLeft:4 }}>({fmtVND(a.price)}/ngày)</span>
                             )}
                           </span>
                         </div>
@@ -2506,7 +2506,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 
               {/* ── THỜI GIAN THUÊ — trải full width ── */}
               <div style={{ marginBottom:16 }}>
-                <div style={{ color:"#555", fontSize:9, letterSpacing:1.5, marginBottom:8, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>THỜI GIAN THUÊ</div>
+                <div style={{ color:"#777", fontSize:9, letterSpacing:1.5, marginBottom:8, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>THỜI GIAN THUÊ</div>
                 <div style={{ display:"grid", gridTemplateColumns:`repeat(3,1fr)`, gap:6, marginBottom:14 }}>
                   {DURATIONS.map(d => {
                     const active = selDur?.days === d.days && selDur?.session === d.session;
@@ -2537,7 +2537,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 
                 {/* Nhập số ngày tuỳ chỉnh */}
                 <div style={{ marginBottom:14 }}>
-                  <div style={{ color:"#555", fontSize:9, letterSpacing:1.5, marginBottom:6, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>HOẶC NHẬP SỐ NGÀY (≥1, session = cả ngày)</div>
+                  <div style={{ color:"#777", fontSize:9, letterSpacing:1.5, marginBottom:6, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>HOẶC NHẬP SỐ NGÀY (≥1, session = cả ngày)</div>
                   <div style={{ position:"relative" }}>
                     <input style={{ ...inpS, paddingRight:50 }} type="number" min={1} value={customDays}
                       onChange={e => { setCustomDays(e.target.value); setSelDur(null); }} placeholder="VD: 5" />
@@ -2550,7 +2550,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               <div style={{ display:"flex", flexDirection:"column", gap:12, marginBottom:18 }}>
                 {/* Calendar */}
                 <div>
-                  <div style={{ color:"#555", fontSize:9, letterSpacing:1.5, marginBottom:8, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>CHỌN NGÀY BẮT ĐẦU</div>
+                  <div style={{ color:"#777", fontSize:9, letterSpacing:1.5, marginBottom:8, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>CHỌN NGÀY BẮT ĐẦU</div>
                   <div style={{ position:"relative" }}>
                     <BookingCalendar
                       selectedCams={selectedCamList.map(c => ({ id:c.id, qty:selCams[c.id] || 1, camQty:c.qty || 1 }))}
@@ -2772,7 +2772,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                       )}
                       {/* Tổng tiền */}
                       <div style={{ paddingTop:12, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                        <span style={{ color:"#555", fontSize:9, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>TỔNG CỘNG</span>
+                        <span style={{ color:"#777", fontSize:9, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>TỔNG CỘNG</span>
                         <div style={{ textAlign:"right" }}>
                           {appliedDiscount && (
                             <>
@@ -2792,7 +2792,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               <style>{`
                 .bk-inp:focus { border-color: rgba(201,168,76,0.6) !important; box-shadow: 0 0 0 3px rgba(201,168,76,0.12) !important; }
                 .bk-inp::placeholder { color: #444; }
-                .bk-inp { caret-color: #c9a84c; }
+                .bk-inp { caret-color: #c8daea; }
                 .bk-disc-body { overflow: hidden; transition: max-height .3s ease, opacity .3s ease; }
                 .bk-disc-body.open { max-height: 100px; opacity: 1; }
                 .bk-disc-body.closed { max-height: 0; opacity: 0; }
@@ -2808,7 +2808,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                 .bk-next::before {
                   content: '';
                   position: absolute; inset: 0;
-                  background: #c9a84c;
+                  background: #c8daea;
                   transform: translateX(-101%);
                   transition: transform .38s cubic-bezier(.4,0,.2,1);
                   z-index: 0;
@@ -2865,7 +2865,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                           style={{ background:"none", border:"none", color:"#555", cursor:"pointer", fontSize:14, padding:"0 2px", lineHeight:1 }}>✕</button>
                       </div>
                     ) : (
-                      <span style={{ color:"#444", fontSize:16, lineHeight:1, transition:"transform .3s", display:"inline-block", transform: discountExpanded ? "rotate(180deg)" : "rotate(0deg)" }}>⌄</span>
+                      <span style={{ color:"#666", fontSize:16, lineHeight:1, transition:"transform .3s", display:"inline-block", transform: discountExpanded ? "rotate(180deg)" : "rotate(0deg)" }}>⌄</span>
                     )}
                   </div>
 
@@ -2928,7 +2928,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"min(660px,100vw)", background:"linear-gradient(to top,#060606 88%,transparent)", padding:"14px 18px 18px", zIndex:999, boxSizing:"border-box" }}>
                 {/* BUG FIX 2: Lỗi validate kho */}
                 {submitError && (
-                  <div style={{ marginBottom:8, padding:"9px 14px", background:"#1a0505", border:"1px solid #cc333366", borderRadius:9, color:"#ef4444", fontSize:12, fontFamily:"system-ui,sans-serif", lineHeight:1.5 }}>
+                  <div style={{ marginBottom:8, padding:"9px 14px", background:"#1a0505", border:"1px solid #ef444466", borderRadius:9, color:"#ef4444", fontSize:12, fontFamily:"system-ui,sans-serif", lineHeight:1.5 }}>
                     {submitError}
                   </div>
                 )}
@@ -3024,7 +3024,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                 const x = 5 + (i * 7) % 90;
                 const delay = (i * 0.18).toFixed(2);
                 const size = 4 + (i % 5) * 2;
-                const colors = [G, "#fff", G+"99", "#c8b06a", "#fff8e1"];
+                const colors = [G, "#fff", G+"99", "#a0b8cc", "#fff8e1"];
                 return (
                   <div key={i} style={{
                     position:"absolute", left:`${x}%`, top: 20 + (i % 4) * 18,
@@ -3545,7 +3545,7 @@ function StatCard({ icon, num, label, delay = 0 }) {
       {/* Glow backdrop */}
       <div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse at 50% 18%, rgba(235,248,255,0.16) 0%, rgba(158,213,248,0.08) 35%, transparent 72%)", pointerEvents:"none" }} />
       <div style={{ color: "rgba(255,224,113,0.92)", opacity: 1, filter: "drop-shadow(0 2px 12px rgba(11,42,74,0.45))", position:"relative" }}>{icon}</div>
-      <div style={{ fontSize: 40, fontWeight: 800, color: "#ffe073", fontFamily: "system-ui,sans-serif", lineHeight: 1, letterSpacing: -1, textShadow: "0 2px 14px rgba(7,34,62,0.72), 0 0 16px rgba(255,224,113,0.22)", position:"relative" }}>{display}</div>
+      <div style={{ fontSize: 40, fontWeight: 800, color: G, fontFamily: "system-ui,sans-serif", lineHeight: 1, letterSpacing: -1, textShadow: "0 2px 14px rgba(7,34,62,0.72), 0 0 16px rgba(255,224,113,0.22)", position:"relative" }}>{display}</div>
       <div style={{ fontSize: 10.5, color: "rgba(245,251,255,0.88)", letterSpacing: 3, fontWeight: 700, textShadow: "0 1px 8px rgba(7,34,62,0.72)", fontFamily: "system-ui,sans-serif", position:"relative" }}>{label.toUpperCase()}</div>
     </div>
   );
@@ -3641,7 +3641,7 @@ function HeroTagline({ isMobile }) {
   const FULL_TEXT = "Trải nghiệm máy ảnh · Bắt trọn khoảnh khắc";
   const { displayed, done } = useTypewriter(FULL_TEXT, 52, 600);
   return (
-    <div style={{ marginTop: 20, marginBottom: 32, fontSize: isMobile ? 14 : 18, letterSpacing: isMobile ? 2 : 3, color: isMobile ? "rgba(245,251,255,0.94)" : "#edf7ff", fontFamily: 'var(--font-display)', fontStyle: "italic", fontWeight: isMobile ? 500 : 300, lineHeight: 2, textShadow: isMobile ? "0 2px 12px rgba(5,26,48,0.72)" : "0 1px 8px rgba(0,0,0,0.8)" }}>
+    <div style={{ marginTop: 20, marginBottom: 32, fontSize: isMobile ? 14 : 18, letterSpacing: isMobile ? 2 : 3, color: "#fff", fontFamily: 'var(--font-display)', fontStyle: "italic", fontWeight: isMobile ? 600 : 300, lineHeight: 2, textShadow: "0 1px 3px rgba(2,10,24,1), 0 3px 10px rgba(2,10,24,0.95), 0 6px 22px rgba(2,10,24,0.8)" }}>
       <span className="text-type">{displayed}</span>
       <span className={`text-type__cursor${done ? " text-type__cursor--hidden" : ""}`}>|</span>
     </div>
@@ -3811,7 +3811,8 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
 
       {/* HERO */}
       <div style={{ height: "100vh", position: "relative", overflow: "hidden", userSelect: "none" }}>
-        {isMobile && <div style={{ position: "absolute", inset: 0, zIndex: 2, pointerEvents: "none", background: "linear-gradient(90deg, rgba(8,31,54,0.84) 0%, rgba(18,55,88,0.66) 48%, rgba(42,97,139,0.24) 76%, rgba(80,145,196,0.04) 100%)" }} />}
+        {/* Gradient trái tối — che sau text, fade hoàn toàn ở phải, ko làm mờ nền */}
+        {isMobile && <div style={{ position: "absolute", inset: 0, zIndex: 2, pointerEvents: "none", background: "linear-gradient(90deg, rgba(4,16,36,0.78) 0%, rgba(6,22,48,0.52) 42%, rgba(12,38,72,0.18) 68%, transparent 88%)" }} />}
 
         {/* ── Camera specs top-right ── */}
         {!isMobile && <div style={{ position: "absolute", top: 100, right: 48, textAlign: "right", zIndex: 4 }}>
@@ -3832,20 +3833,20 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         {/* ── Camera specs bottom-left ── */}
         <div style={{ position: "absolute", bottom: isMobile ? 100 : 56, left: isMobile ? 20 : 48, zIndex: 4 }}>
           {["ISO 400", "F 1.8", "1/50"].map(t => (
-            <div key={t} style={{ fontSize: 11, letterSpacing: 2, color: isMobile ? "rgba(245,251,255,0.86)" : "rgba(230,244,255,0.78)", fontWeight: isMobile ? 700 : 400, textShadow: isMobile ? "0 2px 10px rgba(8,32,56,0.72)" : "0 1px 8px rgba(24,70,112,0.40)", fontFamily: "system-ui,sans-serif", lineHeight: 1.9 }}>{t}</div>
+            <div key={t} style={{ fontSize: 11, letterSpacing: 2, color: isMobile ? "#fff" : "rgba(230,244,255,0.78)", fontWeight: isMobile ? 700 : 400, textShadow: isMobile ? "0 1px 3px rgba(2,10,24,1), 0 3px 10px rgba(2,10,24,0.9)" : "0 1px 8px rgba(24,70,112,0.40)", fontFamily: "system-ui,sans-serif", lineHeight: 1.9 }}>{t}</div>
           ))}
         </div>
 
         {/* ── Hero content — left-aligned ── */}
-        <div style={{ position: "absolute", top: "50%", transform: "translateY(-62%)", left: isMobile ? 16 : 60, right: isMobile ? 16 : "auto", zIndex: 4, maxWidth: isMobile ? "none" : 520, padding: isMobile ? "18px 18px 20px" : 0, borderRadius: isMobile ? 14 : 0, background: isMobile ? "linear-gradient(135deg, rgba(30,73,112,0.58), rgba(9,35,60,0.44))" : "transparent", border: isMobile ? "1px solid rgba(235,248,255,0.18)" : "none", boxShadow: isMobile ? "0 16px 38px rgba(9,34,58,0.26), inset 0 1px 0 rgba(255,255,255,0.14)" : "none", backdropFilter: isMobile ? "blur(8px)" : "none", WebkitBackdropFilter: isMobile ? "blur(8px)" : "none" }}>
+        <div style={{ position: "absolute", top: "50%", transform: "translateY(-62%)", left: isMobile ? 16 : 60, right: isMobile ? 16 : "auto", zIndex: 4, maxWidth: isMobile ? "none" : 520, padding: isMobile ? "10px 4px 16px" : 0, background: "transparent", border: "none", boxShadow: "none" }}>
 
           {/* Logo dùng component chuẩn */}
-          <div style={{ filter: isMobile ? "drop-shadow(0 2px 12px rgba(6,28,50,0.72))" : "drop-shadow(0 2px 14px rgba(0,0,0,0.45))" }}>
+          <div style={{ filter: "drop-shadow(0 2px 8px rgba(2,10,24,0.95)) drop-shadow(0 4px 20px rgba(2,10,24,0.8)) drop-shadow(0 0 40px rgba(2,10,24,0.6))" }}>
             <Logo light={true} size={isMobile ? 1.6 : 2.4} />
           </div>
 
           {/* Label — dưới logo */}
-          <div style={{ fontSize: 9.5, letterSpacing: 5, color: isMobile ? "#ffe073" : G, fontFamily: "system-ui,sans-serif", marginTop: 14, opacity: 1, fontWeight: isMobile ? 800 : 600, textShadow: isMobile ? "0 2px 12px rgba(5,26,48,0.72)" : `0 0 12px ${G}66` }}>
+          <div style={{ fontSize: 9.5, letterSpacing: 5, color: "#fff", fontFamily: "system-ui,sans-serif", marginTop: 14, fontWeight: 800, textShadow: "0 1px 0 rgba(2,10,24,1), 0 2px 6px rgba(2,10,24,1), 0 4px 16px rgba(2,10,24,0.9), 0 0 28px rgba(2,10,24,0.8)" }}>
             {isMobile ? <>DỊCH VỤ CHO THUÊ MÁY ẢNH<br/>NÚI THÀNH · TAM KỲ</> : "DỊCH VỤ CHO THUÊ MÁY ẢNH · NÚI THÀNH - TAM KỲ"}
           </div>
 
@@ -3860,9 +3861,9 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         </div>
 
         {/* ── Shooting stars ── */}
-        <div style={{ position: "absolute", top: "8%", right: "18%", width: 120, height: 1.5, background: `linear-gradient(to left, ${G}cc, ${G}44, transparent)`, borderRadius: 2, animation: "shootA 5.5s ease-in 0s infinite", boxShadow: `0 0 6px ${G}88` }} />
-        <div style={{ position: "absolute", top: "14%", right: "32%", width: 80, height: 1, background: `linear-gradient(to left, ${G}99, transparent)`, borderRadius: 2, animation: "shootB 7s ease-in 1.8s infinite" }} />
-        <div style={{ position: "absolute", top: "6%", right: "8%", width: 55, height: 1, background: `linear-gradient(to left, #c8703388, transparent)`, borderRadius: 2, animation: "shootC 9s ease-in 3.2s infinite" }} />
+        <div style={{ position: "absolute", top: "8%", right: "18%", width: 120, height: 1.5, background: "linear-gradient(to left, rgba(180,220,255,0.9), rgba(180,220,255,0.3), transparent)", borderRadius: 2, animation: "shootA 5.5s ease-in 0s infinite", boxShadow: "0 0 6px rgba(180,220,255,0.6)" }} />
+        <div style={{ position: "absolute", top: "14%", right: "32%", width: 80, height: 1, background: "linear-gradient(to left, rgba(255,255,255,0.85), transparent)", borderRadius: 2, animation: "shootB 7s ease-in 1.8s infinite" }} />
+        <div style={{ position: "absolute", top: "6%", right: "8%", width: 55, height: 1, background: "linear-gradient(to left, rgba(200,230,255,0.7), transparent)", borderRadius: 2, animation: "shootC 9s ease-in 3.2s infinite" }} />
 
       </div>
 
@@ -4543,7 +4544,7 @@ function RentalCalendar({ orders, cameras }) {
           const { hasLow: hasFullCam, allFull } = avail;
           return (
             <div key={day} onClick={() => setSelDay(isSel ? null : day)}
-              style={{ minHeight:60, borderRadius:6, background: isSel ? "#1a1500" : allFull ? "#160505" : "#0d0d0d", border:`1px solid ${isSel ? G : isToday ? G+"55" : allFull ? "#cc333333" : BR}`, padding:"6px 8px", cursor:"pointer", transition:"border .15s", opacity: isPast && !dayOrders.length ? 0.4 : 1 }}>
+              style={{ minHeight:60, borderRadius:6, background: isSel ? "#1a1500" : allFull ? "#160505" : "#0d0d0d", border:`1px solid ${isSel ? G : isToday ? G+"55" : allFull ? "#ef444433" : BR}`, padding:"6px 8px", cursor:"pointer", transition:"border .15s", opacity: isPast && !dayOrders.length ? 0.4 : 1 }}>
               <div style={{ fontSize:11, fontWeight: isToday ? 700 : 400, color: isToday ? G : TXT, fontFamily:"system-ui,sans-serif", marginBottom:4 }}>
                 {day}{isToday && <span style={{ fontSize:7, marginLeft:3, color:G }}>●</span>}
               </div>
@@ -4555,7 +4556,7 @@ function RentalCalendar({ orders, cameras }) {
                 {dayOrders.length > 6 && <span style={{ fontSize:8, color:MUT, lineHeight:"8px" }}>+{dayOrders.length-6}</span>}
               </div>
               {allFull && !isPast && (
-                <div style={{ fontSize:7, color:"#cc3333", fontWeight:700, fontFamily:"system-ui,sans-serif", marginTop:2, letterSpacing:0.5 }}>HẾT</div>
+                <div style={{ fontSize:7, color:"#ef4444", fontWeight:700, fontFamily:"system-ui,sans-serif", marginTop:2, letterSpacing:0.5 }}>HẾT</div>
               )}
               {!allFull && hasFullCam && !isPast && (
                 <div style={{ fontSize:7, color:"#f59e0b", fontWeight:700, fontFamily:"system-ui,sans-serif", marginTop:2, letterSpacing:0.5 }}>CÒN ÍT</div>
@@ -4682,7 +4683,7 @@ function AdminNoteEditor({ order, setOrders }) {
               Huỷ
             </button>
             {hasNote && <button onClick={() => { setDraft(""); setOrders(p => p.map(x => x.id === order.id ? { ...x, adminNote: "" } : x)); setEditing(false); }}
-              style={{ padding: "6px 12px", background: "transparent", border: "1px solid #cc333333", color: RED, borderRadius: 6, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", marginLeft: "auto" }}>
+              style={{ padding: "6px 12px", background: "transparent", border: "1px solid #ef444433", color: RED, borderRadius: 6, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", marginLeft: "auto" }}>
               Xoá ghi chú
             </button>}
           </div>
@@ -5723,7 +5724,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                     <div>
                       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4 }}>
-                        <span style={{ color: G, fontSize: 14 }}>{"★".repeat(f.rating)}<span style={{ color: "#2a2a2a" }}>{"★".repeat(5 - f.rating)}</span></span>
+                        <span style={{ color: G, fontSize: 14 }}>{"★".repeat(f.rating)}<span style={{ color: "#3a3a3a" }}>{"★".repeat(5 - f.rating)}</span></span>
                         {f.hidden && <span style={{ background: "#44444422", color: "#888", borderRadius: 99, padding: "1px 8px", fontSize: 9, fontWeight: 700 }}>HIDDEN</span>}
                       </div>
                       <div style={{ color: TXT, fontWeight: 600, fontSize: 13 }}>{f.userName}</div>
@@ -6007,7 +6008,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                   <div style={{ marginBottom: 13 }}>
                     <div style={{ color: MUT, fontSize: 10, marginBottom: 4, letterSpacing: 1 }}>LINK ZALO OA / ZALO CÁ NHÂN</div>
                     <input style={inp2} value={siteContent.zaloLink || ""} onChange={e => setSiteContent(p => ({ ...p, zaloLink: e.target.value }))} placeholder="https://zalo.me/0901234567" />
-                    <div style={{ color: "#333", fontSize: 10, marginTop: 4 }}>VD: https://zalo.me/0901234567 hoặc link OA của shop</div>
+                    <div style={{ color: "#666", fontSize: 10, marginTop: 4 }}>VD: https://zalo.me/0901234567 hoặc link OA của shop</div>
                   </div>
 
                   <div style={{ marginBottom: 16 }}>
@@ -6027,7 +6028,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                         <label style={{ display: "block", border: `2px dashed ${G}44`, borderRadius: 8, padding: "18px 0", textAlign: "center", cursor: "pointer", background: "#0a0900", color: MUT, fontSize: 12 }}>
                           <div style={{ fontSize: 28, marginBottom: 6 }}>📷</div>
                           <div>Nhấn để upload ảnh QR</div>
-                          <div style={{ fontSize: 10, color: "#333", marginTop: 4 }}>PNG / JPG · Khuyên dùng QR vuông</div>
+                          <div style={{ fontSize: 10, color: "#666", marginTop: 4 }}>PNG / JPG · Khuyên dùng QR vuông</div>
                           <input type="file" accept="image/*" style={{ display: "none" }} onChange={async e => {
                             const file = e.target.files[0]; if (!file) return;
                             const compressed = await compressImage(file, 600, 0.9);
@@ -6451,7 +6452,7 @@ class AppErrorBoundary extends Component {
           <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
           <div style={{ color: "#c9a84c", fontSize: 18, fontWeight: 700, marginBottom: 8, letterSpacing: 1 }}>92 KA MÊ RA</div>
           <div style={{ color: "#888", fontSize: 13, marginBottom: 24, lineHeight: 1.7 }}>Đã xảy ra lỗi giao diện.<br />Vui lòng tải lại trang.</div>
-          <div style={{ color: "#333", fontSize: 11, fontFamily: "monospace", background: "#111", border: "1px solid #222", borderRadius: 6, padding: "10px 14px", marginBottom: 20, textAlign: "left", wordBreak: "break-all" }}>
+          <div style={{ color: "#888", fontSize: 11, fontFamily: "monospace", background: "#111", border: "1px solid #222", borderRadius: 6, padding: "10px 14px", marginBottom: 20, textAlign: "left", wordBreak: "break-all" }}>
             {this.state.err?.message || String(this.state.err)}
           </div>
           <button onClick={() => window.location.reload()} style={{ padding: "10px 28px", background: "#c9a84c", color: "#000", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
@@ -6582,7 +6583,7 @@ function SplashScreen({ onDone }) {
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 9999,
-      background: "#060606",
+      background: "linear-gradient(135deg, #0a1f3a 0%, #061426 100%)",
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       pointerEvents: "none", overflow: "hidden",
       ...irisStyle,
@@ -6667,7 +6668,7 @@ function SplashScreen({ onDone }) {
 
       {/* Tagline */}
       <div style={{
-        color: "#a09070",
+        color: "#8090a8",
         fontSize: isMob ? 9 : 10,
         letterSpacing: isMob ? 4 : 6,
         fontFamily: "system-ui,sans-serif",
@@ -6860,7 +6861,12 @@ function AppRoot() {
 
   // useCallback giữ reference ổn định → SplashScreen's useEffect([]) không restart
   const handleSplashDone = useCallback(() => setSplashDone(true), []);
-  if (!splashDone) return <SplashScreen onDone={handleSplashDone} />;
+  if (!splashDone) return (
+    <>
+      <FlowBg />
+      <SplashScreen onDone={handleSplashDone} />
+    </>
+  );
   if (!ready) return (
     <div style={{ minHeight: "100vh", background: BG, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ textAlign: "center" }}>
@@ -7006,21 +7012,21 @@ function AppRoot() {
           100% { left: 200%;  opacity: 0; }
         }
         @keyframes liqGlow{
-          0%,100% { box-shadow: 0 0 18px rgba(201,168,76,0.55), 0 0 38px rgba(201,168,76,0.2), 0 4px 18px rgba(0,0,0,0.45); }
-          50%      { box-shadow: 0 0 30px rgba(220,185,80,0.8),  0 0 60px rgba(201,168,76,0.35), 0 4px 18px rgba(0,0,0,0.45); }
+          0%,100% { box-shadow: 0 0 18px rgba(140,200,240,0.55), 0 0 38px rgba(100,170,220,0.2), 0 4px 18px rgba(0,0,0,0.45); }
+          50%      { box-shadow: 0 0 30px rgba(160,215,255,0.8),  0 0 60px rgba(120,185,235,0.35), 0 4px 18px rgba(0,0,0,0.45); }
         }
         .btn-3d{
           position: relative;
           overflow: hidden;
           background: linear-gradient(
             120deg,
-            #c39a30 0%, #e7bd47 18%, #ffe179 32%,
-            #e8bf4d 48%, #f6d56c 60%, #d1a237 75%,
-            #eac35a 88%, #b98b29 100%
+            #4a7fa8 0%, #6aaad4 18%, #a8d4f0 32%,
+            #6ab0d8 48%, #8ec8e8 60%, #4a90b8 75%,
+            #72b8dc 88%, #3a6e96 100%
           );
           background-size: 280% 280%;
-          color: #142b44;
-          border: 1px solid rgba(255,238,154,0.72);
+          color: #ffffff;
+          border: 1px solid rgba(180,225,255,0.55);
           padding: 10px 22px;
           border-radius: 99px;
           cursor: pointer;
@@ -7028,9 +7034,9 @@ function AppRoot() {
           font-size: 11px;
           letter-spacing: 3px;
           font-family: system-ui,sans-serif;
-          text-shadow: 0 1px 0 rgba(255,255,200,0.45);
+          text-shadow: 0 1px 2px rgba(0,30,60,0.5);
           box-shadow:
-            0 1px 0 rgba(255,240,130,0.4) inset,
+            0 1px 0 rgba(200,235,255,0.4) inset,
             0 -1px 0 rgba(0,0,0,0.3) inset;
           transform: translateY(0);
           transition: transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s, filter .2s;
@@ -7073,17 +7079,17 @@ function AppRoot() {
           transform: translateY(-5px);
           filter: brightness(1.15) saturate(1.2);
           box-shadow:
-            0 1px 0 rgba(255,240,130,0.5) inset,
+            0 1px 0 rgba(200,235,255,0.5) inset,
             0 -1px 0 rgba(0,0,0,0.3) inset,
-            0 0 32px rgba(220,180,50,0.8),
-            0 0 64px rgba(201,168,76,0.35),
+            0 0 32px rgba(100,180,240,0.8),
+            0 0 64px rgba(80,160,220,0.35),
             0 12px 36px rgba(0,0,0,0.5);
         }
         .btn-3d:active{
           transform: translateY(1px);
           filter: brightness(0.95);
           box-shadow:
-            0 0 14px rgba(201,168,76,0.4),
+            0 0 14px rgba(100,180,240,0.4),
             0 2px 10px rgba(0,0,0,0.4);
         }
 
