@@ -661,14 +661,14 @@ function LensBackground({ isMob }) {
       <div style={{
         position: "absolute", inset: 0,
         background: isMob
-          ? "linear-gradient(to right, rgba(86,136,181,0.22) 0%, rgba(116,166,208,0.12) 45%, rgba(141,193,232,0.03) 100%)"
-          : "linear-gradient(to right, rgba(83,132,177,0.20) 0%, rgba(119,166,205,0.10) 25%, rgba(157,207,240,0.03) 50%, rgba(181,222,248,0.00) 74%)",
+          ? "linear-gradient(to right, rgba(86,136,181,0.10) 0%, rgba(116,166,208,0.04) 45%, transparent 100%)"
+          : "linear-gradient(to right, rgba(83,132,177,0.07) 0%, rgba(119,166,205,0.03) 35%, transparent 60%)",
         pointerEvents: "none",
       }} />
 
       <div style={{
         position: "absolute", inset: 0,
-        background: "linear-gradient(to bottom, rgba(18,50,82,0.24) 0%, rgba(30,75,115,0.08) 26%, rgba(30,75,115,0.06) 72%, rgba(32,78,120,0.22) 100%)",
+        background: "linear-gradient(to bottom, rgba(18,50,82,0.10) 0%, rgba(30,75,115,0.03) 26%, rgba(30,75,115,0.03) 72%, rgba(32,78,120,0.10) 100%)",
         pointerEvents: "none",
       }} />
 
@@ -2136,6 +2136,30 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   };
 
   const overlay = { position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.92)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px", overflowY: "auto" };
+  // inject keyframe 1 lần
+  if (typeof document !== "undefined" && !document.getElementById("cam-border-run-kf")) {
+    const s = document.createElement("style");
+    s.id = "cam-border-run-kf";
+    s.textContent = `
+      @keyframes camGlowPulse {
+        0%, 100% {
+          box-shadow:
+            0 0 0 2px #c8daea,
+            0 0 8px 2px rgba(200,218,234,0.9),
+            0 0 20px 6px rgba(200,218,234,0.55),
+            0 0 45px 14px rgba(200,218,234,0.25);
+        }
+        50% {
+          box-shadow:
+            0 0 0 2.5px #ffffff,
+            0 0 12px 4px rgba(235,248,255,1),
+            0 0 32px 10px rgba(200,218,234,0.8),
+            0 0 70px 22px rgba(200,218,234,0.35);
+        }
+      }
+    `;
+    document.head.appendChild(s);
+  }
   const box = { background: "#080808", border: `1px solid ${BR}`, borderRadius: 14, padding: "min(20px, 3vw)", width: step === 1 ? "min(500px,96vw)" : step === 2 ? "min(660px,96vw)" : "min(660px,96vw)", position: "relative", margin: "auto", transition: "width .3s" };
   const inpS = { padding: "11px 14px", background: "#0e0e0e", border: `1px solid ${BR}`, borderRadius: 8, color: TXT, fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "system-ui,sans-serif", transition: "border .2s" };
   const qtyBtn = (onClick, label) => (
@@ -2240,12 +2264,14 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                   const isPopular = CAM_POPULAR.includes(c.name);
                   return (
                     <div key={c.id} style={{
-                      border: `1px solid ${isSelected ? G : "#3a3a3a"}`,
+                      border: isSelected ? "2px solid #c8daea" : "1px solid #3a3a3a",
                       borderRadius: 12,
                       background: "#111",
-                      transition: "all .2s",
+                      transition: "all .25s",
                       overflow: "hidden",
                       position: "relative",
+                      animation: isSelected ? "camGlowPulse 2s ease-in-out infinite" : "none",
+                      transform: isSelected ? "scale(1.018)" : "scale(1)",
                     }}>
                       {/* Ảnh — full card, tỉ lệ cố định */}
                       <div style={{ position: "relative", width: "100%", paddingTop: "130%", background: "#111", overflow: "hidden" }}>
@@ -2449,7 +2475,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                     const multiplier = days === 0.5 ? 1 : days;
                     const lineTotal = days > 0 ? unitPrice * qty * multiplier : 0;
                     return (
-                      <div key={a.id} style={{ border:`1px solid ${isOutOfStock ? "#ef444444" : isSel ? G+"55" : "#1e1e1e"}`, borderRadius:10, padding:"10px 13px", background: isOutOfStock ? "#0d0505" : isSel ? "#0a0900" : "#0d0d0d", transition:"all .2s", opacity: totalCamSelected > 0 ? 1 : 0.45 }}>
+                      <div key={a.id} style={{ border:`1px solid ${isOutOfStock ? "#ef444444" : isSel ? "#c8daea" : "#1e1e1e"}`, boxShadow: isSel ? "0 0 0 1.5px #c8daea, 0 0 10px 4px rgba(200,218,234,0.55), 0 0 28px 10px rgba(200,218,234,0.2)" : "none", borderRadius:10, padding:"10px 13px", background: isOutOfStock ? "#0d0505" : isSel ? "#0a0900" : "#0d0d0d", transition:"all .2s", opacity: totalCamSelected > 0 ? 1 : 0.45 }}>
                         <div style={{ display:"flex", alignItems:"center", gap:10, cursor: canAdd ? "pointer" : "not-allowed" }} onClick={() => canAdd && toggleAcc(a.name)}>
                           <div style={{ width:18, height:18, borderRadius:4, border:`2px solid ${isOutOfStock ? "#ef4444" : isSel ? G : "#333"}`, background: isOutOfStock ? "#ef444422" : isSel ? G : "transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all .2s" }}>
                             {isOutOfStock
@@ -2512,7 +2538,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                     const active = selDur?.days === d.days && selDur?.session === d.session;
                     return (
                       <button key={d.label} onClick={() => { setSelDur(d); setCustomDays(""); }}
-                        style={{ padding:"11px 4px", background: active ? "#1a1200" : "#111", color: active ? G : "#aaa", border:`1px solid ${active ? G : "#222"}`, borderRadius:8, cursor:"pointer", fontSize:11, fontFamily:"system-ui,sans-serif", fontWeight: active ? 700 : 400, transition:"all .2s", textAlign:"center" }}>
+                        style={{ padding:"11px 4px", background: active ? "#1a1200" : "#111", color: active ? G : "#aaa", border:`1px solid ${active ? "#c8daea" : "#222"}`, boxShadow: active ? "0 0 0 1px #c8daea, 0 0 10px 4px rgba(200,218,234,0.55), 0 0 28px 10px rgba(200,218,234,0.2)" : "none", borderRadius:8, cursor:"pointer", fontSize:11, fontFamily:"system-ui,sans-serif", fontWeight: active ? 700 : 400, transition:"all .2s", textAlign:"center" }}>
                         {d.label}
                         {active && <div style={{ fontSize:9, color:G+"cc", marginTop:3 }}>✓ Đã chọn</div>}
                       </button>
@@ -3544,7 +3570,7 @@ function StatCard({ icon, num, label, delay = 0 }) {
     >
       {/* Glow backdrop */}
       <div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse at 50% 18%, rgba(235,248,255,0.16) 0%, rgba(158,213,248,0.08) 35%, transparent 72%)", pointerEvents:"none" }} />
-      <div style={{ color: "rgba(255,224,113,0.92)", opacity: 1, filter: "drop-shadow(0 2px 12px rgba(11,42,74,0.45))", position:"relative" }}>{icon}</div>
+      <div style={{ color: "rgba(210,235,255,0.90)", opacity: 1, filter: "drop-shadow(0 2px 10px rgba(100,180,240,0.35))", position:"relative" }}>{icon}</div>
       <div style={{ fontSize: 40, fontWeight: 800, color: G, fontFamily: "system-ui,sans-serif", lineHeight: 1, letterSpacing: -1, textShadow: "0 2px 14px rgba(7,34,62,0.72), 0 0 16px rgba(255,224,113,0.22)", position:"relative" }}>{display}</div>
       <div style={{ fontSize: 10.5, color: "rgba(245,251,255,0.88)", letterSpacing: 3, fontWeight: 700, textShadow: "0 1px 8px rgba(7,34,62,0.72)", fontFamily: "system-ui,sans-serif", position:"relative" }}>{label.toUpperCase()}</div>
     </div>
@@ -3641,7 +3667,7 @@ function HeroTagline({ isMobile }) {
   const FULL_TEXT = "Trải nghiệm máy ảnh · Bắt trọn khoảnh khắc";
   const { displayed, done } = useTypewriter(FULL_TEXT, 52, 600);
   return (
-    <div style={{ marginTop: 20, marginBottom: 32, fontSize: isMobile ? 14 : 18, letterSpacing: isMobile ? 2 : 3, color: "#fff", fontFamily: 'var(--font-display)', fontStyle: "italic", fontWeight: isMobile ? 600 : 300, lineHeight: 2, textShadow: "0 1px 3px rgba(2,10,24,1), 0 3px 10px rgba(2,10,24,0.95), 0 6px 22px rgba(2,10,24,0.8)" }}>
+    <div style={{ marginTop: 20, marginBottom: 32, fontSize: isMobile ? 14 : 18, letterSpacing: isMobile ? 2 : 3, color: "#fff", fontFamily: 'var(--font-display)', fontStyle: "italic", fontWeight: isMobile ? 600 : 300, lineHeight: 2, textShadow: "0 1px 4px rgba(2,10,24,0.55), 0 3px 10px rgba(2,10,24,0.35)" }}>
       <span className="text-type">{displayed}</span>
       <span className={`text-type__cursor${done ? " text-type__cursor--hidden" : ""}`}>|</span>
     </div>
@@ -3811,8 +3837,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
 
       {/* HERO */}
       <div style={{ height: "100vh", position: "relative", overflow: "hidden", userSelect: "none" }}>
-        {/* Gradient trái tối — che sau text, fade hoàn toàn ở phải, ko làm mờ nền */}
-        {isMobile && <div style={{ position: "absolute", inset: 0, zIndex: 2, pointerEvents: "none", background: "linear-gradient(90deg, rgba(4,16,36,0.78) 0%, rgba(6,22,48,0.52) 42%, rgba(12,38,72,0.18) 68%, transparent 88%)" }} />}
+
 
         {/* ── Camera specs top-right ── */}
         {!isMobile && <div style={{ position: "absolute", top: 100, right: 48, textAlign: "right", zIndex: 4 }}>
@@ -3833,7 +3858,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         {/* ── Camera specs bottom-left ── */}
         <div style={{ position: "absolute", bottom: isMobile ? 100 : 56, left: isMobile ? 20 : 48, zIndex: 4 }}>
           {["ISO 400", "F 1.8", "1/50"].map(t => (
-            <div key={t} style={{ fontSize: 11, letterSpacing: 2, color: isMobile ? "#fff" : "rgba(230,244,255,0.78)", fontWeight: isMobile ? 700 : 400, textShadow: isMobile ? "0 1px 3px rgba(2,10,24,1), 0 3px 10px rgba(2,10,24,0.9)" : "0 1px 8px rgba(24,70,112,0.40)", fontFamily: "system-ui,sans-serif", lineHeight: 1.9 }}>{t}</div>
+            <div key={t} style={{ fontSize: 11, letterSpacing: 2, color: isMobile ? "#fff" : "rgba(230,244,255,0.78)", fontWeight: isMobile ? 700 : 400, textShadow: isMobile ? "0 1px 4px rgba(2,10,24,0.6)" : "0 1px 8px rgba(24,70,112,0.40)", fontFamily: "system-ui,sans-serif", lineHeight: 1.9 }}>{t}</div>
           ))}
         </div>
 
@@ -3841,12 +3866,12 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         <div style={{ position: "absolute", top: "50%", transform: "translateY(-62%)", left: isMobile ? 16 : 60, right: isMobile ? 16 : "auto", zIndex: 4, maxWidth: isMobile ? "none" : 520, padding: isMobile ? "10px 4px 16px" : 0, background: "transparent", border: "none", boxShadow: "none" }}>
 
           {/* Logo dùng component chuẩn */}
-          <div style={{ filter: "drop-shadow(0 2px 8px rgba(2,10,24,0.95)) drop-shadow(0 4px 20px rgba(2,10,24,0.8)) drop-shadow(0 0 40px rgba(2,10,24,0.6))" }}>
+          <div style={{ filter: "drop-shadow(0 2px 6px rgba(2,10,24,0.55)) drop-shadow(0 0 18px rgba(2,10,24,0.3))" }}>
             <Logo light={true} size={isMobile ? 1.6 : 2.4} />
           </div>
 
           {/* Label — dưới logo */}
-          <div style={{ fontSize: 9.5, letterSpacing: 5, color: "#fff", fontFamily: "system-ui,sans-serif", marginTop: 14, fontWeight: 800, textShadow: "0 1px 0 rgba(2,10,24,1), 0 2px 6px rgba(2,10,24,1), 0 4px 16px rgba(2,10,24,0.9), 0 0 28px rgba(2,10,24,0.8)" }}>
+          <div style={{ fontSize: 9.5, letterSpacing: 5, color: "#fff", fontFamily: "system-ui,sans-serif", marginTop: 14, fontWeight: 800, textShadow: "0 1px 4px rgba(2,10,24,0.6), 0 3px 10px rgba(2,10,24,0.4)" }}>
             {isMobile ? <>DỊCH VỤ CHO THUÊ MÁY ẢNH<br/>NÚI THÀNH · TAM KỲ</> : "DỊCH VỤ CHO THUÊ MÁY ẢNH · NÚI THÀNH - TAM KỲ"}
           </div>
 
