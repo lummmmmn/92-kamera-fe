@@ -7599,12 +7599,13 @@ function SplashScreen({ onDone }) {
 
   const sz = isMob ? 1.45 : 2.2;
   const s  = n => n * sz;
-  const bw = 2.5;
-  const col = G;
+  const bw = 4; // khớp hero (3px × 1.35)
+  const col = "#141414"; // khớp màu chữ hero
 
   // Bracket spread chỉ ở phase 0
   const sp = phase === 0 ? (isMob ? 48 : 65) : 0;
   const brTr = "transform 0.85s cubic-bezier(.16,1,.3,1), opacity 0.7s ease";
+  const bracketColor = "rgba(20,20,20,0.78)"; // khớp hero
 
   // Iris wipe ra khi phase 3
   const irisStyle = phase >= 3
@@ -7614,37 +7615,52 @@ function SplashScreen({ onDone }) {
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 9999,
-      background: BG,
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       pointerEvents: "none", overflow: "hidden",
       ...irisStyle,
     }}>
-
-      {/* Ambient glow */}
+      {/* Lớp 1: gradient nền — khớp hero */}
       <div style={{
-        position: "absolute", top: "50%", left: "50%",
-        transform: "translate(-50%,-50%)",
-        width: isMob ? 360 : 580, height: isMob ? 240 : 360,
-        background: `radial-gradient(ellipse, rgba(139,174,207,${phase >= 1 ? 0.30 : 0.02}) 0%, transparent 70%)`,
-        transition: "background 0.9s ease",
+        position: "absolute", inset: 0,
+        background: `
+          radial-gradient(ellipse 80% 60% at 52% 32%, rgba(110,185,210,0.55) 0%, transparent 60%),
+          radial-gradient(ellipse 60% 50% at 20% 80%, rgba(150,195,215,0.25) 0%, transparent 55%),
+          radial-gradient(ellipse 50% 40% at 85% 15%, rgba(130,175,200,0.20) 0%, transparent 50%),
+          linear-gradient(175deg, #7AAFC0 0%, #9EC4D0 25%, #B8D4DC 55%, #C8DCE4 80%, #BDD0D8 100%)
+        `,
+      }} />
+      {/* Lớp 2: grain noise — khớp hero */}
+      <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.55, pointerEvents: "none" }}>
+        <filter id="splash-grain">
+          <feTurbulence type="fractalNoise" baseFrequency="0.68" numOctaves="4" stitchTiles="stitch" />
+          <feColorMatrix type="saturate" values="0" />
+          <feBlend in="SourceGraphic" mode="overlay" />
+        </filter>
+        <rect width="100%" height="100%" filter="url(#splash-grain)" opacity="0.45" />
+      </svg>
+      {/* Lớp 3: vignette */}
+      <div style={{
+        position: "absolute", inset: 0,
+        background: "radial-gradient(ellipse 90% 90% at 50% 50%, transparent 40%, rgba(8,20,35,0.25) 100%)",
         pointerEvents: "none",
       }} />
 
       {/* LOGO */}
       <div style={{
         display: "inline-flex", alignItems: "center",
-        fontFamily: "var(--font-display)",
+        fontFamily: '"Palatino Linotype","Book Antiqua","Palatino",Georgia,"Times New Roman",serif',
         color: col, userSelect: "none", position: "relative",
         opacity: phase >= 1 ? 1 : 0,
         transform: phase >= 1 ? "scale(1)" : "scale(0.94)",
         transition: "opacity 0.6s ease, transform 0.6s cubic-bezier(.2,.8,.3,1)",
+        filter: "drop-shadow(0 4px 24px rgba(0,0,0,0.08))",
       }}>
         {/* Bracket trái */}
         <div style={{ position: "relative", width: s(13), height: s(32), marginRight: s(9), flexShrink: 0 }}>
           <span style={{
             position: "absolute", top: 0, left: 0,
             width: s(13), height: s(16),
-            borderLeft: `${bw}px solid ${col}`, borderTop: `${bw}px solid ${col}`,
+            borderLeft: `${bw}px solid ${bracketColor}`, borderTop: `${bw}px solid ${bracketColor}`,
             transform: `translate(${-sp}px,${-sp}px)`,
             opacity: phase === 0 ? 0 : 1,
             transition: brTr,
@@ -7652,7 +7668,7 @@ function SplashScreen({ onDone }) {
           <span style={{
             position: "absolute", bottom: 0, left: 0,
             width: s(13), height: s(16),
-            borderLeft: `${bw}px solid ${col}`, borderBottom: `${bw}px solid ${col}`,
+            borderLeft: `${bw}px solid ${bracketColor}`, borderBottom: `${bw}px solid ${bracketColor}`,
             transform: `translate(${-sp}px,${sp}px)`,
             opacity: phase === 0 ? 0 : 1,
             transition: brTr,
@@ -7670,8 +7686,8 @@ function SplashScreen({ onDone }) {
           <span style={{ marginLeft: s(10) }}>RA</span>
           <span style={{
             display: "inline-block", width: s(7), height: s(7), borderRadius: "50%",
-            background: "radial-gradient(circle at 36% 30%, #ff5555 0%, #bb0000 55%, #6a0000 100%)",
-            boxShadow: `0 0 ${s(5)}px rgba(190,0,0,0.75), inset 0 ${s(1)}px 0 rgba(255,170,170,0.4)`,
+            background: "radial-gradient(circle at 38% 34%, #ff5050 0%, #cc0000 52%, #820000 100%)",
+            boxShadow: "0 0 7px rgba(210,0,0,0.72), 0 0 14px rgba(210,0,0,0.32), inset 0 1px 0 rgba(255,155,155,0.5)",
             marginLeft: s(3), flexShrink: 0, position: "relative", top: s(-6),
           }} />
         </span>
@@ -7681,7 +7697,7 @@ function SplashScreen({ onDone }) {
           <span style={{
             position: "absolute", top: 0, right: 0,
             width: s(13), height: s(16),
-            borderRight: `${bw}px solid ${col}`, borderTop: `${bw}px solid ${col}`,
+            borderRight: `${bw}px solid ${bracketColor}`, borderTop: `${bw}px solid ${bracketColor}`,
             transform: `translate(${sp}px,${-sp}px)`,
             opacity: phase === 0 ? 0 : 1,
             transition: brTr,
@@ -7689,7 +7705,7 @@ function SplashScreen({ onDone }) {
           <span style={{
             position: "absolute", bottom: 0, right: 0,
             width: s(13), height: s(16),
-            borderRight: `${bw}px solid ${col}`, borderBottom: `${bw}px solid ${col}`,
+            borderRight: `${bw}px solid ${bracketColor}`, borderBottom: `${bw}px solid ${bracketColor}`,
             transform: `translate(${sp}px,${sp}px)`,
             opacity: phase === 0 ? 0 : 1,
             transition: brTr,
@@ -7699,11 +7715,12 @@ function SplashScreen({ onDone }) {
 
       {/* Tagline */}
       <div style={{
-        color: MUT,
+        color: "#484644",
         fontSize: isMob ? 9 : 10,
         letterSpacing: isMob ? 4 : 6,
-        fontFamily: "system-ui,sans-serif",
+        fontFamily: "var(--font-ui)",
         textTransform: "uppercase",
+        fontWeight: 700,
         marginTop: isMob ? 18 : 26,
         opacity: phase >= 2 ? 1 : 0,
         transform: phase >= 2 ? "translateY(0)" : "translateY(6px)",
@@ -7712,11 +7729,11 @@ function SplashScreen({ onDone }) {
         padding: "0 16px",
       }}>Dịch vụ cho thuê máy ảnh</div>
 
-      {/* Đường vàng */}
+      {/* Đường kẻ */}
       <div style={{
         width: phase >= 2 ? (isMob ? 90 : 130) : 0,
         height: 1,
-        background: "linear-gradient(to right, transparent, rgba(139,174,207,0.70), transparent)",
+        background: "linear-gradient(to right, transparent, rgba(20,20,20,0.35), transparent)",
         marginTop: isMob ? 10 : 14,
         transition: "width 0.5s cubic-bezier(.4,0,.2,1) 0.1s",
       }} />
