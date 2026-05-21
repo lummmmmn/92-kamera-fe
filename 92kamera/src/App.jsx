@@ -3023,10 +3023,18 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                   {accessories.filter(a => a.active !== false).map(a => {
                     const qty = selAcc[a.name] || 0;
                     const isSel = qty > 0;
-                    // Tính tồn kho thực tế theo ngày + ca (giống logic máy ảnh)
+                    // Tính tồn kho thực tế theo TOÀN BỘ khoảng ngày thuê (đồng bộ với nút tiếp tục)
                     const activeOrds = orders.filter(o => !["cancelled","completed"].includes(o.status));
-                    const availStock = pickDate && (selSession || days >= 1)
-                      ? getAccAvailQty(a.name, a.qty || 0, activeOrds, pickDate, selSession || "full")
+                    const sess = selSession || "full";
+                    const accDateRange = (() => {
+                      if (!pickDate || !days) return [];
+                      if (days < 1) return [pickDate];
+                      const arr = [];
+                      for (let i = 0; i < Math.ceil(days); i++) arr.push(dateAddDays(pickDate, i));
+                      return arr;
+                    })();
+                    const availStock = accDateRange.length > 0
+                      ? Math.min(...accDateRange.map(d => getAccAvailQty(a.name, a.qty || 0, activeOrds, d, sess)))
                       : (a.qty || 0);
                     const isOutOfStock = availStock <= 0;
                     const isLowStock = !isOutOfStock && availStock <= 1 && (a.qty || 0) > 1;
@@ -3061,7 +3069,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                             </div>
                             {a.desc && <div style={{ color:MUT, fontSize:10, marginTop:1, fontFamily:"system-ui,sans-serif" }}>{a.desc}</div>}
                             {isOutOfStock && pickDate && (
-                              <div style={{ color:"#cc333388", fontSize:9, marginTop:2, fontFamily:"system-ui,sans-serif" }}>Không còn trong ngày / ca này</div>
+                              <div style={{ color:"#cc333388", fontSize:9, marginTop:2, fontFamily:"system-ui,sans-serif" }}>{days > 1 ? `Đã hết trong ${Math.ceil(days)} ngày đã chọn` : "Không còn trong ngày / ca này"}</div>
                             )}
                           </div>
                           <span style={{ color: isOutOfStock ? "#555" : G, fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif", flexShrink:0 }}>
@@ -3311,7 +3319,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                         <div style={{ fontWeight:700, marginBottom:4 }}>🚫 Không đủ máy trong khoảng thời gian đã chọn:</div>
                         {blockingItems.map((item, i) => (
                           <div key={i}>
-                            · {item.type} <b>{item.name}</b>: cần {item.needed} {item.type === "📷 Máy" ? "máy" : "cái"} nhưng hiện đã hết hàng — mấy vợ vui lòng chọn ngày khác, giảm số lượng hoặc chọn máy khác phù hợp hơn
+                            · {item.type} <b>{item.name}</b>: cần {item.needed} {item.type === "📷 Máy" ? "máy" : "cái"} nhưng hiện đã hết hàng — mấy vợ vui lòng chọn ngày khác, giảm số lượng hoặc {item.type === "📷 Máy" ? "chọn máy khác phù hợp hơn" : "chọn phụ kiện khác phù hợp hơn"}
                           </div>
                         ))}
                       </div>
