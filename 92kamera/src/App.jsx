@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, lazy, Suspense, Component } from "react";
+=import { useState, useEffect, useRef, useCallback, lazy, Suspense, Component } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from "recharts";
 
 // ── HELPERS ──
@@ -237,13 +237,13 @@ const CAMS_INIT = [
   { id: 6, name: "Nikon Z30", price: 230000, status: "available", desc: "Không gương lật, video 4K 60fps", qty: 1, icon: "🌅", images: [] },
 ];
 const ACC_INIT = [
-  { id: 1, name: "Tripod 3 chân",   price: 50000,  priceShift: 35000, qty: 2, active: true,  desc: "Dùng được cho mọi loại máy ảnh" },
-  { id: 2, name: "Mic thu âm",      price: 80000,  priceShift: 50000, qty: 2, active: true,  desc: "Cổng 3.5mm, thu âm rõ nét" },
-  { id: 3, name: "Pin dự phòng",    price: 30000,  priceShift: 20000, qty: 4, active: true,  desc: "Pin lithium, dùng được hầu hết máy" },
-  { id: 4, name: "Lens 50mm f/1.8", price: 150000, priceShift: null,  qty: 1, active: true,  desc: "Phù hợp Canon M-mount" },
-  { id: 5, name: "ND Filter set",   price: 40000,  priceShift: 25000, qty: 2, active: true,  desc: "Bộ 3 filter: ND4, ND8, ND16" },
-  { id: 6, name: "Túi đựng máy",    price: 30000,  priceShift: 20000, qty: 3, active: true,  desc: "Có lớp đệm bảo vệ, đeo vai" },
-  { id: 7, name: "Thẻ nhớ 128GB",   price: 20000,  priceShift: 15000, qty: 5, active: true,  desc: "Class 10, tốc độ ghi 100MB/s" },
+  { id: 1, name: "Tripod 3 chân",   price: 50000,  priceShift: 35000, qty: 2, active: true,  desc: "Dùng được cho mọi loại máy ảnh", image: "" },
+  { id: 2, name: "Mic thu âm",      price: 80000,  priceShift: 50000, qty: 2, active: true,  desc: "Cổng 3.5mm, thu âm rõ nét", image: "" },
+  { id: 3, name: "Pin dự phòng",    price: 30000,  priceShift: 20000, qty: 4, active: true,  desc: "Pin lithium, dùng được hầu hết máy", image: "" },
+  { id: 4, name: "Lens 50mm f/1.8", price: 150000, priceShift: null,  qty: 1, active: true,  desc: "Phù hợp Canon M-mount", image: "" },
+  { id: 5, name: "ND Filter set",   price: 40000,  priceShift: 25000, qty: 2, active: true,  desc: "Bộ 3 filter: ND4, ND8, ND16", image: "" },
+  { id: 6, name: "Túi đựng máy",    price: 30000,  priceShift: 20000, qty: 3, active: true,  desc: "Có lớp đệm bảo vệ, đeo vai", image: "" },
+  { id: 7, name: "Thẻ nhớ 128GB",   price: 20000,  priceShift: 15000, qty: 5, active: true,  desc: "Class 10, tốc độ ghi 100MB/s", image: "" },
 ];
 const ORDERS_INIT = [
   { id: "#92K0001", cameraName: "Fujifilm X-T20", cameraId: 1, accessories: ["Tripod 3 chân"], accessoriesDetail: [{ name: "Tripod 3 chân", qty: 1 }], days: 3, total: 650000, name: "Nguyễn Văn An", phone: "0901234567", zalo: "0901234567", address: "123 Trần Phú, Đà Nẵng", note: "", status: "active", date: "2026-04-15", seen: true },
@@ -588,6 +588,30 @@ function compressImage(file, maxW = 480, quality = 0.55) {
   });
 }
 
+// Nén icon phụ kiện: crop vuông 96x96, ~3-8KB
+function compressIcon(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const size = 96;
+        const canvas = document.createElement("canvas");
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        // crop vuông từ giữa
+        const s = Math.min(img.width, img.height);
+        const sx = (img.width - s) / 2;
+        const sy = (img.height - s) / 2;
+        ctx.drawImage(img, sx, sy, s, s, 0, 0, size, size);
+        resolve(canvas.toDataURL("image/jpeg", 0.72));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 // ── IMAGE UPLOADER ──
 function ImageUploader({ images = [], onChange, max = 3 }) {
   const fileRef = useRef();
@@ -622,6 +646,42 @@ function ImageUploader({ images = [], onChange, max = 3 }) {
       <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: "none" }}
         onChange={e => { handleFiles(e.target.files); e.target.value = ""; }} />
       {images.length > 0 && <div style={{ color: MUT, fontSize: 10 }}>{images.length}/{max} ảnh · Nhấn ✕ để xoá</div>}
+    </div>
+  );
+}
+
+// ── ACC ICON UPLOADER — 1 ảnh vuông 96x96, siêu nhẹ ──
+function AccIconUploader({ image, onChange }) {
+  const fileRef = useRef();
+  const handleFile = async (file) => {
+    if (!file || !file.type.startsWith("image/")) return;
+    const compressed = await compressIcon(file);
+    onChange(compressed);
+  };
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ position: "relative", width: 56, height: 56, flexShrink: 0 }}>
+        {image
+          ? <>
+              <img src={image} alt="icon" style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 12, border: `1px solid ${BR2}` }} />
+              <button onClick={() => onChange("")} style={{ position: "absolute", top: -6, right: -6, width: 18, height: 18, borderRadius: "50%", background: "#ef4444", color: "#fff", border: "none", cursor: "pointer", fontSize: 9, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>✕</button>
+            </>
+          : <button onClick={() => fileRef.current?.click()}
+              style={{ width: 56, height: 56, border: `2px dashed ${G}55`, borderRadius: 12, background: CARD2, color: G, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, fontSize: 9, fontFamily: "system-ui,sans-serif" }}>
+              <span style={{ fontSize: 18 }}>📷</span>
+              <span>Ảnh icon</span>
+            </button>
+        }
+      </div>
+      <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }}
+        onChange={e => { handleFile(e.target.files?.[0]); e.target.value = ""; }} />
+      {image && (
+        <button onClick={() => fileRef.current?.click()}
+          style={{ fontSize: 10, color: MUT, background: "none", border: `1px solid ${BR}`, borderRadius: 8, padding: "4px 10px", cursor: "pointer", fontFamily: "system-ui,sans-serif" }}>
+          Đổi ảnh
+        </button>
+      )}
+      <span style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif" }}>~5KB · 96×96px</span>
     </div>
   );
 }
@@ -1914,7 +1974,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                         }} />
                         {canFeedback && !hasFeedback && (
                           <button onClick={() => setFbOrder(o)}
-                            style={{ padding: "8px 20px", background: G, color: "#000", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: 12, fontFamily: "system-ui,sans-serif", boxShadow: `0 0 16px ${G}33` }}>
+                            style={{ padding: "8px 20px", background: "#c9a84c", color: "#1a1200", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: 12, fontFamily: "system-ui,sans-serif", boxShadow: "0 0 16px #c9a84c44" }}>
                             ⭐ Đánh giá
                           </button>
                         )}
@@ -2640,7 +2700,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   };
 
   const overlay = { position: "fixed", inset: 0, zIndex: 300, background: "rgba(8,15,26,0.86)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px", overflowY: "auto", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)" };
-  const box = { background: "linear-gradient(160deg, rgba(232,240,248,0.88) 0%, rgba(197,216,236,0.80) 60%, rgba(181,206,230,0.76) 100%)", border: "1px solid rgba(255,255,255,0.60)", borderRadius: 20, padding: "min(20px, 3vw)", width: step === 1 ? "min(500px,96vw)" : step === 2 ? "min(660px,96vw)" : "min(660px,96vw)", position: "relative", margin: "auto", transition: "width .3s", backdropFilter: "blur(28px) saturate(160%) brightness(1.04)", WebkitBackdropFilter: "blur(28px) saturate(160%) brightness(1.04)", boxShadow: "0 1px 0 rgba(255,255,255,0.80) inset, 0 -1px 0 rgba(0,0,0,0.06) inset, 0 12px 48px rgba(0,0,0,0.30), 0 2px 16px rgba(0,0,0,0.16)" };
+  const box = { background: "linear-gradient(160deg, rgba(232,240,248,0.88) 0%, rgba(197,216,236,0.80) 60%, rgba(181,206,230,0.76) 100%)", border: "1px solid rgba(255,255,255,0.60)", borderRadius: 20, padding: "min(20px, 3vw)", width: "min(660px,96vw)", position: "relative", margin: "auto", transition: "width .3s", backdropFilter: "blur(28px) saturate(160%) brightness(1.04)", WebkitBackdropFilter: "blur(28px) saturate(160%) brightness(1.04)", boxShadow: "0 1px 0 rgba(255,255,255,0.80) inset, 0 -1px 0 rgba(0,0,0,0.06) inset, 0 12px 48px rgba(0,0,0,0.30), 0 2px 16px rgba(0,0,0,0.16)" };
   const inpS = { padding: "11px 14px", background: "rgba(255,255,255,0.55)", border: "1px solid rgba(255,255,255,0.70)", borderRadius: 12, color: TXT, fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "system-ui,sans-serif", transition: "border .2s", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" };
   const qtyBtn = (onClick, label) => (
     <button onClick={onClick} style={{ width: 26, height: 26, border: "1px solid rgba(255,255,255,0.65)", borderRadius: 5, background: "rgba(255,255,255,0.50)", color: TXT, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontFamily: "monospace" }}>{label}</button>
@@ -2834,7 +2894,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                 })}
               </div>
 
-              {/* Validate tồn kho trước khi cho qua step 2 */}
+              {/* Cảnh báo tồn kho (chỉ thông tin, không chặn — khách chọn ngày ở bước 2) */}
               {(() => {
                 const activeOrds = orders.filter(o => !["cancelled","completed"].includes(o.status));
                 const overbooked = selectedCamList.filter(c => {
@@ -2844,19 +2904,19 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                   const maxAvail = Math.min(availM, availA);
                   return (selCams[c.id] || 1) > maxAvail;
                 });
-                const canNext = selectedCamList.length > 0 && overbooked.length === 0;
+                const canNext = selectedCamList.length > 0;
                 return (
                   <>
                     {overbooked.length > 0 && (
-                      <div style={{ marginBottom:10, padding:"9px 13px", background:"rgba(255,230,230,0.75)", border:"1px solid #ef444466", borderRadius:12, color:"#b91c1c", fontSize:12, fontFamily:"system-ui,sans-serif", lineHeight:1.5 }}>
-                        ❌ {overbooked.map(c => c.name).join(", ")} đã hết máy cho ngày này — vui lòng bỏ chọn hoặc đổi ngày ở bước sau.
+                      <div style={{ marginBottom:10, padding:"9px 13px", background:"rgba(255,240,200,0.75)", border:"1px solid #f59e0b66", borderRadius:12, color:"#92400e", fontSize:12, fontFamily:"system-ui,sans-serif", lineHeight:1.5 }}>
+                        ⚠️ {overbooked.map(c => c.name).join(", ")} đang hết máy hôm nay — bạn có thể chọn ngày khác ở bước tiếp theo.
                       </div>
                     )}
                     <button onClick={() => canNext && setStep(2)} disabled={!canNext}
                       className="bk-next"
                       style={{ width:"100%", padding:15, background: canNext ? "linear-gradient(135deg, rgba(139,174,207,0.90) 0%, rgba(101,145,188,0.85) 100%)" : "rgba(180,180,190,0.40)", color: canNext ? "#fff" : MUT, border: canNext ? "1px solid rgba(255,255,255,0.55)" : "1px solid transparent", borderRadius:14, cursor: canNext ? "pointer" : "not-allowed", fontWeight:800, fontSize:15, fontFamily:"system-ui,sans-serif", letterSpacing:0.5, backdropFilter: canNext ? "blur(16px) saturate(160%)" : "none", WebkitBackdropFilter: canNext ? "blur(16px) saturate(160%)" : "none", boxShadow: canNext ? "0 1px 0 rgba(255,255,255,0.60) inset, 0 4px 20px rgba(8,20,60,0.18)" : "none" }}>
                       <span style={{position:"relative",zIndex:1}}>
-                        {overbooked.length > 0 ? "⛔ Có máy hết kho" : `Tiếp theo →${selectedCamList.length > 0 ? ` (${totalCamSelected} máy)` : ""}`}
+                        {`Tiếp theo →${selectedCamList.length > 0 ? ` (${totalCamSelected} máy)` : ""}`}
                       </span>
                     </button>
                   </>
@@ -2985,6 +3045,10 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                               : isSel && <span style={{ color:"#fff", fontSize:11, fontWeight:900, lineHeight:1 }}>✓</span>
                             }
                           </div>
+                          {/* Ảnh icon phụ kiện nếu có */}
+                          {a.image && (
+                            <img src={a.image} alt={a.name} style={{ width:32, height:32, objectFit:"cover", borderRadius:8, flexShrink:0, opacity: isOutOfStock ? 0.4 : 1, border:"1px solid rgba(255,255,255,0.6)" }} />
+                          )}
                           <div style={{ flex:1, minWidth:0 }}>
                             <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
                               <span style={{ color: isOutOfStock ? "#666" : isSel ? TXT : "#888", fontSize:13, fontFamily:"system-ui,sans-serif", textDecoration: isOutOfStock ? "line-through" : "none" }}>{a.name}</span>
@@ -3198,12 +3262,70 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                 </div>
               )}
 
-              {/* Nút tiếp tục */}
-              <button onClick={() => days > 0 && selSession && pickDate && setStep(3)} disabled={days === 0 || !selSession || !pickDate}
-                className="bk-next"
-                style={{ width:"100%", padding:15, background: days > 0 && selSession && pickDate ? "linear-gradient(135deg, rgba(139,174,207,0.90) 0%, rgba(101,145,188,0.85) 100%)" : "rgba(180,180,190,0.40)", color: days > 0 && selSession && pickDate ? "#fff" : MUT, border: days > 0 && selSession && pickDate ? "1px solid rgba(255,255,255,0.55)" : "1px solid transparent", borderRadius:14, cursor: days > 0 && selSession && pickDate ? "pointer" : "not-allowed", fontWeight:800, fontSize:15, fontFamily:"system-ui,sans-serif", letterSpacing:0.5, backdropFilter: days > 0 && selSession && pickDate ? "blur(16px) saturate(160%)" : "none", WebkitBackdropFilter: days > 0 && selSession && pickDate ? "blur(16px) saturate(160%)" : "none", boxShadow: days > 0 && selSession && pickDate ? "0 1px 0 rgba(255,255,255,0.60) inset, 0 4px 20px rgba(8,20,60,0.18)" : "none" }}>
-                <span style={{position:"relative",zIndex:1}}>{!days ? "Chọn thời gian thuê" : !selSession ? "Chọn ca thuê" : !pickDate ? "Chọn ngày bắt đầu" : "Tiếp tục →"}</span>
-              </button>
+              {/* Nút tiếp tục — kiểm tra tồn kho TOÀN BỘ khoảng ngày thuê */}
+              {(() => {
+                // ── Build danh sách ngày cần check ──
+                const datesToCheck = [];
+                if (days > 0 && pickDate) {
+                  if (days < 1) {
+                    datesToCheck.push(pickDate);
+                  } else {
+                    for (let i = 0; i < Math.ceil(days); i++) {
+                      datesToCheck.push(dateAddDays(pickDate, i));
+                    }
+                  }
+                }
+                const sess = selSession || "full";
+                const activeOrds = orders.filter(o => !["cancelled","completed"].includes(o.status));
+
+                // ── Check từng máy đã chọn trên toàn bộ ngày ──
+                const blockingItems = [];
+                if (datesToCheck.length > 0 && days > 0 && selSession && pickDate) {
+                  selectedCamList.forEach(c => {
+                    const needed = selCams[c.id] || 1;
+                    const minAvail = Math.min(...datesToCheck.map(d => getAvailQty(c.id, c.qty || 1, activeOrds, d, sess)));
+                    if (minAvail < needed) {
+                      blockingItems.push({ name: c.name, avail: minAvail, needed, type: "📷 Máy" });
+                    }
+                  });
+                  // ── Check từng phụ kiện đã chọn trên toàn bộ ngày ──
+                  Object.entries(selAcc).forEach(([name, qty]) => {
+                    if (!qty || qty <= 0) return;
+                    const acc = accessories.find(a => a.name === name);
+                    if (!acc) return;
+                    const minAvail = Math.min(...datesToCheck.map(d => getAccAvailQty(name, acc.qty || 0, activeOrds, d, sess)));
+                    if (minAvail < qty) {
+                      blockingItems.push({ name, avail: minAvail, needed: qty, type: "🎒 Phụ kiện" });
+                    }
+                  });
+                }
+
+                const baseOk = days > 0 && !!selSession && !!pickDate;
+                const canGo = baseOk && blockingItems.length === 0;
+
+                return (
+                  <>
+                    {/* Cảnh báo hết hàng — chặn tiếp tục */}
+                    {baseOk && blockingItems.length > 0 && (
+                      <div style={{ marginBottom:10, padding:"10px 14px", background:"rgba(255,220,220,0.80)", border:"1px solid #cc333366", borderRadius:12, color:"#8B0000", fontSize:12, fontFamily:"system-ui,sans-serif", lineHeight:1.6 }}>
+                        <div style={{ fontWeight:700, marginBottom:4 }}>🚫 Không đủ máy trong khoảng thời gian đã chọn:</div>
+                        {blockingItems.map((item, i) => (
+                          <div key={i}>
+                            · {item.type} <b>{item.name}</b>: cần {item.needed} {item.type === "📷 Máy" ? "máy" : "cái"} nhưng hiện đã hết hàng — mấy vợ vui lòng chọn ngày khác, giảm số lượng hoặc chọn máy khác phù hợp hơn
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <button onClick={() => canGo && setStep(3)} disabled={!canGo}
+                      className="bk-next"
+                      style={{ width:"100%", padding:15, background: canGo ? "linear-gradient(135deg, rgba(139,174,207,0.90) 0%, rgba(101,145,188,0.85) 100%)" : "rgba(180,180,190,0.40)", color: canGo ? "#fff" : MUT, border: canGo ? "1px solid rgba(255,255,255,0.55)" : "1px solid transparent", borderRadius:14, cursor: canGo ? "pointer" : "not-allowed", fontWeight:800, fontSize:15, fontFamily:"system-ui,sans-serif", letterSpacing:0.5, backdropFilter: canGo ? "blur(16px) saturate(160%)" : "none", WebkitBackdropFilter: canGo ? "blur(16px) saturate(160%)" : "none", boxShadow: canGo ? "0 1px 0 rgba(255,255,255,0.60) inset, 0 4px 20px rgba(8,20,60,0.18)" : "none" }}>
+                      <span style={{position:"relative",zIndex:1}}>
+                        {!days ? "Chọn thời gian thuê" : !selSession ? "Chọn ca thuê" : !pickDate ? "Chọn ngày bắt đầu" : blockingItems.length > 0 ? "⛔ Hết hàng — chọn lại ngày / số lượng" : "Tiếp tục →"}
+                      </span>
+                    </button>
+                  </>
+                );
+              })()}
             </div>
           );
         })()}
@@ -3246,11 +3368,18 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                     {/* Phụ kiện nếu có */}
                     {Object.entries(selAcc).length > 0 && (
                       <div style={{ borderTop:`1px solid rgba(0,0,0,0.07)`, padding:"10px 14px", display:"flex", flexWrap:"wrap", gap:6 }}>
-                        {Object.entries(selAcc).map(([name, qty]) => (
-                          <span key={name} style={{ background:"rgba(255,255,255,0.50)", border:"1px solid rgba(255,255,255,0.68)", color:MUT, fontSize:10, borderRadius:8, padding:"3px 8px", fontFamily:"system-ui,sans-serif" }}>
-                            🎒 {name}{qty > 1 ? ` ×${qty}` : ""}
-                          </span>
-                        ))}
+                        {Object.entries(selAcc).map(([name, qty]) => {
+                          const accObj = accessories.find(x => x.name === name);
+                          return (
+                            <span key={name} style={{ background:"rgba(255,255,255,0.50)", border:"1px solid rgba(255,255,255,0.68)", color:MUT, fontSize:10, borderRadius:8, padding:"3px 8px", fontFamily:"system-ui,sans-serif", display:"inline-flex", alignItems:"center", gap:5 }}>
+                              {accObj?.image
+                                ? <img src={accObj.image} alt={name} style={{ width:16, height:16, objectFit:"cover", borderRadius:4, flexShrink:0 }} />
+                                : <span>🎒</span>
+                              }
+                              {name}{qty > 1 ? ` ×${qty}` : ""}
+                            </span>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -4459,6 +4588,9 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
   const [ticker, setTicker] = useState(0);
   const [logoClick, setLogoClick] = useState(0);
   const [logoRipple, setLogoRipple] = useState(false);
+  // ── Typewriter cho 2 dòng subtitle + tagline ──
+  const tw1 = useTypewriter("DỊCH VỤ CHO THUÊ MÁY ẢNH · NÚI THÀNH · TAM KỲ", 38, 600);
+  const tw2 = useTypewriter("Trải nghiệm máy ảnh · Bắt trọn khoảnh khắc", 42, tw1.done ? 100 : 99999);
   const handleLogoClick = () => {
     const n = logoClick + 1;
     setLogoClick(n);
@@ -4655,11 +4787,11 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
               alignItems:"center", textAlign:"center",
               animation:"heroFadeIn 1.1s cubic-bezier(.25,.46,.45,.94) both",
             } : {
-              position:"absolute", left:"4%", bottom:"18%",
+              position:"absolute", left:"4%", top:"48%",
               display:"flex", flexDirection:"column",
               alignItems:"flex-start", textAlign:"left",
-              transform:"scale(0.62)",
-              transformOrigin:"left bottom",
+              transform:"scale(0.60)",
+              transformOrigin:"left top",
               zIndex:10,
               animation:"heroFadeIn 1.1s cubic-bezier(.25,.46,.45,.94) both",
             }),
@@ -4705,24 +4837,29 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
             {/* ── SUBTITLE — 1 dòng desktop ── */}
             <div style={{
               marginTop: isMobile?20:22,
-              fontSize: isMobile?8:8.5, letterSpacing: isMobile?2.5:3,
-              fontFamily:"var(--font-ui)", color:"#484644", fontWeight:700,
+              fontSize: isMobile?10:11, letterSpacing: isMobile?2.5:3,
+              fontFamily:"var(--font-ui)", color:"#2a2825", fontWeight:700,
               whiteSpace: isMobile?"normal":"nowrap", lineHeight: isMobile?2:1,
+              minHeight: isMobile?"auto":16,
             }}>
               {isMobile
                 ? <><span>DỊCH VỤ CHO THUÊ MÁY ẢNH</span><br/><span>NÚI THÀNH · TAM KỲ</span></>
-                : "DỊCH VỤ CHO THUÊ MÁY ẢNH · NÚI THÀNH · TAM KỲ"
+                : <span>{tw1.displayed}<span style={{ opacity: tw1.done ? 0 : 1, transition:"opacity .3s" }}>▌</span></span>
               }
             </div>
 
             {/* ── TAGLINE ── */}
             <div style={{
-              marginTop: isMobile?14:16,
-              fontSize: isMobile?13.5:15, fontStyle:"italic", color:"#7c7874",
+              marginTop: isMobile?14:14,
+              fontSize: isMobile?13:15, fontStyle:"italic", color:"#3d3a37",
               fontFamily:'"Palatino Linotype","Book Antiqua","Palatino",Georgia,serif',
               letterSpacing:0.3, lineHeight:1.6, fontWeight:400,
+              minHeight: isMobile?"auto":20,
             }}>
-              Trải nghiệm máy ảnh · Bắt trọn khoảnh khắc
+              {isMobile
+                ? "Trải nghiệm máy ảnh · Bắt trọn khoảnh khắc"
+                : <span>{tw2.displayed}<span style={{ opacity: tw2.done || !tw1.done ? 0 : 1, transition:"opacity .3s" }}>▌</span></span>
+              }
             </div>
 
             {/* ── CTAs ── */}
@@ -4844,7 +4981,12 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
               const icons = ["🎙️","🔦","⚡","📡","🎞️","🔋","🌿","🎛️","📷","🔌"];
               return (
                 <div key={a.id} className="acc-card">
-                  <div className="acc-icon-wrap">{icons[i % icons.length]}</div>
+                  <div className="acc-icon-wrap">
+                    {a.image
+                      ? <img src={a.image} alt={a.name} style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 8 }} />
+                      : icons[i % icons.length]
+                    }
+                  </div>
                   <div style={{ color:TXT, fontWeight:500, fontSize:12.5, marginBottom:10, letterSpacing:0.4, lineHeight:1.5, fontFamily:"var(--font-display)" }}>{a.name}</div>
                   <div style={{ color:G, fontWeight:800, fontSize:15, fontFamily:"var(--font-ui)", textShadow:"0 1px 2px rgba(13,27,42,0.10)" }}>{fmtVND(a.price)}<span style={{ color:MUT, fontSize:10, marginLeft:2, fontWeight:500 }}>/ngày</span></div>
                 </div>
@@ -5158,7 +5300,7 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
           border: "1px solid rgba(255,255,255,0.60)",
           borderRadius: 28,
           padding: "32px 36px 36px",
-          width: "min(400px,93vw)",
+          width: "min(520px,93vw)",
           textAlign: "center",
           transform: shake ? "translateX(-6px)" : undefined,
           transition: "transform .1s",
@@ -5296,11 +5438,11 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
                       <div key={o.id} style={{ background: CARD, border: `1px solid ${BR}`, borderRadius: 12, padding: "10px 12px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                         <div style={{ minWidth: 0 }}>
                           <div style={{ color: G, fontSize: 11, fontWeight: 700, fontFamily: "monospace" }}>{o.id}</div>
-                          <div style={{ color: TXT, fontSize: 11, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 140 }}>📷 {o.cameraName}</div>
+                          <div style={{ color: TXT, fontSize: 11, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 220 }}>📷 {o.cameraName}</div>
                         </div>
                         {setPage && (
                           <button onClick={() => { setPage("customer"); onBack(); }}
-                            style={{ flexShrink: 0, padding: "6px 14px", background: G, color: "#000", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: 11, fontFamily: "system-ui,sans-serif", whiteSpace: "nowrap" }}>
+                            style={{ flexShrink: 0, padding: "6px 14px", background: "#c9a84c", color: "#1a1200", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: 11, fontFamily: "system-ui,sans-serif", whiteSpace: "nowrap", boxShadow: "0 0 12px #c9a84c44" }}>
                             ⭐ Đánh giá
                           </button>
                         )}
@@ -5668,7 +5810,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   const [nc, setNc] = useState({ name: "", price: "", desc: "", qty: 1, status: "available", icon: "📷", images: [] });
   const [editAcc, setEditAcc] = useState(null);
   const [addAcc, setAddAcc] = useState(false);
-  const [na, setNa] = useState({ name: "", price: "", qty: 1, active: true, priceShift: "", desc: "" });
+  const [na, setNa] = useState({ name: "", price: "", qty: 1, active: true, priceShift: "", desc: "", image: "" });
   const [saved, setSaved] = useState(false);
   // ── Đổi mật khẩu ──
   const [pwOld, setPwOld] = useState("");
@@ -6421,6 +6563,10 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                     <input style={inp3} type="number" min={1} value={na.qty} onChange={e => setNa(p => ({ ...p, qty: parseInt(e.target.value) || 1 }))} placeholder="1" />
                   </div>
                 </div>
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ color: MUT, fontSize: 10, marginBottom: 6, letterSpacing: 1 }}>ẢNH ICON (tuỳ chọn)</div>
+                  <AccIconUploader image={na.image} onChange={img => setNa(p => ({ ...p, image: img }))} />
+                </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <button onClick={() => {
                     if (!na.name || !na.price) return;
@@ -6431,8 +6577,9 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                       qty: na.qty || 1,
                       active: na.active,
                       desc: na.desc,
+                      image: na.image || "",
                     }]);
-                    setNa({ name: "", price: "", qty: 1, active: true, priceShift: "", desc: "" });
+                    setNa({ name: "", price: "", qty: 1, active: true, priceShift: "", desc: "", image: "" });
                     setAddAcc(false);
                   }} style={btn("gold")}>✓ Lưu</button>
                   <button onClick={() => setAddAcc(false)} style={btn("ghost")}>Huỷ</button>
@@ -6481,6 +6628,10 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                             <div style={{ color: MUT, fontSize: 10, marginBottom: 3, letterSpacing: 1 }}>SỐ LƯỢNG</div>
                             <input style={inp3} type="number" min={1} value={editAcc.qty || 1} onChange={e => setEditAcc(p => ({ ...p, qty: parseInt(e.target.value) || 1 }))} />
                           </div>
+                        </div>
+                        <div style={{ marginBottom: 12 }}>
+                          <div style={{ color: MUT, fontSize: 10, marginBottom: 6, letterSpacing: 1 }}>ẢNH ICON</div>
+                          <AccIconUploader image={editAcc.image || ""} onChange={img => setEditAcc(p => ({ ...p, image: img }))} />
                         </div>
                         <div style={{ display: "flex", gap: 8 }}>
                           <button onClick={() => saveAcc(a, editAcc)} style={btn("gold")}>✓ Lưu</button>
