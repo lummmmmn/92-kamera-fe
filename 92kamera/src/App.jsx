@@ -541,7 +541,7 @@ function OrderLookupWidget({ orders }) {
 function Logo({ light = true, size = 1 }) {
   const col = light ? "#1A1917" : MUT;
   const s = n => n * size;
-  const bw = 2;
+  const bw = 2.5;
   const [clicked, setClicked] = useState(false);
   const handleClick = () => { setClicked(true); setTimeout(() => setClicked(false), 600); };
   const spread = clicked ? s(7) : 0;
@@ -801,7 +801,7 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
     { id: "login",    rMid: 34,  thick: 68, isCenter: true, action: loggedUser ? (onOpenCustomer || onOpenLogin) : onOpenLogin },
   ];
 
-  const sz = isMobile ? 292 : Math.min(544, Math.round(viewH * 0.62));
+  const sz = isMobile ? 321 : Math.min(544, Math.round(viewH * 0.62));
   const anyHov = hoveredRing !== null;
 
   return (
@@ -1634,7 +1634,8 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
 
       {/* Header */}
       {isMobile ? (
-        /* ── MOBILE: pill góc trái + dropdown ── */
+        /* ── MOBILE: pill góc trái + nút trang chủ góc phải ── */
+        <>
         <div style={{ position: "fixed", top: 10, left: 12, zIndex: 200 }}>
           {/* Pill button */}
           <button
@@ -1662,9 +1663,11 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
           {mobileMenuOpen && (
             <div style={{
               position: "absolute", top: "calc(100% + 8px)", left: 0,
-              background: "rgba(10,18,28,0.97)", border: `1px solid rgba(41,121,207,0.28)`,
-              borderRadius: 22, backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)",
-              boxShadow: "0 16px 56px rgba(0,0,0,0.6), 0 0 24px rgba(41,121,207,0.1)",
+              background: "linear-gradient(160deg, rgba(232,240,248,0.95) 0%, rgba(197,216,236,0.92) 60%, rgba(181,206,230,0.90) 100%)",
+              border: "1px solid rgba(255,255,255,0.72)",
+              borderRadius: 22,
+              backdropFilter: "blur(40px) saturate(160%) brightness(1.04)", WebkitBackdropFilter: "blur(40px) saturate(160%) brightness(1.04)",
+              boxShadow: "0 1px 0 rgba(255,255,255,0.85) inset, 0 8px 32px rgba(13,27,42,0.14)",
               minWidth: 190, padding: "8px 0",
               animation: "cMenuIn .22s cubic-bezier(.4,0,.2,1)",
               zIndex: 201,
@@ -1682,11 +1685,11 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                   }}>
                   <span style={{ fontSize: 15, width: 20, textAlign: "center" }}>{ico}</span>
                   <span style={{ color: tab === k ? G : MUT, fontSize: 13, fontWeight: tab === k ? 700 : 400, fontFamily: "system-ui,sans-serif" }}>{label}</span>
-                  {tab === k && <span style={{ marginLeft: "auto", width: 6, height: 6, borderRadius: "50%", background: G, boxShadow: `0 0 8px ${G}` }} />}
+                  {tab === k && <span style={{ marginLeft: "auto", width: 6, height: 6, borderRadius: "50%", background: G, boxShadow: `0 0 8px ${G}66` }} />}
                 </button>
               ))}
               {/* Divider */}
-              <div style={{ height: 1, background: "rgba(201,168,76,0.12)", margin: "6px 14px" }} />
+              <div style={{ height: 1, background: "rgba(13,27,42,0.10)", margin: "6px 14px" }} />
               {/* Trang chủ */}
               <button
                 onPointerDown={(e) => { e.preventDefault(); onBack(); }}
@@ -1710,6 +1713,25 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             />
           )}
         </div>
+
+        {/* Nút về trang chủ — góc trên phải */}
+        <button
+            onPointerDown={(e) => { e.preventDefault(); onBack(); }}
+            style={{
+              position: "fixed", top: 10, right: 12, zIndex: 200,
+              display: "flex", alignItems: "center", gap: 6,
+              background: "rgba(10,18,28,0.92)",
+              border: "1px solid rgba(201,168,76,0.35)",
+              borderRadius: 50, padding: "8px 14px",
+              backdropFilter: "blur(32px)", WebkitBackdropFilter: "blur(32px)",
+              boxShadow: "0 4px 24px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,168,76,0.12)",
+              cursor: "pointer", touchAction: "manipulation",
+              WebkitTapHighlightColor: "transparent",
+            }}>
+            <span style={{ color: MUT, fontSize: 13, lineHeight: 1 }}>←</span>
+            <span style={{ color: G, fontSize: 12, fontWeight: 700, fontFamily: "system-ui,sans-serif", letterSpacing: 0.3 }}>Trang chủ</span>
+          </button>
+        </>
       ) : (
         /* ── DESKTOP: sticky header như cũ ── */
         <div style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(255,255,255,0.13)", backdropFilter: "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: "blur(52px) saturate(180%) brightness(1.04)", borderBottom: `1px solid rgba(255,255,255,0.22)`, padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -3213,8 +3235,8 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                       </div>
                     )}
                   </div>
-                  <div style={{ position:"relative", marginTop:8 }}>
-                    <input style={{ ...inpS, fontSize:12 }} type="date" value={pickDate} min={todayStr()} onChange={e => setPickDate(e.target.value)} />
+                  <div style={{ position:"relative", marginTop:8, overflow:"hidden", borderRadius:12 }}>
+                    <input style={{ ...inpS, fontSize:12, WebkitAppearance:"none", appearance:"none" }} type="date" value={pickDate} min={todayStr()} onChange={e => setPickDate(e.target.value)} />
                   </div>
                 </div>
 
@@ -4039,15 +4061,15 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
 function MobileFAB({ mobileMenuOpen, setMobileMenuOpen, siteContent, onBook }) {
   const fabRef = useRef(null);
   const menuRef = useRef(null);
-  const posRef = useRef({ x: 14, y: 62 }); // default: góc trái, dưới navbar
-  const [pos, setPos] = useState({ x: 14, y: 62 });
+  const posRef = useRef({ x: 6, y: 8 }); // default: sát góc trên trái
+  const [pos, setPos] = useState({ x: 6, y: 8 });
   const [open, setOpen] = useState(false);
   const dragRef = useRef({ dragging: false, startX: 0, startY: 0, origX: 0, origY: 0, moved: false });
 
   const clampPos = (x, y) => {
     const W = window.innerWidth, H = window.innerHeight;
-    const size = 46;
-    return { x: Math.max(8, Math.min(W - size - 8, x)), y: Math.max(58, Math.min(H - size - 8, y)) };
+    const size = 31;
+    return { x: Math.max(4, Math.min(W - size - 4, x)), y: Math.max(4, Math.min(H - size - 4, y)) };
   };
 
   const onPointerDown = (e) => {
@@ -4094,11 +4116,11 @@ function MobileFAB({ mobileMenuOpen, setMobileMenuOpen, siteContent, onBook }) {
   // Tính vị trí menu (popup gần FAB, không ra ngoài màn hình)
   const menuW = 220;
   const menuH = 260;
-  let menuX = pos.x + 54;
+  let menuX = pos.x + 38;
   let menuY = pos.y;
   if (menuX + menuW > window.innerWidth - 8) menuX = pos.x - menuW - 8;
   if (menuY + menuH > window.innerHeight - 8) menuY = window.innerHeight - menuH - 8;
-  if (menuY < 58) menuY = 58;
+  if (menuY < 4) menuY = 4;
 
   return (
     <>
@@ -4113,7 +4135,7 @@ function MobileFAB({ mobileMenuOpen, setMobileMenuOpen, siteContent, onBook }) {
         onTouchEnd={onPointerUp}
         style={{
           position: "fixed", left: pos.x, top: pos.y, zIndex: 300,
-          width: 62, height: 62,
+          width: 31, height: 31,
           cursor: "grab", touchAction: "none", userSelect: "none", WebkitUserSelect: "none",
           filter: open
             ? `drop-shadow(0 0 10px ${G}66) drop-shadow(0 6px 18px rgba(0,0,0,0.85))`
@@ -4121,7 +4143,7 @@ function MobileFAB({ mobileMenuOpen, setMobileMenuOpen, siteContent, onBook }) {
           transition: "filter .25s",
         }}
       >
-        <svg viewBox="0 0 62 62" width="62" height="62" xmlns="http://www.w3.org/2000/svg" style={{display:"block"}}>
+        <svg viewBox="0 0 62 62" width="31" height="31" xmlns="http://www.w3.org/2000/svg" style={{display:"block"}}>
           <defs>
             {/* Body gradient — dark matte */}
             <radialGradient id="fab-body" cx="38%" cy="30%" r="68%">
@@ -4501,7 +4523,7 @@ const STAT_ICONS = {
   ),
 };
 
-function StatCard({ icon, num, label, delay = 0 }) {
+function StatCard({ icon, num, label, delay = 0, compact = false }) {
   const ref = useRef(null);
   const [started, setStarted] = useState(false);
   useEffect(() => {
@@ -4516,10 +4538,10 @@ function StatCard({ icon, num, label, delay = 0 }) {
   const display = useCountUp(num, 1600, started);
   return (
     <div ref={ref} style={{
-      padding: "36px 20px", border: "1px solid rgba(255,255,255,0.60)", borderRadius: 20,
+      padding: compact ? "16px 8px" : "36px 20px", border: "1px solid rgba(255,255,255,0.60)", borderRadius: compact ? 14 : 20,
       background: "linear-gradient(160deg, rgba(232,240,248,0.88) 0%, rgba(197,216,236,0.80) 60%, rgba(181,206,230,0.76) 100%)",
       backdropFilter: "blur(28px) saturate(160%) brightness(1.04)", WebkitBackdropFilter: "blur(28px) saturate(160%) brightness(1.04)",
-      display: "flex", flexDirection: "column", alignItems: "center", gap: 14,
+      display: "flex", flexDirection: "column", alignItems: "center", gap: compact ? 6 : 14,
       transition: "all .28s cubic-bezier(.34,1.56,.64,1)",
       position: "relative", overflow: "hidden",
       boxShadow: "0 1px 0 rgba(255,255,255,0.80) inset, 0 4px 20px rgba(13,27,42,0.10)",
@@ -4529,9 +4551,9 @@ function StatCard({ icon, num, label, delay = 0 }) {
     >
       {/* Glow backdrop */}
       <div style={{ position:"absolute", top:0, left:"50%", transform:"translateX(-50%)", width:120, height:80, background:`radial-gradient(ellipse,rgba(13,27,42,0.06),transparent 70%)`, pointerEvents:"none" }} />
-      <div style={{ color: G, opacity: 0.75 }}>{icon}</div>
-      <div style={{ fontSize: 40, fontWeight: 800, color: G, fontFamily: "var(--font-ui)", lineHeight: 1, letterSpacing: -1, textShadow: "0 1px 3px rgba(13,27,42,0.12)" }}>{display}</div>
-      <div style={{ fontSize: 10, color: G, opacity: 0.55, letterSpacing: 3, fontFamily: "var(--font-ui)", fontWeight: 700 }}>{label.toUpperCase()}</div>
+      <div style={{ color: G, opacity: 0.75, fontSize: compact ? 20 : undefined }}>{icon}</div>
+      <div style={{ fontSize: compact ? 22 : 40, fontWeight: 800, color: G, fontFamily: "var(--font-ui)", lineHeight: 1, letterSpacing: -1, textShadow: "0 1px 3px rgba(13,27,42,0.12)" }}>{display}</div>
+      <div style={{ fontSize: compact ? 8 : 10, color: G, opacity: 0.55, letterSpacing: compact ? 1 : 3, fontFamily: "var(--font-ui)", fontWeight: 700, textAlign: "center", lineHeight: 1.3 }}>{label.toUpperCase()}</div>
     </div>
   );
 }
@@ -4642,6 +4664,8 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
   const [ticker, setTicker] = useState(0);
   const [logoClick, setLogoClick] = useState(0);
   const [logoRipple, setLogoRipple] = useState(false);
+  const [bracketSpread, setBracketSpread] = useState(false);
+  const handleBracketClick = () => { setBracketSpread(true); setTimeout(() => setBracketSpread(false), 500); };
   // ── Typewriter cho 2 dòng subtitle + tagline ──
   const tw1 = useTypewriter("DỊCH VỤ CHO THUÊ MÁY ẢNH · NÚI THÀNH · TAM KỲ", 38, 600);
   const tw2 = useTypewriter("Trải nghiệm máy ảnh · Bắt trọn khoảnh khắc", 42, tw1.done ? 100 : 99999);
@@ -4687,44 +4711,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       {/* NAV */}
       <nav className="nav92" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, padding: isMobile ? "8px 10px" : "12px 16px", display: "flex", justifyContent: "center", pointerEvents: "none" }}>
 
-        {/* ── MOBILE NAV: luôn hiện thanh cố định ── */}
-        {isMobile && (
-          <div style={{ pointerEvents: "all", width: "100%", display: "flex", flexDirection: "column" }}>
-            {/* Thanh chính */}
-            <div className={`nav-inner${navState !== "top" ? " scrolled" : ""}`}
-              style={{ display: "flex", alignItems: "center", padding: "0 10px 0 14px", height: 46, gap: 6, width: "100%", overflow: "visible" }}>
 
-              {/* LOGO */}
-              <div onClick={handleLogoClick} style={{ cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center" }}>
-                <Logo size={0.52} />
-                {logoRipple && (
-                  <div style={{ position: "fixed", inset: 0, zIndex: 9999, pointerEvents: "none", overflow: "hidden" }}>
-                    <div style={{ position: "absolute", top: 40, left: 80, width: "200vmax", height: "200vmax", borderRadius: "50%", background: `radial-gradient(circle, rgba(201,168,76,0.18) 0%, rgba(201,168,76,0.06) 40%, transparent 70%)`, animation: "logoRipple 0.7s cubic-bezier(.2,0,.4,1) forwards", pointerEvents: "none" }} />
-                    <div style={{ position: "absolute", inset: 0, background: BG, animation: "pageWash 0.7s ease forwards", pointerEvents: "none" }} />
-                  </div>
-                )}
-              </div>
-
-              <div style={{ flex: 1 }} />
-
-              {/* Login / Avatar */}
-              {loggedUser ? (
-                <button onClick={onOpenCustomer || onOpenLogin}
-                  style={{ width: 32, height: 32, borderRadius: "50%", background: G + "22", border: `1px solid ${G}55`, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0, cursor: "pointer", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
-                  {loggedUser.avatar ? <img src={loggedUser.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : loggedUser.name?.[0]?.toUpperCase()}
-                </button>
-              ) : (
-                <button onClick={onOpenLogin}
-                  style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: `1px solid rgba(255,255,255,0.14)`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={MUT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                </button>
-              )}
-
-              {/* GỬI YÊU CẦU THUÊ */}
-              <div className="btn-3d-wrap" style={{ borderRadius:12, flexShrink:0 }}><button className="btn-3d" onClick={onBook} style={{ fontSize: 10, padding: "8px 14px", letterSpacing: 2, whiteSpace: "nowrap", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>GỬI YÊU CẦU THUÊ</button></div>
-            </div>
-          </div>
-        )}
 
         {/* ── DESKTOP: full bar (chỉ hiện khi mở) ── */}
         {!isMobile && (
@@ -4840,6 +4827,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
               display:"flex", flexDirection:"column",
               alignItems:"center", textAlign:"center",
               animation:"heroFadeIn 1.1s cubic-bezier(.25,.46,.45,.94) both",
+              order: 2,
             } : {
               position:"absolute", left:"4%", top:"48%",
               display:"flex", flexDirection:"column",
@@ -4853,15 +4841,17 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
 
             {/* ── LOGO ── */}
             <div style={{ filter:"drop-shadow(0 4px 24px rgba(0,0,0,0.08))" }}>
-              <div style={{
-                display:"inline-flex", alignItems:"center",
-                fontFamily:'"Palatino Linotype","Book Antiqua","Palatino",Georgia,"Times New Roman",serif',
-                color:"#141414", lineHeight:1, cursor:"default",
-              }}>
+              <div
+                onClick={handleBracketClick}
+                style={{
+                  display:"inline-flex", alignItems:"center",
+                  fontFamily:'"Palatino Linotype","Book Antiqua","Palatino",Georgia,"Times New Roman",serif',
+                  color:"#141414", lineHeight:1, cursor:"pointer",
+                }}>
                 {/* Left bracket */}
                 <div style={{ position:"relative", width: isMobile?14:26, height: isMobile?42:72, marginRight: isMobile?10:16, flexShrink:0 }}>
-                  <span style={{ position:"absolute", top:0, left:0, width: isMobile?14:26, height:"50%", borderLeft:"3px solid rgba(20,20,20,0.78)", borderTop:"3px solid rgba(20,20,20,0.78)" }}/>
-                  <span style={{ position:"absolute", bottom:0, left:0, width: isMobile?14:26, height:"50%", borderLeft:"3px solid rgba(20,20,20,0.78)", borderBottom:"3px solid rgba(20,20,20,0.78)" }}/>
+                  <span style={{ position:"absolute", top:0, left:0, width: isMobile?14:26, height:"50%", borderLeft:"4.9px solid rgba(20,20,20,0.78)", borderTop:"4.9px solid rgba(20,20,20,0.78)", transition: bracketSpread?"none":"transform 0.5s cubic-bezier(.4,0,.2,1)", transform: bracketSpread?`translate(${isMobile?-8:-14}px,${isMobile?-8:-14}px)`:"translate(0,0)" }}/>
+                  <span style={{ position:"absolute", bottom:0, left:0, width: isMobile?14:26, height:"50%", borderLeft:"4.9px solid rgba(20,20,20,0.78)", borderBottom:"4.9px solid rgba(20,20,20,0.78)", transition: bracketSpread?"none":"transform 0.5s cubic-bezier(.4,0,.2,1)", transform: bracketSpread?`translate(${isMobile?-8:-14}px,${isMobile?8:14}px)`:"translate(0,0)" }}/>
                 </div>
 
                 {/* Text */}
@@ -4882,8 +4872,8 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
 
                 {/* Right bracket */}
                 <div style={{ position:"relative", width: isMobile?14:26, height: isMobile?42:72, marginLeft: isMobile?10:16, flexShrink:0 }}>
-                  <span style={{ position:"absolute", top:0, right:0, width: isMobile?14:26, height:"50%", borderRight:"3px solid rgba(20,20,20,0.78)", borderTop:"3px solid rgba(20,20,20,0.78)" }}/>
-                  <span style={{ position:"absolute", bottom:0, right:0, width: isMobile?14:26, height:"50%", borderRight:"3px solid rgba(20,20,20,0.78)", borderBottom:"3px solid rgba(20,20,20,0.78)" }}/>
+                  <span style={{ position:"absolute", top:0, right:0, width: isMobile?14:26, height:"50%", borderRight:"4.9px solid rgba(20,20,20,0.78)", borderTop:"4.9px solid rgba(20,20,20,0.78)", transition: bracketSpread?"none":"transform 0.5s cubic-bezier(.4,0,.2,1)", transform: bracketSpread?`translate(${isMobile?8:14}px,${isMobile?-8:-14}px)`:"translate(0,0)" }}/>
+                  <span style={{ position:"absolute", bottom:0, right:0, width: isMobile?14:26, height:"50%", borderRight:"4.9px solid rgba(20,20,20,0.78)", borderBottom:"4.9px solid rgba(20,20,20,0.78)", transition: bracketSpread?"none":"transform 0.5s cubic-bezier(.4,0,.2,1)", transform: bracketSpread?`translate(${isMobile?8:14}px,${isMobile?8:14}px)`:"translate(0,0)" }}/>
                 </div>
               </div>
             </div>
@@ -4896,10 +4886,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
               whiteSpace: isMobile?"normal":"nowrap", lineHeight: isMobile?2:1,
               minHeight: isMobile?"auto":16,
             }}>
-              {isMobile
-                ? <><span>DỊCH VỤ CHO THUÊ MÁY ẢNH</span><br/><span>NÚI THÀNH · TAM KỲ</span></>
-                : <span>{tw1.displayed}<span style={{ opacity: tw1.done ? 0 : 1, transition:"opacity .3s" }}>▌</span></span>
-              }
+              <span>{tw1.displayed}<span style={{ opacity: tw1.done ? 0 : 1, transition:"opacity .3s" }}>▌</span></span>
             </div>
 
             {/* ── TAGLINE ── */}
@@ -4910,10 +4897,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
               letterSpacing:0.3, lineHeight:1.6, fontWeight:400,
               minHeight: isMobile?"auto":20,
             }}>
-              {isMobile
-                ? "Trải nghiệm máy ảnh · Bắt trọn khoảnh khắc"
-                : <span>{tw2.displayed}<span style={{ opacity: tw2.done || !tw1.done ? 0 : 1, transition:"opacity .3s" }}>▌</span></span>
-              }
+              <span>{tw2.displayed}<span style={{ opacity: tw2.done || !tw1.done ? 0 : 1, transition:"opacity .3s" }}>▌</span></span>
             </div>
 
             {/* ── CTAs ── */}
@@ -4948,6 +4932,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
             width:"100%", height:"100%",
             display:"flex", alignItems:"center", justifyContent:"center",
             animation:"heroFadeIn 1.3s cubic-bezier(.25,.46,.45,.94) .15s both",
+            ...(isMobile ? { order: 1 } : {}),
           }}>
             <CameraLens3D
               onBook={onBook}
@@ -5096,15 +5081,15 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
           fontSize={isMobile ? 26 : 34}
         />
         <p style={{ color: TXT, fontSize: isMobile ? 13 : 15, fontWeight: 500, lineHeight: 2, maxWidth: 680, margin: "0 auto 64px", fontFamily: "var(--font-ui)" }}>{siteContent.desc}</p>
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(auto-fill,minmax(130px,1fr))" : "repeat(3,1fr)", gap: isMobile ? 14 : 40, marginTop: 48 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: isMobile ? 8 : 40, marginTop: 48 }}>
           {siteContent.stats.map(([e, n, l], i) => (
-            <StatCard key={l} icon={STAT_ICONS[l] || <span style={{ fontSize: 36 }}>{e}</span>} num={n} label={l} delay={i * 180} />
+            <StatCard key={l} icon={STAT_ICONS[l] || <span style={{ fontSize: isMobile ? 20 : 36 }}>{e}</span>} num={n} label={l} delay={i * 180} compact={isMobile} />
           ))}
         </div>
       </div>
 
       {/* FOOTER */}
-      <footer style={{ padding: isMobile ? "20px 16px" : "28px 60px", display: "flex", flexWrap: "wrap", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 10 : 16, background: "rgba(255,255,255,0.13)", backdropFilter: "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: "blur(52px) saturate(180%) brightness(1.04)", borderTop: "1px solid rgba(255,255,255,0.18)" }}>
+      <footer style={{ padding: isMobile ? "20px 16px" : "28px 60px", display: "flex", flexWrap: "wrap", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "center" : "center", gap: isMobile ? 10 : 16, background: "rgba(255,255,255,0.13)", backdropFilter: "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: "blur(52px) saturate(180%) brightness(1.04)", borderTop: "1px solid rgba(255,255,255,0.18)" }}>
         <Logo size={0.7} />
         <div style={{ color: "rgba(10,10,20,0.75)", fontSize: 12, fontFamily: "var(--font-ui)", fontWeight: 500, letterSpacing: 0.5, display: "grid", gridTemplateColumns: "auto auto 1fr", gap: "2px 4px" }}>
           <span>Hotline</span><span>:</span><span>{siteContent.zalo}</span>
@@ -5120,6 +5105,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         .text-type__cursor--hidden{ display:none; }
         @keyframes cursorBlink{ 0%,100%{opacity:1} 50%{opacity:0} }
         .qr-corner{ position:fixed; bottom:20px; right:20px; z-index:999; cursor:pointer; }
+        input[type="date"]::-webkit-calendar-picker-indicator{ opacity:0; width:0; padding:0; margin:0; position:absolute; }
         .qr-wrap{
           display:flex; flex-direction:column; align-items:center; gap:6px;
           transition: transform .3s cubic-bezier(.34,1.56,.64,1);
