@@ -2317,7 +2317,8 @@ function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, se
   const getInRange = (day) => {
     if (!pickDate || !days) return false;
     const ds = `${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-    return ds > pickDate && ds <= endDs;
+    // dùng < endDs (strict) để ngày trả máy không bị tô màu "trong range"
+    return ds > pickDate && ds < endDs;
   };
   const getIsEnd = (day) => {
     if (!endDs || days === 0.5) return false;
@@ -2325,11 +2326,11 @@ function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, se
     return ds === endDs;
   };
 
-  // Kiểm tra toàn bộ range có ngày nào bị "full" không
+  // Kiểm tra toàn bộ range có ngày nào bị "full" không (kể cả pickDate)
   const rangeConflictDates = (() => {
-    if (!pickDate || days <= 1) return [];
+    if (!pickDate || days <= 0) return [];
     const conflicts = [];
-    for (let i = 1; i < Math.ceil(days); i++) {
+    for (let i = 0; i < Math.ceil(days); i++) {
       const ds = dateAddDays(pickDate, i);
       let isFull = false;
       selectedCams.forEach(({ id, qty: need, camQty }) => {
@@ -2346,7 +2347,7 @@ function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, se
     if (st === "past") return { bg:"transparent", border:"transparent", color:"#333", cursor:"default", shadow:"none", fw:400 };
     if (st === "full") return { bg:"#fee2e2", border:"#ef444466", color:"#b91c1c", cursor:"not-allowed", shadow:"none", fw:400 };
     if (isStart) return { bg:G+"33", border: rangeHasConflict ? "#cc3333" : G, color: rangeHasConflict ? "#e87878" : G, cursor:"pointer", shadow: rangeHasConflict ? `0 0 0 2px #cc333344` : `0 0 0 2px ${G}55, 0 0 16px ${G}44`, fw:800 };
-    if (isEnd)   return { bg:G+"22", border:G+"bb", color:G, cursor:"pointer", shadow:`0 0 0 1px ${G}44, 0 0 10px ${G}33`, fw:700 };
+    if (isEnd)   return { bg:G+"22", border:G+"bb", color:G, cursor:"default", shadow:`0 0 0 1px ${G}44, 0 0 10px ${G}33`, fw:700 };
     if (isRangeConflict) return { bg:"#fee2e2", border:"#ef444466", color:"#b91c1c", cursor:"not-allowed", shadow:"none", fw:600 };
     if (isInRange) return { bg:"#fef3c7", border:G+"55", color:G+"cc", cursor:"pointer", shadow:"none", fw:500 };
     if (st === "low") return { bg:"#fef3c7", border:"#f59e0b88", color:"#b45309", cursor:"pointer", shadow:"none", fw:400 };
@@ -2357,9 +2358,10 @@ function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, se
   const touchMoved = useRef(false);
   const touchOrigin = useRef({ x: 0, y: 0 });
 
-  const handleClick = (day, st, isRangeConflict) => {
+  const handleClick = (day, st, isRangeConflict, isEnd) => {
     if (touchMoved.current) return;
-    if (st === "past" || st === "full" || isRangeConflict) return;
+    // Chặn: quá khứ, hết hàng, trong range bị conflict, hoặc ngày trả máy (isEnd)
+    if (st === "past" || st === "full" || isRangeConflict || isEnd) return;
     const ds = `${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
     if (ds === pickDate) { setPickDate(""); return; }
     setPickDate(ds);
@@ -2403,7 +2405,7 @@ function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, se
           const { bg, border, color, cursor, shadow, fw } = statusStyle(st, isStart, isInRange, isEnd, isRangeConflict);
           const isToday = ds === todayDate;
           return (
-            <div key={day} onClick={() => handleClick(day, st, isRangeConflict)}
+            <div key={day} onClick={() => handleClick(day, st, isRangeConflict, isEnd)}
               style={{ textAlign:"center", padding:"6px 2px", borderRadius:5, background:bg, border:`1px solid ${border}`, color, cursor, fontSize:11, fontFamily:"system-ui,sans-serif", fontWeight: (isStart||isEnd||isInRange) ? fw : (isToday ? 700 : 400), position:"relative", transition:"all .1s", userSelect:"none", boxShadow: shadow }}>
               {day}
               {isToday && !isStart && !isEnd && <div style={{ position:"absolute", bottom:2, left:"50%", transform:"translateX(-50%)", width:3, height:3, borderRadius:"50%", background:G }} />}
@@ -2502,6 +2504,29 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   const days = selDur ? selDur.days : (parseInt(customDays) || 0);
   // session: lấy từ selDur nếu có, custom days luôn là "full"
   const selSession = selDur ? selDur.session : (days >= 1 ? "full" : null);
+
+  // Auto-clamp số lượng máy khi đổi ngày/ca ở bước 2 — check TOÀN BỘ khoảng ngày
+  useEffect(() => {
+    if (!pickDate || !days || !selSession) return;
+    const activeOrds = orders.filter(o => !["cancelled","completed"].includes(o.status));
+    const sess = selSession || "full";
+    const dateRange = [];
+    if (days < 1) { dateRange.push(pickDate); }
+    else { for (let i = 0; i < Math.ceil(days); i++) dateRange.push(dateAddDays(pickDate, i)); }
+    setSelCams(prev => {
+      const next = { ...prev };
+      let changed = false;
+      Object.keys(next).forEach(camId => {
+        const cam = cameras.find(c => c.id === Number(camId) || c.id === camId);
+        if (!cam) return;
+        const minAvail = Math.min(...dateRange.map(d => getAvailQty(cam.id, cam.qty || 1, activeOrds, d, sess)));
+        if (minAvail <= 0) { delete next[camId]; changed = true; }
+        else if (next[camId] > minAvail) { next[camId] = minAvail; changed = true; }
+      });
+      return changed ? next : prev;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pickDate, selSession, days]);
 
   // Auto-bỏ chọn phụ kiện hết kho khi đổi ngày / ca — check TOÀN BỘ khoảng ngày
   useEffect(() => {
@@ -2662,13 +2687,27 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   const [submitError, setSubmitError] = useState(null);
 
   const handleFinish = () => {
-    // ── BUG FIX 2: Validate kho tại thời điểm submit ──
+    // ── Validate kho toàn bộ range tại thời điểm submit (chống race condition) ──
     const activeOrds = orders.filter(o => !["cancelled", "completed"].includes(o.status));
+    const sess = selSession || "full";
+    const submitDateRange = [];
+    if (days < 1) { submitDateRange.push(pickDate); }
+    else { for (let i = 0; i < Math.ceil(days); i++) submitDateRange.push(dateAddDays(pickDate, i)); }
     for (const cam of selectedCamList) {
       const need = selCams[cam.id] || 1;
-      const avail = getAvailQty(cam.id, cam.qty, activeOrds, pickDate, selSession || "full");
-      if (avail < need) {
-        setSubmitError(`❌ "${cam.name}" chỉ còn ${avail} máy cho ngày/ca này. Vui lòng quay lại điều chỉnh số lượng.`);
+      const minAvail = Math.min(...submitDateRange.map(d => getAvailQty(cam.id, cam.qty || 1, activeOrds, d, sess)));
+      if (minAvail < need) {
+        setSubmitError(`❌ "${cam.name}" đã hết trong khoảng thời gian này (còn ${minAvail}). Vui lòng quay lại chọn ngày khác.`);
+        return;
+      }
+    }
+    for (const [name, qty] of Object.entries(selAcc)) {
+      if (!qty || qty <= 0) continue;
+      const acc = accessories.find(a => a.name === name);
+      if (!acc) continue;
+      const minAvail = Math.min(...submitDateRange.map(d => getAccAvailQty(name, acc.qty || 0, activeOrds, d, sess)));
+      if (minAvail < qty) {
+        setSubmitError(`❌ Phụ kiện "${name}" đã hết trong khoảng thời gian này (còn ${minAvail}). Vui lòng quay lại điều chỉnh.`);
         return;
       }
     }
@@ -3025,21 +3064,22 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                   </div>
                 )}
                 <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
-                  {accessories.filter(a => a.active !== false).map(a => {
-                    const qty = selAcc[a.name] || 0;
-                    const isSel = qty > 0;
-                    // Tính tồn kho thực tế theo TOÀN BỘ khoảng ngày thuê (đồng bộ với nút tiếp tục)
-                    const activeOrds = orders.filter(o => !["cancelled","completed"].includes(o.status));
-                    const sess = selSession || "full";
-                    const accDateRange = (() => {
+                  {(() => {
+                    // Hoist ra ngoài map — tính 1 lần dùng chung cho toàn bộ phụ kiện
+                    const _activeOrds = orders.filter(o => !["cancelled","completed"].includes(o.status));
+                    const _sess = selSession || "full";
+                    const _accDateRange = (() => {
                       if (!pickDate || !days) return [];
                       if (days < 1) return [pickDate];
                       const arr = [];
                       for (let i = 0; i < Math.ceil(days); i++) arr.push(dateAddDays(pickDate, i));
                       return arr;
                     })();
-                    const availStock = accDateRange.length > 0
-                      ? Math.min(...accDateRange.map(d => getAccAvailQty(a.name, a.qty || 0, activeOrds, d, sess)))
+                    return accessories.filter(a => a.active !== false).map(a => {
+                    const qty = selAcc[a.name] || 0;
+                    const isSel = qty > 0;
+                    const availStock = _accDateRange.length > 0
+                      ? Math.min(..._accDateRange.map(d => getAccAvailQty(a.name, a.qty || 0, _activeOrds, d, _sess)))
                       : (a.qty || 0);
                     const isOutOfStock = availStock <= 0;
                     const isLowStock = !isOutOfStock && availStock <= 1 && (a.qty || 0) > 1;
@@ -3105,7 +3145,8 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                         )}
                       </div>
                     );
-                  })}
+                  });
+                  })()}
                 </div>
               </div>
 
@@ -3298,7 +3339,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                     const needed = selCams[c.id] || 1;
                     const minAvail = Math.min(...datesToCheck.map(d => getAvailQty(c.id, c.qty || 1, activeOrds, d, sess)));
                     if (minAvail < needed) {
-                      blockingItems.push({ name: c.name, avail: minAvail, needed, type: "📷 Máy" });
+                      blockingItems.push({ name: c.name, avail: minAvail, needed, type: "📷 Máy", goBack: true });
                     }
                   });
                   // ── Check từng phụ kiện đã chọn trên toàn bộ ngày ──
@@ -3324,7 +3365,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                         <div style={{ fontWeight:700, marginBottom:4 }}>🚫 Không đủ máy trong khoảng thời gian đã chọn:</div>
                         {blockingItems.map((item, i) => (
                           <div key={i}>
-                            · {item.type} <b>{item.name}</b>: cần {item.needed} {item.type === "📷 Máy" ? "máy" : "cái"} nhưng hiện đã hết hàng — mấy vợ vui lòng chọn ngày khác, giảm số lượng hoặc {item.type === "📷 Máy" ? "chọn máy khác phù hợp hơn" : "chọn phụ kiện khác phù hợp hơn"}
+                            · {item.type} <b>{item.name}</b>: cần {item.needed} {item.type === "📷 Máy" ? "máy" : "cái"} nhưng hiện đã hết hàng — mấy vợ vui lòng chọn ngày khác{item.goBack ? ", hoặc ← quay lại bước 1 để giảm số lượng" : ""}{item.type === "📷 Máy" ? "" : " hoặc chọn phụ kiện khác"}
                           </div>
                         ))}
                       </div>
