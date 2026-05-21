@@ -2503,20 +2503,25 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   // session: lấy từ selDur nếu có, custom days luôn là "full"
   const selSession = selDur ? selDur.session : (days >= 1 ? "full" : null);
 
-  // Auto-bỏ chọn phụ kiện hết kho khi đổi ngày / ca
+  // Auto-bỏ chọn phụ kiện hết kho khi đổi ngày / ca — check TOÀN BỘ khoảng ngày
   useEffect(() => {
     if (!pickDate || !days) return;
     const activeOrds = orders.filter(o => !["cancelled","completed"].includes(o.status));
     const sess = selSession || "full";
+    // Build danh sách ngày cần check (giống logic nút tiếp tục)
+    const dateRange = [];
+    if (days < 1) { dateRange.push(pickDate); }
+    else { for (let i = 0; i < Math.ceil(days); i++) dateRange.push(dateAddDays(pickDate, i)); }
     setSelAcc(prev => {
       const next = { ...prev };
       let changed = false;
       Object.keys(next).forEach(name => {
         const acc = accessories.find(a => a.name === name);
         if (!acc) return;
-        const avail = getAccAvailQty(name, acc.qty || 0, activeOrds, pickDate, sess);
-        if (avail <= 0) { delete next[name]; changed = true; }
-        else if (next[name] > avail) { next[name] = avail; changed = true; }
+        // Lấy min tồn kho qua toàn bộ ngày trong range
+        const minAvail = Math.min(...dateRange.map(d => getAccAvailQty(name, acc.qty || 0, activeOrds, d, sess)));
+        if (minAvail <= 0) { delete next[name]; changed = true; }
+        else if (next[name] > minAvail) { next[name] = minAvail; changed = true; }
       });
       return changed ? next : prev;
     });
