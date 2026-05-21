@@ -1,4 +1,4 @@
-=import { useState, useEffect, useRef, useCallback, lazy, Suspense, Component } from "react";
+import { useState, useEffect, useRef, useCallback, lazy, Suspense, Component } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from "recharts";
 
 // ── HELPERS ──
