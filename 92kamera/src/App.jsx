@@ -4102,7 +4102,7 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
 }
 
 // ── MOBILE FAB MENU (draggable floating circle) ──
-function MobileFAB({ mobileMenuOpen, setMobileMenuOpen, siteContent, onBook }) {
+function MobileFAB({ mobileMenuOpen, setMobileMenuOpen, siteContent, onBook, loggedUser, onOpenLogin, onOpenCustomer, orders }) {
   const fabRef = useRef(null);
   const menuRef = useRef(null);
   const posRef = useRef({ x: 6, y: 8 }); // default: sát góc trên trái
@@ -4159,7 +4159,7 @@ function MobileFAB({ mobileMenuOpen, setMobileMenuOpen, siteContent, onBook }) {
 
   // Tính vị trí menu (popup gần FAB, không ra ngoài màn hình)
   const menuW = 220;
-  const menuH = 260;
+  const menuH = 380;
   let menuX = pos.x + 44;
   let menuY = pos.y;
   if (menuX + menuW > window.innerWidth - 8) menuX = pos.x - menuW - 8;
@@ -4305,23 +4305,64 @@ function MobileFAB({ mobileMenuOpen, setMobileMenuOpen, siteContent, onBook }) {
       {open && (
         <div ref={menuRef} style={{
           position: "fixed", left: menuX, top: menuY, zIndex: 299,
-          width: menuW, background: "rgba(10,18,28,0.97)",
-          border: "1px solid rgba(41,121,207,0.3)", borderRadius: 22,
-          backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)",
-          boxShadow: "0 12px 48px rgba(0,0,0,0.6), 0 0 24px rgba(41,121,207,0.1)",
+          width: menuW,
+          background: "linear-gradient(160deg, rgba(232,240,248,0.96) 0%, rgba(197,216,236,0.93) 60%, rgba(181,206,230,0.91) 100%)",
+          border: "1px solid rgba(255,255,255,0.72)",
+          borderRadius: 22,
+          backdropFilter: "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: "blur(52px) saturate(180%) brightness(1.04)",
+          boxShadow: "0 1px 0 rgba(255,255,255,0.85) inset, 0 8px 40px rgba(13,27,42,0.14)",
           padding: "10px 0", animation: "navExpandIn .22s cubic-bezier(.4,0,.2,1)",
           touchAction: "auto",
         }}>
+          {/* Nav links */}
           {[["📷 MÁY ẢNH", "cameras"], ["🎒 PHỤ KIỆN", "accessories"], ["💬 FEEDBACK", "feedback"], ["📍 VỀ CHÚNG TÔI", "about"]].map(([t, id]) => (
             <button key={id}
               onClick={() => { document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }); setOpen(false); }}
-              style={{ width: "100%", background: "none", border: "none", color: "#999", fontSize: 12, letterSpacing: 2, padding: "13px 18px", cursor: "pointer", fontFamily: "system-ui,sans-serif", fontWeight: 600, textAlign: "left", display: "flex", alignItems: "center", gap: 10, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
+              style={{ width: "100%", background: "none", border: "none", color: TXT, fontSize: 12, letterSpacing: 2, padding: "12px 18px", cursor: "pointer", fontFamily: "system-ui,sans-serif", fontWeight: 600, textAlign: "left", display: "flex", alignItems: "center", gap: 10, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
               {t}
             </button>
           ))}
-          <div style={{ height: 1, background: "rgba(139,107,61,0.20)", margin: "6px 14px" }} />
-          <div style={{ display: "flex", gap: 8, padding: "6px 18px", alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ color: "#555", fontSize: 9, letterSpacing: 2, fontFamily: "system-ui,sans-serif" }}>FOLLOW</span>
+
+          <div style={{ height: 1, background: "rgba(13,27,42,0.12)", margin: "6px 14px" }} />
+
+          {/* Đăng nhập / Tài khoản */}
+          <button
+            onClick={() => { setOpen(false); (loggedUser ? (onOpenCustomer || onOpenLogin) : onOpenLogin)?.(); }}
+            style={{ width: "100%", background: "none", border: "none", color: TXT, fontSize: 12, letterSpacing: 2, padding: "12px 18px", cursor: "pointer", fontFamily: "system-ui,sans-serif", fontWeight: 600, textAlign: "left", display: "flex", alignItems: "center", gap: 10, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
+            {loggedUser ? (
+              <>
+                <div style={{ width: 20, height: 20, borderRadius: "50%", background: G+"22", border: `1.5px solid ${G}55`, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, flexShrink: 0 }}>
+                  {loggedUser.avatar ? <img src={loggedUser.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (loggedUser.displayName || loggedUser.name || "?")[0].toUpperCase()}
+                </div>
+                {loggedUser.displayName || loggedUser.name}
+              </>
+            ) : (
+              <><span>👤</span> ĐĂNG NHẬP</>
+            )}
+          </button>
+
+          <div style={{ height: 1, background: "rgba(13,27,42,0.12)", margin: "6px 14px" }} />
+
+          {/* Gửi yêu cầu thuê */}
+          <button
+            onClick={() => { setOpen(false); onBook?.(); }}
+            style={{ width: "calc(100% - 28px)", margin: "4px 14px", background: "linear-gradient(135deg,#5a5a6e 0%,#c8c8dc 50%,#4a4a60 100%)", border: "none", color: "#0a0a18", fontSize: 9, letterSpacing: 2.5, padding: "10px 14px", cursor: "pointer", fontFamily: "system-ui,sans-serif", fontWeight: 700, textAlign: "center", borderRadius: 12, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
+            GỬI YÊU CẦU THUÊ
+          </button>
+
+          {/* Tra cứu đơn */}
+          <button
+            onClick={() => { setOpen(false); setTimeout(() => { const el = document.querySelector("[data-tracuu]"); el?.click(); }, 100); }}
+            style={{ width: "calc(100% - 28px)", margin: "6px 14px 8px", background: "rgba(13,27,42,0.08)", border: `1px solid rgba(13,27,42,0.18)`, color: TXT, fontSize: 9, letterSpacing: 2.5, padding: "10px 14px", cursor: "pointer", fontFamily: "system-ui,sans-serif", fontWeight: 700, textAlign: "center", borderRadius: 12, touchAction: "manipulation", WebkitTapHighlightColor: "transparent", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            TRA CỨU ĐƠN
+          </button>
+
+          <div style={{ height: 1, background: "rgba(13,27,42,0.12)", margin: "4px 14px 8px" }} />
+
+          {/* Social links */}
+          <div style={{ display: "flex", gap: 8, padding: "2px 18px 6px", alignItems: "center", flexWrap: "wrap" }}>
+            <span style={{ color: MUT, fontSize: 9, letterSpacing: 2, fontFamily: "system-ui,sans-serif", fontWeight: 600 }}>FOLLOW</span>
             {[
               { key: "youtube", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 00-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 001.46 6.42 29 29 0 001 12a29 29 0 00.46 5.58 2.78 2.78 0 001.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 001.95-1.96A29 29 0 0023 12a29 29 0 00-.46-5.58zM9.75 15.02V8.98L15.5 12l-5.75 3.02z"/></svg> },
               { key: "facebook", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg> },
@@ -4331,7 +4372,7 @@ function MobileFAB({ mobileMenuOpen, setMobileMenuOpen, siteContent, onBook }) {
               const url = siteContent?.socialLinks?.[key];
               return (
                 <button key={key} onClick={() => { if (url) window.open(url, "_blank"); }}
-                  style={{ opacity: url ? 1 : 0.3, cursor: url ? "pointer" : "default", width: 32, height: 32, borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "#999", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
+                  style={{ opacity: url ? 1 : 0.3, cursor: url ? "pointer" : "default", width: 32, height: 32, borderRadius: 12, background: "rgba(13,27,42,0.08)", border: "1px solid rgba(13,27,42,0.14)", display: "flex", alignItems: "center", justifyContent: "center", color: TXT, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
                   {icon}
                 </button>
               );
@@ -4823,6 +4864,10 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         setMobileMenuOpen={setMobileMenuOpen}
         siteContent={siteContent}
         onBook={onBook}
+        loggedUser={loggedUser}
+        onOpenLogin={onOpenLogin}
+        onOpenCustomer={onOpenCustomer}
+        orders={orders}
       />}
 
       {/* HERO — PREMIUM JAPAN MINIMAL */}
