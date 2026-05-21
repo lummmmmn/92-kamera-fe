@@ -362,7 +362,7 @@ function Badge({ status }) {
 }
 
 // ── ORDER LOOKUP WIDGET (tra cứu đơn nhanh, không cần đăng nhập) ──
-function OrderLookupWidget({ orders }) {
+function OrderLookupWidget({ orders, compact }) {
   const [open, setOpen] = useState(false);
   const [val, setVal] = useState("");
   const [result, setResult] = useState(null);
@@ -436,11 +436,12 @@ function OrderLookupWidget({ orders }) {
           display: "flex", alignItems: "center", gap: 8,
           background: open ? "rgba(30,28,26,0.85)" : "rgba(30,28,26,0.6)",
           border: `1px solid ${open ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.14)"}`,
-          borderRadius: open ? "14px 14px 0 0" : 14,
-          padding: "11px 22px", cursor: "pointer", transition: "all .25s",
-          color: "#d4cab8", fontSize: 11, fontFamily: "system-ui,sans-serif", letterSpacing: 2.5, fontWeight: 600,
+          borderRadius: open ? "12px 12px 0 0" : 12,
+          padding: compact ? "9px 14px" : "11px 22px", cursor: "pointer", transition: "all .25s",
+          color: "#d4cab8", fontSize: compact ? 7.5 : 11, fontFamily: "system-ui,sans-serif", letterSpacing: compact ? 2 : 2.5, fontWeight: 600,
           backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
           boxShadow: open ? "0 4px 20px rgba(0,0,0,0.3)" : "0 2px 12px rgba(0,0,0,0.18)",
+          whiteSpace: "nowrap",
         }}>
           {/* Kính lúp SVG */}
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
@@ -805,17 +806,22 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
   const anyHov = hoveredRing !== null;
 
   return (
+    <div style={{
+      width: sz, height: sz, position: "relative",
+      borderRadius: "50%", overflow: "hidden",
+      isolation: "isolate",
+    }}>
     <div
       className="lens-float-wrap"
       style={{
         width: sz, height: sz, position: "relative",
-        filter: "drop-shadow(0 40px 80px rgba(0,0,0,0.42)) drop-shadow(0 14px 32px rgba(0,0,0,0.28)) drop-shadow(0 2px 6px rgba(0,0,0,0.20))",
+        filter: "drop-shadow(0 18px 36px rgba(0,0,0,0.38)) drop-shadow(0 6px 14px rgba(0,0,0,0.22))",
         animation: "lensFloat 5.5s ease-in-out infinite",
       }}
       onMouseEnter={() => { isHovRef.current = true; }}
       onMouseLeave={() => { isHovRef.current = false; setHoveredRing(null); }}
     >
-      <svg viewBox="-268 -268 536 536" width={sz} height={sz} style={{ overflow: "visible" }}>
+      <svg viewBox="-268 -268 536 536" width={sz} height={sz} style={{ overflow: "hidden" }}>
         <defs>
           {/* ── Per-ring metallic radial gradient ── */}
           {rings.map((r, i) => {
@@ -913,6 +919,9 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
 
           {/* ── Lens clip ── */}
           <clipPath id="lensClip"><circle r="260"/></clipPath>
+
+          {/* ── Avatar clip (center button) ── */}
+          <clipPath id="avatarClip"><circle r="26"/></clipPath>
 
           {/* ── Upper arc text paths ── */}
           {rings.filter(r=>!r.isCenter).map(r=>(
@@ -1022,23 +1031,57 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
                     </g>
                   )}
 
-                  {/* Center accent dot */}
-                  <circle r="4" fill={isHov ? pal.accent : "rgba(255,255,255,0.18)"}
-                    style={{ transition: "fill 0.3s" }}/>
-                  <circle r="2" fill={isHov ? "#fff" : "rgba(255,255,255,0.5)"}
-                    style={{ transition: "fill 0.3s" }}/>
-
-                  {/* Main label — upper */}
-                  <text y="-6" textAnchor="middle" style={{
-                    fill: isHov ? pal.accent : "rgba(255,255,255,0.88)",
-                    fontSize: 7.4,
-                    letterSpacing: 4.0,
-                    fontFamily: "'Be Vietnam Pro',system-ui,sans-serif",
-                    fontWeight: 700,
-                    transition: "fill 0.28s",
-                  }}>
-                    {pal.label}
-                  </text>
+                  {/* Center accent dot — chỉ hiện khi chưa login */}
+                  {!loggedUser && <>
+                    <circle r="4" fill={isHov ? pal.accent : "rgba(255,255,255,0.18)"}
+                      style={{ transition: "fill 0.3s" }}/>
+                    <circle r="2" fill={isHov ? "#fff" : "rgba(255,255,255,0.5)"}
+                      style={{ transition: "fill 0.3s" }}/>
+                  </>}
+                  {loggedUser ? (
+                    <g>
+                      {/* Avatar image hoặc initial */}
+                      {loggedUser.avatar ? (
+                        <image
+                          href={loggedUser.avatar}
+                          x="-26" y="-26" width="52" height="52"
+                          clipPath="url(#avatarClip)"
+                          preserveAspectRatio="xMidYMid slice"
+                        />
+                      ) : (
+                        <>
+                          <circle r="26" fill="#1a2030"/>
+                          <text y="4" textAnchor="middle" style={{
+                            fill: "rgba(255,255,255,0.88)",
+                            fontSize: 18,
+                            fontFamily: "system-ui,sans-serif",
+                            fontWeight: 700,
+                          }}>
+                            {(loggedUser.displayName || loggedUser.name || "?")[0].toUpperCase()}
+                          </text>
+                        </>
+                      )}
+                      {/* 3D gloss overlay lên avatar */}
+                      <ellipse cx="-4" cy="-10" rx="17" ry="13" fill="url(#cgloss)" opacity="0.7"/>
+                      {/* Rim light */}
+                      <circle r="26" fill="url(#rimLight)" opacity="0.8"/>
+                      {/* Engraved ring trên avatar */}
+                      <circle r="25" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="0.8"/>
+                      <circle r="26" fill="none" stroke="rgba(0,0,0,0.55)" strokeWidth="1.5"/>
+                    </g>
+                  ) : (
+                    /* Main label — chưa đăng nhập */
+                    <text y="-6" textAnchor="middle" style={{
+                      fill: isHov ? pal.accent : "rgba(255,255,255,0.88)",
+                      fontSize: 7.4,
+                      letterSpacing: 4.0,
+                      fontFamily: "'Be Vietnam Pro',system-ui,sans-serif",
+                      fontWeight: 700,
+                      transition: "fill 0.28s",
+                    }}>
+                      {pal.label}
+                    </text>
+                  )}
 
 
                 </g>
@@ -1236,6 +1279,7 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
 
         </g>{/* end lensClip */}
       </svg>
+    </div>
     </div>
   );
 }
@@ -1642,13 +1686,13 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             onPointerDown={(e) => { e.preventDefault(); setMobileMenuOpen(o => !o); }}
             style={{
               display: "flex", alignItems: "center", gap: 8,
-              background: mobileMenuOpen ? `linear-gradient(135deg,${G}22,${G}11)` : "rgba(10,18,28,0.92)",
-              border: `1px solid ${mobileMenuOpen ? G+"66" : "rgba(201,168,76,0.35)"}`,
+              background: mobileMenuOpen ? `linear-gradient(135deg,${G}22,${G}11)` : "rgba(255,255,255,0.13)",
+              border: `1px solid ${mobileMenuOpen ? G+"66" : "rgba(255,255,255,0.22)"}`,
               borderRadius: 50, padding: "8px 14px 8px 10px",
-              backdropFilter: "blur(32px)", WebkitBackdropFilter: "blur(32px)",
+              backdropFilter: "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: "blur(52px) saturate(180%) brightness(1.04)",
               boxShadow: mobileMenuOpen
-                ? `0 0 0 3px ${G}22, 0 8px 32px rgba(0,0,0,0.7)`
-                : "0 4px 24px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,168,76,0.12)",
+                ? `0 0 0 3px ${G}22, 0 8px 32px rgba(0,0,0,0.3)`
+                : "0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset",
               cursor: "pointer", transition: "all .22s", touchAction: "manipulation",
               WebkitTapHighlightColor: "transparent",
             }}>
@@ -1720,11 +1764,11 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             style={{
               position: "fixed", top: 10, right: 12, zIndex: 200,
               display: "flex", alignItems: "center", gap: 6,
-              background: "rgba(10,18,28,0.92)",
-              border: "1px solid rgba(201,168,76,0.35)",
+              background: "rgba(255,255,255,0.13)",
+              border: "1px solid rgba(255,255,255,0.22)",
               borderRadius: 50, padding: "8px 14px",
-              backdropFilter: "blur(32px)", WebkitBackdropFilter: "blur(32px)",
-              boxShadow: "0 4px 24px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,168,76,0.12)",
+              backdropFilter: "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: "blur(52px) saturate(180%) brightness(1.04)",
+              boxShadow: "0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset",
               cursor: "pointer", touchAction: "manipulation",
               WebkitTapHighlightColor: "transparent",
             }}>
@@ -4068,7 +4112,7 @@ function MobileFAB({ mobileMenuOpen, setMobileMenuOpen, siteContent, onBook }) {
 
   const clampPos = (x, y) => {
     const W = window.innerWidth, H = window.innerHeight;
-    const size = 31;
+    const size = 37;
     return { x: Math.max(4, Math.min(W - size - 4, x)), y: Math.max(4, Math.min(H - size - 4, y)) };
   };
 
@@ -4116,7 +4160,7 @@ function MobileFAB({ mobileMenuOpen, setMobileMenuOpen, siteContent, onBook }) {
   // Tính vị trí menu (popup gần FAB, không ra ngoài màn hình)
   const menuW = 220;
   const menuH = 260;
-  let menuX = pos.x + 38;
+  let menuX = pos.x + 44;
   let menuY = pos.y;
   if (menuX + menuW > window.innerWidth - 8) menuX = pos.x - menuW - 8;
   if (menuY + menuH > window.innerHeight - 8) menuY = window.innerHeight - menuH - 8;
@@ -4135,7 +4179,7 @@ function MobileFAB({ mobileMenuOpen, setMobileMenuOpen, siteContent, onBook }) {
         onTouchEnd={onPointerUp}
         style={{
           position: "fixed", left: pos.x, top: pos.y, zIndex: 300,
-          width: 31, height: 31,
+          width: 37, height: 37,
           cursor: "grab", touchAction: "none", userSelect: "none", WebkitUserSelect: "none",
           filter: open
             ? `drop-shadow(0 0 10px ${G}66) drop-shadow(0 6px 18px rgba(0,0,0,0.85))`
@@ -4143,7 +4187,7 @@ function MobileFAB({ mobileMenuOpen, setMobileMenuOpen, siteContent, onBook }) {
           transition: "filter .25s",
         }}
       >
-        <svg viewBox="0 0 62 62" width="31" height="31" xmlns="http://www.w3.org/2000/svg" style={{display:"block"}}>
+        <svg viewBox="0 0 62 62" width="37" height="37" xmlns="http://www.w3.org/2000/svg" style={{display:"block"}}>
           <defs>
             {/* Body gradient — dark matte */}
             <radialGradient id="fab-body" cx="38%" cy="30%" r="68%">
@@ -4848,11 +4892,29 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
                   fontFamily:'"Palatino Linotype","Book Antiqua","Palatino",Georgia,"Times New Roman",serif',
                   color:"#141414", lineHeight:1, cursor:"pointer",
                 }}>
-                {/* Left bracket */}
-                <div style={{ position:"relative", width: isMobile?14:26, height: isMobile?42:72, marginRight: isMobile?10:16, flexShrink:0 }}>
-                  <span style={{ position:"absolute", top:0, left:0, width: isMobile?14:26, height:"50%", borderLeft:"4.9px solid rgba(20,20,20,0.78)", borderTop:"4.9px solid rgba(20,20,20,0.78)", transition: bracketSpread?"none":"transform 0.5s cubic-bezier(.4,0,.2,1)", transform: bracketSpread?`translate(${isMobile?-8:-14}px,${isMobile?-8:-14}px)`:"translate(0,0)" }}/>
-                  <span style={{ position:"absolute", bottom:0, left:0, width: isMobile?14:26, height:"50%", borderLeft:"4.9px solid rgba(20,20,20,0.78)", borderBottom:"4.9px solid rgba(20,20,20,0.78)", transition: bracketSpread?"none":"transform 0.5s cubic-bezier(.4,0,.2,1)", transform: bracketSpread?`translate(${isMobile?-8:-14}px,${isMobile?8:14}px)`:"translate(0,0)" }}/>
-                </div>
+                {/* Left bracket — SVG để tránh flicker iOS */}
+                {(() => {
+                  const bw = isMobile?14:26, bh = isMobile?42:72, sw = 5;
+                  const tx = bracketSpread ? (isMobile?-8:-14) : 0;
+                  const tyT = bracketSpread ? (isMobile?-8:-14) : 0;
+                  const tyB = bracketSpread ? (isMobile?8:14) : 0;
+                  return (
+                    <svg width={bw} height={bh} viewBox={`0 0 ${bw} ${bh}`} style={{ flexShrink:0, marginRight: isMobile?10:16, overflow:"visible" }}>
+                      {/* Top half */}
+                      <path
+                        d={`M ${bw} ${sw/2} L ${sw/2} ${sw/2} L ${sw/2} ${bh/2}`}
+                        fill="none" stroke="rgba(20,20,20,0.82)" strokeWidth={sw} strokeLinecap="square"
+                        style={{ transform:`translate(${tx}px,${tyT}px)`, transition: bracketSpread?"none":"transform 0.5s cubic-bezier(.4,0,.2,1)", willChange:"transform" }}
+                      />
+                      {/* Bottom half */}
+                      <path
+                        d={`M ${sw/2} ${bh/2} L ${sw/2} ${bh-sw/2} L ${bw} ${bh-sw/2}`}
+                        fill="none" stroke="rgba(20,20,20,0.82)" strokeWidth={sw} strokeLinecap="square"
+                        style={{ transform:`translate(${tx}px,${tyB}px)`, transition: bracketSpread?"none":"transform 0.5s cubic-bezier(.4,0,.2,1)", willChange:"transform" }}
+                      />
+                    </svg>
+                  );
+                })()}
 
                 {/* Text */}
                 <span style={{ fontSize: isMobile?30:48, fontWeight:400, letterSpacing: isMobile?1:2, whiteSpace:"nowrap", display:"inline-flex", alignItems:"center" }}>
@@ -4870,11 +4932,29 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
                   }}/>
                 </span>
 
-                {/* Right bracket */}
-                <div style={{ position:"relative", width: isMobile?14:26, height: isMobile?42:72, marginLeft: isMobile?10:16, flexShrink:0 }}>
-                  <span style={{ position:"absolute", top:0, right:0, width: isMobile?14:26, height:"50%", borderRight:"4.9px solid rgba(20,20,20,0.78)", borderTop:"4.9px solid rgba(20,20,20,0.78)", transition: bracketSpread?"none":"transform 0.5s cubic-bezier(.4,0,.2,1)", transform: bracketSpread?`translate(${isMobile?8:14}px,${isMobile?-8:-14}px)`:"translate(0,0)" }}/>
-                  <span style={{ position:"absolute", bottom:0, right:0, width: isMobile?14:26, height:"50%", borderRight:"4.9px solid rgba(20,20,20,0.78)", borderBottom:"4.9px solid rgba(20,20,20,0.78)", transition: bracketSpread?"none":"transform 0.5s cubic-bezier(.4,0,.2,1)", transform: bracketSpread?`translate(${isMobile?8:14}px,${isMobile?8:14}px)`:"translate(0,0)" }}/>
-                </div>
+                {/* Right bracket — SVG */}
+                {(() => {
+                  const bw = isMobile?14:26, bh = isMobile?42:72, sw = 5;
+                  const tx = bracketSpread ? (isMobile?8:14) : 0;
+                  const tyT = bracketSpread ? (isMobile?-8:-14) : 0;
+                  const tyB = bracketSpread ? (isMobile?8:14) : 0;
+                  return (
+                    <svg width={bw} height={bh} viewBox={`0 0 ${bw} ${bh}`} style={{ flexShrink:0, marginLeft: isMobile?10:16, overflow:"visible" }}>
+                      {/* Top half */}
+                      <path
+                        d={`M 0 ${sw/2} L ${bw-sw/2} ${sw/2} L ${bw-sw/2} ${bh/2}`}
+                        fill="none" stroke="rgba(20,20,20,0.82)" strokeWidth={sw} strokeLinecap="square"
+                        style={{ transform:`translate(${tx}px,${tyT}px)`, transition: bracketSpread?"none":"transform 0.5s cubic-bezier(.4,0,.2,1)", willChange:"transform" }}
+                      />
+                      {/* Bottom half */}
+                      <path
+                        d={`M ${bw-sw/2} ${bh/2} L ${bw-sw/2} ${bh-sw/2} L 0 ${bh-sw/2}`}
+                        fill="none" stroke="rgba(20,20,20,0.82)" strokeWidth={sw} strokeLinecap="square"
+                        style={{ transform:`translate(${tx}px,${tyB}px)`, transition: bracketSpread?"none":"transform 0.5s cubic-bezier(.4,0,.2,1)", willChange:"transform" }}
+                      />
+                    </svg>
+                  );
+                })()}
               </div>
             </div>
 
@@ -4901,19 +4981,19 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
             </div>
 
             {/* ── CTAs ── */}
-            <div style={{ display:"flex", alignItems:"center", gap:12, flexWrap:"wrap", justifyContent: isMobile?"center":"flex-start", marginTop: isMobile?28:32 }}>
+            <div style={{ display:"flex", alignItems:"center", gap: isMobile?8:12, flexWrap:"nowrap", justifyContent: isMobile?"center":"flex-start", marginTop: isMobile?22:32 }}>
               <div className="btn-hero-wrap"
                 onMouseEnter={e=>{e.currentTarget.style.boxShadow="0 0 32px rgba(200,200,240,0.55), 0 0 64px rgba(200,200,240,0.2)";e.currentTarget.style.transform="translateY(-3px)";}}
                 onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 0 18px rgba(200,200,240,0.15)";e.currentTarget.style.transform="translateY(0)";}}
-                style={{ transition:"all .28s cubic-bezier(.4,0,.2,1)" }}>
+                style={{ transition:"all .28s cubic-bezier(.4,0,.2,1)", flexShrink:0 }}>
               <button onClick={onBook}
                 style={{
                   background:"linear-gradient(135deg,#5a5a6e 0%,#c8c8dc 50%,#4a4a60 100%)",
                   color:"#0a0a18",
                   border:"none",
-                  padding: isMobile?"13px 28px":"14px 32px",
-                  fontSize:8.5, letterSpacing:3, fontFamily:"system-ui,sans-serif",
-                  fontWeight:700, cursor:"pointer", borderRadius:14,
+                  padding: isMobile?"9px 16px":"14px 32px",
+                  fontSize: isMobile?7.5:8.5, letterSpacing: isMobile?2:3, fontFamily:"system-ui,sans-serif",
+                  fontWeight:700, cursor:"pointer", borderRadius:12,
                   transition:"filter .2s", whiteSpace:"nowrap", lineHeight:1,
                   boxShadow:"none",
                   position:"relative",
@@ -4923,7 +5003,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
                 GỬI YÊU CẦU THUÊ
               </button>
               </div>
-              <OrderLookupWidget orders={orders}/>
+              <OrderLookupWidget orders={orders} compact={isMobile}/>
             </div>
           </div>
 
