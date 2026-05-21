@@ -4903,10 +4903,10 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         <div style={{
           position:"relative", zIndex:5, width:"100%", height:"100%",
           display:"flex", alignItems:"center",
-          justifyContent: "center",
+          justifyContent: isMobile ? "flex-start" : "center",
           flexDirection: isMobile ? "column" : "row",
-          padding: isMobile ? "88px 28px 48px" : "0 0 14% 0",
-          gap: isMobile ? 36 : 0,
+          padding: isMobile ? "12px 28px 24px" : "0 0 14% 0",
+          gap: isMobile ? 20 : 0,
         }}>
 
           {/* ── LEFT: Premium branding block ── */}
@@ -5054,10 +5054,10 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
 
           {/* ── CENTER: 3D Lens ── */}
           <div style={{
-            width:"100%", height:"100%",
+            width:"100%", height: isMobile ? "auto" : "100%",
             display:"flex", alignItems:"center", justifyContent:"center",
             animation:"heroFadeIn 1.3s cubic-bezier(.25,.46,.45,.94) .15s both",
-            ...(isMobile ? { order: 1 } : {}),
+            ...(isMobile ? { order: 1, flexShrink: 0 } : {}),
           }}>
             <CameraLens3D
               onBook={onBook}
