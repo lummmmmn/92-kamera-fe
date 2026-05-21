@@ -1652,13 +1652,13 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
         </div>
       ) : (
         /* ── DESKTOP: sticky header như cũ ── */
-        <div style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(6,6,6,0.82)", backdropFilter: "blur(32px) saturate(160%)", WebkitBackdropFilter: "blur(32px) saturate(160%)", borderBottom: `1px solid rgba(42,42,42,0.7)`, padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(255,255,255,0.13)", backdropFilter: "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: "blur(52px) saturate(180%) brightness(1.04)", borderBottom: `1px solid rgba(255,255,255,0.22)`, padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             {TABS.map(([k, ico, label]) => (
               <button key={k} onClick={() => setTab(k)} style={{
                 padding: "16px 18px", background: "none", border: "none",
                 borderBottom: `2.5px solid ${tab === k ? G : "transparent"}`,
-                color: tab === k ? G : "#666",
+                color: tab === k ? G : MUT,
                 fontWeight: tab === k ? 700 : 400,
                 fontSize: 13, cursor: "pointer",
                 fontFamily: "system-ui,sans-serif",
@@ -1678,19 +1678,19 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
       <div style={{ maxWidth: 1000, margin: "0 auto", padding: isMobile ? "64px 16px 32px" : "32px 24px" }}>
 
         {/* Profile banner */}
-        <div style={{ background:CARD, border:`1px solid ${G}33`, borderRadius:28, padding:"28px 20px 24px", marginBottom:20, textAlign:"center", position:"relative", overflow:"hidden" }}>
+        <div style={{ background:"rgba(255,255,255,0.13)", border:`1px solid rgba(255,255,255,0.22)`, borderRadius:28, padding:"28px 20px 24px", marginBottom:20, textAlign:"center", position:"relative", overflow:"hidden", backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
           {/* Subtle glow top-right */}
           <div style={{ position:"absolute", top:-60, right:-60, width:200, height:200, background:`radial-gradient(circle, ${G}0b 0%, transparent 70%)`, pointerEvents:"none" }} />
 
           {/* Avatar */}
           <div style={{ position:"relative", display:"inline-block", marginBottom:14 }}
             onClick={() => avatarRef.current?.click()} title="Đổi ảnh đại diện">
-            <div style={{ width:84, height:84, borderRadius:"50%", background:`radial-gradient(circle, ${G}22, ${CARD})`, border:`2.5px solid ${G}77`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:34, overflow:"hidden", cursor:"pointer", boxShadow:`0 0 0 5px ${G}14, 0 0 28px ${G}1a` }}>
+            <div style={{ width:84, height:84, borderRadius:"50%", background:`radial-gradient(circle, ${G}22, rgba(255,255,255,0.10))`, border:`2.5px solid ${G}77`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:34, overflow:"hidden", cursor:"pointer", boxShadow:`0 0 0 5px ${G}14, 0 0 28px ${G}1a` }}>
               {(loggedUser?.avatar || loggedUser?.picture)
                 ? <img src={loggedUser.avatar || loggedUser.picture} alt="avatar" referrerPolicy="no-referrer" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
                 : <span style={{ color:G, fontWeight:800, fontSize:34, fontFamily:"system-ui,sans-serif" }}>{loggedUser?.name?.[0]?.toUpperCase() || "?"}</span>}
             </div>
-            <div style={{ position:"absolute", bottom:2, right:2, width:26, height:26, borderRadius:"50%", background:`linear-gradient(135deg,${G},#a07030)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, border:`2px solid ${CARD}`, cursor:"pointer", boxShadow:`0 0 10px ${G}99` }}>
+            <div style={{ position:"absolute", bottom:2, right:2, width:26, height:26, borderRadius:"50%", background:`linear-gradient(135deg,${G},#a07030)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, border:`2px solid rgba(255,255,255,0.30)`, cursor:"pointer", boxShadow:`0 0 10px ${G}99` }}>
               {avatarLoading ? "⏳" : "📷"}
             </div>
             <input ref={avatarRef} type="file" accept="image/*" style={{ display:"none" }}
@@ -1700,7 +1700,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
           {/* Name */}
           <div style={{ color:G, fontWeight:800, fontSize:22, fontFamily:"system-ui,sans-serif", marginBottom:5, letterSpacing:0.2 }}>{loggedUser?.displayName || loggedUser?.name}</div>
           {/* Email / phone */}
-          <div style={{ color:"#555", fontSize:12.5, fontFamily:"system-ui,sans-serif", marginBottom:14, display:"flex", alignItems:"center", justifyContent:"center", gap:5 }}>
+          <div style={{ color:MUT, fontSize:12.5, fontFamily:"system-ui,sans-serif", marginBottom:14, display:"flex", alignItems:"center", justifyContent:"center", gap:5 }}>
             <span style={{ fontSize:12 }}>✉</span><span>{loggedUser?.email || loggedUser?.phone}</span>
           </div>
 
@@ -1738,33 +1738,33 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                 { icon:"📅", label:"Ngày thuê",      value: totalDays,              unit:"ngày", col:"#a78bfa", dot:"#a78bfa" },
                 { icon:"✅", label:"Hoàn thành",     value: completedOrders.length, unit:"đơn",  col:"#22c55e", dot:"#22c55e" },
               ].map(s => (
-                <div key={s.label} style={{ background:CARD, border:`1px solid ${BR}`, borderRadius:24, padding:"18px 16px 16px", position:"relative", overflow:"hidden" }}>
+                <div key={s.label} style={{ background:"rgba(255,255,255,0.13)", border:`1px solid rgba(255,255,255,0.22)`, borderRadius:24, padding:"18px 16px 16px", position:"relative", overflow:"hidden", backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
                   {/* Accent dot top-right */}
                   <div style={{ position:"absolute", top:14, right:14, width:7, height:7, borderRadius:"50%", background:s.dot, boxShadow:`0 0 8px ${s.dot}99` }} />
                   {/* Icon */}
                   <div style={{ fontSize:20, marginBottom:10, opacity:0.7 }}>{s.icon}</div>
                   {/* Value */}
                   <div style={{ color:s.col, fontWeight:800, fontSize: typeof s.value === "string" && s.value.length > 9 ? 16 : 26, fontFamily:"system-ui,sans-serif", lineHeight:1, marginBottom:6 }}>
-                    {s.value}{s.unit && <span style={{ fontSize:12, color:"#444", fontWeight:500, marginLeft:4 }}>{s.unit}</span>}
+                    {s.value}{s.unit && <span style={{ fontSize:12, color:MUT, fontWeight:500, marginLeft:4 }}>{s.unit}</span>}
                   </div>
                   {/* Label */}
-                  <div style={{ color:"#505040", fontSize:11, fontFamily:"system-ui,sans-serif", fontWeight:600, letterSpacing:0.3 }}>{s.label}</div>
+                  <div style={{ color:MUT, fontSize:11, fontFamily:"system-ui,sans-serif", fontWeight:600, letterSpacing:0.3 }}>{s.label}</div>
                 </div>
               ))}
             </div>
 
             {/* Thiết bị đã thuê */}
             {usedCameras.length > 0 && (
-              <div style={{ background:CARD, border:`1px solid ${BR}`, borderRadius:24, padding:"18px 18px 16px", marginBottom:12 }}>
+              <div style={{ background:"rgba(255,255,255,0.13)", border:`1px solid rgba(255,255,255,0.22)`, borderRadius:24, padding:"18px 18px 16px", marginBottom:12, backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14 }}>
-                  <span style={{ color:"#666", fontSize:10, fontWeight:700, letterSpacing:1.5, fontFamily:"system-ui,sans-serif" }}>THIẾT BỊ ĐÃ THUÊ</span>
+                  <span style={{ color:MUT, fontSize:10, fontWeight:700, letterSpacing:1.5, fontFamily:"system-ui,sans-serif" }}>THIẾT BỊ ĐÃ THUÊ</span>
                   <button onClick={() => setTab("orders")} style={{ background:"none", border:"none", color:G, fontSize:11.5, fontWeight:700, cursor:"pointer", padding:0, fontFamily:"system-ui,sans-serif", display:"flex", alignItems:"center", gap:3 }}>
                     Xem tất cả <span>→</span>
                   </button>
                 </div>
                 <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
                   {usedCameras.map(c => (
-                    <span key={c} style={{ background:CARD2, color:"#888", border:"1px solid #252018", borderRadius:14, padding:"7px 13px", fontSize:12, fontFamily:"system-ui,sans-serif", display:"inline-flex", alignItems:"center", gap:6 }}>
+                    <span key={c} style={{ background:"rgba(255,255,255,0.18)", color:MUT, border:"1px solid rgba(255,255,255,0.30)", borderRadius:14, padding:"7px 13px", fontSize:12, fontFamily:"system-ui,sans-serif", display:"inline-flex", alignItems:"center", gap:6 }}>
                       <span style={{ fontSize:13, opacity:0.6 }}>📷</span><span>{c}</span>
                     </span>
                   ))}
@@ -1781,10 +1781,10 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                 )
               ));
               return unreviewed.length > 0 && (
-                <div style={{ background:CARD, border:`1px solid ${G}33`, borderRadius:24, padding:"16px 18px", marginBottom:12, display:"flex", alignItems:"center", justifyContent:"space-between", gap:14 }}>
+                <div style={{ background:"rgba(255,255,255,0.13)", border:`1px solid rgba(255,255,255,0.22)`, borderRadius:24, padding:"16px 18px", marginBottom:12, display:"flex", alignItems:"center", justifyContent:"space-between", gap:14, backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
                   <div>
                     <div style={{ color:TXT, fontWeight:700, fontSize:14, fontFamily:"system-ui,sans-serif", marginBottom:3 }}>Bạn có {unreviewed.length} đơn chưa đánh giá</div>
-                    <div style={{ color:"#555", fontSize:12, fontFamily:"system-ui,sans-serif" }}>Chia sẻ trải nghiệm để nhận huy hiệu</div>
+                    <div style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>Chia sẻ trải nghiệm để nhận huy hiệu</div>
                   </div>
                   <button onClick={() => setTab("orders")}
                     style={{ flexShrink:0, padding:"10px 18px", background:`linear-gradient(135deg,${G},#a07830)`, color:"#000", border:"none", borderRadius:16, cursor:"pointer", fontWeight:800, fontSize:12, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap", boxShadow:`0 4px 16px ${G}33` }}>
@@ -1797,15 +1797,15 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             {/* Book more CTA */}
             {onOpenBooking && (
               <button onClick={onOpenBooking}
-                style={{ width:"100%", background:"none", border:"1.5px dashed #2a2416", borderRadius:24, padding:"18px 20px", cursor:"pointer", display:"flex", alignItems:"center", gap:14, transition:"all .2s", textAlign:"left" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor=G+"55"; e.currentTarget.style.background=G+"08"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor=BR; e.currentTarget.style.background="none"; }}>
+                style={{ width:"100%", background:"rgba(255,255,255,0.08)", border:"1.5px dashed rgba(255,255,255,0.30)", borderRadius:24, padding:"18px 20px", cursor:"pointer", display:"flex", alignItems:"center", gap:14, transition:"all .2s", textAlign:"left", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)" }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor="rgba(255,255,255,0.55)"; e.currentTarget.style.background="rgba(255,255,255,0.13)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor="rgba(255,255,255,0.30)"; e.currentTarget.style.background="rgba(255,255,255,0.08)"; }}>
                 <div style={{ width:40, height:40, borderRadius:16, border:`1.5px solid ${G}44`, display:"flex", alignItems:"center", justifyContent:"center", color:G, fontSize:20, flexShrink:0 }}>＋</div>
                 <div style={{ flex:1 }}>
                   <div style={{ color:G, fontWeight:700, fontSize:14, fontFamily:"system-ui,sans-serif", marginBottom:2 }}>Thuê thêm thiết bị</div>
-                  <div style={{ color:"#444", fontSize:12, fontFamily:"system-ui,sans-serif" }}>Khám phá thêm nhiều thiết bị chất lượng</div>
+                  <div style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>Khám phá thêm nhiều thiết bị chất lượng</div>
                 </div>
-                <span style={{ color:"#333", fontSize:18 }}>→</span>
+                <span style={{ color:MUT, fontSize:18 }}>→</span>
               </button>
             )}
           </div>
@@ -1817,7 +1817,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
               <div style={{ color: TXT, fontWeight: 700, fontSize: 17 }}>Đơn thuê của tôi</div>
               <button onClick={() => refreshOrders(false)} disabled={refreshing}
-                style={{ padding: "6px 12px", background: CARD, color: refreshing ? MUT : G, border: `1px solid ${refreshing ? BR : G + "55"}`, borderRadius: 10, cursor: refreshing ? "default" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 5, transition: "all .2s" }}>
+                style={{ padding: "6px 12px", background: "rgba(255,255,255,0.13)", color: refreshing ? MUT : G, border: `1px solid ${refreshing ? "rgba(255,255,255,0.22)" : G + "55"}`, borderRadius: 10, cursor: refreshing ? "default" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 5, transition: "all .2s", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)" }}>
                 <span style={{ display: "inline-block", animation: refreshing ? "spin 1s linear infinite" : "none" }}>🔄</span>
                 {refreshing ? "Đang tải..." : "Làm mới"}
               </button>
@@ -1828,7 +1828,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
               {["all","pending","confirmed","active","completed","cancelled"].map(s => (
                 <button key={s} onClick={() => setFilterStatus(s)}
-                  style={{ padding: "7px 14px", background: filterStatus === s ? "#FFF8ED" : CARD, color: filterStatus === s ? G : MUT, border: `1px solid ${filterStatus === s ? G + "55" : BR}`, borderRadius: 99, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", fontWeight: filterStatus === s ? 700 : 400, transition: "all .15s" }}>
+                  style={{ padding: "7px 14px", background: filterStatus === s ? `${G}22` : "rgba(255,255,255,0.13)", color: filterStatus === s ? G : MUT, border: `1px solid ${filterStatus === s ? G + "55" : "rgba(255,255,255,0.22)"}`, borderRadius: 99, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", fontWeight: filterStatus === s ? 700 : 400, transition: "all .15s", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)" }}>
                   {s === "all" ? "Tất cả" : (STATUS_CFG[s]?.label || s)}
                 </button>
               ))}
@@ -1851,7 +1851,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                   const fbStatus = feedbacks.find(_matchFb)?.status;
                   const canFeedback = o.status === "completed"; // Luôn cho phép đánh giá đơn hoàn thành
                   return (
-                    <div key={o.id} style={{ background: CARD, border: `1px solid ${o.status === "active" ? "#f59e0b33" : o.status === "completed" ? "#22c55e22" : BR}`, borderRadius: 16, padding: "16px 20px" }}>
+                    <div key={o.id} style={{ background:"rgba(255,255,255,0.13)", border:`1px solid ${o.status === "active" ? "#f59e0b44" : o.status === "completed" ? "#22c55e33" : "rgba(255,255,255,0.22)"}`, borderRadius:16, padding:"16px 20px", backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
                         <div>
                           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
@@ -1872,7 +1872,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                         </div>
                       )}
                       {/* Feedback actions */}
-                      <div style={{ borderTop: `1px solid ${BR}`, paddingTop: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                      <div style={{ borderTop: `1px solid rgba(255,255,255,0.22)`, paddingTop: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                         {/* Nút sao chép — hiện cho MỌI trạng thái */}
                         <CopyOrderBtn copyFn={() => {
                           const accList = Array.isArray(o.accessories) && o.accessories.length > 0 ? o.accessories.join(", ") : "Không có";
@@ -1962,7 +1962,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 {myFeedbacks.map(f => {
                   return (
-                  <div key={f.id} style={{ background: CARD, border: `1px solid ${f.status === "approved" ? "#22c55e33" : f.status === "rejected" ? "#ef444433" : BR}`, borderRadius: 16, padding: "18px 20px" }}>
+                  <div key={f.id} style={{ background:"rgba(255,255,255,0.13)", border:`1px solid ${f.status === "approved" ? "#22c55e44" : f.status === "rejected" ? "#ef444433" : "rgba(255,255,255,0.22)"}`, borderRadius:16, padding:"18px 20px", backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                       <div>
                         <div style={{ color: G, fontSize: 13, fontWeight: 700, marginBottom: 3 }}>{"★".repeat(f.rating)}<span style={{ color: "#333" }}>{"★".repeat(5 - f.rating)}</span></div>
@@ -2030,16 +2030,16 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                         <div key={b.label} className="badge-card" style={{
                           minWidth:140, flexShrink:0,
                           scrollSnapAlign:"start",
-                          background: isTop
-                            ? `linear-gradient(160deg,#1c1500,#100e00)`
-                            : b.unlocked ? "#0e0d09" : "#090908",
-                          border:`1.5px solid ${isTop ? G+"cc" : b.unlocked ? b.col+"44" : BR}`,
+                          background:"rgba(255,255,255,0.13)",
+                          border:`1.5px solid ${isTop ? G+"cc" : b.unlocked ? b.col+"55" : "rgba(255,255,255,0.22)"}`,
                           borderRadius:28,
                           padding:"20px 14px 16px",
                           textAlign:"center",
                           position:"relative",
-                          opacity: b.unlocked ? 1 : 0.4,
-                          boxShadow: isTop ? `0 0 28px ${G}28,0 0 0 1px ${G}18` : "none",
+                          opacity: b.unlocked ? 1 : 0.45,
+                          backdropFilter:"blur(52px) saturate(180%) brightness(1.04)",
+                          WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)",
+                          boxShadow: isTop ? `0 0 28px ${G}28, 0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset` : "0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset",
                         }}>
                           {/* dot / lock */}
                           <div style={{ position:"absolute", top:12, right:12 }}>
@@ -2048,11 +2048,11 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                               : <span style={{ fontSize:11, opacity:0.4 }}>🔒</span>}
                           </div>
                           {/* icon */}
-                          <div style={{ fontSize:48, marginBottom:10, filter: b.unlocked ? "none" : "grayscale(1) brightness(0.4)", lineHeight:1 }}>{b.icon}</div>
+                          <div style={{ fontSize:48, marginBottom:10, filter: b.unlocked ? "none" : "grayscale(1) brightness(0.55)", lineHeight:1 }}>{b.icon}</div>
                           {/* label */}
-                          <div style={{ color: b.unlocked ? b.col : "#444", fontWeight:700, fontSize:13, fontFamily:"system-ui,sans-serif", marginBottom:5, lineHeight:1.3 }}>{b.label}</div>
+                          <div style={{ color: b.unlocked ? b.col : MUT, fontWeight:700, fontSize:13, fontFamily:"system-ui,sans-serif", marginBottom:5, lineHeight:1.3 }}>{b.label}</div>
                           {/* desc */}
-                          <div style={{ color:"#444", fontSize:10.5, fontFamily:"system-ui,sans-serif", marginBottom:10, lineHeight:1.4 }}>{b.desc}</div>
+                          <div style={{ color:MUT, fontSize:10.5, fontFamily:"system-ui,sans-serif", marginBottom:10, lineHeight:1.4 }}>{b.desc}</div>
                           {/* status */}
                           {b.unlocked
                             ? <div style={{ background:"#EEF9F4", border:"1px solid #22c55e33", borderRadius:12, padding:"5px 8px", display:"inline-flex", alignItems:"center", gap:4 }}>
@@ -2079,14 +2079,14 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                 { icon:"💬", label:"Đánh giá",           value: myFeedbacks.filter(f=>f.status==="approved").length,          unit:"reviews", col:"#f59e0b" },
                 { icon:"🏅", label:"Huy hiệu",           value: badges.length,                                                unit:"/ 6",     col:G },
               ].map(({ icon, label, value, unit, col }) => (
-                <div key={label} style={{ background:CARD, border:`1px solid ${BR}`, borderRadius:22, padding:"16px 16px 14px" }}>
+                <div key={label} style={{ background:"rgba(255,255,255,0.13)", border:`1px solid rgba(255,255,255,0.22)`, borderRadius:22, padding:"16px 16px 14px", backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:10 }}>
                     <span style={{ fontSize:16 }}>{icon}</span>
-                    <span style={{ color:"#555", fontSize:10.5, fontFamily:"system-ui,sans-serif", fontWeight:600, letterSpacing:0.5 }}>{label}</span>
+                    <span style={{ color:MUT, fontSize:10.5, fontFamily:"system-ui,sans-serif", fontWeight:600, letterSpacing:0.5 }}>{label}</span>
                   </div>
                   <div style={{ color:col, fontWeight:800, fontSize:22, fontFamily:"system-ui,sans-serif", lineHeight:1 }}>
                     {value}
-                    {unit && <span style={{ fontSize:12, color:"#555", fontWeight:500, marginLeft:4 }}>{unit}</span>}
+                    {unit && <span style={{ fontSize:12, color:MUT, fontWeight:500, marginLeft:4 }}>{unit}</span>}
                   </div>
                 </div>
               ))}
@@ -2101,75 +2101,75 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             <style>{`
               .sp-inp { transition: border-color .2s, box-shadow .2s !important; }
               .sp-inp:focus { border-color: rgba(201,168,76,0.65) !important; box-shadow: 0 0 0 3px rgba(201,168,76,0.1) !important; outline: none !important; }
-              .sp-inp::placeholder { color: #333 !important; }
+              .sp-inp::placeholder { color: rgba(74,106,138,0.7) !important; }
               .sp-save:hover { box-shadow: 0 6px 28px rgba(201,168,76,0.4) !important; transform: translateY(-1px); }
               .sp-save { transition: all .2s ease !important; }
-              .sp-upload:hover { border-color: rgba(201,168,76,0.6) !important; background: rgba(201,168,76,0.04) !important; }
+              .sp-upload:hover { border-color: rgba(201,168,76,0.6) !important; background: rgba(255,255,255,0.20) !important; }
             `}</style>
 
             <div style={{ color:TXT, fontWeight:800, fontSize:20, marginBottom:4, fontFamily:"system-ui,sans-serif" }}>Cài đặt hồ sơ</div>
             <div style={{ width:36, height:3, background:G, borderRadius:2, marginBottom:28 }} />
 
             {/* ── Avatar block ── */}
-            <div style={{ background:CARD, border:`1px solid ${BR}`, borderRadius:28, padding:"28px 20px 24px", textAlign:"center", marginBottom:14 }}>
+            <div style={{ background:"rgba(255,255,255,0.13)", border:`1px solid rgba(255,255,255,0.22)`, borderRadius:28, padding:"28px 20px 24px", textAlign:"center", marginBottom:14, backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
               <div style={{ position:"relative", display:"inline-block", marginBottom:14 }}
                 onClick={() => avatarRef.current?.click()} title="Đổi ảnh đại diện">
-                <div style={{ width:96, height:96, borderRadius:"50%", background:`radial-gradient(circle, ${G}22, ${CARD})`, border:`3px solid ${G}88`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:40, overflow:"hidden", cursor:"pointer", boxShadow:`0 0 0 5px ${G}14, 0 0 32px ${G}18` }}>
+                <div style={{ width:96, height:96, borderRadius:"50%", background:`radial-gradient(circle, ${G}22, rgba(255,255,255,0.10))`, border:`3px solid ${G}88`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:40, overflow:"hidden", cursor:"pointer", boxShadow:`0 0 0 5px ${G}14, 0 0 32px ${G}18` }}>
                   {(loggedUser?.avatar || loggedUser?.picture)
                     ? <img src={loggedUser.avatar || loggedUser.picture} alt="avatar" referrerPolicy="no-referrer" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
                     : <span style={{ color:G, fontWeight:800, fontFamily:"system-ui,sans-serif" }}>{loggedUser?.name?.[0]?.toUpperCase() || "?"}</span>}
                 </div>
-                <div style={{ position:"absolute", bottom:2, right:2, width:30, height:30, borderRadius:"50%", background:`linear-gradient(135deg,${G},#a07030)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, border:`2.5px solid ${CARD}`, cursor:"pointer", boxShadow:`0 0 12px ${G}99` }}>
+                <div style={{ position:"absolute", bottom:2, right:2, width:30, height:30, borderRadius:"50%", background:`linear-gradient(135deg,${G},#a07030)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, border:`2.5px solid rgba(255,255,255,0.30)`, cursor:"pointer", boxShadow:`0 0 12px ${G}99` }}>
                   {avatarLoading ? "⏳" : "📷"}
                 </div>
                 <input ref={avatarRef} type="file" accept="image/*" style={{ display:"none" }}
                   onChange={e => { if (e.target.files[0]) handleAvatarChange(e.target.files[0]); e.target.value = ""; }} />
               </div>
               <div style={{ color:TXT, fontWeight:700, fontSize:15, marginBottom:4, fontFamily:"system-ui,sans-serif" }}>{loggedUser?.displayName || loggedUser?.name || "Chưa đặt tên"}</div>
-              <div style={{ color:"#555", fontSize:12, fontFamily:"system-ui,sans-serif", marginBottom:18 }}>{loggedUser?.email || loggedUser?.phone || ""}</div>
+              <div style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif", marginBottom:18 }}>{loggedUser?.email || loggedUser?.phone || ""}</div>
               {/* Upload zone */}
               <div className="sp-upload"
                 onClick={() => avatarRef.current?.click()}
                 style={{ border:`1.5px dashed ${G}44`, borderRadius:20, padding:"16px 12px", cursor:"pointer", transition:"all .2s" }}>
                 <div style={{ fontSize:22, marginBottom:5 }}>☁️</div>
                 <div style={{ color:G, fontWeight:600, fontSize:12, fontFamily:"system-ui,sans-serif", marginBottom:3 }}>Tải ảnh lên</div>
-                <div style={{ color:"#4A4A4A", fontSize:10, fontFamily:"system-ui,sans-serif" }}>JPG, PNG – Tối đa 5MB</div>
+                <div style={{ color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif" }}>JPG, PNG – Tối đa 5MB</div>
               </div>
             </div>
 
             {/* ── Form fields ── */}
-            <div style={{ background:CARD, border:`1px solid ${BR}`, borderRadius:28, overflow:"hidden", marginBottom:14 }}>
+            <div style={{ background:"rgba(255,255,255,0.13)", border:`1px solid rgba(255,255,255,0.22)`, borderRadius:28, overflow:"hidden", marginBottom:14, backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
               {[
                 { key:"displayName", icon:"👤", label:"Tên hiển thị",     hint:"Tự động điền khi đặt máy",         type:"text", placeholder:"Tên của bạn" },
                 { key:"phone",       icon:"📞", label:"Số điện thoại",    hint:"Gửi thông tin đặt máy",            type:"tel",  placeholder:"0901 234 567" },
                 { key:"zalo",        icon:"💬", label:"Zalo",             hint:"Xác nhận đơn qua Zalo",            type:"tel",  placeholder:"Số Zalo" },
                 { key:"address",     icon:"📍", label:"Địa chỉ nhận máy", hint:"Tự động điền khi đặt máy",         type:"text", placeholder:"Số nhà, đường, phường..." },
               ].map(({ key, icon, label, hint, type, placeholder }, idx, arr) => (
-                <div key={key} style={{ padding:"18px 20px", borderBottom: idx < arr.length - 1 ? "1px solid #181410" : "none" }}>
+                <div key={key} style={{ padding:"18px 20px", borderBottom: idx < arr.length - 1 ? "1px solid rgba(255,255,255,0.18)" : "none" }}>
                   {/* Label row */}
                   <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:8 }}>
                     <span style={{ fontSize:14, opacity:0.45 }}>{icon}</span>
-                    <span style={{ color:"#777", fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>{label.toUpperCase()}</span>
-                    <span style={{ color:"#333", fontSize:10, fontFamily:"system-ui,sans-serif" }}>— {hint}</span>
+                    <span style={{ color:MUT, fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>{label.toUpperCase()}</span>
+                    <span style={{ color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif" }}>— {hint}</span>
                   </div>
                   {/* Input */}
                   <input className="sp-inp" type={type}
                     value={settingsForm[key]}
                     onChange={e => setSettingsForm(p => ({ ...p, [key]: e.target.value }))}
                     placeholder={placeholder}
-                    style={{ width:"100%", padding:"12px 14px", background:CARD, border:"1px solid rgba(139,107,61,0.20)", borderRadius:16, color:TXT, fontSize:14, fontFamily:"system-ui,sans-serif", boxSizing:"border-box", caretColor:G }}
+                    style={{ width:"100%", padding:"12px 14px", background:"rgba(255,255,255,0.18)", border:"1px solid rgba(255,255,255,0.30)", borderRadius:16, color:TXT, fontSize:14, fontFamily:"system-ui,sans-serif", boxSizing:"border-box", caretColor:G }}
                   />
                 </div>
               ))}
 
               {/* Google row */}
-              <div style={{ padding:"18px 20px", borderTop:"1px solid #181410" }}>
+              <div style={{ padding:"18px 20px", borderTop:"1px solid rgba(255,255,255,0.18)" }}>
                 <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:8 }}>
                   <span style={{ fontSize:14, opacity:0.45 }}>✉️</span>
-                  <span style={{ color:"#777", fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>TÀI KHOẢN GOOGLE</span>
+                  <span style={{ color:MUT, fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>TÀI KHOẢN GOOGLE</span>
                 </div>
                 <input readOnly value={loggedUser?.email || ""}
-                  style={{ width:"100%", padding:"12px 14px", background:CARD, border:"1px solid #1a1810", borderRadius:16, color:"#444", fontSize:13, fontFamily:"system-ui,sans-serif", boxSizing:"border-box" }} />
+                  style={{ width:"100%", padding:"12px 14px", background:"rgba(255,255,255,0.10)", border:"1px solid rgba(255,255,255,0.22)", borderRadius:16, color:MUT, fontSize:13, fontFamily:"system-ui,sans-serif", boxSizing:"border-box" }} />
                 <div style={{ marginTop:8, display:"flex", alignItems:"center", gap:5 }}>
                   <span style={{ color:"#22c55e", fontSize:13 }}>✅</span>
                   <span style={{ color:"#22c55e", fontSize:11, fontWeight:600, fontFamily:"system-ui,sans-serif" }}>Đã xác minh</span>
@@ -2177,12 +2177,12 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
               </div>
 
               {/* Save button */}
-              <div style={{ padding:"16px 20px", borderTop:"1px solid #181410" }}>
+              <div style={{ padding:"16px 20px", borderTop:"1px solid rgba(255,255,255,0.18)" }}>
                 <button className="sp-save" onClick={handleSaveSettings}
                   style={{ width:"100%", padding:"15px 0", background: settingsSaved ? "#052" : `linear-gradient(135deg,#d4a93a,${G},#a07830)`, color: settingsSaved ? "#22c55e" : "#050300", border: settingsSaved ? "1px solid #22c55e44" : "none", borderRadius:20, cursor:"pointer", fontWeight:800, fontSize:15, fontFamily:"system-ui,sans-serif", letterSpacing:0.3, display:"flex", alignItems:"center", justifyContent:"center", gap:8, boxShadow: settingsSaved ? "none" : `0 4px 24px ${G}35` }}>
                   {settingsSaved ? <><span>✓</span><span>Đã lưu hồ sơ!</span></> : <><span>💾</span><span>Lưu cài đặt</span></>}
                 </button>
-                <div style={{ textAlign:"center", marginTop:10, color:"#4A4A4A", fontSize:10.5, display:"flex", alignItems:"center", justifyContent:"center", gap:5, fontFamily:"system-ui,sans-serif" }}>
+                <div style={{ textAlign:"center", marginTop:10, color:MUT, fontSize:10.5, display:"flex", alignItems:"center", justifyContent:"center", gap:5, fontFamily:"system-ui,sans-serif" }}>
                   <span>🛡️</span><span>Thông tin của bạn được bảo mật tuyệt đối</span>
                 </div>
               </div>
@@ -2640,7 +2640,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   };
 
   const overlay = { position: "fixed", inset: 0, zIndex: 300, background: "rgba(8,15,26,0.86)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px", overflowY: "auto", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)" };
-  const box = { background: "linear-gradient(160deg, rgba(232,240,248,0.88) 0%, rgba(197,216,236,0.80) 60%, rgba(181,206,230,0.76) 100%)", border: "1px solid rgba(255,255,255,0.60)", borderRadius: 20, padding: "min(24px, 3vw)", width: step === 1 ? "min(860px,96vw)" : step === 2 ? "min(960px,96vw)" : "min(860px,96vw)", position: "relative", margin: "auto", transition: "width .3s", backdropFilter: "blur(28px) saturate(160%) brightness(1.04)", WebkitBackdropFilter: "blur(28px) saturate(160%) brightness(1.04)", boxShadow: "0 1px 0 rgba(255,255,255,0.80) inset, 0 -1px 0 rgba(0,0,0,0.06) inset, 0 12px 48px rgba(0,0,0,0.30), 0 2px 16px rgba(0,0,0,0.16)" };
+  const box = { background: "linear-gradient(160deg, rgba(232,240,248,0.88) 0%, rgba(197,216,236,0.80) 60%, rgba(181,206,230,0.76) 100%)", border: "1px solid rgba(255,255,255,0.60)", borderRadius: 20, padding: "min(20px, 3vw)", width: step === 1 ? "min(500px,96vw)" : step === 2 ? "min(660px,96vw)" : "min(660px,96vw)", position: "relative", margin: "auto", transition: "width .3s", backdropFilter: "blur(28px) saturate(160%) brightness(1.04)", WebkitBackdropFilter: "blur(28px) saturate(160%) brightness(1.04)", boxShadow: "0 1px 0 rgba(255,255,255,0.80) inset, 0 -1px 0 rgba(0,0,0,0.06) inset, 0 12px 48px rgba(0,0,0,0.30), 0 2px 16px rgba(0,0,0,0.16)" };
   const inpS = { padding: "11px 14px", background: "rgba(255,255,255,0.55)", border: "1px solid rgba(255,255,255,0.70)", borderRadius: 12, color: TXT, fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "system-ui,sans-serif", transition: "border .2s", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" };
   const qtyBtn = (onClick, label) => (
     <button onClick={onClick} style={{ width: 26, height: 26, border: "1px solid rgba(255,255,255,0.65)", borderRadius: 5, background: "rgba(255,255,255,0.50)", color: TXT, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontFamily: "monospace" }}>{label}</button>
@@ -2736,7 +2736,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               </div>
 
               {/* Camera list — 2 cột */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 10, marginBottom: 18 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
                 {availCams.map(c => {
                   const isSelected = (selCams[c.id] || 0) > 0;
                   const tags = CAM_TAGS[c.name] || [];
@@ -3035,7 +3035,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               {/* ── THỜI GIAN THUÊ — trải full width ── */}
               <div style={{ marginBottom:16 }}>
                 <div style={{ color:"#555", fontSize:9, letterSpacing:1.5, marginBottom:8, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>THỜI GIAN THUÊ</div>
-                <div style={{ display:"grid", gridTemplateColumns:`repeat(auto-fill, minmax(130px, 1fr))`, gap:6, marginBottom:14 }}>
+                <div style={{ display:"grid", gridTemplateColumns:`repeat(3,1fr)`, gap:6, marginBottom:14 }}>
                   {DURATIONS.map(d => {
                     const active = selDur?.days === d.days && selDur?.session === d.session;
                     return (
@@ -3104,7 +3104,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                 {ri && (
                   <div style={{ background:"rgba(255,255,255,0.40)", border:"1px solid rgba(255,255,255,0.58)", borderRadius:20, padding:"18px 16px", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)" }}>
                     <div style={{ color:"#888", fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700, marginBottom:14 }}>THỜI GIAN DỰ KIẾN</div>
-                    <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(220px, 1fr))", gap:10, marginBottom:14 }}>
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
                       {[
                         { icon:"📦", label:"Nhận máy",      time:ri.pickTime, date:ri.pickDate },
                         { icon:"📅", label:"Trả máy trước", time:ri.dropTime, date:ri.dropDate },
@@ -3453,7 +3453,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               </div>
 
               {/* ── BOTTOM BAR (fixed) ── */}
-              <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"min(960px,100vw)", background:"linear-gradient(to top, rgba(197,216,236,0.97) 80%, transparent)", padding:"14px 18px 18px", zIndex:999, boxSizing:"border-box", backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)" }}>
+              <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"min(660px,100vw)", background:"linear-gradient(to top, rgba(197,216,236,0.97) 80%, transparent)", padding:"14px 18px 18px", zIndex:999, boxSizing:"border-box", backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)" }}>
                 {/* BUG FIX 2: Lỗi validate kho */}
                 {submitError && (
                   <div style={{ marginBottom:8, padding:"9px 14px", background:"#FEF0F0", border:"1px solid #B0282844", borderRadius:9, color:"#ef4444", fontSize:12, fontFamily:"system-ui,sans-serif", lineHeight:1.5 }}>
