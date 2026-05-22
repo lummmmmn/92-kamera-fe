@@ -3,20 +3,23 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 
 // ── HELPERS ──
 let _camIdNum = 100;
-// BUG1 FIX: tính ID tiếp theo từ orders thực tế thay vì hardcode = 4
+// BUG-RACE FIX: giữ số tuần tự (dễ đọc) + suffix 2-hex ngẫu nhiên → collision 1/256
+// parseInt("0004-AB") = 4 nên parser cũ với replace("#92K","") vẫn đọc được số thứ tự
 const newOrderId = (existingOrders = []) => {
   const existingIds = new Set((existingOrders || []).map(o => o.id));
   let maxNum = 3;
   (existingOrders || []).forEach(o => {
     if (o.id && o.id.startsWith("#92K")) {
-      const n = parseInt(o.id.replace("#92K", ""), 10);
+      // slice(4) bỏ "#92K", parseInt dừng ở "-" nên không cần replace
+      const n = parseInt(o.id.slice(4), 10);
       if (!isNaN(n) && n > maxNum) maxNum = n;
     }
   });
-  // BUG-G FIX: nếu ID đã tồn tại (race 2 tab fetch cùng lúc), tăng lên cho đến khi unique
-  let candidate = `#92K${String(maxNum + 1).padStart(4, "0")}`;
-  let n = maxNum + 1;
-  while (existingIds.has(candidate)) { n++; candidate = `#92K${String(n).padStart(4, "0")}`; }
+  const seq = String(maxNum + 1).padStart(4, "0");
+  const rnd = () => Math.random().toString(16).slice(2, 4).toUpperCase();
+  let candidate = `#92K${seq}-${rnd()}`;
+  let tries = 0;
+  while (existingIds.has(candidate) && tries++ < 16) candidate = `#92K${seq}-${rnd()}`;
   return candidate;
 };
 const newCamId = () => _camIdNum++;
@@ -2576,15 +2579,26 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   // BUG-C FIX: liveOrdersForCheck — orders fresh từ Supabase, fetch khi vào step 2.
   // Tránh blockingItems và auto-clamp dùng local state stale → UI báo "còn hàng" nhưng thực ra hết.
   const [liveOrdersForCheck, setLiveOrdersForCheck] = useState(orders);
+  // BUG-STALE FIX: fetch fresh + polling 30s trong suốt thời gian ở step 2
+  // Tránh user ở lâu step 2 → liveOrdersForCheck stale → báo sai tồn kho
   useEffect(() => {
     if (step !== 2) return;
-    storageGet(STORE_KEYS.orders, true)
+    const fetchFresh = () => storageGet(STORE_KEYS.orders, true)
       .then(fresh => { if (fresh && Array.isArray(fresh)) setLiveOrdersForCheck(fresh); })
       .catch(() => {});
+    fetchFresh();
+    const iv = setInterval(fetchFresh, 30000);
+    return () => clearInterval(iv);
   }, [step]);
   const [expandedCam, setExpandedCam] = useState(null);
-  // selCams: { [camId]: qty }
-  const [selCams, setSelCams] = useState(() => preselectedCamId ? { [preselectedCamId]: 1 } : {});
+  // BUG-PRESELECT FIX: chỉ preselect nếu máy thực sự available
+  // Nếu status !== "available", máy không có trong availCams → ghost entry trong selCams
+  const [selCams, setSelCams] = useState(() => {
+    if (!preselectedCamId) return {};
+    const cam = cameras.find(c => c.id === preselectedCamId);
+    if (!cam || cam.status !== "available") return {};
+    return { [preselectedCamId]: 1 };
+  });
   const [selDur, setSelDur] = useState(null);
   const [customDays, setCustomDays] = useState("");
   const [pickDate, setPickDate] = useState(todayStr());
@@ -2604,8 +2618,9 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   const discountInFlight = useRef(false); // BUG-I FIX: guard concurrent click
 
   const days = selDur ? selDur.days : (parseFloat(customDays) || 0);
-  // session: lấy từ selDur nếu có; custom days: 0.5 → "full" (khách muốn buổi cụ thể thì bấm nút Ca Sáng/Ca Chiều), ≥1 → "full"
-  const selSession = selDur ? selDur.session : (days > 0 ? "full" : null);
+  // BUG-SESSION FIX: customDays < 1 (VD: 0.5) → selSession = null, buộc dùng nút Ca Sáng/Ca Chiều
+  // days >= 1 từ customDays mới được coi là "full" vì không cần phân biệt sáng/chiều
+  const selSession = selDur ? selDur.session : (days >= 1 ? "full" : null);
 
   // Auto-clamp số lượng máy khi đổi ngày/ca ở bước 2 — check TOÀN BỘ khoảng ngày
   useEffect(() => {
@@ -2660,6 +2675,10 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 
   const availCams = cameras.filter(c => c.status === "available");
   const selectedCamList = availCams.filter(c => selCams[c.id] > 0);
+  // BUG-PRESELECT: flag để hiện warning nếu máy được preselect nhưng không còn available
+  const preselectedUnavailable = preselectedCamId
+    ? !cameras.find(c => c.id === preselectedCamId && c.status === "available")
+    : false;
   const totalCamSelected = Object.values(selCams).reduce((s, q) => s + (q || 0), 0);
 
   const camCost = selectedCamList.reduce((s, c) => s + c.price * (selCams[c.id] || 0) * days, 0);
@@ -2824,6 +2843,31 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
       setSubmitError("❌ Vui lòng quay lại bước 1 để chọn ít nhất 1 máy ảnh.");
       return;
     }
+    // BUG-NO-DATE FIX: pickDate = "" khi user bấm deselect ngày ở calendar
+    // → isDateInOrder trả false mọi thứ → tồn kho luôn = full → pass validation sai
+    if (!pickDate) {
+      setSubmitError("❌ Vui lòng chọn ngày thuê ở bước 2.");
+      return;
+    }
+    // BUG-DAYS-ZERO FIX: days = 0 khi user chưa chọn thời lượng
+    // → submitDateRange = [""] → getAvailQty nhận date="" → trả full qty → pass sai
+    if (!days || days <= 0) {
+      setSubmitError("❌ Vui lòng chọn thời lượng thuê ở bước 2.");
+      return;
+    }
+    // BUG-PHONE FIX: validate số điện thoại VN trước submit
+    // Chấp nhận: 0xxxxxxxxx (10 số) hoặc +84xxxxxxxxx (12 ký tự)
+    const phoneClean = info.phone.replace(/\s/g, "");
+    if (!/^(0|\+84)\d{9}$/.test(phoneClean)) {
+      setSubmitError("❌ Số điện thoại không hợp lệ. Vui lòng nhập đúng format (VD: 0901234567).");
+      return;
+    }
+    // BUG-PASTDATE FIX: chặn ngày quá khứ — user có thể gõ tay vào date input
+    // YYYY-MM-DD so sánh lexicographic = chronological nên dùng < là đủ chính xác
+    if (pickDate < todayStr()) {
+      setSubmitError("❌ Ngày thuê đã qua. Vui lòng chọn lại từ hôm nay.");
+      return;
+    }
     setSubmitting(true);
     setSubmitError(null);
 
@@ -2876,16 +2920,15 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
         }
       }
 
-      // BUG1: sinh ID từ dữ liệu Supabase mới nhất — không trùng với tab khác
-      const id = newOrderId(liveOrders);
-      setOrderId(id);
+      // BUG1: sinh ID tạm từ liveOrders (sẽ được kiểm tra lại ở bước R1 bên dưới)
+      const idDraft = newOrderId(liveOrders);
 
       // Build order object — giữ nguyên cấu trúc cũ
       const camNames = selectedCamList.map(c => `${c.name}${selCams[c.id] > 1 ? ` x${selCams[c.id]}` : ""}`).join(", ");
       const accNames = Object.entries(selAcc).map(([n, q]) => q > 1 ? `${n} x${q}` : n);
       const firstCam = selectedCamList[0];
-      const order = {
-        id,
+      const orderDraft = {
+        id: idDraft,
         cameraName: camNames,
         cameraId: firstCam?.id,
         cameras: selectedCamList.map(c => ({ id: c.id, name: c.name, qty: selCams[c.id], price: c.price })),
@@ -2899,16 +2942,73 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
         userPhone: loggedUser?.phone || info.phone, userEmail: loggedUser?.email || ""
       };
 
-      // BUG3: ghi ngay lên Supabase (không debounce) với array mới nhất — tránh last-write-wins
-      await storageSetImmediate(STORE_KEYS.orders, [{ ...order, seen: false }, ...liveOrders]);
+      // BUG-R1 FIX: second fetch ngay trước khi write — thu hẹp race window ~200ms
+      // Re-validate tồn kho + re-generate ID từ array cực mới nhất
+      let finalOrders = liveOrders;
+      let finalId = idDraft;
+      try {
+        const secondFetch = await storageGet(STORE_KEYS.orders, true);
+        if (Array.isArray(secondFetch)) {
+          // Re-validate tồn kho với data mới nhất (nếu ai vừa đặt cùng lúc)
+          const activeOrds2 = secondFetch.filter(o => !["cancelled", "completed"].includes(o.status));
+          for (const cam of selectedCamList) {
+            const need = selCams[cam.id] || 1;
+            const minAvail2 = Math.min(...submitDateRange.map(d => getAvailQty(cam.id, cam.qty || 1, activeOrds2, d, sess)));
+            if (minAvail2 < need) {
+              setSubmitError(`❌ "${cam.name}" vừa hết (ai đó vừa đặt cùng lúc). Vui lòng chọn ngày khác.`);
+              setSubmitting(false);
+              return;
+            }
+          }
+          // BUG-ACC-OVER FIX: re-validate phụ kiện trong second fetch — cùng pattern với cameras
+          // Lần 1 dùng liveOrders; lần 2 dùng secondFetch mới hơn để bắt race window
+          for (const [name, qty] of Object.entries(selAcc)) {
+            if (!qty || qty <= 0) continue;
+            const acc = accessories.find(a => a.name === name);
+            if (!acc) continue;
+            const minAvail2 = Math.min(...submitDateRange.map(d => getAccAvailQty(name, acc.qty || 0, activeOrds2, d, sess)));
+            if (minAvail2 < qty) {
+              setSubmitError(`❌ Phụ kiện "${name}" vừa hết (ai đó vừa đặt cùng lúc). Vui lòng điều chỉnh.`);
+              setSubmitting(false);
+              return;
+            }
+          }
+          finalOrders = secondFetch;
+          // Re-generate ID nếu idDraft đã bị dùng trong khoảng giữa 2 fetch
+          if (secondFetch.some(o => o.id === idDraft)) finalId = newOrderId(secondFetch);
+        }
+      } catch { /* network fail → giữ liveOrders + idDraft */ }
 
-      // BUG5: tăng usedCount trên dữ liệu mới nhất rồi ghi
+      const id = finalId;
+      const order = { ...orderDraft, id };
+      setOrderId(id);
+
+      // BUG3: ghi ngay lên Supabase (không debounce) với array mới nhất — tránh last-write-wins
+      await storageSetImmediate(STORE_KEYS.orders, [{ ...order, seen: false }, ...finalOrders]);
+
+      // BUG5 + BUG-R2 FIX: second fetch discount ngay trước khi increment usedCount
+      // Tránh trường hợp 2 user apply cùng lúc → cả 2 đều pass maxUse check lần đầu
       if (appliedDiscount?.id) {
-        const updatedDiscs = liveDiscounts.map(d =>
-          d.id === appliedDiscount.id ? { ...d, usedCount: (d.usedCount || 0) + 1 } : d
-        );
-        storageSet(STORE_KEYS.discounts, updatedDiscs);
-        setDiscounts(updatedDiscs);
+        let finalDiscs = liveDiscounts;
+        try {
+          const secondDiscFetch = await storageGet(STORE_KEYS.discounts, true);
+          if (Array.isArray(secondDiscFetch)) {
+            const freshDisc2 = secondDiscFetch.find(d => d.id === appliedDiscount.id);
+            // Nếu maxUse đã bị consume trong lúc ghi đơn → bỏ qua increment (đơn đã ghi rồi, không rollback)
+            if (freshDisc2?.maxUse && (freshDisc2.usedCount || 0) >= freshDisc2.maxUse) {
+              finalDiscs = null; // signal: skip increment
+            } else {
+              finalDiscs = secondDiscFetch;
+            }
+          }
+        } catch { /* giữ liveDiscounts */ }
+        if (finalDiscs !== null) {
+          const updatedDiscs = finalDiscs.map(d =>
+            d.id === appliedDiscount.id ? { ...d, usedCount: (d.usedCount || 0) + 1 } : d
+          );
+          storageSet(STORE_KEYS.discounts, updatedDiscs);
+          setDiscounts(updatedDiscs);
+        }
       }
 
       // Cập nhật local React state (handleNewOrder → setOrders)
@@ -2998,6 +3098,12 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 
           return (
             <div>
+              {/* BUG-PRESELECT: warning khi máy được link trực tiếp nhưng hiện không cho thuê */}
+              {preselectedUnavailable && (
+                <div style={{ marginBottom:14, padding:"10px 14px", background:"#FEF0F0", border:"1px solid #C0290A44", borderRadius:12, color:"#C0290A", fontSize:12, fontFamily:"system-ui,sans-serif", lineHeight:1.5 }}>
+                  ⚠️ Máy bạn chọn hiện không còn cho thuê. Vui lòng chọn máy khác bên dưới.
+                </div>
+              )}
               {/* Header */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
                 <div>
@@ -3355,14 +3461,20 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                   </div>
                 )}
 
-                {/* Nhập số ngày tuỳ chỉnh */}
                 <div style={{ marginBottom:14 }}>
-                  <div style={{ color:"#555", fontSize:9, letterSpacing:1.5, marginBottom:6, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>HOẶC NHẬP SỐ NGÀY (≥0.5, bội số 0.5 — VD: 2.5 = 2 ngày + 1 buổi)</div>
+                  <div style={{ color:"#555", fontSize:9, letterSpacing:1.5, marginBottom:6, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>HOẶC NHẬP SỐ NGÀY (≥1, bội số 0.5 — VD: 2.5 = 2 ngày + 1 buổi)</div>
                   <div style={{ position:"relative" }}>
-                    <input style={{ ...inpS, paddingRight:50 }} type="number" min={0.5} step={0.5} value={customDays}
+                    <input style={{ ...inpS, paddingRight:50 }} type="number" min={1} step={0.5} value={customDays}
                       onChange={e => { setCustomDays(e.target.value); setSelDur(null); }} placeholder="VD: 2.5" />
                     <span style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif", pointerEvents:"none" }}>ngày</span>
                   </div>
+                  {/* BUG-NEGDAYS + BUG-SESSION: inline error khi customDays không hợp lệ */}
+                  {customDays !== "" && !selDur && (() => {
+                    const v = parseFloat(customDays);
+                    if (isNaN(v) || v <= 0) return <div style={{ marginTop:6, color:"#C0290A", fontSize:11, fontFamily:"system-ui,sans-serif" }}>⚠️ Số ngày phải lớn hơn 0.</div>;
+                    if (v < 1) return <div style={{ marginTop:6, color:"#f59e0b", fontSize:11, fontFamily:"system-ui,sans-serif" }}>⚠️ Thuê theo buổi vui lòng bấm nút <b>Ca Sáng</b> hoặc <b>Ca Chiều</b> bên trên.</div>;
+                    return null;
+                  })()}
                 </div>
               </div>
 
@@ -3377,7 +3489,9 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                       orders={orders} pickDate={pickDate} setPickDate={setPickDate} days={days} selSession={selSession}
                     />
                     {/* Blur overlay khi chưa chọn loại thuê */}
-                    {!selSession && !days && (
+                    {/* BUG-SESSION FIX: blur khi !selSession (không cần check !days nữa)
+                        customDays=0.5 → selSession=null → buộc dùng preset Ca Sáng/Ca Chiều */}
+                    {!selSession && (
                       <div style={{ position:"absolute", inset:0, background:"rgba(6,6,6,0.72)", borderRadius:14, display:"flex", alignItems:"center", justifyContent:"center", backdropFilter:"blur(3px)", zIndex:10 }}>
                         <div style={{ textAlign:"center" }}>
                           <div style={{ fontSize:24, marginBottom:8 }}>⏰</div>
@@ -3969,11 +4083,18 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                 </div>
               )}
 
-              {/* Nút Zalo — full width, xanh lá */}
-              <a href={zaloHref} target="_blank" rel="noopener noreferrer"
-                style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:10, width:"100%", padding:"15px 24px", background:"#06c755", color:"#fff", borderRadius:16, fontWeight:800, fontSize:16, textDecoration:"none", boxShadow:"0 6px 24px rgba(6,199,85,0.35)", marginBottom:12, boxSizing:"border-box", zIndex:1, position:"relative", transition:"opacity .2s" }}>
-                <span style={{ fontSize:20 }}>💬</span> Nhắn Zalo chốt đơn
-              </a>
+              {/* Nút Zalo — chỉ hiện khi có thông tin Zalo; fallback gọi điện */}
+              {(siteContent.zaloLink || (siteContent.zalo || "").replace(/\s/g, "")) ? (
+                <a href={zaloHref} target="_blank" rel="noopener noreferrer"
+                  style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:10, width:"100%", padding:"15px 24px", background:"#06c755", color:"#fff", borderRadius:16, fontWeight:800, fontSize:16, textDecoration:"none", boxShadow:"0 6px 24px rgba(6,199,85,0.35)", marginBottom:12, boxSizing:"border-box", zIndex:1, position:"relative", transition:"opacity .2s" }}>
+                  <span style={{ fontSize:20 }}>💬</span> Nhắn Zalo chốt đơn
+                </a>
+              ) : (info.phone || (siteContent.phone || "").replace(/\s/g,"")) ? (
+                <a href={`tel:${(info.phone || siteContent.phone || "").replace(/\s/g,"")}`}
+                  style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:10, width:"100%", padding:"15px 24px", background:"#0a84ff", color:"#fff", borderRadius:16, fontWeight:800, fontSize:16, textDecoration:"none", boxShadow:"0 6px 24px rgba(10,132,255,0.35)", marginBottom:12, boxSizing:"border-box", zIndex:1, position:"relative", transition:"opacity .2s" }}>
+                  <span style={{ fontSize:20 }}>📞</span> Gọi {info.phone || siteContent.phone} chốt đơn
+                </a>
+              ) : null}
 
               {/* Notice box */}
               <div style={{ background:"#EEF9F4", border:"1px solid #06c75533", borderRadius:14, padding:"12px 16px", marginBottom:18, display:"flex", alignItems:"center", gap:10, textAlign:"left", zIndex:1, position:"relative" }}>
