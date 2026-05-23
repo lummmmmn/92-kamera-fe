@@ -182,8 +182,8 @@ function useSmoothScroll(enabled) {
     let tgt = window.scrollY;
     let raf = null;
     let weScrolled = false;
-    const EASE = 0.105;   // 0.08=rất mượt/chậm · 0.12=nhanh hơn
-    const MULT = 1.1;     // wheel delta multiplier
+    const EASE = 0.105;
+    const MULT = 1.1;
 
     const run = () => {
       const d = tgt - cur;
@@ -200,7 +200,6 @@ function useSmoothScroll(enabled) {
     };
 
     const onWheel = (e) => {
-      // Bỏ qua nếu target thuộc scrollable container (modal, admin panel...)
       let el = e.target;
       while (el && el !== document.documentElement) {
         if (el !== document.body) {
@@ -215,7 +214,6 @@ function useSmoothScroll(enabled) {
       if (!raf) { cur = window.scrollY; raf = requestAnimationFrame(run); }
     };
 
-    // Sync khi có external scroll (keyboard, scrollIntoView, programmatic)
     const onScroll = () => {
       if (!weScrolled) {
         const y = window.scrollY;
@@ -233,6 +231,36 @@ function useSmoothScroll(enabled) {
       if (raf) cancelAnimationFrame(raf);
     };
   }, [enabled]);
+}
+
+// ── SCROLL PERF HOOK ──
+// Toggle body.is-scrolling trên MỌI thiết bị (kể cả iPhone touch)
+// → CSS dùng class này để tắt backdrop-filter + pause animation khi scroll
+function useScrollPerfClass() {
+  useEffect(() => {
+    let timer = null;
+    const onScroll = () => {
+      document.body.classList.add("is-scrolling");
+      clearTimeout(timer);
+      timer = setTimeout(() => document.body.classList.remove("is-scrolling"), 120);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    // Touch events: bắt đầu touch → thêm class ngay, không chờ scroll event
+    const onTouchStart = () => document.body.classList.add("is-scrolling");
+    const onTouchEnd   = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => document.body.classList.remove("is-scrolling"), 200);
+    };
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchend",   onTouchEnd,   { passive: true });
+    return () => {
+      window.removeEventListener("scroll",     onScroll);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchend",   onTouchEnd);
+      clearTimeout(timer);
+      document.body.classList.remove("is-scrolling");
+    };
+  }, []);
 }
 
 // ── INITIAL DATA ──
@@ -494,9 +522,15 @@ function OrderLookupWidget({ orders, compact }) {
       {/* Expand panel */}
       {open && (
         <div style={{
+          position: "absolute",
+          top: "100%",
+          left: 0,
+          // Không tràn màn hình: tối đa 400px, tối thiểu là vừa màn hình
+          width: "min(400px, calc(100vw - 24px))",
           background: CARD2, border: `1px solid ${G}44`, borderRadius: "0 8px 8px 8px",
-          padding: "14px 16px", minWidth: 300, maxWidth: 400,
+          padding: "14px 16px",
           boxShadow: `0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px ${G}11`,
+          zIndex: 20,
         }}>
           {/* Input */}
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
@@ -1049,15 +1083,17 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
   useEffect(() => {
     let oA = 0, mA = 0, iA = 0;
     const tick = () => {
-      const target = isHovRef.current ? 0.28 : 0.032;
-      speedRef.current += (target - speedRef.current) * 0.03;
-      const s = speedRef.current;
-      oA += s; mA -= s * 0.62; iA += s * 0.43;
-      // DOM mutation trực tiếp — KHÔNG setState → KHÔNG re-render
-      if (segRefs.current[0]) segRefs.current[0].style.transform = `rotate(${oA}deg)`;
-      if (segRefs.current[1]) segRefs.current[1].style.transform = `rotate(${mA}deg)`;
-      if (segRefs.current[2]) segRefs.current[2].style.transform = `rotate(${iA}deg)`;
-      if (arrowRef.current)   arrowRef.current.style.transform   = `rotate(${oA}deg)`;
+      // Pause khi scroll → không cạnh tranh GPU với scroll compositor
+      if (!document.body.classList.contains("is-scrolling")) {
+        const target = isHovRef.current ? 0.28 : 0.032;
+        speedRef.current += (target - speedRef.current) * 0.03;
+        const s = speedRef.current;
+        oA += s; mA -= s * 0.62; iA += s * 0.43;
+        if (segRefs.current[0]) segRefs.current[0].style.transform = `rotate(${oA}deg)`;
+        if (segRefs.current[1]) segRefs.current[1].style.transform = `rotate(${mA}deg)`;
+        if (segRefs.current[2]) segRefs.current[2].style.transform = `rotate(${iA}deg)`;
+        if (arrowRef.current)   arrowRef.current.style.transform   = `rotate(${oA}deg)`;
+      }
       animRef.current = requestAnimationFrame(tick);
     };
     animRef.current = requestAnimationFrame(tick);
@@ -1091,12 +1127,13 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
       width: sz, height: sz, position: "relative",
       borderRadius: "50%", overflow: "hidden",
       isolation: "isolate",
+      // box-shadow nhẹ hơn drop-shadow nhiều — GPU không cần scan từng pixel alpha
+      boxShadow: "0 18px 36px rgba(0,0,0,0.32), 0 6px 14px rgba(0,0,0,0.18)",
     }}>
     <div
       className="lens-float-wrap"
       style={{
         width: sz, height: sz, position: "relative",
-        filter: "drop-shadow(0 18px 36px rgba(0,0,0,0.38)) drop-shadow(0 6px 14px rgba(0,0,0,0.22))",
         animation: "lensFloat 5.5s ease-in-out infinite",
       }}
       onMouseEnter={() => { isHovRef.current = true; }}
@@ -1902,7 +1939,8 @@ function QuyTrinh6Buoc({ isMobile }) {
   const scrollTo = (idx) => {
     const el = scrollRef.current;
     if (!el) return;
-    const cardW = isMobile ? el.clientWidth - 32 : 340;
+    // card width = container - 2*padding(20px) khi mobile, desktop = 340
+    const cardW = isMobile ? el.clientWidth - 40 : 340;
     el.scrollTo({ left: idx * (cardW + 16), behavior:"smooth" });
     setActive(idx);
   };
@@ -1910,7 +1948,7 @@ function QuyTrinh6Buoc({ isMobile }) {
   const onScroll = () => {
     const el = scrollRef.current;
     if (!el) return;
-    const cardW = isMobile ? el.clientWidth - 32 : 340;
+    const cardW = isMobile ? el.clientWidth - 40 : 340;
     setActive(Math.round(el.scrollLeft / (cardW + 16)));
   };
 
@@ -1942,14 +1980,22 @@ function QuyTrinh6Buoc({ isMobile }) {
       <div
         ref={scrollRef}
         onScroll={onScroll}
-        style={{ display:"flex", gap:16, overflowX:"auto", scrollSnapType:"x mandatory", padding: isMobile ? "4px 16px 20px" : "4px 40px 20px", scrollbarWidth:"none", msOverflowStyle:"none" }}
+        style={{
+          display:"flex", gap:16, overflowX:"auto",
+          scrollSnapType:"x mandatory",
+          // padding đều 2 bên để card đầu/cuối cũng center được
+          padding: isMobile ? "4px 20px 20px" : "4px 40px 20px",
+          scrollbarWidth:"none", msOverflowStyle:"none",
+        }}
       >
         <style>{`.quy-trinh-scroll::-webkit-scrollbar{display:none}`}</style>
         {STEPS.map((s, idx) => (
           <div key={idx} style={{
             flexShrink:0,
-            width: isMobile ? "calc(100vw - 56px)" : 340,
-            scrollSnapAlign:"start",
+            // Mobile: full width trừ 2 bên padding (20px * 2 = 40px)
+            width: isMobile ? "calc(100vw - 40px)" : 340,
+            // center snap: card luôn nằm giữa màn hình
+            scrollSnapAlign: isMobile ? "center" : "start",
             background: s.gradient,
             borderRadius:20,
             padding:"24px 22px 20px",
@@ -4652,7 +4698,9 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
       if (!cards.length) return;
       camIdxRef.current = (camIdxRef.current + 1) % cards.length;
       setActive(camIdxRef.current);
-      el.scrollTo({ left: cards[camIdxRef.current].offsetLeft - 16, behavior: "smooth" });
+      // card width = 100vw - 40px, padding 20px mỗi bên → scroll đúng vị trí center
+      const cardW = el.clientWidth - 40;
+      el.scrollTo({ left: camIdxRef.current * (cardW + 12), behavior: "smooth" });
     }, 3500);
     const onTouch = () => { camPausedRef.current = true; setTimeout(() => { camPausedRef.current = false; }, 6000); };
     el.addEventListener("touchstart", onTouch, { passive: true });
@@ -4679,13 +4727,13 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
           </div>
         </div>
         <div ref={camScrollRef} className="cam-scroll"
-          style={{ display:"flex", gap:12, overflowX:"auto", scrollSnapType:"x mandatory", WebkitOverflowScrolling:"touch", paddingLeft:16, paddingRight:16, paddingBottom:8 }}>
+          style={{ display:"flex", gap:12, overflowX:"auto", scrollSnapType:"x mandatory", WebkitOverflowScrolling:"touch", padding:"0 20px 8px" }}>
           {cameras.map((cam, i) => {
             const { brand, model } = parseName(cam.name);
             const isAct = i === active;
             return (
               <div key={cam.id} data-camcard="1"
-                style={{ scrollSnapAlign:"start", flexShrink:0, width:"calc(100vw - 48px)", height:320, borderRadius:20, overflow:"hidden", border:`1px solid ${isAct ? G+"66" : BR}`, position:"relative", background:BG }}>
+                style={{ scrollSnapAlign:"center", flexShrink:0, width:"calc(100vw - 40px)", height:320, borderRadius:20, overflow:"hidden", border:`1px solid ${isAct ? G+"66" : BR}`, position:"relative", background:BG }}>
                 <div style={{ position:"absolute", inset:0, zIndex:0 }}><CamImage cam={cam} height={320} /></div>
                 <div style={{ position:"absolute", inset:0, zIndex:1, background:"linear-gradient(to top,rgba(6,6,6,0.92) 0%,rgba(6,6,6,0.3) 60%,transparent 100%)", pointerEvents:"none" }} />
                 <div style={{ position:"absolute", bottom:0, left:0, right:0, zIndex:2, padding:"0 20px 20px" }}>
@@ -8549,13 +8597,20 @@ class AppErrorBoundary extends Component {
 // ── ROOT ──
 
 // ── FLOW BACKGROUND (aurora blobs) ──
+// Mobile: 2 blob + 200ms throttle. Desktop: 4 blob + 100ms throttle.
+// Pause hoàn toàn khi body.is-scrolling (set bởi useScrollPerfClass)
 function FlowBg() {
   const canvasRef = useRef(null);
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { alpha: false });
     let raf;
+
+    const isMob = window.innerWidth < 900;
+    const FRAME_MS = isMob ? 200 : 100; // mobile 5fps, desktop 10fps
+
+    let lastDraw = 0;
 
     const resize = () => {
       canvas.width  = window.innerWidth;
@@ -8564,54 +8619,57 @@ function FlowBg() {
     resize();
     window.addEventListener("resize", resize, { passive: true });
 
-    // Blob definitions — tông tối vàng/amber phù hợp theme camera
-    const blobs = [
-      { x: 0.50, y: 0.38, r: 0.65, color: "rgba(201,168,76,",   ox: 0.10, oy: 0.08, sx: 0.00018, sy: 0.00014, alpha: 0.06 }, // gold trung tâm
-      { x: 0.10, y: 0.20, r: 0.55, color: "rgba(200,114,26,",   ox: 0.12, oy: 0.10, sx: 0.00022, sy: 0.00016, alpha: 0.05 }, // amber góc trái
-      { x: 0.85, y: 0.70, r: 0.50, color: "rgba(180,80,20,",    ox: 0.09, oy: 0.12, sx: 0.00016, sy: 0.00024, alpha: 0.04 }, // đỏ cam góc phải
-      { x: 0.20, y: 0.80, r: 0.42, color: "rgba(201,168,76,",   ox: 0.08, oy: 0.09, sx: 0.00014, sy: 0.00020, alpha: 0.04 }, // gold góc dưới
+    // Mobile: chỉ 2 blob ở trung tâm, ít tính toán hơn
+    const allBlobs = [
+      { x: 0.50, y: 0.38, r: 0.65, color: "rgba(201,168,76,",   ox: 0.10, oy: 0.08, sx: 0.00018, sy: 0.00014, alpha: 0.06 },
+      { x: 0.10, y: 0.20, r: 0.55, color: "rgba(200,114,26,",   ox: 0.12, oy: 0.10, sx: 0.00022, sy: 0.00016, alpha: 0.05 },
+      { x: 0.85, y: 0.70, r: 0.50, color: "rgba(180,80,20,",    ox: 0.09, oy: 0.12, sx: 0.00016, sy: 0.00024, alpha: 0.04 },
+      { x: 0.20, y: 0.80, r: 0.42, color: "rgba(201,168,76,",   ox: 0.08, oy: 0.09, sx: 0.00014, sy: 0.00020, alpha: 0.04 },
     ];
+    const blobs = isMob ? allBlobs.slice(0, 2) : allBlobs;
 
     let t = 0;
-    const draw = () => {
-      const W = canvas.width, H = canvas.height;
-      ctx.clearRect(0, 0, W, H);
+    const draw = (now) => {
+      // Pause khi đang scroll (class set bởi useScrollPerfClass)
+      if (document.body.classList.contains("is-scrolling")) {
+        raf = requestAnimationFrame(draw); return;
+      }
+      if (now - lastDraw < FRAME_MS) { raf = requestAnimationFrame(draw); return; }
+      lastDraw = now;
 
-      // Dark base
+      const W = canvas.width, H = canvas.height;
       ctx.fillStyle = "#F4F3F1";
       ctx.fillRect(0, 0, W, H);
 
-      // Draw each blob as a radial gradient
       blobs.forEach(b => {
         const cx = (b.x + Math.sin(t * b.sx * 1000) * b.ox) * W;
         const cy = (b.y + Math.cos(t * b.sy * 1000) * b.oy) * H;
         const radius = b.r * Math.max(W, H);
-
         const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
         grad.addColorStop(0,   b.color + b.alpha + ")");
         grad.addColorStop(0.4, b.color + (b.alpha * 0.5) + ")");
         grad.addColorStop(1,   b.color + "0)");
-
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, W, H);
       });
 
-      // Subtle vignette — nhẹ để màu pastel nổi
-      const vig = ctx.createRadialGradient(W/2, H/2, H*0.2, W/2, H/2, H*0.85);
-      vig.addColorStop(0, "rgba(0,0,0,0)");
-      vig.addColorStop(1, "rgba(0,0,0,0.30)");
-      ctx.fillStyle = vig;
-      ctx.fillRect(0, 0, W, H);
+      // Vignette — bỏ qua trên mobile để tiết kiệm 1 draw call
+      if (!isMob) {
+        const vig = ctx.createRadialGradient(W/2, H/2, H*0.2, W/2, H/2, H*0.85);
+        vig.addColorStop(0, "rgba(0,0,0,0)");
+        vig.addColorStop(1, "rgba(0,0,0,0.30)");
+        ctx.fillStyle = vig;
+        ctx.fillRect(0, 0, W, H);
+      }
 
       t += 1;
       raf = requestAnimationFrame(draw);
     };
-    draw();
+    raf = requestAnimationFrame(draw);
 
-    // Dừng animation khi user chuyển tab, chạy lại khi quay về
     const onVisibility = () => {
       if (document.hidden) cancelAnimationFrame(raf);
-      else draw();
+      else { raf = requestAnimationFrame(draw); }
     };
     document.addEventListener("visibilitychange", onVisibility);
 
@@ -8626,6 +8684,7 @@ function FlowBg() {
     <canvas ref={canvasRef} style={{
       position: "fixed", inset: 0, zIndex: 0,
       pointerEvents: "none", display: "block",
+      willChange: "transform", // gợi ý browser tạo GPU layer riêng
     }} />
   );
 }
@@ -8830,6 +8889,8 @@ function AppRoot() {
 
   // Smooth scroll chỉ trên home, không khi booking modal / login đang mở
   useSmoothScroll(page === "home" && !booking && !loginOpen && !isMobile);
+  // Toggle body.is-scrolling → CSS tắt backdrop-filter + animation khi scroll
+  useScrollPerfClass();
 
   // ── Wrapped setters: update state AND persist to storage ──
   // ── Wrapped setters: update React state first, persist to storage via setTimeout (outside render) ──
@@ -8995,6 +9056,18 @@ function AppRoot() {
         /* GPU compositing layers cho các element animate nhiều */
         .nav92, .nav-inner, .btn-3d { will-change: transform; }
         .lens-float-wrap { will-change: transform; transform: translateZ(0); }
+        /* Mobile scroll performance */
+        html { -webkit-overflow-scrolling: touch; }
+        .cv-section { content-visibility: auto; contain-intrinsic-size: 0 600px; }
+        @media (max-width: 900px) {
+          * { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+        }
+        body.is-scrolling * {
+          -webkit-backdrop-filter: none !important;
+          backdrop-filter: none !important;
+          animation-play-state: paused !important;
+        }
+        body.is-scrolling .lens-float-wrap { animation-play-state: running !important; }
         @keyframes navCollapseIn{0%{opacity:0;transform:scale(0.85) translateY(-8px)}100%{opacity:1;transform:scale(1) translateY(0)}}
         @keyframes navExpandIn{0%{opacity:0;transform:scaleY(0.7) translateY(-10px)}100%{opacity:1;transform:scaleY(1) translateY(0)}}
         @keyframes floatY{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-9px)}}
