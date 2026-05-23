@@ -564,6 +564,261 @@ function OrderLookupWidget({ orders, compact }) {
   );
 }
 
+// ── QUICK SEARCH FLOAT (kiểm tra máy trống theo khoảng ngày) ──
+function QuickSearchFloat({ cameras, accessories, orders, onBook, openTrigger = 0 }) {
+  const [open, setOpen] = useState(false);
+  const [startDate, setStartDate] = useState(todayStr());
+  const [endDate, setEndDate]     = useState(todayStr());
+  const [results, setResults]     = useState(null);
+  const [searched, setSearched]   = useState(false);
+  // Multi-select state
+  const [selCams, setSelCams]   = useState({}); // { camId: qty }
+  const [selAccs, setSelAccs]   = useState({}); // { accName: qty }
+
+  // Mở panel khi được trigger từ bên ngoài
+  useEffect(() => { if (openTrigger > 0) setOpen(true); }, [openTrigger]);
+
+  // --- helpers ---
+  const genDates = (sd, ed) => {
+    const list = []; let cur = new Date(sd + "T00:00:00"); const end = new Date(ed + "T00:00:00"); let n = 0;
+    while (cur <= end && n++ < 366) {
+      list.push(`${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,"0")}-${String(cur.getDate()).padStart(2,"0")}`);
+      cur.setDate(cur.getDate() + 1);
+    }
+    return list;
+  };
+  const camAvailRange = (camId, camQty, sd, ed) => {
+    let min = camQty;
+    for (const d of genDates(sd, ed)) {
+      const a = getAvailQty(camId, camQty, orders, d, "full");
+      if (a < min) min = a;
+    }
+    return Math.max(0, min);
+  };
+  const accAvailRange = (accName, accQty, sd, ed) => {
+    let min = accQty;
+    for (const d of genDates(sd, ed)) {
+      const a = getAccAvailQty(accName, accQty, orders, d, "full");
+      if (a < min) min = a;
+    }
+    return Math.max(0, min);
+  };
+
+  const handleSearch = () => {
+    const ed = endDate >= startDate ? endDate : startDate;
+    setResults({
+      startDate, endDate: ed,
+      cameras: cameras.map(c => ({
+        id: c.id, name: c.name, price: c.price, icon: c.icon,
+        images: c.images || [], qty: c.qty || 1,
+        avail: camAvailRange(c.id, c.qty || 1, startDate, ed),
+      })),
+      accessories: accessories.filter(a => a.active !== false).map(a => ({
+        id: a.id, name: a.name, qty: a.qty || 1,
+        avail: accAvailRange(a.name, a.qty || 1, startDate, ed),
+      })),
+    });
+    setSearched(true);
+    setSelCams({});
+    setSelAccs({});
+  };
+
+  const fmtD = ds => { try { return new Date(ds + "T00:00:00").toLocaleDateString("vi-VN", { day:"2-digit", month:"2-digit" }); } catch { return ds; } };
+  const close = () => { setOpen(false); setResults(null); setSearched(false); setSelCams({}); setSelAccs({}); };
+
+  // Tính số ngày từ startDate → endDate (inclusive): nếu bằng nhau = 1 ngày
+  const calcDays = (sd, ed) => {
+    const diff = (new Date(ed+"T00:00:00") - new Date(sd+"T00:00:00")) / 86400000;
+    return Math.max(1, Math.round(diff) + 1);
+  };
+
+  const totalSelCams = Object.values(selCams).reduce((s, q) => s + q, 0);
+
+  // Nút qty inline
+  const qtyBtnQS = (onClick, label) => (
+    <button onClick={e => { e.stopPropagation(); onClick(); }}
+      style={{ width:26, height:26, border:"1px solid rgba(0,0,0,0.20)", borderRadius:6, background:"rgba(255,255,255,0.70)", color:"#1a3a5a", cursor:"pointer", fontSize:14, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontFamily:"monospace" }}>{label}</button>
+  );
+
+  if (!open) return null;
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:1001, overflowY:"auto", background:"rgba(0,0,0,0.55)", backdropFilter:"blur(6px)", WebkitBackdropFilter:"blur(6px)", padding:"24px 16px" }} onClick={e => { if (e.target === e.currentTarget) close(); }}>
+      <div style={{ margin:"0 auto", width:"min(660px,96vw)" }} onClick={e => e.stopPropagation()}>
+
+      {/* ── Panel ── */}
+      <div style={{
+          width:"100%",
+          background:"linear-gradient(160deg, rgba(232,240,248,0.95) 0%, rgba(197,216,236,0.90) 60%, rgba(181,206,230,0.88) 100%)",
+          border:"1px solid rgba(255,255,255,0.70)",
+          borderRadius:20,
+          boxShadow:"0 1px 0 rgba(255,255,255,0.90) inset, 0 -1px 0 rgba(0,0,0,0.06) inset, 0 24px 80px rgba(0,0,0,0.30), 0 4px 20px rgba(0,0,0,0.18)",
+          backdropFilter:"blur(28px) saturate(160%) brightness(1.04)", WebkitBackdropFilter:"blur(28px) saturate(160%) brightness(1.04)",
+          overflow:"hidden",
+          animation:"navExpandIn .3s cubic-bezier(.4,0,.2,1)",
+        }}>
+          {/* Header */}
+          <div style={{ padding:"14px 20px 0", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              <span style={{ color:"#1a3a5a", fontSize:9, letterSpacing:3, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>KIỂM TRA MÁY THEO NGÀY</span>
+            </div>
+            <button onClick={close} style={{ background:"none", border:"none", color:"#2a4a6a", fontSize:16, cursor:"pointer", lineHeight:1, padding:"0 2px" }}>✕</button>
+          </div>
+
+          {/* Date inputs */}
+          <div style={{ padding:"10px 20px" }}>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:10 }}>
+              {[["📅 NGÀY THUÊ", startDate, v => { setStartDate(v); setResults(null); setSearched(false); setSelCams({}); setSelAccs({}); if (v > endDate) setEndDate(v); }, todayStr()],
+                ["📅 NGÀY TRẢ",  endDate,  v => { setEndDate(v);   setResults(null); setSearched(false); setSelCams({}); setSelAccs({}); }, startDate || todayStr()]
+              ].map(([label, val, onChange, min]) => (
+                <div key={label}>
+                  <div style={{ color:"#2a5070", fontSize:8.5, letterSpacing:2, marginBottom:5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>{label}</div>
+                  <input type="date" value={val} min={min}
+                    onChange={e => onChange(e.target.value)}
+                    style={{ width:"100%", padding:"8px 10px", background:"linear-gradient(160deg, rgba(232,240,248,0.92) 0%, rgba(197,216,236,0.85) 100%)", border:"1px solid rgba(255,255,255,0.60)", borderRadius:9, color:"#0d1b2a", fontSize:13, fontFamily:"system-ui,sans-serif", boxSizing:"border-box", outline:"none", cursor:"pointer", boxShadow:"0 1px 0 rgba(255,255,255,0.80) inset" }}
+                  />
+                </div>
+              ))}
+            </div>
+            <button onClick={handleSearch}
+              style={{ width:"100%", padding:"10px", background:"linear-gradient(135deg,#5a5a6e 0%,#c8c8dc 50%,#4a4a60 100%)", color:"#0a0a18", border:"none", borderRadius:10, fontWeight:800, fontSize:10, letterSpacing:2.5, fontFamily:"system-ui,sans-serif", cursor:"pointer" }}
+              onMouseEnter={e=>e.currentTarget.style.filter="brightness(1.12)"}
+              onMouseLeave={e=>e.currentTarget.style.filter="brightness(1)"}>
+              🔍 XEM MÁY CÒN TRỐNG
+            </button>
+          </div>
+
+          {/* Results */}
+          {searched && results && (
+            <div style={{ padding:"0 24px 0" }}>
+              <div style={{ color:"#2a4a6a", fontSize:10, letterSpacing:2.5, marginBottom:12, fontFamily:"system-ui,sans-serif", borderTop:"1px solid rgba(0,0,0,0.10)", paddingTop:14 }}>
+                MÁY ẢNH · {fmtD(results.startDate)} → {fmtD(results.endDate)} · <span style={{ color:"#c9a84c" }}>Nhấn để chọn nhiều máy</span>
+              </div>
+
+              {/* Camera rows — multi-select */}
+              {results.cameras.map(r => {
+                const col = r.avail <= 0 ? "#ef4444" : r.avail === 1 ? "#f59e0b" : "#22c55e";
+                const badge = r.avail <= 0 ? "❌ Hết" : `✅ Còn ${r.avail}`;
+                const selQty = selCams[r.id] || 0;
+                const isSel = selQty > 0;
+                return (
+                  <div key={r.id}
+                    style={{ display:"flex", alignItems:"center", gap:12, padding:"11px 14px", background: isSel ? "rgba(41,121,207,0.20)" : r.avail > 0 ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.25)", borderRadius:12, marginBottom:8, opacity: r.avail <= 0 ? 0.5 : 1, transition:"background .15s", border: isSel ? "1px solid rgba(41,121,207,0.6)" : "1px solid rgba(255,255,255,0.60)" }}
+                  >
+                    <div style={{ width:44, height:44, borderRadius:10, background:"rgba(0,0,0,0.08)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0, overflow:"hidden" }}>
+                      {r.images?.[0] ? <img src={r.images[0]} alt={r.name} style={{ width:"100%", height:"100%", objectFit:"cover" }}/> : r.icon}
+                    </div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ color: isSel ? "#1a4a8a" : "#0d1b2a", fontSize:14, fontWeight:700, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", fontFamily:"system-ui,sans-serif" }}>{r.name}</div>
+                      <div style={{ color:"#3a6080", fontSize:11, fontFamily:"system-ui,sans-serif" }}>{fmtVND(r.price)}/ngày</div>
+                    </div>
+                    {r.avail > 0 ? (
+                      isSel ? (
+                        <div style={{ display:"flex", alignItems:"center", gap:4, flexShrink:0 }}>
+                          {qtyBtnQS(() => {
+                            const nq = selQty - 1;
+                            setSelCams(p => { if (nq <= 0) { const n={...p}; delete n[r.id]; return n; } return {...p,[r.id]:nq}; });
+                          }, "−")}
+                          <span style={{ color:"#1a4a8a", fontWeight:700, fontSize:16, minWidth:20, textAlign:"center", fontFamily:"system-ui,sans-serif" }}>{selQty}</span>
+                          {qtyBtnQS(() => {
+                            if (selQty < r.avail) setSelCams(p => ({...p,[r.id]:selQty+1}));
+                          }, "+")}
+                        </div>
+                      ) : (
+                        <button onClick={() => setSelCams(p => ({...p,[r.id]:1}))}
+                          style={{ padding:"6px 14px", background:"rgba(41,121,207,0.18)", border:"1px solid rgba(41,121,207,0.55)", color:"#1a4a8a", borderRadius:9, cursor:"pointer", fontSize:11, fontWeight:700, fontFamily:"system-ui,sans-serif", flexShrink:0, whiteSpace:"nowrap" }}>
+                          + Chọn
+                        </button>
+                      )
+                    ) : (
+                      <span style={{ fontSize:11, fontWeight:700, color:col, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap", background:col+"18", padding:"4px 10px", borderRadius:99, border:`1px solid ${col}30`, flexShrink:0 }}>{badge}</span>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* All booked */}
+              {results.cameras.every(r => r.avail <= 0) && (
+                <div style={{ textAlign:"center", padding:"14px 0 6px" }}>
+                  <div style={{ fontSize:22, marginBottom:6 }}>😔</div>
+                  <div style={{ color:"#ef4444", fontSize:11, fontFamily:"system-ui,sans-serif" }}>Không có máy nào trống</div>
+                  <div style={{ color:"#555", fontSize:9.5, fontFamily:"system-ui,sans-serif", marginTop:3 }}>trong khoảng thời gian đã chọn</div>
+                </div>
+              )}
+
+              {/* Accessories — multi-select */}
+              {results.accessories.filter(a => a.avail > 0).length > 0 && (
+                <>
+                  <div style={{ color:"#2a4a6a", fontSize:10, letterSpacing:2.5, margin:"14px 0 10px", fontFamily:"system-ui,sans-serif" }}>PHỤ KIỆN SẴN CÓ · <span style={{ color:"#c9a84c" }}>Nhấn để chọn</span></div>
+                  <div style={{ display:"flex", flexDirection:"column", gap:5, marginBottom:4 }}>
+                    {results.accessories.filter(a => a.avail > 0).map(a => {
+                      const selQty = selAccs[a.name] || 0;
+                      const isSel = selQty > 0;
+                      return (
+                        <div key={a.id} style={{ padding:"9px 12px", background: isSel ? "rgba(41,121,207,0.18)" : "rgba(255,255,255,0.50)", borderRadius:10, display:"flex", justifyContent:"space-between", alignItems:"center", border: isSel ? "1px solid rgba(41,121,207,0.4)" : "1px solid rgba(255,255,255,0.60)" }}>
+                          <span style={{ color: isSel ? "#1a4a8a" : "#2a4a6a", fontSize:12, fontFamily:"system-ui,sans-serif", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1, minWidth:0 }}>{a.name}</span>
+                          {isSel ? (
+                            <div style={{ display:"flex", alignItems:"center", gap:4, flexShrink:0, marginLeft:6 }}>
+                              {qtyBtnQS(() => {
+                                const nq = selQty - 1;
+                                setSelAccs(p => { if (nq <= 0) { const n={...p}; delete n[a.name]; return n; } return {...p,[a.name]:nq}; });
+                              }, "−")}
+                              <span style={{ color:"#1a4a8a", fontWeight:700, fontSize:14, minWidth:16, textAlign:"center", fontFamily:"system-ui,sans-serif" }}>{selQty}</span>
+                              {qtyBtnQS(() => { if (selQty < a.avail) setSelAccs(p => ({...p,[a.name]:selQty+1})); }, "+")}
+                            </div>
+                          ) : (
+                            <button onClick={() => setSelAccs(p => ({...p,[a.name]:1}))}
+                              style={{ padding:"4px 12px", background:"rgba(41,121,207,0.15)", border:"1px solid rgba(41,121,207,0.45)", color:"#1a4a8a", borderRadius:7, cursor:"pointer", fontSize:10, fontWeight:700, fontFamily:"system-ui,sans-serif", flexShrink:0, marginLeft:8 }}>
+                              + Chọn
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+
+              {/* ── Nút tiếp tục khi đã chọn máy ── */}
+              {totalSelCams > 0 && (
+                <div style={{ padding:"12px 0 14px", borderTop:"1px solid rgba(0,0,0,0.10)", marginTop:8 }}>
+                  {/* Tóm tắt đã chọn */}
+                  <div style={{ color:"#2a4a6a", fontSize:11, fontFamily:"system-ui,sans-serif", marginBottom:10, lineHeight:1.7 }}>
+                    <span style={{ color:"#1a4a8a", fontWeight:700 }}>✓ Đã chọn:</span>{" "}
+                    {Object.entries(selCams).map(([id, qty]) => {
+                      const c = results.cameras.find(r => String(r.id) === String(id));
+                      return c ? `${c.name}${qty > 1 ? ` ×${qty}` : ""}` : "";
+                    }).filter(Boolean).join(", ")}
+                    {Object.keys(selAccs).length > 0 && (
+                      <><br/><span style={{ color:"#c9a84c" }}>🎒</span> {Object.entries(selAccs).map(([name, qty]) => qty > 1 ? `${name} ×${qty}` : name).join(", ")}</>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      const ed = results.endDate >= results.startDate ? results.endDate : results.startDate;
+                      const days = calcDays(results.startDate, ed);
+                      close();
+                      onBook?.({ preselectedCams: selCams, preselectedAccs: selAccs, date: results.startDate, days });
+                    }}
+                    style={{ width:"100%", padding:"14px", background:"linear-gradient(135deg, rgba(139,174,207,0.90) 0%, rgba(101,145,188,0.85) 100%)", color:"#fff", border:"1px solid rgba(255,255,255,0.55)", borderRadius:11, fontWeight:800, fontSize:13, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8, boxShadow:"0 1px 0 rgba(255,255,255,0.60) inset, 0 4px 20px rgba(8,20,60,0.18)", backdropFilter:"blur(16px) saturate(160%)", WebkitBackdropFilter:"blur(16px) saturate(160%)" }}
+                    onMouseEnter={e=>e.currentTarget.style.filter="brightness(1.12)"}
+                    onMouseLeave={e=>e.currentTarget.style.filter="brightness(1)"}>
+                    📋 TIẾP TỤC ĐẶT ({totalSelCams} MÁY) →
+                  </button>
+                </div>
+              )}
+              {/* Padding bottom khi chưa chọn */}
+              {totalSelCams === 0 && <div style={{ height:14 }} />}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── LOGO ──
 function Logo({ light = true, size = 1 }) {
   const col = light ? "#1A1917" : MUT;
@@ -1557,6 +1812,199 @@ function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) 
             </div>
           </>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ── QUY TRÌNH 6 BƯỚC ──
+const STEPS = [
+  {
+    num:"01", title:"ĐẶT LỊCH ONLINE",
+    gradient:"linear-gradient(135deg,#f59e0b 0%,#ef4444 100%)",
+    icon:"📋",
+    content: [
+      { type:"label", text:"Khách hàng truy cập website để chọn:" },
+      { type:"list", items:["Thiết bị cần thuê","Ngày nhận máy","Ngày trả máy","Phụ kiện đi kèm"] },
+      { type:"label", text:"Sau khi gửi yêu cầu thuê, hệ thống sẽ tự động kiểm tra tình trạng còn hàng theo đúng thời gian khách chọn." },
+      { type:"label", text:"Nếu đơn hợp lệ, Shop sẽ xác nhận nhanh qua Zalo hoặc điện thoại." },
+    ],
+    footer:"💡 Quý khách chủ động sao chép đơn và gửi tin nhắn qua Zalo cho mình để được hỗ trợ nhanh hơn nhé!",
+  },
+  {
+    num:"02", title:"NHẬN MÁY",
+    gradient:"linear-gradient(135deg,#7c3aed 0%,#4f46e5 100%)",
+    icon:"📦",
+    content: [
+      { type:"heading", text:"Cách 1 — Nhận trực tiếp" },
+      { type:"list", items:["Nhận máy tại: Thôn Thạnh Mỹ, Tam Mỹ, TP. Đà Nẵng","Mang theo CCCD bản gốc để xác minh"] },
+      { type:"heading", text:"Cách 2 — Shop giao máy tận nơi" },
+      { type:"label", text:"Hỗ trợ giao máy khu vực:" },
+      { type:"list", items:["Tam Kỳ → Núi Thành"] },
+      { type:"heading", text:"Lưu ý:" },
+      { type:"list", items:["Có phụ phí giao nhận tùy khu vực","Thanh toán khi nhận máy","Một số đơn cần giữ CCCD trong thời gian thuê"] },
+    ],
+    footer:"🛡️ Hỗ trợ miễn cọc tiền mặt với khách hàng đủ thông tin xác minh",
+  },
+  {
+    num:"03", title:"KIỂM TRA & SETUP",
+    gradient:"linear-gradient(135deg,#f43f5e 0%,#f97316 100%)",
+    icon:"🔍",
+    content: [
+      { type:"list", items:["Kiểm tra ngoại hình và chức năng thiết bị","Kiểm tra đầy đủ pin, sạc, thẻ nhớ & phụ kiện","Test chụp/quay trực tiếp trước khi nhận máy","Hỗ trợ setup màu và setting theo nhu cầu sử dụng"] },
+    ],
+    footer:"📹 Toàn bộ quá trình giao nhận đều có hình ảnh/video xác nhận để đảm bảo minh bạch",
+  },
+  {
+    num:"04", title:"HỖ TRỢ KỸ THUẬT & BẢO QUẢN",
+    gradient:"linear-gradient(135deg,#10b981 0%,#0891b2 100%)",
+    icon:"🛡️",
+    content: [
+      { type:"list", items:["Hỗ trợ kỹ thuật xuyên suốt thời gian thuê máy","Hỗ trợ nhanh qua Zalo trong giờ hoạt động"] },
+      { type:"heading", text:"KHÁCH HÀNG CẦN LƯU Ý:" },
+      { type:"list", items:["Giữ gìn thiết bị cẩn thận","Không để rơi, va đập mạnh hoặc vào nước","Không tự ý tháo lắp hoặc sửa chữa thiết bị","Sử dụng đúng mục đích"] },
+      { type:"heading", text:"PHÁT SINH HƯ HỎNG:" },
+      { type:"list", items:["Khách hàng thanh toán chi phí sửa chữa nếu lỗi do sử dụng","Đền bù theo giá trị thiết bị nếu hư hỏng không thể khắc phục"] },
+    ],
+    footer:"🛡️ Vui lòng bảo quản thiết bị như tài sản cá nhân của mình",
+  },
+  {
+    num:"05", title:"HỖ TRỢ XUẤT ẢNH & VIDEO",
+    gradient:"linear-gradient(135deg,#8b5cf6 0%,#ec4899 100%)",
+    icon:"💾",
+    content: [
+      { type:"heading", text:"Cách 1 — Tự xuất dữ liệu" },
+      { type:"list", items:["Sử dụng đầu đọc thẻ nhớ","Xuất trực tiếp về điện thoại hoặc laptop"] },
+      { type:"heading", text:"Cách 2 — Shop xuất hộ miễn phí" },
+      { type:"list", items:["Upload ảnh/video lên Drive","Gửi link qua Zalo trong ngày","Link lưu trữ tạm thời để đảm bảo bảo mật dữ liệu"] },
+
+    ],
+    footer:"💾 Hỗ trợ xuất dữ liệu nhanh chóng và tiện lợi",
+  },
+  {
+    num:"06", title:"HOÀN TRẢ THIẾT BỊ",
+    gradient:"linear-gradient(135deg,#0ea5e9 0%,#6366f1 100%)",
+    icon:"⚡",
+    content: [
+      { type:"list", items:["Kiểm tra tình trạng máy sau khi trả","Hoàn giấy tờ hoặc tiền cọc","Thanh toán chi phí phát sinh nếu có"] },
+      { type:"heading", text:"Khách hàng có thể:" },
+      { type:"list", items:["Trả trực tiếp tại Shop","Hoặc đặt nhân viên Shop đến nhận tận nơi"] },
+      { type:"italic", text:"⚠️ Không gửi thiết bị qua shipper hoặc đơn vị vận chuyển bên ngoài để tránh rủi ro phát sinh" },
+    ],
+    footer:"⚡ Kiểm tra & hoàn tất thủ tục nhanh chóng",
+  },
+];
+
+function QuyTrinh6Buoc({ isMobile }) {
+  const scrollRef = useRef(null);
+  const [active, setActive] = useState(0);
+
+  const scrollTo = (idx) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const cardW = isMobile ? el.clientWidth - 32 : 340;
+    el.scrollTo({ left: idx * (cardW + 16), behavior:"smooth" });
+    setActive(idx);
+  };
+
+  const onScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const cardW = isMobile ? el.clientWidth - 32 : 340;
+    setActive(Math.round(el.scrollLeft / (cardW + 16)));
+  };
+
+  const renderContent = (c, i) => {
+    if (c.type === "label") return <div key={i} style={{ fontSize:11, color:"rgba(255,255,255,0.70)", fontFamily:"system-ui,sans-serif", marginBottom:2 }}>{c.text}</div>;
+    if (c.type === "link") return <div key={i} style={{ fontSize:12, color:"#fff", fontWeight:700, fontFamily:"system-ui,sans-serif", marginBottom:8 }}>{c.text}</div>;
+    if (c.type === "btn") return <div key={i} style={{ display:"inline-block", background:"rgba(0,0,0,0.25)", border:"1px solid rgba(255,255,255,0.30)", borderRadius:8, padding:"5px 14px", fontSize:11, color:"#fff", fontWeight:700, fontFamily:"system-ui,sans-serif", marginBottom:10 }}>{c.text}</div>;
+    if (c.type === "heading") return <div key={i} style={{ fontSize:11, color:"#fff", fontWeight:800, fontFamily:"system-ui,sans-serif", marginTop:10, marginBottom:4, letterSpacing:0.3 }}>{c.text}</div>;
+    if (c.type === "italic") return <div key={i} style={{ fontSize:10.5, color:"rgba(255,255,255,0.80)", fontStyle:"italic", fontFamily:"system-ui,sans-serif", marginTop:8, lineHeight:1.6 }}>{c.text}</div>;
+    if (c.type === "tip") return <div key={i} style={{ marginTop:10, padding:"8px 11px", background:"rgba(255,255,255,0.18)", border:"1px solid rgba(255,255,255,0.35)", borderRadius:9, fontSize:11, color:"#fff", fontFamily:"system-ui,sans-serif", lineHeight:1.6, fontStyle:"italic" }}>{c.text}</div>;
+    if (c.type === "list") return <div key={i} style={{ display:"flex", flexDirection:"column", gap:4, marginBottom:4 }}>
+      {c.items.map((item,j) => <div key={j} style={{ fontSize:11, color:"rgba(255,255,255,0.90)", fontFamily:"system-ui,sans-serif", lineHeight:1.55, display:"flex", gap:6 }}>
+        <span style={{ flexShrink:0, color:"rgba(255,255,255,0.60)" }}>→</span><span>{item}</span>
+      </div>)}
+    </div>;
+    return null;
+  };
+
+  return (
+    <div style={{ margin: isMobile ? "20px 0" : "32px 0", padding: isMobile ? "40px 0 32px" : "60px 0 44px" }}>
+      {/* Header */}
+      <div style={{ textAlign:"center", marginBottom: isMobile ? 28 : 36, padding:"0 20px" }}>
+        <div style={{ fontSize:9, letterSpacing:7, color:"#2a4a6a", opacity:0.6, marginBottom:12, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>HƯỚNG DẪN CHI TIẾT</div>
+        <h2 style={{ fontSize: isMobile ? 32 : 48, fontWeight:900, margin:"0 0 12px", color:"#0d1b2a", fontFamily:"var(--font-display)", letterSpacing:-1 }}>QUY TRÌNH 6 BƯỚC</h2>
+        <p style={{ fontSize:13, color:"#3a5a7a", fontFamily:"system-ui,sans-serif", lineHeight:1.7, maxWidth:480, margin:"0 auto" }}>Hướng dẫn chi tiết từng bước để thuê máy ảnh một cách nhanh chóng và an toàn</p>
+      </div>
+
+      {/* Scroll track */}
+      <div
+        ref={scrollRef}
+        onScroll={onScroll}
+        style={{ display:"flex", gap:16, overflowX:"auto", scrollSnapType:"x mandatory", padding: isMobile ? "4px 16px 20px" : "4px 40px 20px", scrollbarWidth:"none", msOverflowStyle:"none" }}
+      >
+        <style>{`.quy-trinh-scroll::-webkit-scrollbar{display:none}`}</style>
+        {STEPS.map((s, idx) => (
+          <div key={idx} style={{
+            flexShrink:0,
+            width: isMobile ? "calc(100vw - 56px)" : 340,
+            scrollSnapAlign:"start",
+            background: s.gradient,
+            borderRadius:20,
+            padding:"24px 22px 20px",
+            display:"flex", flexDirection:"column",
+            minHeight: isMobile ? 440 : 480,
+            boxShadow:"0 8px 32px rgba(0,0,0,0.18), 0 1px 0 rgba(255,255,255,0.20) inset",
+            position:"relative", overflow:"hidden",
+          }}>
+            {/* Deco circle */}
+            <div style={{ position:"absolute", top:-40, right:-40, width:160, height:160, borderRadius:"50%", background:"rgba(255,255,255,0.08)", pointerEvents:"none" }} />
+
+            {/* Step number */}
+            <div style={{ width:46, height:46, borderRadius:"50%", background:"rgba(0,0,0,0.28)", border:"2px solid rgba(255,255,255,0.35)", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:14 }}>
+              <span style={{ fontSize:16, fontWeight:900, color:"#fff", fontFamily:"system-ui,sans-serif" }}>{s.num}</span>
+            </div>
+
+            {/* Title */}
+            <div style={{ fontSize:13, fontWeight:900, color:"#fff", fontFamily:"system-ui,sans-serif", letterSpacing:0.5, marginBottom:14, lineHeight:1.4 }}>{s.title}</div>
+
+            {/* Content */}
+            <div style={{ flex:1 }}>
+              {s.content.map((c,i) => renderContent(c,i))}
+            </div>
+
+            {/* Footer note */}
+            {s.footer && (
+              <div style={{ marginTop:14, padding:"8px 12px", background:"rgba(0,0,0,0.22)", borderRadius:10, fontSize:11, color:"rgba(255,255,255,0.88)", fontFamily:"system-ui,sans-serif", lineHeight:1.5, textAlign:"center" }}>
+                {s.footer}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Dots + Prev/Next */}
+      <div style={{ display:"flex", justifyContent:"center", alignItems:"center", gap:14, marginTop:12, padding:"0 20px" }}>
+        <button
+          onClick={() => scrollTo(Math.max(0, active - 1))}
+          disabled={active === 0}
+          style={{ width:38, height:38, borderRadius:"50%", border:"1.5px solid rgba(42,74,106,0.30)", background: active===0 ? "rgba(42,74,106,0.08)" : "linear-gradient(135deg,rgba(232,240,248,0.95),rgba(197,216,236,0.90))", color: active===0 ? "rgba(42,74,106,0.30)" : "#1a4a8a", cursor: active===0 ? "default" : "pointer", fontSize:16, display:"flex", alignItems:"center", justifyContent:"center", boxShadow: active===0 ? "none" : "0 2px 10px rgba(0,0,0,0.10), 0 1px 0 rgba(255,255,255,0.80) inset", transition:"all .2s", flexShrink:0 }}>
+          ‹
+        </button>
+
+        <div style={{ display:"flex", gap:6 }}>
+          {STEPS.map((_,i) => (
+            <button key={i} onClick={() => scrollTo(i)} style={{ width: active===i ? 22 : 7, height:7, borderRadius:99, border:"none", cursor:"pointer", transition:"all .3s", background: active===i ? "#1a4a8a" : "rgba(42,74,106,0.30)", padding:0 }} />
+          ))}
+        </div>
+
+        <button
+          onClick={() => scrollTo(Math.min(STEPS.length - 1, active + 1))}
+          disabled={active === STEPS.length - 1}
+          style={{ width:38, height:38, borderRadius:"50%", border:"1.5px solid rgba(42,74,106,0.30)", background: active===STEPS.length-1 ? "rgba(42,74,106,0.08)" : "linear-gradient(135deg,rgba(232,240,248,0.95),rgba(197,216,236,0.90))", color: active===STEPS.length-1 ? "rgba(42,74,106,0.30)" : "#1a4a8a", cursor: active===STEPS.length-1 ? "default" : "pointer", fontSize:16, display:"flex", alignItems:"center", justifyContent:"center", boxShadow: active===STEPS.length-1 ? "none" : "0 2px 10px rgba(0,0,0,0.10), 0 1px 0 rgba(255,255,255,0.80) inset", transition:"all .2s", flexShrink:0 }}>
+          ›
+        </button>
       </div>
     </div>
   );
@@ -2574,8 +3022,10 @@ function BK_FormRow({ icon, labelTop, labelBottom, children, noBorder }) {
   );
 }
 
-function BookingModal({ cameras, accessories, siteContent, discounts, setDiscounts, onClose, onSubmit, loggedUser, preselectedCamId, orders }) {
-  const [step, setStep] = useState(1);
+function BookingModal({ cameras, accessories, siteContent, discounts, setDiscounts, onClose, onSubmit, loggedUser, preselectedCamId, orders, preselectedCams, preselectedAccs, preselectedDate, preselectedDays }) {
+  // Nếu có preselectedCams (từ QuickSearch) → bắt đầu ở step 3 (thông tin đặt)
+  const hasQuickSelect = preselectedCams && Object.keys(preselectedCams).length > 0 && preselectedDate && preselectedDays;
+  const [step, setStep] = useState(hasQuickSelect ? 3 : 1);
   // BUG-C FIX: liveOrdersForCheck — orders fresh từ Supabase, fetch khi vào step 2.
   // Tránh blockingItems và auto-clamp dùng local state stale → UI báo "còn hàng" nhưng thực ra hết.
   const [liveOrdersForCheck, setLiveOrdersForCheck] = useState(orders);
@@ -2594,16 +3044,34 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   // BUG-PRESELECT FIX: chỉ preselect nếu máy thực sự available
   // Nếu status !== "available", máy không có trong availCams → ghost entry trong selCams
   const [selCams, setSelCams] = useState(() => {
+    // Ưu tiên preselectedCams từ QuickSearch (multi-select)
+    if (preselectedCams && Object.keys(preselectedCams).length > 0) {
+      // Filter chỉ giữ máy available
+      const filtered = {};
+      Object.entries(preselectedCams).forEach(([id, qty]) => {
+        const cam = cameras.find(c => String(c.id) === String(id));
+        if (cam && cam.status === "available") filtered[cam.id] = qty;
+      });
+      return filtered;
+    }
     if (!preselectedCamId) return {};
     const cam = cameras.find(c => c.id === preselectedCamId);
     if (!cam || cam.status !== "available") return {};
     return { [preselectedCamId]: 1 };
   });
-  const [selDur, setSelDur] = useState(null);
+  // selDur: auto-set từ preselectedDays nếu có
+  const [selDur, setSelDur] = useState(() => {
+    if (!preselectedDays) return null;
+    const found = DURATIONS.find(d => d.days === preselectedDays && d.session === "full");
+    return found || { days: preselectedDays, session: "full", label: `${preselectedDays} ngày` };
+  });
   const [customDays, setCustomDays] = useState("");
-  const [pickDate, setPickDate] = useState(todayStr());
-  // selAcc: { [accName]: qty }
-  const [selAcc, setSelAcc] = useState({});
+  const [pickDate, setPickDate] = useState(preselectedDate || todayStr());
+  // selAcc: { [accName]: qty } — init từ preselectedAccs nếu có
+  const [selAcc, setSelAcc] = useState(() => {
+    if (preselectedAccs && Object.keys(preselectedAccs).length > 0) return { ...preselectedAccs };
+    return {};
+  });
   const [info, setInfo] = useState({ name: loggedUser?.displayName || loggedUser?.name || "", phone: loggedUser?.phone || "", zalo: loggedUser?.zalo || loggedUser?.phone || "", address: loggedUser?.address || "", note: "" });
   const [done, setDone] = useState(false);
   const [orderId, setOrderId] = useState("");
@@ -3682,7 +4150,20 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 
           return (
             <div style={{ paddingBottom:160 }}>
-              <button onClick={() => setStep(2)} className="bk-back" style={{ background:"none", border:"none", color:MUT, cursor:"pointer", fontSize:12, fontFamily:"system-ui,sans-serif", marginBottom:18, display:"flex", alignItems:"center", gap:5 }}><span style={{position:"relative",zIndex:1}}>← Quay lại</span></button>
+              <button onClick={() => setStep(2)} className="bk-back" style={{ background:"none", border:"none", color:MUT, cursor:"pointer", fontSize:12, fontFamily:"system-ui,sans-serif", marginBottom:18, display:"flex", alignItems:"center", gap:5 }}><span style={{position:"relative",zIndex:1}}>← Quay lại bước 2 (thời gian)</span></button>
+
+              {/* Hint khi đến từ QuickSearch */}
+              {hasQuickSelect && (
+                <div style={{ marginBottom:12, padding:"10px 14px", background:"rgba(41,121,207,0.18)", border:"1.5px solid rgba(41,121,207,0.50)", borderRadius:12, display:"flex", alignItems:"center", gap:10, boxShadow:"0 1px 0 rgba(255,255,255,0.60) inset, 0 2px 10px rgba(41,121,207,0.12)" }}>
+                  <span style={{ fontSize:15, flexShrink:0 }}>📅</span>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ color:"#0d2a50", fontSize:11, fontFamily:"system-ui,sans-serif", fontWeight:800, marginBottom:3, letterSpacing:0.3 }}>Đã chọn từ Kiểm tra máy theo ngày</div>
+                    <div style={{ color:"#1a3a60", fontSize:10.5, fontFamily:"system-ui,sans-serif", lineHeight:1.6 }}>
+                      Ngày: <strong>{pickDate}</strong> · {selDur?.label || `${days} ngày`} · Có thể <button onClick={() => setStep(1)} style={{ background:"none", border:"none", color:"#b5830a", cursor:"pointer", fontSize:10.5, padding:0, textDecoration:"underline", fontFamily:"system-ui,sans-serif", fontWeight:700 }}>đổi máy</button> hoặc <button onClick={() => setStep(2)} style={{ background:"none", border:"none", color:"#b5830a", cursor:"pointer", fontSize:10.5, padding:0, textDecoration:"underline", fontFamily:"system-ui,sans-serif", fontWeight:700 }}>đổi ngày/phụ kiện</button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* ── SUMMARY CARD ── */}
               <div style={{ border:"1px solid rgba(255,255,255,0.60)", borderRadius:20, overflow:"hidden", marginBottom:14, background:"rgba(255,255,255,0.38)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", boxShadow:"0 1px 0 rgba(255,255,255,0.70) inset, 0 4px 24px rgba(0,0,0,0.10)" }}>
@@ -4588,9 +5069,17 @@ function MobileFAB({ mobileMenuOpen, setMobileMenuOpen, siteContent, onBook, log
           {/* Tra cứu đơn */}
           <button
             onClick={() => { setOpen(false); setTimeout(() => { const el = document.querySelector("[data-tracuu]"); el?.click(); }, 100); }}
-            style={{ width: "calc(100% - 28px)", margin: "6px 14px 8px", background: "rgba(13,27,42,0.08)", border: `1px solid rgba(13,27,42,0.18)`, color: TXT, fontSize: 9, letterSpacing: 2.5, padding: "10px 14px", cursor: "pointer", fontFamily: "system-ui,sans-serif", fontWeight: 700, textAlign: "center", borderRadius: 12, touchAction: "manipulation", WebkitTapHighlightColor: "transparent", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            style={{ width: "calc(100% - 28px)", margin: "6px 14px 4px", background: "rgba(13,27,42,0.08)", border: `1px solid rgba(13,27,42,0.18)`, color: TXT, fontSize: 9, letterSpacing: 2.5, padding: "10px 14px", cursor: "pointer", fontFamily: "system-ui,sans-serif", fontWeight: 700, textAlign: "center", borderRadius: 12, touchAction: "manipulation", WebkitTapHighlightColor: "transparent", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             TRA CỨU ĐƠN
+          </button>
+
+          {/* Kiểm tra máy theo ngày */}
+          <button
+            onClick={() => { setOpen(false); setTimeout(() => { const el = document.querySelector("[data-quicksearch]"); el?.click(); }, 100); }}
+            style={{ width: "calc(100% - 28px)", margin: "4px 14px 8px", background: "rgba(13,27,42,0.08)", border: `1px solid rgba(13,27,42,0.18)`, color: TXT, fontSize: 9, letterSpacing: 2.5, padding: "10px 14px", cursor: "pointer", fontFamily: "system-ui,sans-serif", fontWeight: 700, textAlign: "center", borderRadius: 12, touchAction: "manipulation", WebkitTapHighlightColor: "transparent", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            KIỂM TRA MÁY THEO NGÀY
           </button>
 
           <div style={{ height: 1, background: "rgba(13,27,42,0.12)", margin: "4px 14px 8px" }} />
@@ -5019,6 +5508,8 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
 
   const [navForceOpen, setNavForceOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [qsTrigger, setQsTrigger] = useState(0);
+  const openQS = () => setQsTrigger(p => p + 1);
   // Đóng nav khi cuộn xuống
   useEffect(() => { if (scrollDir === "down") setNavForceOpen(false); }, [scrollDir]);
   // Đóng menu khi cuộn
@@ -5056,6 +5547,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
                     onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
                     style={{ marginRight: 20 }}>{t}</button>
                 ))}
+                {/* Nút kiểm tra máy nhanh đã ẩn */}
                 <div className="nav-div" />
                 <div style={{ flex: 1 }} />
                 <div className="nav-div" style={{ marginRight: 16 }} />
@@ -5077,7 +5569,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
                       ĐĂNG NHẬP
                     </button>
                   )}
-                  <div className="btn-3d-wrap" style={{ borderRadius:16, flexShrink:0 }}><button className="btn-3d" onClick={onBook} style={{ fontSize: 11, padding: "10px 22px", letterSpacing: 3, whiteSpace: "nowrap" }}>GỬI YÊU CẦU THUÊ</button></div>
+                  <div className="btn-3d-wrap" style={{ borderRadius:16, flexShrink:0 }}><button className="btn-3d" onClick={openQS} style={{ fontSize: 11, padding: "10px 22px", letterSpacing: 3, whiteSpace: "nowrap", background:"linear-gradient(160deg, rgba(232,240,248,0.95) 0%, rgba(197,216,236,0.90) 60%, rgba(181,206,230,0.95) 100%)", color:"#0d1b2a", border:"1px solid rgba(255,255,255,0.60)", boxShadow:"0 1px 0 rgba(255,255,255,0.80) inset, 0 4px 16px rgba(13,27,42,0.15)" }}>GỬI YÊU CẦU THUÊ NHANH</button></div>
                   <button onClick={() => setNavForceOpen(false)}
                     style={{ marginLeft: 12, width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.14)", color: "#aaa", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>✕</button>
                 </div>
@@ -5266,21 +5758,21 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
                 onMouseEnter={e=>{e.currentTarget.style.boxShadow="0 0 32px rgba(200,200,240,0.55), 0 0 64px rgba(200,200,240,0.2)";e.currentTarget.style.transform="translateY(-3px)";}}
                 onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 0 18px rgba(200,200,240,0.15)";e.currentTarget.style.transform="translateY(0)";}}
                 style={{ transition:"all .28s cubic-bezier(.4,0,.2,1)", flexShrink:0 }}>
-              <button onClick={onBook}
+              <button onClick={openQS}
                 style={{
-                  background:"linear-gradient(135deg,#5a5a6e 0%,#c8c8dc 50%,#4a4a60 100%)",
-                  color:"#0a0a18",
-                  border:"none",
+                  background:"linear-gradient(160deg, rgba(232,240,248,0.95) 0%, rgba(197,216,236,0.90) 60%, rgba(181,206,230,0.95) 100%)",
+                  color:"#0d1b2a",
+                  border:"1px solid rgba(255,255,255,0.60)",
                   padding: isMobile?"9px 16px":"14px 32px",
                   fontSize: isMobile?7.5:8.5, letterSpacing: isMobile?2:3, fontFamily:"system-ui,sans-serif",
-                  fontWeight:700, cursor:"pointer", borderRadius:12,
+                  fontWeight:800, cursor:"pointer", borderRadius:12,
                   transition:"filter .2s", whiteSpace:"nowrap", lineHeight:1,
-                  boxShadow:"none",
+                  boxShadow:"0 1px 0 rgba(255,255,255,0.80) inset, 0 4px 16px rgba(13,27,42,0.15)",
                   position:"relative",
                 }}
-                onMouseEnter={e=>{e.currentTarget.style.filter="brightness(1.12)";}}
+                onMouseEnter={e=>{e.currentTarget.style.filter="brightness(1.06)";}}
                 onMouseLeave={e=>{e.currentTarget.style.filter="brightness(1)";}}>
-                GỬI YÊU CẦU THUÊ
+                GỬI YÊU CẦU THUÊ NHANH
               </button>
               </div>
               <OrderLookupWidget orders={orders} compact={isMobile}/>
@@ -5398,35 +5890,8 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         </div>
       </div>
 
-      {/* CTA — dark cinematic */}
-      <div style={{ position:"relative", overflow:"hidden", padding: isMobile ? "56px 20px 68px" : "90px 72px 100px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius:28, border:"1px solid rgba(255,255,255,0.22)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset", textAlign:"center", background:"rgba(255,255,255,0.13)", backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)" }}>
-        <div style={{ position:"absolute", top:"50%", left:"50%", transform:"translate(-50%,-50%)", width:700, height:700, background:"radial-gradient(circle,rgba(255,255,255,0.035) 0%,transparent 65%)", pointerEvents:"none" }} />
-        <div style={{ position:"relative", zIndex:1 }}>
-          <div style={{ fontSize:9, letterSpacing:7, color:G, opacity:0.55, marginBottom:18, fontFamily:"var(--font-ui)", fontWeight:700 }}>ĐẶT THUÊ NGAY HÔM NAY</div>
-          <h2 style={{ fontSize: isMobile ? 26 : 40, fontWeight:700, letterSpacing: isMobile ? 0 : 1, margin:"0 0 14px", color:G, fontFamily:"var(--font-display)", textShadow:"0 1px 3px rgba(13,27,42,0.10)" }}>Không cần đăng ký tài khoản</h2>
-          <p style={{ color:TXT, fontSize:14, fontWeight:500, marginBottom:40, letterSpacing:0.3, lineHeight:1.8, fontFamily:"var(--font-ui)" }}>Chọn máy → Chọn ngày → Chốt Zalo. Đơn giản vậy thôi.</p>
-          <div className="btn-3d-wrap" style={{ borderRadius:16 }}><button onClick={onBook} className="btn-3d" style={{ padding:"16px 56px", borderRadius:14, fontSize:13, letterSpacing:3 }}>BẮT ĐẦU ĐẶT THUÊ</button></div>
-          <div style={{ marginTop:36, display:"flex", justifyContent:"center" }}>
-            <div style={{ display:"inline-flex", border:"1px solid rgba(255,255,255,0.60)", borderRadius:12, overflow:"hidden", background:"linear-gradient(135deg, rgba(232,240,248,0.88) 0%, rgba(197,216,236,0.80) 100%)", backdropFilter:"blur(28px) saturate(160%)", WebkitBackdropFilter:"blur(28px) saturate(160%)", boxShadow:"0 1px 0 rgba(255,255,255,0.80) inset, 0 4px 16px rgba(13,27,42,0.10)" }}>
-              <div style={{ padding:"12px 28px", display:"flex", alignItems:"center", gap:10 }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={MUT} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
-                <div style={{ textAlign:"left" }}>
-                  <div style={{ fontSize:8, letterSpacing:2.5, color:MUT, fontFamily:"system-ui,sans-serif", fontWeight:700, lineHeight:1.5 }}>THỦ TỤC</div>
-                  <div style={{ fontSize:8, letterSpacing:2.5, color:G, fontFamily:"var(--font-ui)", fontWeight:800, lineHeight:1.5 }}>NHANH GỌN</div>
-                </div>
-              </div>
-              <div style={{ width:1, background:"rgba(5,17,31,0.10)", margin:"10px 0" }} />
-              <div style={{ padding:"12px 28px", display:"flex", alignItems:"center", gap:10 }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={MUT} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
-                <div style={{ textAlign:"left" }}>
-                  <div style={{ fontSize:8, letterSpacing:2.5, color:MUT, fontFamily:"var(--font-ui)", fontWeight:700, lineHeight:1.5 }}>HỖ TRỢ</div>
-                  <div style={{ fontSize:8, letterSpacing:2.5, color:G, fontFamily:"var(--font-ui)", fontWeight:800, lineHeight:1.5 }}>24 / 7</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* QUY TRÌNH 6 BƯỚC */}
+      <QuyTrinh6Buoc isMobile={isMobile} />
 
       {/* CUSTOMER PHOTO FEED */}
       <FeedbackMarquee photos={photos || []} feedbacks={feedbacks || []} isMobile={isMobile} />
@@ -5457,6 +5922,9 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         </div>
         <div style={{ color: "rgba(10,10,20,0.55)", fontSize: 11, fontFamily: "var(--font-ui)", fontWeight: 400 }}>© 2026 92 KA MÊ RA/abc2z</div>
       </footer>
+
+      {/* ── Quick Search Float (kiểm tra máy theo ngày) ── */}
+      <QuickSearchFloat cameras={cameras} accessories={accessories} orders={orders} onBook={onBook} openTrigger={qsTrigger} />
 
       {/* QR góc phải — hover để phóng to */}
       <style>{`
@@ -8806,7 +9274,13 @@ function AppRoot() {
           accessories={accessories}
           siteContent={siteContent}
           orders={orders}
-          onBook={(cam) => setBooking(cam?.id ?? true)}
+          onBook={(cam) => {
+            if (cam && typeof cam === "object" && cam.preselectedCams) {
+              setBooking(cam); // object từ QuickSearch
+            } else {
+              setBooking(cam?.id ?? true);
+            }
+          }}
           onAdmin={() => setPage("admin")}
           isMobile={isMobile}
           photos={photos}
@@ -8890,6 +9364,10 @@ function AppRoot() {
           onSubmit={handleNewOrder}
           loggedUser={loggedUser}
           preselectedCamId={typeof booking === "number" ? booking : null}
+          preselectedCams={booking && typeof booking === "object" && booking.preselectedCams ? booking.preselectedCams : null}
+          preselectedAccs={booking && typeof booking === "object" && booking.preselectedAccs ? booking.preselectedAccs : null}
+          preselectedDate={booking && typeof booking === "object" ? booking.date : null}
+          preselectedDays={booking && typeof booking === "object" ? booking.days : null}
           orders={orders}
         />
       )}
