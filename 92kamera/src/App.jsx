@@ -397,23 +397,51 @@ function Badge({ status }) {
   return <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: c.color + "22", color: c.color, border: `1px solid ${c.color}44`, whiteSpace: "nowrap", letterSpacing: .5 }}>{c.label}</span>;
 }
 
-// ── ORDER LOOKUP WIDGET (tra cứu đơn nhanh, không cần đăng nhập) ──
-function OrderLookupWidget({ orders, compact }) {
-  const [open, setOpen] = useState(false);
+// ── ORDER LOOKUP WIDGET ──
+// forceOpen/onForceClose → controlled mode (modal render ngoài transformed div)
+// Không truyền → standalone mode
+function OrderLookupWidget({ orders, compact, forceOpen, onForceClose }) {
+  const [openInternal, setOpenInternal] = useState(false);
+  const open = forceOpen !== undefined ? forceOpen : openInternal;
   const [val, setVal] = useState("");
   const [result, setResult] = useState(null);
   const [err, setErr] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(null);
   const inputRef = useRef();
+  const overlayRef = useRef();
 
-  // Tự cập nhật result khi orders thay đổi (admin đổi status → khách thấy ngay)
+  // Lock scroll body khi modal mở
+  useEffect(() => {
+    if (open) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => { document.body.style.overflow = prev; };
+    }
+  }, [open]);
+
+  // Focus input sau khi modal mở
+  useEffect(() => {
+    if (open) {
+      const t = setTimeout(() => inputRef.current?.focus(), 180);
+      return () => clearTimeout(t);
+    }
+  }, [open]);
+
+  // ESC đóng modal
+  useEffect(() => {
+    if (!open) return;
+    const fn = (e) => { if (e.key === "Escape") close(); };
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
+  }, [open]);
+
+  // Tự cập nhật result khi orders thay đổi
   useEffect(() => {
     if (!result) return;
     const updated = orders.find(o => o.id === result.id);
     if (updated && (updated.status !== result.status || updated.adminNote !== result.adminNote)) {
-      setResult(updated);
-      setLastRefresh(new Date());
+      setResult(updated); setLastRefresh(new Date());
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orders, result?.id]);
@@ -421,11 +449,8 @@ function OrderLookupWidget({ orders, compact }) {
   const search = async (q = val) => {
     const s = q.trim().toUpperCase();
     if (!s) return;
-    // Tìm trong local state trước
     let found = orders.find(o => o.id.toUpperCase() === s || o.id.toUpperCase().replace("#","").includes(s.replace("#","")));
     if (!found) {
-      // BUG-B FIX: không tìm thấy local (cache 30 phút) → fetch fresh Supabase rồi tìm lại.
-      // Tránh trường hợp đơn vừa đặt xong chưa sync vào local state → báo "Không tìm thấy".
       try {
         const res = await fetch(
           `${SB_URL}/rest/v1/${SB_TABLE}?key=eq.${STORE_KEYS.orders}&select=value`,
@@ -448,7 +473,6 @@ function OrderLookupWidget({ orders, compact }) {
     if (!result || refreshing) return;
     setRefreshing(true);
     try {
-      // Fetch thẳng Supabase để lấy data mới nhất
       const res = await fetch(
         `${SB_URL}/rest/v1/${SB_TABLE}?key=eq.${STORE_KEYS.orders}&select=value`,
         { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
@@ -465,10 +489,12 @@ function OrderLookupWidget({ orders, compact }) {
     setRefreshing(false);
   };
 
-  const toggle = () => {
-    setOpen(p => !p);
-    if (!open) { setVal(""); setResult(null); setErr(false); setTimeout(() => inputRef.current?.focus(), 200); }
+  const close = () => {
+    if (onForceClose) onForceClose();
+    else setOpenInternal(false);
+    setVal(""); setResult(null); setErr(false);
   };
+  const toggle = () => { if (open) close(); else setOpenInternal(true); };
 
   const fmtD = (ds) => { try { return new Date(ds + "T00:00:00").toLocaleDateString("vi-VN", { day:"2-digit", month:"2-digit", year:"numeric" }); } catch { return ds; } };
   const getTime = (o, type) => {
@@ -483,118 +509,181 @@ function OrderLookupWidget({ orders, compact }) {
   const sc = result ? (STATUS_CFG[result.status] || { label: result.status, color: "#888" }) : null;
 
   return (
-    <div style={{ position: "relative", zIndex: 10 }}>
-      {/* Trigger row */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <button onClick={toggle} style={{
-          display: "flex", alignItems: "center", gap: 8,
-          background: open ? "rgba(30,28,26,0.85)" : "rgba(30,28,26,0.6)",
-          border: `1px solid ${open ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.14)"}`,
-          borderRadius: open ? "12px 12px 0 0" : 12,
-          padding: compact ? "9px 14px" : "11px 22px", cursor: "pointer", transition: "all .25s",
-          color: "#d4cab8", fontSize: compact ? 7.5 : 11, fontFamily: "system-ui,sans-serif", letterSpacing: compact ? 2 : 2.5, fontWeight: 600,
-          backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
-          boxShadow: open ? "0 4px 20px rgba(0,0,0,0.3)" : "0 2px 12px rgba(0,0,0,0.18)",
-          whiteSpace: "nowrap",
-        }}>
-          {/* Kính lúp SVG */}
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          TRA CỨU ĐƠN
-        </button>
-        {open && result && (
-          <button onClick={refresh} title="Làm mới" style={{
-            width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.05)",
-            border: `1px solid ${BR}`, cursor: "pointer", display: "flex", alignItems: "center",
-            justifyContent: "center", flexShrink: 0, transition: "all .2s",
-          }}>
-            <span style={{ display: "inline-block", animation: refreshing ? "spin 0.7s linear infinite" : "none", fontSize: 12 }}>↻</span>
-          </button>
-        )}
-        {open && lastRefresh && (
-          <span style={{ fontSize: 9, color: MUT, fontFamily: "system-ui,sans-serif", letterSpacing: 1 }}>
-            {lastRefresh.toLocaleTimeString("vi-VN", { hour:"2-digit", minute:"2-digit", second:"2-digit" })}
-          </span>
-        )}
-      </div>
+    <>
+      {/* Button — chỉ hiện khi standalone mode */}
+      {forceOpen === undefined && (
+        <button onClick={toggle} data-tracuu style={{
+        display: "flex", alignItems: "center", gap: 8,
+        background: open ? "rgba(13,27,42,0.90)" : "rgba(13,27,42,0.65)",
+        border: `1px solid ${open ? "rgba(139,174,207,0.55)" : "rgba(139,174,207,0.30)"}`,
+        borderRadius: 12,
+        padding: compact ? "9px 14px" : "11px 22px", cursor: "pointer", transition: "all .25s",
+        color: "#d4cab8", fontSize: compact ? 7.5 : 11, fontFamily: "system-ui,sans-serif",
+        letterSpacing: compact ? 2 : 2.5, fontWeight: 600,
+        boxShadow: "0 2px 12px rgba(0,0,0,0.18)",
+        whiteSpace: "nowrap",
+      }}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        TRA CỨU ĐƠN
+      </button>
+      )}
 
-      {/* Expand panel */}
+      {/* ── OVERLAY: position fixed tính từ viewport, không bị ảnh hưởng bởi parent ── */}
       {open && (
-        <div style={{
-          position: "absolute",
-          top: "100%",
-          left: 0,
-          // Không tràn màn hình: tối đa 400px, tối thiểu là vừa màn hình
-          width: "min(400px, calc(100vw - 24px))",
-          background: CARD2, border: `1px solid ${G}44`, borderRadius: "0 8px 8px 8px",
-          padding: "14px 16px",
-          boxShadow: `0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px ${G}11`,
-          zIndex: 20,
-        }}>
-          {/* Input */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-            <input ref={inputRef} value={val}
-              onChange={e => { setVal(e.target.value.toUpperCase()); setErr(false); setResult(null); }}
-              onKeyDown={e => e.key === "Enter" && search()}
-              placeholder="#92K0001"
-              style={{ flex: 1, padding: "9px 12px", background: CARD, border: `1px solid ${err ? "#ef4444" : BR}`, borderRadius: 10, color: TXT, fontSize: 13, outline: "none", fontFamily: "monospace", letterSpacing: 2, transition: "border .2s" }}
-            />
-            <button onClick={() => search()}
-              style={{ padding: "9px 14px", background: G, color: "#000", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 800, fontSize: 12, fontFamily: "system-ui,sans-serif", flexShrink: 0 }}>
-              Tìm
-            </button>
-          </div>
-
-          {err && (
-            <div style={{ color: "#ef4444", fontSize: 11, fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 6 }}>
-              <span>✕</span> Không tìm thấy mã đơn này
-            </div>
-          )}
-
-          {result && (() => {
-            const dropDs = result.days >= 1 ? dateAddDays(result.date, result.days) : result.date;
-            return (
-              <div style={{ borderTop: `1px solid ${BR}`, paddingTop: 12, marginTop: 2 }}>
-                {/* Header: mã + badge */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                  <span style={{ color: G, fontWeight: 900, fontSize: 15, fontFamily: "monospace", letterSpacing: 2 }}>{result.id}</span>
-                  <span style={{ padding: "3px 10px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: sc.color + "22", color: sc.color, border: `1px solid ${sc.color}44`, letterSpacing: .5 }}>{sc.label}</span>
-                </div>
-
-                {/* Máy + thời gian */}
-                <div style={{ color: TXT, fontSize: 12, fontFamily: "system-ui,sans-serif", marginBottom: 8 }}>
-                  📷 {result.cameraName} · {fmtDays(result.days, result.shift)}
-                </div>
-
-                {/* Giờ nhận / trả */}
-                {result.date && result.days && (
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
-                    <span style={{ display:"inline-flex", alignItems:"center", gap:4, background:"#EEF9F4", border:"1px solid #22c55e33", borderRadius:10, padding:"4px 10px", fontSize:11, color:"#22c55e", fontWeight:700, fontFamily:"system-ui,sans-serif" }}>
-                      Nhận: {getTime(result,"pick")} · {fmtD(result.date)}
-                    </span>
-                    <span style={{ display:"inline-flex", alignItems:"center", gap:4, background:"#FFF8ED", border:"1px solid #f59e0b33", borderRadius:10, padding:"4px 10px", fontSize:11, color:"#f59e0b", fontWeight:700, fontFamily:"system-ui,sans-serif" }}>
-                      Trả: {getTime(result,"drop")} · {fmtD(dropDs)}
-                    </span>
-                  </div>
-                )}
-
-                {/* Tổng tiền */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: `1px solid ${BR}`, paddingTop: 10 }}>
-                  <span style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif", letterSpacing: 1 }}>TỔNG TIỀN</span>
-                  <span style={{ color: G, fontWeight: 900, fontSize: 17, fontFamily: "system-ui,sans-serif" }}>{fmtVND(result.total)}</span>
-                </div>
-
-                {/* Hint refresh */}
-                <div style={{ marginTop: 8, color: MUT, fontSize: 9, fontFamily: "system-ui,sans-serif", letterSpacing: 1 }}>
-                  Nhấn ↻ để cập nhật trạng thái mới nhất
-                </div>
+        <div
+          ref={overlayRef}
+          onClick={e => { if (e.target === overlayRef.current) close(); }}
+          style={{
+            // Dùng style tag inline để tránh bị ghi đè bởi transform cha
+            position: "fixed",
+            top: 0, left: 0, right: 0, bottom: 0,
+            zIndex: 99999,
+            background: "rgba(5,17,31,0.80)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            // Flex center — hoạt động đúng trên mọi trình duyệt
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            // overflowY để content không bị cắt khi keyboard mở trên mobile
+            overflowY: "auto",
+            padding: "16px 16px",
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: "100%",
+              maxWidth: 420,
+              margin: "auto", // đảm bảo giữa màn kể cả khi overflowY scroll
+              background: "linear-gradient(160deg, rgba(220,232,244,0.97) 0%, rgba(197,216,236,0.96) 60%, rgba(210,226,242,0.97) 100%)",
+              borderRadius: 20,
+              border: "1px solid rgba(255,255,255,0.75)",
+              boxShadow: "0 32px 80px rgba(5,17,31,0.45), 0 0 0 1px rgba(139,174,207,0.25)",
+              overflow: "hidden",
+              animation: "lookupSlideIn .22s cubic-bezier(.34,1.56,.64,1) both",
+              flexShrink: 0,
+            }}
+          >
+            {/* Header */}
+            <div style={{
+              padding: "18px 20px 14px",
+              background: "rgba(181,206,230,0.60)",
+              borderBottom: "1px solid rgba(139,174,207,0.40)",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2d4a6a" strokeWidth="2.2" strokeLinecap="round">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <span style={{ color: "#0d1b2a", fontSize: 10, letterSpacing: 3, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>TRA CỨU ĐƠN THUÊ</span>
               </div>
-            );
-          })()}
+              <button onClick={close} style={{
+                width: 32, height: 32, borderRadius: "50%", background: "rgba(13,27,42,0.10)",
+                border: "1px solid rgba(13,27,42,0.20)", cursor: "pointer",
+                color: "#2d4a6a", fontSize: 18, lineHeight: 1,
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+              }}>×</button>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: "20px" }}>
+              <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+                <input ref={inputRef} value={val}
+                  onChange={e => { setVal(e.target.value.toUpperCase()); setErr(false); setResult(null); }}
+                  onKeyDown={e => e.key === "Enter" && search()}
+                  placeholder="#92K0001"
+                  autoComplete="off"
+                  style={{
+                    flex: 1, padding: "12px 14px",
+                    background: "rgba(255,255,255,0.65)",
+                    border: `1.5px solid ${err ? "#ef4444" : "rgba(139,174,207,0.50)"}`,
+                    borderRadius: 11, color: "#0d1b2a", fontSize: 15, outline: "none",
+                    fontFamily: "monospace", letterSpacing: 2, transition: "border .2s",
+                  }}
+                />
+                <button onClick={() => search()} style={{
+                  padding: "12px 18px", background: "#0D1B2A", color: "#c9a84c",
+                  border: "1px solid rgba(201,168,76,0.4)", borderRadius: 11,
+                  cursor: "pointer", fontWeight: 800, fontSize: 12,
+                  fontFamily: "system-ui,sans-serif", flexShrink: 0, letterSpacing: 1,
+                }}>TÌM</button>
+              </div>
+
+              {err && (
+                <div style={{
+                  padding: "10px 14px", borderRadius: 10,
+                  background: "rgba(192,41,10,0.12)", border: "1px solid rgba(192,41,10,0.30)",
+                  color: "#ef4444", fontSize: 12, fontFamily: "system-ui,sans-serif",
+                  display: "flex", alignItems: "center", gap: 6,
+                }}>
+                  <span>✕</span> Không tìm thấy mã đơn này
+                </div>
+              )}
+
+              {result && (() => {
+                const dropDs = result.days >= 1 ? dateAddDays(result.date, result.days) : result.date;
+                return (
+                  <div style={{
+                    borderRadius: 14, overflow: "hidden",
+                    border: "1px solid rgba(139,174,207,0.35)",
+                    background: "rgba(255,255,255,0.55)",
+                    animation: "pulseIn .3s ease",
+                  }}>
+                    <div style={{
+                      padding: "12px 16px",
+                      background: sc.color + "22",
+                      borderBottom: `1px solid ${sc.color}33`,
+                      display: "flex", justifyContent: "space-between", alignItems: "center",
+                    }}>
+                      <span style={{ color: "#0d1b2a", fontWeight: 900, fontSize: 15, fontFamily: "monospace", letterSpacing: 2 }}>{result.id}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ padding: "4px 12px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: sc.color + "33", color: sc.color, border: `1px solid ${sc.color}55`, letterSpacing: .5 }}>{sc.label}</span>
+                        <button onClick={refresh} title="Làm mới" style={{
+                          width: 28, height: 28, borderRadius: "50%",
+                          background: "rgba(13,27,42,0.10)", border: "1px solid rgba(13,27,42,0.20)",
+                          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 14, color: "#2d4a6a",
+                        }}>
+                          <span style={{ display: "inline-block", animation: refreshing ? "spin 0.7s linear infinite" : "none" }}>↻</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+                      <div style={{ fontSize: 13, color: "#0d1b2a", fontFamily: "system-ui,sans-serif", fontWeight: 600 }}>
+                        📷 {result.cameraName} · {fmtDays(result.days, result.shift)}
+                      </div>
+                      {result.date && result.days && (
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <span style={{ display:"inline-flex", alignItems:"center", gap:4, background:"rgba(34,197,94,0.18)", border:"1px solid rgba(34,197,94,0.40)", borderRadius:10, padding:"5px 12px", fontSize:11, color:"#14532d", fontWeight:700, fontFamily:"system-ui,sans-serif" }}>
+                            ▶ Nhận: {getTime(result,"pick")} · {fmtD(result.date)}
+                          </span>
+                          <span style={{ display:"inline-flex", alignItems:"center", gap:4, background:"rgba(245,158,11,0.18)", border:"1px solid rgba(245,158,11,0.40)", borderRadius:10, padding:"5px 12px", fontSize:11, color:"#78350f", fontWeight:700, fontFamily:"system-ui,sans-serif" }}>
+                            ◀ Trả: {getTime(result,"drop")} · {fmtD(dropDs)}
+                          </span>
+                        </div>
+                      )}
+                      <div style={{ borderTop: "1px solid rgba(139,174,207,0.20)", paddingTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ color: "#2d4a6a", fontSize: 10, fontFamily: "system-ui,sans-serif", letterSpacing: 1 }}>TỔNG TIỀN</span>
+                        <span style={{ color: "#c9a84c", fontWeight: 900, fontSize: 20, fontFamily: "system-ui,sans-serif" }}>{fmtVND(result.total)}</span>
+                      </div>
+                      {lastRefresh && (
+                        <div style={{ color: "#4a6a8a", fontSize: 9, fontFamily: "system-ui,sans-serif", letterSpacing: 1, textAlign: "right" }}>
+                          Cập nhật: {lastRefresh.toLocaleTimeString("vi-VN", { hour:"2-digit", minute:"2-digit", second:"2-digit" })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -676,8 +765,8 @@ function QuickSearchFloat({ cameras, accessories, orders, onBook, openTrigger = 
 
   if (!open) return null;
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:1001, overflowY:"auto", background:"rgba(0,0,0,0.55)", backdropFilter:"blur(6px)", WebkitBackdropFilter:"blur(6px)", padding:"24px 16px" }} onClick={e => { if (e.target === e.currentTarget) close(); }}>
-      <div style={{ margin:"0 auto", width:"min(660px,96vw)" }} onClick={e => e.stopPropagation()}>
+    <div style={{ position:"fixed", inset:0, zIndex:1001, overflowY:"auto", background:"rgba(0,0,0,0.55)", backdropFilter:"blur(6px)", WebkitBackdropFilter:"blur(6px)", padding:"24px 16px", boxSizing:"border-box" }} onClick={e => { if (e.target === e.currentTarget) close(); }}>
+      <div style={{ margin:"0 auto", width:"min(660px, 100%)" }} onClick={e => e.stopPropagation()}>
 
       {/* ── Panel ── */}
       <div style={{
@@ -703,7 +792,7 @@ function QuickSearchFloat({ cameras, accessories, orders, onBook, openTrigger = 
 
           {/* Date inputs */}
           <div style={{ padding:"10px 20px" }}>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:10 }}>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(130px, 1fr))", gap:10, marginBottom:10 }}>
               {[["📅 NGÀY THUÊ", startDate, v => { setStartDate(v); setResults(null); setSearched(false); setSelCams({}); setSelAccs({}); if (v > endDate) setEndDate(v); }, todayStr()],
                 ["📅 NGÀY TRẢ",  endDate,  v => { setEndDate(v);   setResults(null); setSearched(false); setSelCams({}); setSelAccs({}); }, startDate || todayStr()]
               ].map(([label, val, onChange, min]) => (
@@ -1105,7 +1194,7 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
   // ── Accent color palette — mỗi ring là 1 module riêng biệt ──
   const PALETTE = {
     book:     { accent: "#c9a84c", r: 0.788, g: 0.659, b: 0.298, tag: "ACTION · OUTER RING",   label: "GỬI YÊU CẦU THUÊ" },
-    feedback: { accent: "#38bdf8", r: 0.220, g: 0.741, b: 0.973, tag: "REVIEW · MODULE 2",      label: "FEEDBACK" },
+    feedback: { accent: "#38bdf8", r: 0.220, g: 0.741, b: 0.973, tag: "GUIDE · MODULE 2",      label: "QUY TRÌNH" },
     cameras:  { accent: "#34d399", r: 0.204, g: 0.827, b: 0.600, tag: "PRODUCT · MODULE 3",     label: "MÁY ẢNH" },
     acc:      { accent: "#a78bfa", r: 0.655, g: 0.545, b: 0.980, tag: "UTILITY · MODULE 4",     label: "PHỤ KIỆN" },
     login:    { accent: "#f0e8d0", r: 0.941, g: 0.910, b: 0.816, tag: "CORE",                   label: loggedUser ? "TÀI KHOẢN" : "ĐĂNG NHẬP" },
@@ -1113,7 +1202,7 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
 
   const rings = [
     { id: "book",     rMid: 215, thick: 44, segs: 36, action: () => onBook() },
-    { id: "feedback", rMid: 161, thick: 34, segs: 24, action: () => scrollTo("feedback") },
+    { id: "feedback", rMid: 161, thick: 34, segs: 24, action: () => scrollTo("quy-trinh") },
     { id: "cameras",  rMid: 116, thick: 32, segs: 18, action: () => scrollTo("cameras") },
     { id: "acc",      rMid: 72,  thick: 28, segs: 12, action: () => scrollTo("accessories") },
     { id: "login",    rMid: 34,  thick: 68, isCenter: true, action: loggedUser ? (onOpenCustomer || onOpenLogin) : onOpenLogin },
@@ -1968,7 +2057,7 @@ function QuyTrinh6Buoc({ isMobile }) {
   };
 
   return (
-    <div style={{ margin: isMobile ? "20px 0" : "32px 0", padding: isMobile ? "40px 0 32px" : "60px 0 44px" }}>
+    <div id="quy-trinh" style={{ margin: isMobile ? "20px 0" : "32px 0", padding: isMobile ? "40px 0 32px" : "60px 0 44px" }}>
       {/* Header */}
       <div style={{ textAlign:"center", marginBottom: isMobile ? 28 : 36, padding:"0 20px" }}>
         <div style={{ fontSize:9, letterSpacing:7, color:"#2a4a6a", opacity:0.6, marginBottom:12, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>HƯỚNG DẪN CHI TIẾT</div>
@@ -2196,7 +2285,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
 
   return (
     <div style={{ minHeight: "100vh", background: "transparent", fontFamily: "system-ui,sans-serif", position: "relative", zIndex: 1 }}>
-      <style>{`*{box-sizing:border-box;} @keyframes pulseIn{0%{transform:scale(0.7);opacity:0}100%{transform:scale(1);opacity:1}} @keyframes spin{to{transform:rotate(360deg)}} @keyframes cMenuIn{0%{opacity:0;transform:translateY(-8px) scale(0.96)}100%{opacity:1;transform:translateY(0) scale(1)}}`}</style>
+      <style>{`*{box-sizing:border-box;} @keyframes pulseIn{0%{transform:scale(0.7);opacity:0}100%{transform:scale(1);opacity:1}} @keyframes spin{to{transform:rotate(360deg)}} @keyframes cMenuIn{0%{opacity:0;transform:translateY(-8px) scale(0.96)}100%{opacity:1;transform:translateY(0) scale(1)}} @keyframes lookupSlideIn{0%{opacity:0;transform:scale(0.88) translateY(24px)}100%{opacity:1;transform:scale(1) translateY(0)}}`}</style>
 
       {/* Header */}
       {isMobile ? (
@@ -5079,7 +5168,7 @@ function MobileFAB({ mobileMenuOpen, setMobileMenuOpen, siteContent, onBook, log
           touchAction: "auto",
         }}>
           {/* Nav links */}
-          {[["📷 MÁY ẢNH", "cameras"], ["🎒 PHỤ KIỆN", "accessories"], ["💬 FEEDBACK", "feedback"], ["📍 VỀ CHÚNG TÔI", "about"]].map(([t, id]) => (
+          {[["📷 MÁY ẢNH", "cameras"], ["🎒 PHỤ KIỆN", "accessories"], ["📋 QUY TRÌNH", "quy-trinh"], ["💬 FEEDBACK", "feedback"], ["📍 VỀ CHÚNG TÔI", "about"]].map(([t, id]) => (
             <button key={id}
               onClick={() => { document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }); setOpen(false); }}
               style={{ width: "100%", background: "none", border: "none", color: TXT, fontSize: 12, letterSpacing: 2, padding: "12px 18px", cursor: "pointer", fontFamily: "system-ui,sans-serif", fontWeight: 600, textAlign: "left", display: "flex", alignItems: "center", gap: 10, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
@@ -5557,6 +5646,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
   const [navForceOpen, setNavForceOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [qsTrigger, setQsTrigger] = useState(0);
+  const [lookupOpen, setLookupOpen] = useState(false);
   const openQS = () => setQsTrigger(p => p + 1);
   // Đóng nav khi cuộn xuống
   useEffect(() => { if (scrollDir === "down") setNavForceOpen(false); }, [scrollDir]);
@@ -5590,7 +5680,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
                   )}
                 </div>
                 <div className="nav-div" style={{ marginRight: 16 }} />
-                {[["MÁY ẢNH", "cameras"], ["PHỤ KIỆN", "accessories"], ["FEEDBACK", "feedback"], ["VỀ CHÚNG TÔI", "about"]].map(([t, id]) => (
+                {[["MÁY ẢNH", "cameras"], ["PHỤ KIỆN", "accessories"], ["QUY TRÌNH", "quy-trinh"], ["FEEDBACK", "feedback"], ["VỀ CHÚNG TÔI", "about"]].map(([t, id]) => (
                   <button key={t} className="nav-link"
                     onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
                     style={{ marginRight: 20 }}>{t}</button>
@@ -5617,7 +5707,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
                       ĐĂNG NHẬP
                     </button>
                   )}
-                  <div className="btn-3d-wrap" style={{ borderRadius:16, flexShrink:0 }}><button className="btn-3d" onClick={openQS} style={{ fontSize: 11, padding: "10px 22px", letterSpacing: 3, whiteSpace: "nowrap", background:"linear-gradient(160deg, rgba(232,240,248,0.95) 0%, rgba(197,216,236,0.90) 60%, rgba(181,206,230,0.95) 100%)", color:"#0d1b2a", border:"1px solid rgba(255,255,255,0.60)", boxShadow:"0 1px 0 rgba(255,255,255,0.80) inset, 0 4px 16px rgba(13,27,42,0.15)" }}>GỬI YÊU CẦU THUÊ NHANH</button></div>
+                  <div className="btn-3d-wrap" style={{ borderRadius:16, flexShrink:0 }}><button className="btn-3d" onClick={openQS} style={{ fontSize: 11, padding: "10px 22px", letterSpacing: 3, whiteSpace: "nowrap", background:"linear-gradient(160deg, rgba(232,240,248,0.95) 0%, rgba(197,216,236,0.90) 60%, rgba(181,206,230,0.95) 100%)", color:"#0d1b2a", border:"1px solid rgba(255,255,255,0.60)", boxShadow:"0 1px 0 rgba(255,255,255,0.80) inset, 0 4px 16px rgba(13,27,42,0.15)" }}>THUÊ NGAY</button></div>
                   <button onClick={() => setNavForceOpen(false)}
                     style={{ marginLeft: 12, width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.14)", color: "#aaa", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>✕</button>
                 </div>
@@ -5801,29 +5891,49 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
             </div>
 
             {/* ── CTAs ── */}
-            <div style={{ display:"flex", alignItems:"center", gap: isMobile?8:12, flexWrap:"nowrap", justifyContent: isMobile?"center":"flex-start", marginTop: isMobile?22:32 }}>
+            <div style={{ display:"flex", alignItems:"stretch", gap: isMobile?8:12, flexWrap:"nowrap", justifyContent: isMobile?"center":"flex-start", marginTop: isMobile?22:32 }}>
               <div className="btn-hero-wrap"
                 onMouseEnter={e=>{e.currentTarget.style.boxShadow="0 0 32px rgba(200,200,240,0.55), 0 0 64px rgba(200,200,240,0.2)";e.currentTarget.style.transform="translateY(-3px)";}}
                 onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 0 18px rgba(200,200,240,0.15)";e.currentTarget.style.transform="translateY(0)";}}
                 style={{ transition:"all .28s cubic-bezier(.4,0,.2,1)", flexShrink:0 }}>
               <button onClick={openQS}
                 style={{
+                  display:"flex", alignItems:"center", justifyContent:"center",
                   background:"linear-gradient(160deg, rgba(232,240,248,0.95) 0%, rgba(197,216,236,0.90) 60%, rgba(181,206,230,0.95) 100%)",
                   color:"#0d1b2a",
                   border:"1px solid rgba(255,255,255,0.60)",
-                  padding: isMobile?"9px 16px":"14px 32px",
+                  padding: isMobile?"9px 20px":"14px 32px",
+                  width: isMobile?140:170,
                   fontSize: isMobile?7.5:8.5, letterSpacing: isMobile?2:3, fontFamily:"system-ui,sans-serif",
                   fontWeight:800, cursor:"pointer", borderRadius:12,
                   transition:"filter .2s", whiteSpace:"nowrap", lineHeight:1,
                   boxShadow:"0 1px 0 rgba(255,255,255,0.80) inset, 0 4px 16px rgba(13,27,42,0.15)",
-                  position:"relative",
                 }}
                 onMouseEnter={e=>{e.currentTarget.style.filter="brightness(1.06)";}}
                 onMouseLeave={e=>{e.currentTarget.style.filter="brightness(1)";}}>
-                GỬI YÊU CẦU THUÊ NHANH
+                THUÊ NGAY
               </button>
               </div>
-              <OrderLookupWidget orders={orders} compact={isMobile}/>
+              <button onClick={() => setLookupOpen(true)} data-tracuu style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                background: "rgba(74,89,104,0.85)",
+                color: "#d4cab8",
+                border: "1px solid rgba(139,174,207,0.35)",
+                borderRadius: 12,
+                padding: isMobile ? "9px 20px" : "14px 32px",
+                width: isMobile ? 140 : 170,
+                fontSize: isMobile ? 7.5 : 8.5, letterSpacing: isMobile ? 2 : 3, fontFamily: "system-ui,sans-serif",
+                fontWeight: 800, cursor: "pointer", transition: "filter .2s",
+                whiteSpace: "nowrap", lineHeight: 1,
+                boxShadow: "0 2px 12px rgba(0,0,0,0.22)",
+              }}
+              onMouseEnter={e=>{e.currentTarget.style.filter="brightness(1.06)";}}
+              onMouseLeave={e=>{e.currentTarget.style.filter="brightness(1)";}}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                TRA CỨU ĐƠN
+              </button>
             </div>
           </div>
 
@@ -5973,6 +6083,9 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
 
       {/* ── Quick Search Float (kiểm tra máy theo ngày) ── */}
       <QuickSearchFloat cameras={cameras} accessories={accessories} orders={orders} onBook={onBook} openTrigger={qsTrigger} />
+
+      {/* ── Order Lookup Modal — render ở đây, NGOÀI div transform:scale(0.60) ── */}
+      <OrderLookupWidget orders={orders} compact={isMobile} forceOpen={lookupOpen} onForceClose={() => setLookupOpen(false)} />
 
       {/* QR góc phải — hover để phóng to */}
       <style>{`
@@ -9060,11 +9173,15 @@ function AppRoot() {
         html { -webkit-overflow-scrolling: touch; }
         .cv-section { content-visibility: auto; contain-intrinsic-size: 0 600px; }
         @media (max-width: 900px) {
-          * { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+          /* Giảm blur trên mobile để tiết kiệm GPU, nhưng giữ màu lớp 2 */
+          * { -webkit-backdrop-filter: blur(12px) saturate(140%) !important; backdrop-filter: blur(12px) saturate(140%) !important; }
+          .nav-inner, .nav92 { -webkit-backdrop-filter: blur(20px) saturate(160%) !important; backdrop-filter: blur(20px) saturate(160%) !important; }
+        }
+        /* Fallback khi browser không hỗ trợ backdrop-filter */
+        @supports not (backdrop-filter: blur(1px)) {
+          [data-l2] { background: rgba(210, 222, 236, 0.82) !important; }
         }
         body.is-scrolling * {
-          -webkit-backdrop-filter: none !important;
-          backdrop-filter: none !important;
           animation-play-state: paused !important;
         }
         body.is-scrolling .lens-float-wrap { animation-play-state: running !important; }
