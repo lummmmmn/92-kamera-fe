@@ -234,29 +234,18 @@ function useSmoothScroll(enabled) {
 }
 
 // ── SCROLL PERF HOOK ──
-// Toggle body.is-scrolling trên MỌI thiết bị (kể cả iPhone touch)
-// → CSS dùng class này để tắt backdrop-filter + pause animation khi scroll
+// Toggle body.is-scrolling chỉ khi ĐANG SCROLL (không dùng touchstart vì sẽ pause ngay khi chạm)
 function useScrollPerfClass() {
   useEffect(() => {
     let timer = null;
     const onScroll = () => {
       document.body.classList.add("is-scrolling");
       clearTimeout(timer);
-      timer = setTimeout(() => document.body.classList.remove("is-scrolling"), 120);
+      timer = setTimeout(() => document.body.classList.remove("is-scrolling"), 150);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
-    // Touch events: bắt đầu touch → thêm class ngay, không chờ scroll event
-    const onTouchStart = () => document.body.classList.add("is-scrolling");
-    const onTouchEnd   = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => document.body.classList.remove("is-scrolling"), 200);
-    };
-    window.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchend",   onTouchEnd,   { passive: true });
     return () => {
-      window.removeEventListener("scroll",     onScroll);
-      window.removeEventListener("touchstart", onTouchStart);
-      window.removeEventListener("touchend",   onTouchEnd);
+      window.removeEventListener("scroll", onScroll);
       clearTimeout(timer);
       document.body.classList.remove("is-scrolling");
     };
@@ -9171,20 +9160,15 @@ function AppRoot() {
         .lens-float-wrap { will-change: transform; transform: translateZ(0); }
         /* Mobile scroll performance */
         html { -webkit-overflow-scrolling: touch; }
-        .cv-section { content-visibility: auto; contain-intrinsic-size: 0 600px; }
-        @media (max-width: 900px) {
-          /* Giảm blur trên mobile để tiết kiệm GPU, nhưng giữ màu lớp 2 */
-          * { -webkit-backdrop-filter: blur(12px) saturate(140%) !important; backdrop-filter: blur(12px) saturate(140%) !important; }
-          .nav-inner, .nav92 { -webkit-backdrop-filter: blur(20px) saturate(160%) !important; backdrop-filter: blur(20px) saturate(160%) !important; }
+        /* Khi scroll: chỉ tắt backdrop-filter, KHÔNG pause animation (sẽ freeze marquee/typewriter) */
+        body.is-scrolling * {
+          -webkit-backdrop-filter: none !important;
+          backdrop-filter: none !important;
         }
         /* Fallback khi browser không hỗ trợ backdrop-filter */
         @supports not (backdrop-filter: blur(1px)) {
           [data-l2] { background: rgba(210, 222, 236, 0.82) !important; }
         }
-        body.is-scrolling * {
-          animation-play-state: paused !important;
-        }
-        body.is-scrolling .lens-float-wrap { animation-play-state: running !important; }
         @keyframes navCollapseIn{0%{opacity:0;transform:scale(0.85) translateY(-8px)}100%{opacity:1;transform:scale(1) translateY(0)}}
         @keyframes navExpandIn{0%{opacity:0;transform:scaleY(0.7) translateY(-10px)}100%{opacity:1;transform:scaleY(1) translateY(0)}}
         @keyframes floatY{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-9px)}}
@@ -9450,9 +9434,6 @@ function AppRoot() {
         @media(max-width:767px){
           input,select,textarea{font-size:16px!important;}
           ::-webkit-scrollbar{display:none}
-        }
-        @media(min-width:768px){
-          html{zoom:1.3;}
         }
       `}</style>
 
