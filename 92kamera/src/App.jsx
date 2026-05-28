@@ -1214,7 +1214,7 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
   ];
 
   const sz = isMobile
-    ? Math.max(252, Math.min(304, Math.round(Math.min(viewW - 56, viewH * 0.44))))
+    ? Math.max(280, Math.min(380, Math.round(Math.min(viewW - 44, viewH * 0.48))))
     : Math.min(544, Math.round(viewH * 0.62));
   const anyHov = hoveredRing !== null;
 
@@ -5902,45 +5902,49 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
               <div className="btn-hero-wrap"
                 onMouseEnter={e=>{e.currentTarget.style.boxShadow="0 0 32px rgba(200,200,240,0.55), 0 0 64px rgba(200,200,240,0.2)";e.currentTarget.style.transform="translateY(-3px)";}}
                 onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 0 18px rgba(200,200,240,0.15)";e.currentTarget.style.transform="translateY(0)";}}
-                style={{ transition:"all .28s cubic-bezier(.4,0,.2,1)", flexShrink:0 }}>
+                style={{ transition:"all .28s cubic-bezier(.4,0,.2,1)", flexShrink:0, width: isMobile?132:170, height: isMobile?34:40, boxSizing:"border-box" }}>
               <button onClick={openQS}
                 style={{
                   display:"flex", alignItems:"center", justifyContent:"center",
                   background:"linear-gradient(160deg, rgba(232,240,248,0.95) 0%, rgba(197,216,236,0.90) 60%, rgba(181,206,230,0.95) 100%)",
                   color:"#0d1b2a",
                   border:"1px solid rgba(255,255,255,0.60)",
-                  padding: isMobile?"10px 14px":"14px 32px",
-                  width: isMobile?132:170,
+                  padding: isMobile?"0 14px":"0 32px",
+                  width:"100%", height:"100%",
                   fontSize: isMobile?8:8.5, letterSpacing: isMobile?1.5:3, fontFamily:"system-ui,sans-serif",
                   fontWeight:800, cursor:"pointer", borderRadius:12,
                   transition:"filter .2s", whiteSpace:"nowrap", lineHeight:1,
                   boxShadow:"0 1px 0 rgba(255,255,255,0.80) inset, 0 4px 16px rgba(13,27,42,0.15)",
+                  boxSizing:"border-box",
                 }}
                 onMouseEnter={e=>{e.currentTarget.style.filter="brightness(1.06)";}}
                 onMouseLeave={e=>{e.currentTarget.style.filter="brightness(1)";}}>
                 THUÊ NGAY
               </button>
               </div>
-              <button onClick={() => setLookupOpen(true)} data-tracuu style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                background: "rgba(74,89,104,0.85)",
-                color: "#d4cab8",
-                border: "1px solid rgba(139,174,207,0.35)",
-                borderRadius: 12,
-                padding: isMobile ? "10px 14px" : "14px 32px",
-                width: isMobile ? 132 : 170,
-                fontSize: isMobile ? 8 : 8.5, letterSpacing: isMobile ? 1.5 : 3, fontFamily: "system-ui,sans-serif",
-                fontWeight: 800, cursor: "pointer", transition: "filter .2s",
-                whiteSpace: "nowrap", lineHeight: 1,
-                boxShadow: "0 2px 12px rgba(0,0,0,0.22)",
-              }}
-              onMouseEnter={e=>{e.currentTarget.style.filter="brightness(1.06)";}}
-              onMouseLeave={e=>{e.currentTarget.style.filter="brightness(1)";}}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-                TRA CỨU ĐƠN
-              </button>
+              <div style={{ flexShrink:0, width: isMobile?132:170, height: isMobile?34:40, padding:1.5, boxSizing:"border-box", borderRadius:16 }}>
+                <button onClick={() => setLookupOpen(true)} data-tracuu style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  background: "rgba(74,89,104,0.85)",
+                  color: "#d4cab8",
+                  border: "1px solid rgba(139,174,207,0.35)",
+                  borderRadius: 12,
+                  padding: isMobile ? "0 14px" : "0 32px",
+                  width:"100%", height:"100%",
+                  fontSize: isMobile ? 8 : 8.5, letterSpacing: isMobile ? 1.5 : 3, fontFamily: "system-ui,sans-serif",
+                  fontWeight: 800, cursor: "pointer", transition: "filter .2s",
+                  whiteSpace: "nowrap", lineHeight: 1,
+                  boxShadow: "0 2px 12px rgba(0,0,0,0.22)",
+                  boxSizing:"border-box",
+                }}
+                onMouseEnter={e=>{e.currentTarget.style.filter="brightness(1.06)";}}
+                onMouseLeave={e=>{e.currentTarget.style.filter="brightness(1)";}}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  </svg>
+                  TRA CỨU ĐƠN
+                </button>
+              </div>
             </div>
           </div>
 
@@ -6141,6 +6145,17 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
 // ── LOGIN MODAL (Khách hàng Google OAuth + Quản trị) ──
 function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", loggedUser, setLoggedUser, photos = [], setPhotos, cameras = [], setPage, usersMap, setUsersMap, siteContent, setOrders }) {
   const [tab, setTab] = useState(defaultTab);
+  const ua = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+  const isInAppBrowser = /FBAN|FBAV|FBIOS|FB_IAB|Instagram|Line|Zalo|TikTok|Bytedance|Twitter/i.test(ua);
+  const openInExternalBrowser = () => {
+    const url = window.location.href;
+    if (/Android/i.test(ua)) {
+      const clean = url.replace(/^https?:\/\//, "");
+      window.location.href = `intent://${clean}#Intent;scheme=https;package=com.android.chrome;end`;
+      return;
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
 
   // ── Sync orders khi AdminLogin mount (tránh hiển thị đơn cũ / thiếu đơn mới) ──
   useEffect(() => {
@@ -6188,6 +6203,10 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
   // Load Google GSI script
   useEffect(() => {
     if (loggedUser) return;
+    if (isInAppBrowser) {
+      setGsiErr(false);
+      return;
+    }
     if (window.google?.accounts?.id) { setGsiReady(true); return; }
     const existing = document.getElementById("gsi-script-92k");
     if (existing) { existing.addEventListener("load", () => setGsiReady(true)); return; }
@@ -6199,10 +6218,11 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
     script.onload = () => setGsiReady(true);
     script.onerror = () => setGsiErr(true);
     document.head.appendChild(script);
-  }, [loggedUser]);
+  }, [loggedUser, isInAppBrowser]);
 
   // Render Google button
   useEffect(() => {
+    if (isInAppBrowser) return;
     if (!gsiReady || loggedUser || !googleBtnRef.current) return;
     try {
       // ── Chỉ initialize 1 lần — tránh One Tap loop trên desktop Chrome ──
@@ -6255,7 +6275,7 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
         logo_alignment: "left",
       });
     } catch { setGsiErr(true); }
-  }, [gsiReady, loggedUser]);
+  }, [gsiReady, loggedUser, isInAppBrowser]);
 
   // Order filtering — hỗ trợ cả email (Google) và phone (đơn cũ)
   const _myEmail = (loggedUser?.email || "").toLowerCase();
@@ -6397,7 +6417,20 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
 
                 {/* Google button area */}
                 <div style={{ marginBottom: 16 }}>
-                  {gsiErr ? (
+                  {isInAppBrowser ? (
+                    <div style={{ textAlign:"center" }}>
+                      <div style={{ color: TXT, fontSize: 13, fontFamily: "system-ui,sans-serif", lineHeight: 1.7, marginBottom: 12 }}>
+                        Facebook đang mở trang bằng trình duyệt nhúng nên Google có thể chặn đăng nhập.
+                      </div>
+                      <button onClick={openInExternalBrowser}
+                        style={{ width:"100%", padding:"13px 18px", borderRadius:16, border:`1px solid ${BR}`, background:"#fff", color:"#0d1b2a", fontSize:13, fontFamily:"system-ui,sans-serif", fontWeight:800, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
+                        <GoogleIcon /> Mở bằng trình duyệt để đăng nhập
+                      </button>
+                      <div style={{ color:MUT, fontSize:10.5, fontFamily:"system-ui,sans-serif", lineHeight:1.6, marginTop:10 }}>
+                        Nếu iPhone vẫn ở trong Facebook, bấm biểu tượng chia sẻ rồi chọn “Open in Browser/Safari”.
+                      </div>
+                    </div>
+                  ) : gsiErr ? (
                     <div style={{ color: "#ef4444", fontSize: 12, fontFamily: "system-ui,sans-serif", padding: "12px 0" }}>
                       ❌ Không tải được Google Sign-In.<br />
                       <span style={{ color: MUT, fontSize: 11 }}>Kiểm tra kết nối mạng và thử lại.</span>
