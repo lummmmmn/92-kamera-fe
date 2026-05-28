@@ -3301,7 +3301,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 
   const applyDiscount = async () => {
     // BUG-I FIX: chặn concurrent call — nếu đang fetch thì bỏ qua click mới
-    if (discountInFlight.current) return;
+    if (discountInFlight.current) return false;
     discountInFlight.current = true;
     setDiscountLoading(true);
     setDiscountMsg(null);
@@ -3310,7 +3310,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
       setDiscountMsg({ type: "err", text: "Nhập mã giảm giá trước" });
       discountInFlight.current = false;
       setDiscountLoading(false);
-      return;
+      return false;
     }
     try {
       // BUG-A FIX: fetch fresh discounts từ Supabase trước khi check maxUse/usedCount.
@@ -3323,11 +3323,11 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
       } catch {
         allDiscs = Array.isArray(discounts) ? discounts : [];
       }
-      if (allDiscs.length === 0) { setDiscountMsg({ type: "err", text: "Chưa có mã nào. Admin tạo mã trong dashboard trước" }); return; }
+      if (allDiscs.length === 0) { setDiscountMsg({ type: "err", text: "Chưa có mã nào. Admin tạo mã trong dashboard trước" }); return false; }
       const disc = allDiscs.find(d => d.code.toUpperCase() === code && d.active === true);
-      if (!disc) { setDiscountMsg({ type: "err", text: "Mã không tồn tại hoặc đã bị tắt" }); return; }
-      if (disc.maxUse && disc.usedCount >= disc.maxUse) { setDiscountMsg({ type: "err", text: "Mã này đã dùng hết số lượt" }); return; }
-      if (disc.minOrder && subtotal < disc.minOrder) { setDiscountMsg({ type: "err", text: `Đơn tối thiểu ${fmtVND(disc.minOrder)} mới được áp dụng` }); return; }
+      if (!disc) { setDiscountMsg({ type: "err", text: "Mã không tồn tại hoặc đã bị tắt" }); return false; }
+      if (disc.maxUse && disc.usedCount >= disc.maxUse) { setDiscountMsg({ type: "err", text: "Mã này đã dùng hết số lượt" }); return false; }
+      if (disc.minOrder && subtotal < disc.minOrder) { setDiscountMsg({ type: "err", text: `Đơn tối thiểu ${fmtVND(disc.minOrder)} mới được áp dụng` }); return false; }
       // ── Badge check ──
       if (disc.requiredBadge && disc.requiredBadge !== "none") {
         const userOrders = (Array.isArray(orders) ? orders : []).filter(o =>
@@ -3348,12 +3348,13 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
         const badgeName = { dong: "🥉 Khách Đồng (cần 1+ đơn)", bac: "🥈 Khách Bạc (cần 3+ đơn)", vang: "🥇 Khách Vàng (cần 5+ đơn)", daigiadagia: "👑 Đại Gia (cần 30+ ngày thuê)", vip: "💎 Khách VIP (cần chi 5,000,000đ+)", kimcuong: "💠 Kim Cương (cần chi 10,000,000đ+)" };
         if (!badgeMap[disc.requiredBadge]) {
           setDiscountMsg({ type: "err", text: `🏅 Mã này chỉ dành cho ${badgeName[disc.requiredBadge]}. Hãy thuê thêm để mở khoá!` });
-          return;
+          return false;
         }
       }
       const amt = disc.type === "percent" ? Math.round(subtotal * disc.value / 100) : disc.value;
       setAppliedDiscount({ code: disc.code, type: disc.type, value: disc.value, discountAmt: amt, id: disc.id });
       setDiscountMsg({ type: "ok", text: `Áp dụng thành công! Giảm ${disc.type === "percent" ? disc.value + "%" : fmtVND(disc.value)}` });
+      return true;
     } finally {
       // BUG-I FIX: luôn unlock dù success hay error hay return sớm
       discountInFlight.current = false;
@@ -3441,6 +3442,10 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
       setSubmitError("❌ Vui lòng chọn thời lượng thuê ở bước 2.");
       return;
     }
+    if (!selDur && (days < 1 || Math.abs(days * 2 - Math.round(days * 2)) > 0.0001)) {
+      setSubmitError("❌ Số ngày tự nhập phải từ 1 ngày trở lên và theo bội số 0.5 (VD: 1, 1.5, 2).");
+      return;
+    }
     // BUG-PHONE FIX: validate số điện thoại VN trước submit
     // Chấp nhận: 0xxxxxxxxx (10 số) hoặc +84xxxxxxxxx (12 ký tự)
     const phoneClean = info.phone.replace(/\s/g, "");
@@ -3457,151 +3462,148 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
     setSubmitting(true);
     setSubmitError(null);
 
+    let reservedDiscountId = null;
     try {
-      // BUG1+2+3: fetch dữ liệu mới nhất từ Supabase trước khi validate và ghi
-      const [freshOrders, freshDiscounts] = await Promise.all([
-        storageGet(STORE_KEYS.orders, true),
-        appliedDiscount ? storageGet(STORE_KEYS.discounts, true) : Promise.resolve(null),
-      ]);
-      const liveOrders = Array.isArray(freshOrders) ? freshOrders : orders;
-      const liveDiscounts = Array.isArray(freshDiscounts) ? freshDiscounts : discounts;
-
-      // BUG2: validate tồn kho trên dữ liệu mới nhất từ Supabase
-      const activeOrds = liveOrders.filter(o => !["cancelled", "completed"].includes(o.status));
       const sess = selSession || "full";
       const submitDateRange = [];
       if (days < 1) { submitDateRange.push(pickDate); }
       else { for (let i = 0; i < Math.ceil(days); i++) submitDateRange.push(dateAddDays(pickDate, i)); }
 
-      for (const cam of selectedCamList) {
-        const need = selCams[cam.id] || 1;
-        const minAvail = Math.min(...submitDateRange.map(d => getAvailQty(cam.id, cam.qty || 1, activeOrds, d, sess)));
-        if (minAvail < need) {
-          setSubmitError(`❌ "${cam.name}" vừa hết trong khoảng này (còn ${minAvail}). Vui lòng chọn ngày khác.`);
-          setSubmitting(false);
-          return;
+      const validateStock = (candidateOrders) => {
+        const activeOrds = (candidateOrders || []).filter(o => !["cancelled", "completed"].includes(o.status));
+        for (const cam of selectedCamList) {
+          const need = selCams[cam.id] || 1;
+          const minAvail = Math.min(...submitDateRange.map(d => getAvailQty(cam.id, cam.qty || 1, activeOrds, d, sess)));
+          if (minAvail < need) return `❌ "${cam.name}" vừa hết trong khoảng này (còn ${minAvail}). Vui lòng chọn ngày khác.`;
         }
-      }
-      for (const [name, qty] of Object.entries(selAcc)) {
-        if (!qty || qty <= 0) continue;
-        const acc = accessories.find(a => a.name === name);
-        if (!acc) continue;
-        const minAvail = Math.min(...submitDateRange.map(d => getAccAvailQty(name, acc.qty || 0, activeOrds, d, sess)));
-        if (minAvail < qty) {
-          setSubmitError(`❌ Phụ kiện "${name}" vừa hết trong khoảng này (còn ${minAvail}). Vui lòng điều chỉnh.`);
-          setSubmitting(false);
-          return;
+        for (const [name, qty] of Object.entries(selAcc)) {
+          if (!qty || qty <= 0) continue;
+          const acc = accessories.find(a => a.name === name);
+          if (!acc) continue;
+          const minAvail = Math.min(...submitDateRange.map(d => getAccAvailQty(name, acc.qty || 0, activeOrds, d, sess)));
+          if (minAvail < qty) return `❌ Phụ kiện "${name}" vừa hết trong khoảng này (còn ${minAvail}). Vui lòng điều chỉnh.`;
         }
-      }
-
-      // BUG5: validate discount trên dữ liệu mới nhất
-      if (appliedDiscount?.id) {
-        const freshDisc = liveDiscounts.find(d => d.id === appliedDiscount.id);
-        if (freshDisc && freshDisc.maxUse && (freshDisc.usedCount || 0) >= freshDisc.maxUse) {
-          setSubmitError(`❌ Mã "${appliedDiscount.code}" vừa hết lượt dùng. Vui lòng thử mã khác.`);
-          setAppliedDiscount(null);
-          setDiscountCode("");
-          setSubmitting(false);
-          return;
-        }
-      }
-
-      // BUG1: sinh ID tạm từ liveOrders (sẽ được kiểm tra lại ở bước R1 bên dưới)
-      const idDraft = newOrderId(liveOrders);
-
-      // Build order object — giữ nguyên cấu trúc cũ
-      const camNames = selectedCamList.map(c => `${c.name}${selCams[c.id] > 1 ? ` x${selCams[c.id]}` : ""}`).join(", ");
-      const accNames = Object.entries(selAcc).map(([n, q]) => q > 1 ? `${n} x${q}` : n);
-      const firstCam = selectedCamList[0];
-      const orderDraft = {
-        id: idDraft,
-        cameraName: camNames,
-        cameraId: firstCam?.id,
-        cameras: selectedCamList.map(c => ({ id: c.id, name: c.name, qty: selCams[c.id], price: c.price })),
-        accessories: accNames,
-        accessoriesDetail: Object.entries(selAcc).map(([name, qty]) => ({ name, qty })),
-        days, subtotal, discountCode: appliedDiscount?.code || null, discountAmt, total,
-        session: selSession || "full",
-        shift: days === 0.5 ? selSession : null,
-        createdAt: new Date().toISOString(),
-        ...info, status: "pending", date: pickDate, seen: false,
-        userPhone: loggedUser?.phone || info.phone, userEmail: loggedUser?.email || ""
+        return null;
       };
 
-      // BUG-R1 FIX: second fetch ngay trước khi write — thu hẹp race window ~200ms
-      // Re-validate tồn kho + re-generate ID từ array cực mới nhất
-      let finalOrders = liveOrders;
-      let finalId = idDraft;
-      try {
-        const secondFetch = await storageGet(STORE_KEYS.orders, true);
-        if (Array.isArray(secondFetch)) {
-          // Re-validate tồn kho với data mới nhất (nếu ai vừa đặt cùng lúc)
-          const activeOrds2 = secondFetch.filter(o => !["cancelled", "completed"].includes(o.status));
-          for (const cam of selectedCamList) {
-            const need = selCams[cam.id] || 1;
-            const minAvail2 = Math.min(...submitDateRange.map(d => getAvailQty(cam.id, cam.qty || 1, activeOrds2, d, sess)));
-            if (minAvail2 < need) {
-              setSubmitError(`❌ "${cam.name}" vừa hết (ai đó vừa đặt cùng lúc). Vui lòng chọn ngày khác.`);
-              setSubmitting(false);
-              return;
-            }
-          }
-          // BUG-ACC-OVER FIX: re-validate phụ kiện trong second fetch — cùng pattern với cameras
-          // Lần 1 dùng liveOrders; lần 2 dùng secondFetch mới hơn để bắt race window
-          for (const [name, qty] of Object.entries(selAcc)) {
-            if (!qty || qty <= 0) continue;
-            const acc = accessories.find(a => a.name === name);
-            if (!acc) continue;
-            const minAvail2 = Math.min(...submitDateRange.map(d => getAccAvailQty(name, acc.qty || 0, activeOrds2, d, sess)));
-            if (minAvail2 < qty) {
-              setSubmitError(`❌ Phụ kiện "${name}" vừa hết (ai đó vừa đặt cùng lúc). Vui lòng điều chỉnh.`);
-              setSubmitting(false);
-              return;
-            }
-          }
-          finalOrders = secondFetch;
-          // Re-generate ID nếu idDraft đã bị dùng trong khoảng giữa 2 fetch
-          if (secondFetch.some(o => o.id === idDraft)) finalId = newOrderId(secondFetch);
-        }
-      } catch { /* network fail → giữ liveOrders + idDraft */ }
+      let finalDiscount = appliedDiscount;
+      let finalDiscountAmt = discountAmt;
+      let finalTotal = total;
 
-      const id = finalId;
-      const order = { ...orderDraft, id };
-      setOrderId(id);
-
-      // BUG3: ghi ngay lên Supabase (không debounce) với array mới nhất — tránh last-write-wins
-      await storageSetImmediate(STORE_KEYS.orders, [{ ...order, seen: false }, ...finalOrders]);
-
-      // BUG5 + BUG-R2 FIX: second fetch discount ngay trước khi increment usedCount
-      // Tránh trường hợp 2 user apply cùng lúc → cả 2 đều pass maxUse check lần đầu
+      // Reserve mã giảm giá bằng CAS trước khi ghi đơn để không vượt maxUse.
       if (appliedDiscount?.id) {
-        let finalDiscs = liveDiscounts;
-        try {
-          const secondDiscFetch = await storageGet(STORE_KEYS.discounts, true);
-          if (Array.isArray(secondDiscFetch)) {
-            const freshDisc2 = secondDiscFetch.find(d => d.id === appliedDiscount.id);
-            // Nếu maxUse đã bị consume trong lúc ghi đơn → bỏ qua increment (đơn đã ghi rồi, không rollback)
-            if (freshDisc2?.maxUse && (freshDisc2.usedCount || 0) >= freshDisc2.maxUse) {
-              finalDiscs = null; // signal: skip increment
-            } else {
-              finalDiscs = secondDiscFetch;
-            }
+        let reserved = false;
+        for (let tries = 0; tries < 5 && !reserved; tries++) {
+          const discMeta = await storageGetWithMeta(STORE_KEYS.discounts);
+          const liveDiscounts = Array.isArray(discMeta.value) ? discMeta.value : (Array.isArray(discounts) ? discounts : []);
+          const freshDisc = liveDiscounts.find(d => d.id === appliedDiscount.id);
+          if (!freshDisc || freshDisc.active !== true) {
+            setSubmitError(`❌ Mã "${appliedDiscount.code}" không tồn tại hoặc đã bị tắt.`);
+            setAppliedDiscount(null);
+            setDiscountCode("");
+            setSubmitting(false);
+            return;
           }
-        } catch { /* giữ liveDiscounts */ }
-        if (finalDiscs !== null) {
-          const updatedDiscs = finalDiscs.map(d =>
-            d.id === appliedDiscount.id ? { ...d, usedCount: (d.usedCount || 0) + 1 } : d
+          if (freshDisc.maxUse && (freshDisc.usedCount || 0) >= freshDisc.maxUse) {
+            setSubmitError(`❌ Mã "${appliedDiscount.code}" vừa hết lượt dùng. Vui lòng thử mã khác.`);
+            setAppliedDiscount(null);
+            setDiscountCode("");
+            setSubmitting(false);
+            return;
+          }
+          if (freshDisc.minOrder && subtotal < freshDisc.minOrder) {
+            setSubmitError(`❌ Đơn tối thiểu ${fmtVND(freshDisc.minOrder)} mới được áp dụng mã này.`);
+            setAppliedDiscount(null);
+            setDiscountCode("");
+            setSubmitting(false);
+            return;
+          }
+
+          const nextAmt = Math.min(
+            freshDisc.type === "percent" ? Math.round(subtotal * freshDisc.value / 100) : freshDisc.value,
+            subtotal
           );
-          storageSet(STORE_KEYS.discounts, updatedDiscs);
-          setDiscounts(updatedDiscs);
+          const nextDiscs = liveDiscounts.map(d =>
+            d.id === freshDisc.id ? { ...d, usedCount: (d.usedCount || 0) + 1 } : d
+          );
+          if (await storageCasSet(STORE_KEYS.discounts, nextDiscs, discMeta.updatedAt)) {
+            reserved = true;
+            reservedDiscountId = freshDisc.id;
+            finalDiscount = { code: freshDisc.code, type: freshDisc.type, value: freshDisc.value, discountAmt: nextAmt, id: freshDisc.id };
+            finalDiscountAmt = nextAmt;
+            finalTotal = Math.max(0, subtotal - nextAmt);
+            setDiscounts(nextDiscs);
+          }
+        }
+        if (!reserved) {
+          setSubmitError("❌ Mã giảm giá đang có người dùng cùng lúc. Vui lòng bấm xác nhận lại.");
+          setSubmitting(false);
+          return;
         }
       }
 
-      // Cập nhật local React state (handleNewOrder → setOrders)
-      onSubmit(order);
+      // Ghi đơn bằng CAS retry: nếu có người vừa ghi orders, fetch lại, validate lại, rồi ghi lại.
+      let finalOrder = null;
+      for (let tries = 0; tries < 5 && !finalOrder; tries++) {
+        const orderMeta = await storageGetWithMeta(STORE_KEYS.orders);
+        const liveOrders = Array.isArray(orderMeta.value) ? orderMeta.value : (Array.isArray(orders) ? orders : []);
+        const stockErr = validateStock(liveOrders);
+        if (stockErr) {
+          if (reservedDiscountId) {
+            await rollbackDiscountUsage(reservedDiscountId);
+            setDiscounts(prev => (prev || []).map(d => d.id === reservedDiscountId ? { ...d, usedCount: Math.max(0, (d.usedCount || 0) - 1) } : d));
+          }
+          setSubmitError(stockErr);
+          setSubmitting(false);
+          return;
+        }
+
+        const id = newOrderId(liveOrders);
+        const camNames = selectedCamList.map(c => `${c.name}${selCams[c.id] > 1 ? ` x${selCams[c.id]}` : ""}`).join(", ");
+        const accNames = Object.entries(selAcc).map(([n, q]) => q > 1 ? `${n} x${q}` : n);
+        const firstCam = selectedCamList[0];
+        const order = {
+          id,
+          cameraName: camNames,
+          cameraId: firstCam?.id,
+          cameras: selectedCamList.map(c => ({ id: c.id, name: c.name, qty: selCams[c.id], price: c.price })),
+          accessories: accNames,
+          accessoriesDetail: Object.entries(selAcc).map(([name, qty]) => ({ name, qty })),
+          days, subtotal, discountCode: finalDiscount?.code || null, discountAmt: finalDiscountAmt, total: finalTotal,
+          session: selSession || "full",
+          shift: days === 0.5 ? selSession : null,
+          createdAt: new Date().toISOString(),
+          ...info, status: "pending", date: pickDate, seen: false,
+          userPhone: loggedUser?.phone || info.phone, userEmail: loggedUser?.email || ""
+        };
+
+        const nextOrders = [{ ...order, seen: false }, ...liveOrders];
+        if (await storageCasSet(STORE_KEYS.orders, nextOrders, orderMeta.updatedAt)) {
+          finalOrder = order;
+        }
+      }
+
+      if (!finalOrder) {
+        if (reservedDiscountId) {
+          await rollbackDiscountUsage(reservedDiscountId);
+          setDiscounts(prev => (prev || []).map(d => d.id === reservedDiscountId ? { ...d, usedCount: Math.max(0, (d.usedCount || 0) - 1) } : d));
+        }
+        setSubmitError("❌ Có nhiều người đặt cùng lúc. Vui lòng bấm xác nhận lại.");
+        setSubmitting(false);
+        return;
+      }
+
+      setOrderId(finalOrder.id);
+      onSubmit(finalOrder);
       setDone(true);
     } catch (e) {
       console.error("[92K] submit error", e);
+      if (reservedDiscountId) {
+        try {
+          await rollbackDiscountUsage(reservedDiscountId);
+          setDiscounts(prev => (prev || []).map(d => d.id === reservedDiscountId ? { ...d, usedCount: Math.max(0, (d.usedCount || 0) - 1) } : d));
+        } catch {}
+      }
       setSubmitError("❌ Lỗi kết nối. Vui lòng thử lại.");
       setSubmitting(false);
     }
@@ -3923,7 +3925,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                 <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
                   {(() => {
                     // Hoist ra ngoài map — tính 1 lần dùng chung cho toàn bộ phụ kiện
-                    const _activeOrds = orders.filter(o => !["cancelled","completed"].includes(o.status));
+                    const _activeOrds = liveOrdersForCheck.filter(o => !["cancelled","completed"].includes(o.status));
                     const _sess = selSession || "full";
                     const _accDateRange = (() => {
                       if (!pickDate || !days) return [];
@@ -4059,6 +4061,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                     const v = parseFloat(customDays);
                     if (isNaN(v) || v <= 0) return <div style={{ marginTop:6, color:"#C0290A", fontSize:11, fontFamily:"system-ui,sans-serif" }}>⚠️ Số ngày phải lớn hơn 0.</div>;
                     if (v < 1) return <div style={{ marginTop:6, color:"#f59e0b", fontSize:11, fontFamily:"system-ui,sans-serif" }}>⚠️ Thuê theo buổi vui lòng bấm nút <b>Ca Sáng</b> hoặc <b>Ca Chiều</b> bên trên.</div>;
+                    if (Math.abs(v * 2 - Math.round(v * 2)) > 0.0001) return <div style={{ marginTop:6, color:"#C0290A", fontSize:11, fontFamily:"system-ui,sans-serif" }}>⚠️ Số ngày phải theo bội số 0.5 (VD: 1, 1.5, 2).</div>;
                     return null;
                   })()}
                 </div>
@@ -4072,7 +4075,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                   <div style={{ position:"relative" }}>
                     <BookingCalendar
                       selectedCams={selectedCamList.map(c => ({ id:c.id, qty:selCams[c.id] || 1, camQty:c.qty || 1 }))}
-                      orders={orders} pickDate={pickDate} setPickDate={setPickDate} days={days} selSession={selSession}
+                      orders={liveOrdersForCheck} pickDate={pickDate} setPickDate={setPickDate} days={days} selSession={selSession}
                     />
                     {/* Blur overlay khi chưa chọn loại thuê */}
                     {/* BUG-SESSION FIX: blur khi !selSession (không cần check !days nữa)
@@ -4230,7 +4233,8 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 
                 // BUG2 FIX: thêm selectedCamList.length > 0 — nếu không có máy (do Bug1 xóa)
                 // blockingItems rỗng → canGo = true → cho submit đơn rỗng (sai)
-                const baseOk = days > 0 && !!selSession && !!pickDate && selectedCamList.length > 0;
+                const daysOk = !!selDur || (days >= 1 && Math.abs(days * 2 - Math.round(days * 2)) <= 0.0001);
+                const baseOk = days > 0 && daysOk && !!selSession && !!pickDate && selectedCamList.length > 0;
                 const canGo = baseOk && blockingItems.length === 0;
 
                 return (
@@ -4251,7 +4255,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                       style={{ width:"100%", padding:15, background: canGo ? "linear-gradient(135deg, rgba(139,174,207,0.90) 0%, rgba(101,145,188,0.85) 100%)" : "rgba(180,180,190,0.40)", color: canGo ? "#fff" : MUT, border: canGo ? "1px solid rgba(255,255,255,0.55)" : "1px solid transparent", borderRadius:14, cursor: canGo ? "pointer" : "not-allowed", fontWeight:800, fontSize:15, fontFamily:"system-ui,sans-serif", letterSpacing:0.5, backdropFilter: canGo ? "blur(16px) saturate(160%)" : "none", WebkitBackdropFilter: canGo ? "blur(16px) saturate(160%)" : "none", boxShadow: canGo ? "0 1px 0 rgba(255,255,255,0.60) inset, 0 4px 20px rgba(8,20,60,0.18)" : "none" }}>
                       <span style={{position:"relative",zIndex:1}}>
                         {/* BUG3 FIX: thêm case selectedCamList rỗng — trước đó hiện "Tiếp tục →" dù không có máy */}
-                        {!days ? "Chọn thời gian thuê" : !selSession ? "Chọn ca thuê" : !pickDate ? "Chọn ngày bắt đầu" : selectedCamList.length === 0 ? "← Quay lại chọn máy ảnh" : blockingItems.length > 0 ? "⛔ Hết hàng — chọn lại ngày / số lượng" : "Tiếp tục →"}
+                        {!days ? "Chọn thời gian thuê" : !daysOk ? "Số ngày phải là bội số 0.5" : !selSession ? "Chọn ca thuê" : !pickDate ? "Chọn ngày bắt đầu" : selectedCamList.length === 0 ? "← Quay lại chọn máy ảnh" : blockingItems.length > 0 ? "⛔ Hết hàng — chọn lại ngày / số lượng" : "Tiếp tục →"}
                       </span>
                     </button>
                   </>
@@ -4481,7 +4485,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                         onKeyDown={e => e.key === "Enter" && !discountLoading && applyDiscount()}
                         placeholder="Nhập mã..."
                       />
-                      <button onClick={() => { if (!discountLoading) applyDiscount().then(() => { if (!discountInFlight.current) setDiscountExpanded(false); }); }}
+                      <button onClick={() => { if (!discountLoading) applyDiscount().then(ok => { if (ok) setDiscountExpanded(false); }); }}
                         disabled={discountLoading}
                         style={{ padding:"0 16px", background: discountLoading ? "#555" : `linear-gradient(135deg,${G},#a07830)`, color:"#000", border:"none", borderRadius:16, cursor: discountLoading ? "not-allowed" : "pointer", fontSize:12, fontWeight:800, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap", flexShrink:0, minHeight:44, opacity: discountLoading ? 0.7 : 1, transition:"opacity 0.15s" }}>
                         {discountLoading ? "..." : "Áp dụng"}
@@ -8668,7 +8672,63 @@ async function storageSetImmediate(key, val) {
     headers: SB_HEADERS,
     body: JSON.stringify({ key, value, updated_at: new Date().toISOString() })
   });
+  if (!res.ok) throw new Error(`[92K supabase] immediate set failed ${key}: ${res.status}`);
   if (res.ok) markCacheFresh(key);
+}
+
+// GET kèm updated_at để ghi kiểu compare-and-swap, tránh 2 khách ghi đè cùng một key.
+async function storageGetWithMeta(key) {
+  const res = await fetch(`${SB_URL}/rest/v1/${SB_TABLE}?key=eq.${encodeURIComponent(key)}&select=value,updated_at`, {
+    headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` }
+  });
+  if (!res.ok) throw new Error(`[92K supabase] get meta failed ${key}: ${res.status}`);
+  const rows = await res.json();
+  if (!rows.length) return { value: null, updatedAt: null, exists: false };
+  try { localStorage.setItem(key, rows[0].value); } catch {}
+  markCacheFresh(key);
+  return { value: JSON.parse(rows[0].value), updatedAt: rows[0].updated_at || null, exists: true };
+}
+
+async function storageCasSet(key, val, expectedUpdatedAt) {
+  const value = JSON.stringify(val);
+  const nextUpdatedAt = new Date().toISOString();
+
+  if (!expectedUpdatedAt) {
+    const res = await fetch(`${SB_URL}/rest/v1/${SB_TABLE}`, {
+      method: "POST",
+      headers: { ...SB_HEADERS, "Prefer": "return=representation,resolution=merge-duplicates" },
+      body: JSON.stringify({ key, value, updated_at: nextUpdatedAt })
+    });
+    if (!res.ok) throw new Error(`[92K supabase] cas insert failed ${key}: ${res.status}`);
+    try { localStorage.setItem(key, value); } catch {}
+    invalidateCache(key);
+    markCacheFresh(key);
+    return true;
+  }
+
+  const res = await fetch(`${SB_URL}/rest/v1/${SB_TABLE}?key=eq.${encodeURIComponent(key)}&updated_at=eq.${encodeURIComponent(expectedUpdatedAt)}`, {
+    method: "PATCH",
+    headers: { ...SB_HEADERS, "Prefer": "return=representation" },
+    body: JSON.stringify({ value, updated_at: nextUpdatedAt })
+  });
+  if (!res.ok) throw new Error(`[92K supabase] cas patch failed ${key}: ${res.status}`);
+  const txt = await res.text();
+  const rows = txt ? JSON.parse(txt) : [];
+  if (!rows.length) return false;
+  try { localStorage.setItem(key, value); } catch {}
+  invalidateCache(key);
+  markCacheFresh(key);
+  return true;
+}
+
+async function rollbackDiscountUsage(discountId) {
+  if (!discountId) return;
+  for (let tries = 0; tries < 3; tries++) {
+    const meta = await storageGetWithMeta(STORE_KEYS.discounts);
+    const list = Array.isArray(meta.value) ? meta.value : [];
+    const next = list.map(d => d.id === discountId ? { ...d, usedCount: Math.max(0, (d.usedCount || 0) - 1) } : d);
+    if (await storageCasSet(STORE_KEYS.discounts, next, meta.updatedAt)) return;
+  }
 }
 
 // Cameras: tách meta (ko ảnh) và images (có ảnh) để giảm bandwidth
