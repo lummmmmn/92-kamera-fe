@@ -689,6 +689,7 @@ function OrderLookupWidget({ orders, compact, forceOpen, onForceClose }) {
 
 // ── QUICK SEARCH FLOAT (kiểm tra máy trống theo khoảng ngày) ──
 function QuickSearchFloat({ cameras, accessories, orders, onBook, openTrigger = 0 }) {
+  const isMobile = useMobile();
   const [open, setOpen] = useState(false);
   const [startDate, setStartDate] = useState(todayStr());
   const [endDate, setEndDate]     = useState(todayStr());
@@ -765,8 +766,8 @@ function QuickSearchFloat({ cameras, accessories, orders, onBook, openTrigger = 
 
   if (!open) return null;
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:1001, overflowY:"auto", background:"rgba(0,0,0,0.55)", backdropFilter:"blur(6px)", WebkitBackdropFilter:"blur(6px)", padding:"24px 16px", boxSizing:"border-box" }} onClick={e => { if (e.target === e.currentTarget) close(); }}>
-      <div style={{ margin:"0 auto", width:"min(660px, 100%)" }} onClick={e => e.stopPropagation()}>
+    <div style={{ position:"fixed", inset:0, zIndex:1001, overflowY:"auto", background:"rgba(0,0,0,0.55)", backdropFilter:"blur(6px)", WebkitBackdropFilter:"blur(6px)", padding: isMobile ? "34px 12px 18px" : "24px 16px", boxSizing:"border-box" }} onClick={e => { if (e.target === e.currentTarget) close(); }}>
+      <div style={{ margin:"0 auto", width: isMobile ? "min(420px, calc(100vw - 24px))" : "min(660px, 100%)" }} onClick={e => e.stopPropagation()}>
 
       {/* ── Panel ── */}
       <div style={{
@@ -780,33 +781,33 @@ function QuickSearchFloat({ cameras, accessories, orders, onBook, openTrigger = 
           animation:"navExpandIn .3s cubic-bezier(.4,0,.2,1)",
         }}>
           {/* Header */}
-          <div style={{ padding:"14px 20px 0", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <div style={{ padding: isMobile ? "14px 16px 0" : "14px 20px 0", display:"flex", alignItems:"center", justifyContent:"space-between", gap:10 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0 }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
               </svg>
-              <span style={{ color:"#1a3a5a", fontSize:9, letterSpacing:3, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>KIỂM TRA MÁY THEO NGÀY</span>
+              <span style={{ color:"#1a3a5a", fontSize:9, letterSpacing: isMobile ? 2.2 : 3, fontFamily:"system-ui,sans-serif", fontWeight:700, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>KIỂM TRA MÁY THEO NGÀY</span>
             </div>
-            <button onClick={close} style={{ background:"none", border:"none", color:"#2a4a6a", fontSize:16, cursor:"pointer", lineHeight:1, padding:"0 2px" }}>✕</button>
+            <button onClick={close} style={{ background:"none", border:"none", color:"#2a4a6a", fontSize:16, cursor:"pointer", lineHeight:1, padding:"0 2px", flexShrink:0 }}>✕</button>
           </div>
 
           {/* Date inputs */}
-          <div style={{ padding:"10px 20px" }}>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(130px, 1fr))", gap:10, marginBottom:10 }}>
+          <div style={{ padding: isMobile ? "10px 16px 16px" : "10px 20px" }}>
+            <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(130px, 1fr))", gap: isMobile ? 8 : 10, marginBottom:10 }}>
               {[["📅 NGÀY THUÊ", startDate, v => { setStartDate(v); setResults(null); setSearched(false); setSelCams({}); setSelAccs({}); if (v > endDate) setEndDate(v); }, todayStr()],
                 ["📅 NGÀY TRẢ",  endDate,  v => { setEndDate(v);   setResults(null); setSearched(false); setSelCams({}); setSelAccs({}); }, startDate || todayStr()]
               ].map(([label, val, onChange, min]) => (
-                <div key={label}>
-                  <div style={{ color:"#2a5070", fontSize:8.5, letterSpacing:2, marginBottom:5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>{label}</div>
+                <div key={label} style={{ minWidth:0 }}>
+                  <div style={{ color:"#2a5070", fontSize:8.5, letterSpacing: isMobile ? 1.6 : 2, marginBottom:5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>{label}</div>
                   <input type="date" value={val} min={min}
                     onChange={e => onChange(e.target.value)}
-                    style={{ width:"100%", padding:"8px 10px", background:"linear-gradient(160deg, rgba(232,240,248,0.92) 0%, rgba(197,216,236,0.85) 100%)", border:"1px solid rgba(255,255,255,0.60)", borderRadius:9, color:"#0d1b2a", fontSize:13, fontFamily:"system-ui,sans-serif", boxSizing:"border-box", outline:"none", cursor:"pointer", boxShadow:"0 1px 0 rgba(255,255,255,0.80) inset" }}
+                    style={{ width:"100%", maxWidth:"100%", minWidth:0, padding: isMobile ? "9px 12px" : "8px 10px", background:"linear-gradient(160deg, rgba(232,240,248,0.92) 0%, rgba(197,216,236,0.85) 100%)", border:"1px solid rgba(255,255,255,0.60)", borderRadius:9, color:"#0d1b2a", fontSize: isMobile ? 16 : 13, fontFamily:"system-ui,sans-serif", boxSizing:"border-box", outline:"none", cursor:"pointer", boxShadow:"0 1px 0 rgba(255,255,255,0.80) inset" }}
                   />
                 </div>
               ))}
             </div>
             <button onClick={handleSearch}
-              style={{ width:"100%", padding:"10px", background:"linear-gradient(135deg,#5a5a6e 0%,#c8c8dc 50%,#4a4a60 100%)", color:"#0a0a18", border:"none", borderRadius:10, fontWeight:800, fontSize:10, letterSpacing:2.5, fontFamily:"system-ui,sans-serif", cursor:"pointer" }}
+              style={{ width:"100%", padding: isMobile ? "12px 10px" : "10px", background:"linear-gradient(135deg,#5a5a6e 0%,#c8c8dc 50%,#4a4a60 100%)", color:"#0a0a18", border:"none", borderRadius:10, fontWeight:800, fontSize:10, letterSpacing: isMobile ? 2 : 2.5, fontFamily:"system-ui,sans-serif", cursor:"pointer" }}
               onMouseEnter={e=>e.currentTarget.style.filter="brightness(1.12)"}
               onMouseLeave={e=>e.currentTarget.style.filter="brightness(1)"}>
               🔍 XEM MÁY CÒN TRỐNG
@@ -815,8 +816,8 @@ function QuickSearchFloat({ cameras, accessories, orders, onBook, openTrigger = 
 
           {/* Results */}
           {searched && results && (
-            <div style={{ padding:"0 24px 0" }}>
-              <div style={{ color:"#2a4a6a", fontSize:10, letterSpacing:2.5, marginBottom:12, fontFamily:"system-ui,sans-serif", borderTop:"1px solid rgba(0,0,0,0.10)", paddingTop:14 }}>
+            <div style={{ padding: isMobile ? "0 16px 0" : "0 24px 0" }}>
+              <div style={{ color:"#2a4a6a", fontSize:10, letterSpacing: isMobile ? 1.5 : 2.5, marginBottom:12, fontFamily:"system-ui,sans-serif", borderTop:"1px solid rgba(0,0,0,0.10)", paddingTop:14, lineHeight:1.6 }}>
                 MÁY ẢNH · {fmtD(results.startDate)} → {fmtD(results.endDate)} · <span style={{ color:"#c9a84c" }}>Nhấn để chọn nhiều máy</span>
               </div>
 
@@ -828,7 +829,7 @@ function QuickSearchFloat({ cameras, accessories, orders, onBook, openTrigger = 
                 const isSel = selQty > 0;
                 return (
                   <div key={r.id}
-                    style={{ display:"flex", alignItems:"center", gap:12, padding:"11px 14px", background: isSel ? "rgba(41,121,207,0.20)" : r.avail > 0 ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.25)", borderRadius:12, marginBottom:8, opacity: r.avail <= 0 ? 0.5 : 1, transition:"background .15s", border: isSel ? "1px solid rgba(41,121,207,0.6)" : "1px solid rgba(255,255,255,0.60)" }}
+                    style={{ display:"flex", alignItems:"center", gap: isMobile ? 9 : 12, padding: isMobile ? "10px 11px" : "11px 14px", background: isSel ? "rgba(41,121,207,0.20)" : r.avail > 0 ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.25)", borderRadius:12, marginBottom:8, opacity: r.avail <= 0 ? 0.5 : 1, transition:"background .15s", border: isSel ? "1px solid rgba(41,121,207,0.6)" : "1px solid rgba(255,255,255,0.60)" }}
                   >
                     <div style={{ width:44, height:44, borderRadius:10, background:"rgba(0,0,0,0.08)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0, overflow:"hidden" }}>
                       {r.images?.[0] ? <img src={r.images[0]} alt={r.name} style={{ width:"100%", height:"100%", objectFit:"cover" }}/> : r.icon}
@@ -9179,18 +9180,20 @@ function AppRoot() {
         html { -webkit-overflow-scrolling: touch; }
         .cv-section { content-visibility: auto; contain-intrinsic-size: 0 600px; }
         @media (max-width: 900px) {
-          /* Chỉ giảm blur trên các lớp kính chính. Không áp lên * vì sẽ làm màu bị chồng/saturate và layout mobile nặng. */
-          .nav-inner, .nav92, .acc-section::before {
-            -webkit-backdrop-filter: blur(18px) saturate(145%) brightness(1.02) !important;
-            backdrop-filter: blur(18px) saturate(145%) brightness(1.02) !important;
+          /* Mobile: dùng màu kính tĩnh thay vì live backdrop blur.
+             Live blur phải render lại mỗi frame khi scroll nên dễ bệt màu/giật Hz.
+             Lớp màu này giữ cảm giác gần desktop nhưng không nhảy màu khi lướt. */
+          [style*="background: rgba(255,255,255,0.13)"][style*="blur("],
+          .acc-section::before {
+            background:
+              linear-gradient(160deg, rgba(255,255,255,0.24) 0%, rgba(232,240,248,0.18) 58%, rgba(197,216,236,0.16) 100%) !important;
+            -webkit-backdrop-filter: none !important;
+            backdrop-filter: none !important;
           }
-          [style*="blur(52px)"], [style*="blur(40px)"], [style*="blur(32px)"], [style*="blur(28px)"] {
-            -webkit-backdrop-filter: blur(14px) saturate(140%) brightness(1.02) !important;
-            backdrop-filter: blur(14px) saturate(140%) brightness(1.02) !important;
-          }
-          [data-mobile-glass] {
-            -webkit-backdrop-filter: blur(14px) saturate(140%) brightness(1.02) !important;
-            backdrop-filter: blur(14px) saturate(140%) brightness(1.02) !important;
+          .nav-inner,
+          [style*="linear-gradient(160deg, rgba(232,240,248"][style*="blur("] {
+            -webkit-backdrop-filter: none !important;
+            backdrop-filter: none !important;
           }
         }
         /* Fallback khi browser không hỗ trợ backdrop-filter */
