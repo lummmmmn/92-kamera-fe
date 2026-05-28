@@ -234,18 +234,29 @@ function useSmoothScroll(enabled) {
 }
 
 // ── SCROLL PERF HOOK ──
-// Toggle body.is-scrolling chỉ khi ĐANG SCROLL (không dùng touchstart vì sẽ pause ngay khi chạm)
+// Toggle body.is-scrolling trên MỌI thiết bị (kể cả iPhone touch)
+// → CSS dùng class này để tắt backdrop-filter + pause animation khi scroll
 function useScrollPerfClass() {
   useEffect(() => {
     let timer = null;
     const onScroll = () => {
       document.body.classList.add("is-scrolling");
       clearTimeout(timer);
-      timer = setTimeout(() => document.body.classList.remove("is-scrolling"), 150);
+      timer = setTimeout(() => document.body.classList.remove("is-scrolling"), 120);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
+    // Touch events: bắt đầu touch → thêm class ngay, không chờ scroll event
+    const onTouchStart = () => document.body.classList.add("is-scrolling");
+    const onTouchEnd   = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => document.body.classList.remove("is-scrolling"), 200);
+    };
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchend",   onTouchEnd,   { passive: true });
     return () => {
-      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("scroll",     onScroll);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchend",   onTouchEnd);
       clearTimeout(timer);
       document.body.classList.remove("is-scrolling");
     };
@@ -1150,10 +1161,14 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
   const segRefs   = useRef([]);
   const arrowRef  = useRef(null);
 
-  // Responsive: lens tự co theo chiều cao viewport
+  // Responsive: lens tự co theo viewport để không ép vỡ hero trên màn hình thấp.
   const [viewH, setViewH] = useState(typeof window !== "undefined" ? window.innerHeight : 900);
+  const [viewW, setViewW] = useState(typeof window !== "undefined" ? window.innerWidth : 390);
   useEffect(() => {
-    const onResize = () => setViewH(window.innerHeight);
+    const onResize = () => {
+      setViewH(window.innerHeight);
+      setViewW(window.innerWidth);
+    };
     window.addEventListener("resize", onResize, { passive: true });
     return () => window.removeEventListener("resize", onResize);
   }, []);
@@ -1197,7 +1212,9 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
     { id: "login",    rMid: 34,  thick: 68, isCenter: true, action: loggedUser ? (onOpenCustomer || onOpenLogin) : onOpenLogin },
   ];
 
-  const sz = isMobile ? 321 : Math.min(544, Math.round(viewH * 0.62));
+  const sz = isMobile
+    ? Math.max(252, Math.min(304, Math.round(Math.min(viewW - 56, viewH * 0.44))))
+    : Math.min(544, Math.round(viewH * 0.62));
   const anyHov = hoveredRing !== null;
 
   return (
@@ -5725,7 +5742,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       />}
 
       {/* HERO — PREMIUM JAPAN MINIMAL */}
-      <div style={{ height:"100vh", position:"relative", overflow:"hidden", userSelect:"none", display:"flex", alignItems:"center" }}>
+      <div style={{ height: isMobile ? "100svh" : "100vh", minHeight: isMobile ? 620 : "auto", position:"relative", overflow:"hidden", userSelect:"none", display:"flex", alignItems:"center" }}>
 
         {/* ── Social icons — top left ── */}
         {!isMobile && (
@@ -5759,8 +5776,8 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
           display:"flex", alignItems:"center",
           justifyContent: isMobile ? "flex-start" : "center",
           flexDirection: isMobile ? "column" : "row",
-          padding: isMobile ? "12px 28px 24px" : "0 0 14% 0",
-          gap: isMobile ? 20 : 0,
+          padding: isMobile ? "18px 24px 28px" : "0 0 14% 0",
+          gap: isMobile ? 14 : 0,
         }}>
 
           {/* ── LEFT: Premium branding block ── */}
@@ -5859,7 +5876,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
 
             {/* ── SUBTITLE — 1 dòng desktop ── */}
             <div style={{
-              marginTop: isMobile?20:22,
+              marginTop: isMobile?16:22,
               fontSize: isMobile?10:11, letterSpacing: isMobile?2.5:3,
               fontFamily:"var(--font-ui)", color:"#2a2825", fontWeight:700,
               whiteSpace: isMobile?"normal":"nowrap", lineHeight: isMobile?2:1,
@@ -5870,7 +5887,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
 
             {/* ── TAGLINE ── */}
             <div style={{
-              marginTop: isMobile?14:14,
+              marginTop: isMobile?10:14,
               fontSize: isMobile?13:15, fontStyle:"italic", color:"#3d3a37",
               fontFamily:'"Palatino Linotype","Book Antiqua","Palatino",Georgia,serif',
               letterSpacing:0.3, lineHeight:1.6, fontWeight:400,
@@ -5880,7 +5897,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
             </div>
 
             {/* ── CTAs ── */}
-            <div style={{ display:"flex", alignItems:"stretch", gap: isMobile?8:12, flexWrap:"nowrap", justifyContent: isMobile?"center":"flex-start", marginTop: isMobile?22:32 }}>
+            <div style={{ display:"flex", alignItems:"stretch", gap: isMobile?8:12, flexWrap:"nowrap", justifyContent: isMobile?"center":"flex-start", marginTop: isMobile?18:32 }}>
               <div className="btn-hero-wrap"
                 onMouseEnter={e=>{e.currentTarget.style.boxShadow="0 0 32px rgba(200,200,240,0.55), 0 0 64px rgba(200,200,240,0.2)";e.currentTarget.style.transform="translateY(-3px)";}}
                 onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 0 18px rgba(200,200,240,0.15)";e.currentTarget.style.transform="translateY(0)";}}
@@ -5891,9 +5908,9 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
                   background:"linear-gradient(160deg, rgba(232,240,248,0.95) 0%, rgba(197,216,236,0.90) 60%, rgba(181,206,230,0.95) 100%)",
                   color:"#0d1b2a",
                   border:"1px solid rgba(255,255,255,0.60)",
-                  padding: isMobile?"9px 20px":"14px 32px",
-                  width: isMobile?140:170,
-                  fontSize: isMobile?7.5:8.5, letterSpacing: isMobile?2:3, fontFamily:"system-ui,sans-serif",
+                  padding: isMobile?"10px 14px":"14px 32px",
+                  width: isMobile?132:170,
+                  fontSize: isMobile?8:8.5, letterSpacing: isMobile?1.5:3, fontFamily:"system-ui,sans-serif",
                   fontWeight:800, cursor:"pointer", borderRadius:12,
                   transition:"filter .2s", whiteSpace:"nowrap", lineHeight:1,
                   boxShadow:"0 1px 0 rgba(255,255,255,0.80) inset, 0 4px 16px rgba(13,27,42,0.15)",
@@ -5909,9 +5926,9 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
                 color: "#d4cab8",
                 border: "1px solid rgba(139,174,207,0.35)",
                 borderRadius: 12,
-                padding: isMobile ? "9px 20px" : "14px 32px",
-                width: isMobile ? 140 : 170,
-                fontSize: isMobile ? 7.5 : 8.5, letterSpacing: isMobile ? 2 : 3, fontFamily: "system-ui,sans-serif",
+                padding: isMobile ? "10px 14px" : "14px 32px",
+                width: isMobile ? 132 : 170,
+                fontSize: isMobile ? 8 : 8.5, letterSpacing: isMobile ? 1.5 : 3, fontFamily: "system-ui,sans-serif",
                 fontWeight: 800, cursor: "pointer", transition: "filter .2s",
                 whiteSpace: "nowrap", lineHeight: 1,
                 boxShadow: "0 2px 12px rgba(0,0,0,0.22)",
@@ -9160,15 +9177,30 @@ function AppRoot() {
         .lens-float-wrap { will-change: transform; transform: translateZ(0); }
         /* Mobile scroll performance */
         html { -webkit-overflow-scrolling: touch; }
-        /* Khi scroll: chỉ tắt backdrop-filter, KHÔNG pause animation (sẽ freeze marquee/typewriter) */
-        body.is-scrolling * {
-          -webkit-backdrop-filter: none !important;
-          backdrop-filter: none !important;
+        .cv-section { content-visibility: auto; contain-intrinsic-size: 0 600px; }
+        @media (max-width: 900px) {
+          /* Chỉ giảm blur trên các lớp kính chính. Không áp lên * vì sẽ làm màu bị chồng/saturate và layout mobile nặng. */
+          .nav-inner, .nav92, .acc-section::before {
+            -webkit-backdrop-filter: blur(18px) saturate(145%) brightness(1.02) !important;
+            backdrop-filter: blur(18px) saturate(145%) brightness(1.02) !important;
+          }
+          [style*="blur(52px)"], [style*="blur(40px)"], [style*="blur(32px)"], [style*="blur(28px)"] {
+            -webkit-backdrop-filter: blur(14px) saturate(140%) brightness(1.02) !important;
+            backdrop-filter: blur(14px) saturate(140%) brightness(1.02) !important;
+          }
+          [data-mobile-glass] {
+            -webkit-backdrop-filter: blur(14px) saturate(140%) brightness(1.02) !important;
+            backdrop-filter: blur(14px) saturate(140%) brightness(1.02) !important;
+          }
         }
         /* Fallback khi browser không hỗ trợ backdrop-filter */
         @supports not (backdrop-filter: blur(1px)) {
           [data-l2] { background: rgba(210, 222, 236, 0.82) !important; }
         }
+        body.is-scrolling * {
+          animation-play-state: paused !important;
+        }
+        body.is-scrolling .lens-float-wrap { animation-play-state: running !important; }
         @keyframes navCollapseIn{0%{opacity:0;transform:scale(0.85) translateY(-8px)}100%{opacity:1;transform:scale(1) translateY(0)}}
         @keyframes navExpandIn{0%{opacity:0;transform:scaleY(0.7) translateY(-10px)}100%{opacity:1;transform:scaleY(1) translateY(0)}}
         @keyframes floatY{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-9px)}}
@@ -9434,6 +9466,9 @@ function AppRoot() {
         @media(max-width:767px){
           input,select,textarea{font-size:16px!important;}
           ::-webkit-scrollbar{display:none}
+        }
+        @media(min-width:768px){
+          html{zoom:1.3;}
         }
       `}</style>
 
