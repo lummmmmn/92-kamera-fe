@@ -1216,7 +1216,7 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
   const sz = isMobile
     ? Math.max(280, Math.min(380, Math.round(Math.min(viewW - 44, viewH * 0.48))))
     : Math.min(544, Math.round(viewH * 0.62));
-  const anyHov = hoveredRing !== null;
+  const anyHov = !isMobile && hoveredRing !== null;
 
   return (
     <div style={{
@@ -1232,7 +1232,7 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
         width: sz, height: sz, position: "relative",
         animation: "lensFloat 5.5s ease-in-out infinite",
       }}
-      onMouseEnter={() => { isHovRef.current = true; }}
+      onMouseEnter={() => { if (!isMobile) isHovRef.current = true; }}
       onMouseLeave={() => { isHovRef.current = false; setHoveredRing(null); }}
     >
       <svg viewBox="-268 -268 536 536" width={sz} height={sz} style={{ overflow: "hidden" }}>
@@ -1317,20 +1317,6 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
             <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
           </filter>
 
-          {/* ── Per-ring colored glow filters ── */}
-          {rings.map((r, i) => {
-            const p = PALETTE[r.id];
-            return (
-              <filter key={"gf"+i} id={"ringGlow"+i} x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="5" result="blur"/>
-                <feColorMatrix in="blur" type="matrix"
-                  values={`0 0 0 0 ${p.r.toFixed(3)}  0 0 0 0 ${p.g.toFixed(3)}  0 0 0 0 ${p.b.toFixed(3)}  0 0 0 0.55 0`}
-                  result="coloredBlur"/>
-                <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
-              </filter>
-            );
-          })}
-
           {/* ── Lens clip ── */}
           <clipPath id="lensClip"><circle r="260"/></clipPath>
 
@@ -1393,8 +1379,7 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
               chrome borders and hover state.
           ════════════════════════════════════════ */}
           {rings.map((ring, origIdx) => {
-            const isHov = hoveredRing === ring.id;
-            const isDimmed = anyHov && !isHov;
+            const isHov = !isMobile && hoveredRing === ring.id;
             const pal = PALETTE[ring.id];
 
             /* ────────────────────────────────────
@@ -1404,9 +1389,9 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
               const cr = ring.rMid;
               return (
                 <g key={ring.id}
-                  style={{ cursor: "pointer", opacity: isDimmed ? 0.42 : 1, transition: "opacity 0.35s ease" }}
+                  style={{ cursor: "pointer", opacity: 1, transition: "opacity 0.25s ease" }}
                   onClick={ring.action}
-                  onMouseEnter={() => setHoveredRing(ring.id)}
+                  onMouseEnter={() => { if (!isMobile) setHoveredRing(ring.id); }}
                   onMouseLeave={() => setHoveredRing(null)}>
 
                   {/* Physical recess channel surrounding center */}
@@ -1437,12 +1422,9 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
                   <circle r={cr-1.2} fill="none" stroke="rgba(255,255,255,0.16)" strokeWidth="1.1"/>
                   <circle r={cr-0.2} fill="none" stroke="rgba(0,0,0,0.80)" strokeWidth="3"/>
 
-                  {/* Hover: colored glow + accent ring */}
+                  {/* Hover: ordered accent ring */}
                   {isHov && (
-                    <g filter={`url(#ringGlow${origIdx})`}>
-                      <circle r={cr} fill="rgba(255,255,255,0.05)"
-                        stroke={pal.accent} strokeWidth="1.5" strokeOpacity="0.55"/>
-                    </g>
+                    <circle r={cr-1} fill="none" stroke={pal.accent} strokeWidth="1.2" strokeOpacity="0.55"/>
                   )}
 
                   {/* Center accent dot — chỉ hiện khi chưa login */}
@@ -1512,9 +1494,9 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
 
             return (
               <g key={ring.id}
-                style={{ cursor: "pointer", opacity: isDimmed ? 0.38 : 1, transition: "opacity 0.35s ease" }}
+                style={{ cursor: "pointer", opacity: 1, transition: "opacity 0.25s ease" }}
                 onClick={ring.action}
-                onMouseEnter={() => setHoveredRing(ring.id)}
+                onMouseEnter={() => { if (!isMobile) setHoveredRing(ring.id); }}
                 onMouseLeave={() => setHoveredRing(null)}>
 
                 {/* ══ PHYSICAL GAP — recessed channel separating rings ══
@@ -1533,12 +1515,6 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
 
                 {/* ══ RING BODY ══ */}
                 <circle r={rOut} fill={`url(#rg${origIdx})`}/>
-
-                {/* ── Hover: accent color ambient wash ── */}
-                {isHov && (
-                  <circle r={rOut} fill={`${pal.accent}12`}
-                    style={{ transition: "fill 0.3s" }}/>
-                )}
 
                 {/* ── Upper hemisphere gloss ── */}
                 <circle r={rOut} fill="url(#gloss)" clipPath={`url(#clipTop${clipI})`} opacity="0.95"/>
@@ -1572,12 +1548,12 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
                   strokeOpacity={isHov ? 0.45 : 1}
                   style={{ transition: "all 0.38s ease" }}/>
 
-                {/* ── Hover: colored glow ring ── */}
+                {/* ── Hover: ordered accent guide, no loose glow behind the lens ── */}
                 {isHov && (
-                  <g filter={`url(#ringGlow${origIdx})`}>
-                    <circle r={rOut}   fill="rgba(0,0,0,0)" stroke={pal.accent} strokeWidth="2"   strokeOpacity="0.40"/>
-                    <circle r={rOut+5} fill="none"          stroke={pal.accent} strokeWidth="5"   strokeOpacity="0.10"/>
-                  </g>
+                  <>
+                    <circle r={rIn+2.5} fill="none" stroke={pal.accent} strokeWidth="1.3" strokeOpacity="0.50"/>
+                    <circle r={rOut-2.5} fill="none" stroke={pal.accent} strokeWidth="0.9" strokeOpacity="0.32"/>
+                  </>
                 )}
 
                 {/* ── Outer accent edge line (colored chrome) ── */}
@@ -1639,7 +1615,7 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
                   fontFamily: "'Be Vietnam Pro',system-ui,sans-serif",
                   fontWeight: 700,
                   transition: "fill 0.30s",
-                  filter: isHov ? `drop-shadow(0 0 4px ${pal.accent}88)` : "none",
+                  filter: "none",
                 }}>
                   <textPath href={`#tpath-${ring.id}`} startOffset="50%" textAnchor="middle">
                     {pal.label}
