@@ -1125,29 +1125,15 @@ function CamImage({ cam, height = 176 }) {
 function LensBackground({ isMob }) {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", overflow: "hidden" }}>
-      {/* Lớp 1: gradient nền chính — blue-gray mờ ảo */}
+      {/* Gradient nền chính — flat, sạch */}
       <div style={{
         position: "absolute", inset: 0,
-        background: `
-          radial-gradient(ellipse 80% 60% at 52% 32%, rgba(110,185,210,0.55) 0%, transparent 60%),
-          radial-gradient(ellipse 60% 50% at 20% 80%, rgba(150,195,215,0.25) 0%, transparent 55%),
-          radial-gradient(ellipse 50% 40% at 85% 15%, rgba(130,175,200,0.20) 0%, transparent 50%),
-          linear-gradient(175deg, #7AAFC0 0%, #9EC4D0 25%, #B8D4DC 55%, #C8DCE4 80%, #BDD0D8 100%)
-        `,
+        background: "linear-gradient(175deg, #7AAFC0 0%, #9EC4D0 30%, #B8D4DC 60%, #C4D9E2 85%, #BDD0D8 100%)",
       }} />
-      {/* Lớp 2: grain noise bằng SVG feTurbulence — không cần ảnh */}
-      <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.55 }}>
-        <filter id="grain">
-          <feTurbulence type="fractalNoise" baseFrequency="0.68" numOctaves="4" stitchTiles="stitch" />
-          <feColorMatrix type="saturate" values="0" />
-          <feBlend in="SourceGraphic" mode="overlay" />
-        </filter>
-        <rect width="100%" height="100%" filter="url(#grain)" opacity="0.45" />
-      </svg>
-      {/* Lớp 3: vignette nhẹ — cạnh tối hơn giữa */}
+      {/* Vignette — cạnh tối nhẹ */}
       <div style={{
         position: "absolute", inset: 0,
-        background: "radial-gradient(ellipse 90% 90% at 50% 50%, transparent 40%, rgba(8,20,35,0.30) 100%)",
+        background: "radial-gradient(ellipse 90% 90% at 50% 50%, transparent 40%, rgba(8,20,35,0.25) 100%)",
       }} />
     </div>
   );
@@ -1159,8 +1145,6 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
   const animRef   = useRef(null);
   const isHovRef  = useRef(false);
   const speedRef  = useRef(0.04);
-  const segRefs   = useRef([]);
-  const arrowRef  = useRef(null);
 
   // Responsive: lens tự co theo viewport để không ép vỡ hero trên màn hình thấp.
   const [viewH, setViewH] = useState(typeof window !== "undefined" ? window.innerHeight : 900);
@@ -1183,10 +1167,6 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
         speedRef.current += (target - speedRef.current) * 0.03;
         const s = speedRef.current;
         oA += s; mA -= s * 0.62; iA += s * 0.43;
-        if (segRefs.current[0]) segRefs.current[0].style.transform = `rotate(${oA}deg)`;
-        if (segRefs.current[1]) segRefs.current[1].style.transform = `rotate(${mA}deg)`;
-        if (segRefs.current[2]) segRefs.current[2].style.transform = `rotate(${iA}deg)`;
-        if (arrowRef.current)   arrowRef.current.style.transform   = `rotate(${oA}deg)`;
       }
       animRef.current = requestAnimationFrame(tick);
     };
@@ -1214,7 +1194,11 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
   ];
 
   const sz = isMobile
-    ? Math.max(280, Math.min(380, Math.round(Math.min(viewW - 44, viewH * 0.48))))
+    ? Math.round(Math.min(
+        viewW * 0.82,          // không vượt 82% chiều ngang
+        viewH * 0.44,          // không vượt 44% chiều cao (giữ chỗ cho text bên dưới)
+        340                    // hard cap 340px — đủ đọc text trên ring
+      ))
     : Math.min(544, Math.round(viewH * 0.62));
   const anyHov = !isMobile && hoveredRing !== null;
 
@@ -1231,23 +1215,24 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
       style={{
         width: sz, height: sz, position: "relative",
         animation: "lensFloat 5.5s ease-in-out infinite",
+        borderRadius: "50%", overflow: "hidden",
       }}
       onMouseEnter={() => { if (!isMobile) isHovRef.current = true; }}
       onMouseLeave={() => { isHovRef.current = false; setHoveredRing(null); }}
     >
-      <svg viewBox="-268 -268 536 536" width={sz} height={sz} style={{ overflow: "hidden" }}>
+      <svg viewBox="-260 -260 520 520" width={sz} height={sz} overflow="hidden" style={{ overflow: "hidden", display: "block", clipPath: "circle(50% at 50% 50%)" }}>
         <defs>
           {/* ── Per-ring metallic radial gradient ── */}
           {rings.map((r, i) => {
             const isHov = hoveredRing === r.id;
             return (
               <radialGradient key={"g"+i} id={"rg"+i} cx="32%" cy="24%" r="78%">
-                <stop offset="0%"   stopColor={isHov ? "#686868" : "#505050"}/>
-                <stop offset="10%"  stopColor={isHov ? "#484848" : "#363636"}/>
-                <stop offset="35%"  stopColor="#222222"/>
-                <stop offset="62%"  stopColor="#111111"/>
-                <stop offset="88%"  stopColor="#070707"/>
-                <stop offset="100%" stopColor="#030303"/>
+                <stop offset="0%"   stopColor={isHov ? "#888888" : "#424242"}/>
+                <stop offset="10%"  stopColor={isHov ? "#606060" : "#2e2e2e"}/>
+                <stop offset="35%"  stopColor={isHov ? "#303030" : "#1a1a1a"}/>
+                <stop offset="62%"  stopColor={isHov ? "#181818" : "#0d0d0d"}/>
+                <stop offset="88%"  stopColor={isHov ? "#0e0e0e" : "#050505"}/>
+                <stop offset="100%" stopColor={isHov ? "#080808" : "#020202"}/>
               </radialGradient>
             );
           })}
@@ -1303,22 +1288,26 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
             <stop offset="100%" stopColor="rgba(0,0,0,0.24)"/>
           </radialGradient>
 
-          {/* ── Global filters ── */}
-          <filter id="ringShadow" x="-15%" y="-15%" width="130%" height="130%">
-            <feDropShadow dx="0" dy="6" stdDeviation="10" floodColor="#000" floodOpacity="0.55"/>
-            <feDropShadow dx="0" dy="1" stdDeviation="3"  floodColor="#000" floodOpacity="0.30"/>
-          </filter>
-          <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="5" result="blur"/>
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-          <filter id="centerGlow" x="-60%" y="-60%" width="220%" height="220%">
-            <feGaussianBlur stdDeviation="9" result="blur"/>
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
+          {/* ── Global filters — removed unused glow filters ── */}
 
           {/* ── Lens clip ── */}
           <clipPath id="lensClip"><circle r="260"/></clipPath>
+
+          {/* ── Per-ring accent glow filters ── */}
+          {rings.filter(r=>!r.isCenter).map((r,i) => {
+            const pal = PALETTE[r.id];
+            // parse hex accent → rgb for flood-color
+            const h = pal.accent.replace("#","");
+            const rr = parseInt(h.slice(0,2),16), gg = parseInt(h.slice(2,4),16), bb = parseInt(h.slice(4,6),16);
+            return (
+              <filter key={"af"+i} id={`accentGlow${i}`} x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur stdDeviation="2.8" result="blur"/>
+                <feFlood floodColor={`rgb(${rr},${gg},${bb})`} floodOpacity="0.55" result="color"/>
+                <feComposite in="color" in2="blur" operator="in" result="glow"/>
+                <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            );
+          })}
 
           {/* ── Avatar clip (center button) ── */}
           <clipPath id="avatarClip"><circle r="26"/></clipPath>
@@ -1346,31 +1335,11 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
           })}
         </defs>
 
-        {/* ── Ambient plate drop shadow ── */}
-        <ellipse cx="0" cy="9" rx="248" ry="244" fill="rgba(0,0,0,0.09)" filter="url(#ringShadow)"/>
-
         {/* ── Lens body — all clipped ── */}
         <g clipPath="url(#lensClip)">
+          {/* ── Ambient plate shadow — inside clip so no bleed outside lens ── */}
+          <ellipse cx="0" cy="9" rx="248" ry="244" fill="rgba(0,0,0,0.09)"/>
           <circle r="252" fill="url(#plateShadow)"/>
-
-          {/* ── Outer calibration tick ring ── */}
-          <g>
-            {Array.from({length: 90}, (_, i) => {
-              const ang = (i * 4) * Math.PI / 180;
-              const isMaj = i % 15 === 0;
-              const isMed = i % 5 === 0;
-              const r1 = 245, r2 = 245 + (isMaj ? 10 : isMed ? 6 : 3.2);
-              const op = isMaj ? 0.60 : isMed ? 0.32 : 0.15;
-              return (
-                <line key={i}
-                  x1={Math.cos(ang)*r1} y1={Math.sin(ang)*r1}
-                  x2={Math.cos(ang)*r2} y2={Math.sin(ang)*r2}
-                  stroke={`rgba(255,255,255,${op})`}
-                  strokeWidth={isMaj ? "1.2" : isMed ? "0.75" : "0.55"}
-                />
-              );
-            })}
-          </g>
 
           {/* ════════════════════════════════════════
               RINGS — outer → inner
@@ -1516,145 +1485,88 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
                 {/* ══ RING BODY ══ */}
                 <circle r={rOut} fill={`url(#rg${origIdx})`}/>
 
+                {/* ── Darken overlay on non-hovered rings ── */}
+                {hoveredRing !== null && !isHov && (
+                  <circle r={rOut} fill="rgba(0,0,0,0.52)"/>
+                )}
+
                 {/* ── Upper hemisphere gloss ── */}
-                <circle r={rOut} fill="url(#gloss)" clipPath={`url(#clipTop${clipI})`} opacity="0.95"/>
+                <circle r={rOut} fill="url(#gloss)" clipPath={`url(#clipTop${clipI})`} opacity={isHov ? 1.0 : 0.55}/>
 
                 {/* ── Lower hemisphere gloss ── */}
-                <circle r={rOut} fill="url(#gloss2)" clipPath={`url(#clipBot${clipI})`} opacity="0.65"/>
+                <circle r={rOut} fill="url(#gloss2)" clipPath={`url(#clipBot${clipI})`} opacity={isHov ? 0.80 : 0.30}/>
 
-                {/* ── Chrome outer bevel — 3-layer precision ── */}
-                {/* outermost bright edge */}
+                {/* ── Chrome outer bevel ── */}
                 <circle r={rOut}     fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="2"/>
-                {/* primary chrome highlight */}
-                <circle r={rOut-0.8} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="0.9"/>
-                {/* shadow below highlight = creates bevel illusion */}
+                <circle r={rOut-0.8} fill="none" stroke={isHov ? "rgba(255,255,255,0.30)" : "rgba(255,255,255,0.10)"} strokeWidth={isHov ? "1.4" : "0.9"}/>
                 <circle r={rOut-2.2} fill="none" stroke="rgba(0,0,0,0.22)" strokeWidth="1.8"/>
 
                 {/* ── Rim ambient catch-light ── */}
                 <circle r={rOut} fill="url(#rimLight)"/>
 
-                {/* ── Inner wall: deep shadow for 3D ring depth ── */}
-                {/* Primary inner shadow */}
+                {/* ── Inner wall shadow ── */}
                 <circle r={rIn+0.8} fill="none" stroke="rgba(0,0,0,0.90)" strokeWidth="6"/>
-                {/* Secondary softer shadow */}
                 <circle r={rIn+4}   fill="none" stroke="rgba(0,0,0,0.45)" strokeWidth="5"/>
-                {/* Inner wall chrome highlight */}
                 <circle r={rIn-0.8} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="0.8"/>
 
-                {/* ── Accent inner rim glow (always subtle, bright on hover) ── */}
-                <circle r={rIn+2.5} fill="none"
-                  stroke={isHov ? pal.accent : "rgba(255,255,255,0.03)"}
-                  strokeWidth={isHov ? "1.5" : "0.7"}
-                  strokeOpacity={isHov ? 0.45 : 1}
-                  style={{ transition: "all 0.38s ease" }}/>
-
-                {/* ── Hover: ordered accent guide, no loose glow behind the lens ── */}
-                {isHov && (
+                {/* ── Hover accent: bold inner + outer rim lines ── */}
+                {isHov ? (
                   <>
-                    <circle r={rIn+2.5} fill="none" stroke={pal.accent} strokeWidth="1.3" strokeOpacity="0.50"/>
-                    <circle r={rOut-2.5} fill="none" stroke={pal.accent} strokeWidth="0.9" strokeOpacity="0.32"/>
+                    {/* Outer glow halo — diffuse */}
+                    <circle r={rOut+1} fill="none" stroke={pal.accent} strokeWidth="6" strokeOpacity="0.08"/>
+                    {/* Outer accent line */}
+                    <circle r={rOut-1.5} fill="none" stroke={pal.accent} strokeWidth="2.2" strokeOpacity="0.65" filter={`url(#accentGlow${origIdx})`}/>
+                    {/* Inner accent — full bright */}
+                    <circle r={rIn+2.5} fill="none" stroke={pal.accent} strokeWidth="2.8" strokeOpacity="0.90" filter={`url(#accentGlow${origIdx})`}/>
+                    {/* Mid tint wash */}
+                    <circle r={rOut} fill={pal.accent} fillOpacity="0.055"/>
                   </>
+                ) : (
+                  <circle r={rIn+2.5} fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="0.7"/>
                 )}
 
-                {/* ── Outer accent edge line (colored chrome) ── */}
-                <circle r={rOut-0.2} fill="none"
-                  stroke={isHov ? pal.accent : "rgba(255,255,255,0.04)"}
-                  strokeWidth={isHov ? "0.8" : "0.5"}
-                  strokeOpacity={isHov ? 0.35 : 1}
-                  style={{ transition: "all 0.38s ease" }}/>
-
-                {/* ══ SEGMENT DIVIDERS — engraved machined lines ══ */}
-                <g ref={origIdx < 3 ? el => { segRefs.current[origIdx] = el; } : null} style={{ transformOrigin: "center" }}>
-                  {Array.from({ length: ring.segs }, (_, i) => {
-                    const ang    = (i * 360 / ring.segs) * Math.PI / 180;
-                    const isMaj  = i % Math.max(1, Math.floor(ring.segs / 6)) === 0;
-                    const isMed  = ring.segs >= 24 && i % Math.max(1, Math.floor(ring.segs / 12)) === 0 && !isMaj;
-                    const insetI = isMaj ? 2.5 : 4;
-                    const insetO = isMaj ? 2.5 : 3.5;
-                    return (
-                      <g key={i}>
-                        {/* Shadow side of engraving */}
-                        <line
-                          x1={Math.cos(ang) * (rIn + insetI + 0.7)} y1={Math.sin(ang) * (rIn + insetI + 0.7)}
-                          x2={Math.cos(ang) * (rOut - insetO + 0.7)} y2={Math.sin(ang) * (rOut - insetO + 0.7)}
-                          stroke={isMaj ? "rgba(0,0,0,0.55)" : "rgba(0,0,0,0.30)"}
-                          strokeWidth={isMaj ? "1.1" : isMed ? "0.65" : "0.45"}
-                        />
-                        {/* Light side of engraving */}
-                        <line
-                          x1={Math.cos(ang) * (rIn + insetI)} y1={Math.sin(ang) * (rIn + insetI)}
-                          x2={Math.cos(ang) * (rOut - insetO)} y2={Math.sin(ang) * (rOut - insetO)}
-                          stroke={isMaj ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.025)"}
-                          strokeWidth={isMaj ? "0.75" : "0.40"}
-                        />
-                      </g>
-                    );
-                  })}
-                </g>
-
-                {/* ══ ARC TEXT — integrated into ring surface ══ */}
-
-                {/* Shadow layer for text depth */}
-                <text style={{
-                  fill: "rgba(0,0,0,0.6)",
-                  fontSize: rOut > 228 ? 7.9 : rOut > 178 ? 8.5 : rOut > 128 ? 9.1 : 9.8,
-                  letterSpacing: rOut > 228 ? 5.4 : rOut > 178 ? 4.6 : 4.0,
-                  fontFamily: "'Be Vietnam Pro',system-ui,sans-serif",
-                  fontWeight: 700,
-                }}>
-                  <textPath href={`#tpath-${ring.id}`} startOffset="50%" textAnchor="middle" dy="0.5">
-                    {pal.label}
-                  </textPath>
-                </text>
-
-                {/* Main label text */}
-                <text style={{
-                  fill: isHov ? pal.accent : "rgba(255,255,255,0.82)",
-                  fontSize: rOut > 228 ? 7.9 : rOut > 178 ? 8.5 : rOut > 128 ? 9.1 : 9.8,
-                  letterSpacing: rOut > 228 ? 5.4 : rOut > 178 ? 4.6 : 4.0,
-                  fontFamily: "'Be Vietnam Pro',system-ui,sans-serif",
-                  fontWeight: 700,
-                  transition: "fill 0.30s",
-                  filter: "none",
-                }}>
-                  <textPath href={`#tpath-${ring.id}`} startOffset="50%" textAnchor="middle">
-                    {pal.label}
-                  </textPath>
-                </text>
-
+                {/* ══ ARC TEXT ══ */}
+                {(() => {
+                  const scale = sz / 520;
+                  const baseFontSize = rOut > 228 ? 9.5 : rOut > 178 ? 10.5 : rOut > 128 ? 11.5 : 12.5;
+                  const fontSize = baseFontSize / scale;
+                  const baseLS = rOut > 228 ? 6.5 : rOut > 178 ? 5.5 : 4.5;
+                  const hovLS  = rOut > 228 ? 9.0 : rOut > 178 ? 7.5 : 6.0;
+                  const letterSpacing = isHov ? hovLS / scale : baseLS / scale;
+                  return (
+                    <>
+                      {/* Shadow — cùng letterSpacing với main, chỉ lệch dy nhỏ theo chiều cung */}
+                      <text style={{
+                        fill: "rgba(0,0,0,0.70)",
+                        fontSize,
+                        letterSpacing,
+                        fontFamily: "'Be Vietnam Pro',system-ui,sans-serif",
+                        fontWeight: 800,
+                      }}>
+                        <textPath href={`#tpath-${ring.id}`} startOffset="50%" textAnchor="middle" dy="0.6">
+                          {pal.label}
+                        </textPath>
+                      </text>
+                      {/* Main label */}
+                      <text style={{
+                        fill: isHov ? pal.accent : (hoveredRing !== null ? "rgba(255,255,255,0.30)" : "rgba(255,255,255,0.90)"),
+                        fontSize,
+                        letterSpacing,
+                        fontFamily: "'Be Vietnam Pro',system-ui,sans-serif",
+                        fontWeight: 800,
+                        transition: "fill 0.25s",
+                      }}>
+                        <textPath href={`#tpath-${ring.id}`} startOffset="50%" textAnchor="middle">
+                          {pal.label}
+                        </textPath>
+                      </text>
+                    </>
+                  );
+                })()}
 
               </g>
             );
           })}
-
-          {/* ── Viewfinder corner brackets ── */}
-          {[[-1,-1],[1,-1],[1,1],[-1,1]].map(([sx,sy],i)=>{
-            const d = 254, ls = 16;
-            return (
-              <g key={i} opacity={anyHov ? 0.20 : 0.42} style={{ transition: "opacity 0.4s" }}>
-                <line x1={sx*(d-ls)} y1={sy*d} x2={sx*d} y2={sy*d} stroke="rgba(220,220,220,0.75)" strokeWidth="1.4"/>
-                <line x1={sx*d} y1={sy*(d-ls)} x2={sx*d} y2={sy*d} stroke="rgba(220,220,220,0.75)" strokeWidth="1.4"/>
-                <circle cx={sx*d} cy={sy*d} r="1.4" fill="rgba(255,255,255,0.40)"/>
-              </g>
-            );
-          })}
-
-          {/* ── Outer rotating arrow indicators ── */}
-          <g ref={arrowRef} style={{ transformOrigin: "center" }}>
-            {[0, 90, 180, 270].map(ang => {
-              const rad = ang * Math.PI / 180;
-              const r2  = 253;
-              return (
-                <g key={ang} transform={`translate(${Math.cos(rad)*r2},${Math.sin(rad)*r2}) rotate(${ang+90})`}>
-                  <path d="M 0,-6 L 4.5,4 L -4.5,4 Z"
-                    fill="rgba(255,255,255,0.24)"
-                    stroke="rgba(255,255,255,0.09)"
-                    strokeWidth="0.6"
-                    strokeLinejoin="round"/>
-                </g>
-              );
-            })}
-          </g>
 
           {/* ── Brand mark ── */}
           <text x="0" y="-240" textAnchor="middle" style={{
@@ -1666,6 +1578,8 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
           }}>
             92 KA MÊ RA
           </text>
+
+
 
         </g>{/* end lensClip */}
       </svg>
@@ -5723,7 +5637,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       />}
 
       {/* HERO — PREMIUM JAPAN MINIMAL */}
-      <div style={{ height: isMobile ? "100svh" : "100vh", minHeight: isMobile ? 620 : "auto", position:"relative", overflow:"hidden", userSelect:"none", display:"flex", alignItems:"center" }}>
+      <div style={{ height: isMobile ? "100svh" : "100vh", minHeight: isMobile ? "580px" : "auto", position:"relative", overflow:"hidden", userSelect:"none", display:"flex", alignItems:"center" }}>
 
         {/* ── Social icons — top left ── */}
         {!isMobile && (
@@ -5757,8 +5671,8 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
           display:"flex", alignItems:"center",
           justifyContent: isMobile ? "flex-start" : "center",
           flexDirection: isMobile ? "column" : "row",
-          padding: isMobile ? "18px 24px 28px" : "0 0 14% 0",
-          gap: isMobile ? 14 : 0,
+          padding: isMobile ? "12px 20px 20px" : "0 0 14% 0",
+          gap: isMobile ? 10 : 0,
         }}>
 
           {/* ── LEFT: Premium branding block ── */}
@@ -8921,23 +8835,9 @@ function SplashScreen({ onDone }) {
       {/* Lớp 1: gradient nền — khớp hero */}
       <div style={{
         position: "absolute", inset: 0,
-        background: `
-          radial-gradient(ellipse 80% 60% at 52% 32%, rgba(110,185,210,0.55) 0%, transparent 60%),
-          radial-gradient(ellipse 60% 50% at 20% 80%, rgba(150,195,215,0.25) 0%, transparent 55%),
-          radial-gradient(ellipse 50% 40% at 85% 15%, rgba(130,175,200,0.20) 0%, transparent 50%),
-          linear-gradient(175deg, #7AAFC0 0%, #9EC4D0 25%, #B8D4DC 55%, #C8DCE4 80%, #BDD0D8 100%)
-        `,
+        background: "linear-gradient(175deg, #7AAFC0 0%, #9EC4D0 30%, #B8D4DC 60%, #C4D9E2 85%, #BDD0D8 100%)",
       }} />
-      {/* Lớp 2: grain noise — khớp hero */}
-      <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.55, pointerEvents: "none" }}>
-        <filter id="splash-grain">
-          <feTurbulence type="fractalNoise" baseFrequency="0.68" numOctaves="4" stitchTiles="stitch" />
-          <feColorMatrix type="saturate" values="0" />
-          <feBlend in="SourceGraphic" mode="overlay" />
-        </filter>
-        <rect width="100%" height="100%" filter="url(#splash-grain)" opacity="0.45" />
-      </svg>
-      {/* Lớp 3: vignette */}
+      {/* Vignette */}
       <div style={{
         position: "absolute", inset: 0,
         background: "radial-gradient(ellipse 90% 90% at 50% 50%, transparent 40%, rgba(8,20,35,0.25) 100%)",
