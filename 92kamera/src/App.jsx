@@ -145,7 +145,7 @@ const isDateInOrder = (dateStr, o) => {
   return dateStr >= o.date && dateStr < endDate;
 };
 
-const G = "#0D1B2A", BG = "#E8F0F8", CARD = "#C5D8EC", BR = "#8BAECF", TXT = "#05111F", MUT = "#4A6A8A", RED = "#C0290A";
+const G = "#0D1B2A", BG = "#B8D4DC", CARD = "#C5D8EC", BR = "#8BAECF", TXT = "#05111F", MUT = "#4A6A8A", RED = "#C0290A";
 const CARD2 = "#B5CEEA", BR2 = "#7A9FBF";
 
 // ── GOOGLE OAUTH ──
@@ -1125,16 +1125,22 @@ function CamImage({ cam, height = 176 }) {
 function LensBackground({ isMob }) {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", overflow: "hidden" }}>
-      {/* Gradient nền chính — flat, sạch */}
-      <div style={{
-        position: "absolute", inset: 0,
-        background: "linear-gradient(175deg, #7AAFC0 0%, #9EC4D0 30%, #B8D4DC 60%, #C4D9E2 85%, #BDD0D8 100%)",
-      }} />
-      {/* Vignette — cạnh tối nhẹ */}
-      <div style={{
-        position: "absolute", inset: 0,
-        background: "radial-gradient(ellipse 90% 90% at 50% 50%, transparent 40%, rgba(8,20,35,0.25) 100%)",
-      }} />
+      <div style={{ position: "absolute", inset: 0, background: "#85C5DC" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(172deg, #6BB8D4 0%, #80C2D8 27%, #96CBDB 53%, #AACFDB 78%, #B8D4DC 100%)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(236,243,248,0.58) 0%, transparent 40%, rgba(220,235,244,0.27) 100%)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(186,206,220,0.30) 0%, transparent 50%)" }} />
+      {/* Vintage: phủ tone ấm lạnh xen nhau nhẹ */}
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(200,220,210,0.10) 0%, transparent 50%, rgba(180,200,225,0.08) 100%)" }} />
+      {/* Vintage: rìa tối nhẹ tạo depth */}
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 100% 100% at 50% 50%, transparent 55%, rgba(20,50,75,0.14) 100%)" }} />
+      {/* Film grain đậm hơn chút */}
+      <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.22 }} xmlns="http://www.w3.org/2000/svg">
+        <filter id="grain-bg">
+          <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="5" stitchTiles="stitch" />
+          <feColorMatrix type="saturate" values="0" />
+        </filter>
+        <rect width="100%" height="100%" filter="url(#grain-bg)" />
+      </svg>
     </div>
   );
 }
@@ -3527,7 +3533,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
     }
   };
 
-  const overlay = { position: "fixed", inset: 0, zIndex: 300, background: "rgba(8,15,26,0.86)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px", overflowY: "auto", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)" };
+  const overlay = { position: "fixed", inset: 0, zIndex: 300, background: "linear-gradient(172deg, #6BB8D4 0%, #80C2D8 27%, #96CBDB 53%, #AACFDB 78%, #B8D4DC 100%)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px", overflowY: "auto" };
   const box = { background: "linear-gradient(160deg, rgba(232,240,248,0.88) 0%, rgba(197,216,236,0.80) 60%, rgba(181,206,230,0.76) 100%)", border: "1px solid rgba(255,255,255,0.60)", borderRadius: 20, padding: "min(20px, 3vw)", width: "min(660px,96vw)", position: "relative", margin: "auto", transition: "width .3s", backdropFilter: "blur(28px) saturate(160%) brightness(1.04)", WebkitBackdropFilter: "blur(28px) saturate(160%) brightness(1.04)", boxShadow: "0 1px 0 rgba(255,255,255,0.80) inset, 0 -1px 0 rgba(0,0,0,0.06) inset, 0 12px 48px rgba(0,0,0,0.30), 0 2px 16px rgba(0,0,0,0.16)" };
   const inpS = { padding: "11px 14px", background: "rgba(255,255,255,0.55)", border: "1px solid rgba(255,255,255,0.70)", borderRadius: 12, color: TXT, fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "system-ui,sans-serif", transition: "border .2s", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" };
   const qtyBtn = (onClick, label) => (
@@ -3538,6 +3544,13 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 
   return (
     <div style={overlay} onClick={e => e.target === e.currentTarget && !done && onClose()}>
+      {/* Depth layers — khớp D vintage grain */}
+      <div style={{ position: "fixed", inset: 0, background: "linear-gradient(to right, rgba(236,243,248,0.58) 0%, transparent 40%, rgba(220,235,244,0.27) 100%)", pointerEvents: "none" }} />
+      <div style={{ position: "fixed", inset: 0, background: "linear-gradient(to top, rgba(186,206,220,0.30) 0%, transparent 50%)", pointerEvents: "none" }} />
+      <svg style={{ position: "fixed", inset: 0, width: "100%", height: "100%", opacity: 0.16, pointerEvents: "none" }} xmlns="http://www.w3.org/2000/svg">
+        <filter id="grain-book"><feTurbulence type="fractalNoise" baseFrequency="0.78" numOctaves="5" stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+        <rect width="100%" height="100%" filter="url(#grain-book)" />
+      </svg>
       <div style={box}>
         <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", color: MUT, fontSize: 18, cursor: "pointer", lineHeight: 1 }}>✕</button>
         <div style={{ marginBottom: 24 }}>
@@ -6244,10 +6257,13 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
   return (
     <>
     {/* Backdrop with subtle grain */}
-    <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(8,20,36,0.72)", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(6px) saturate(140%)", WebkitBackdropFilter: "blur(6px) saturate(140%)" }}>
-
-      {/* Ambient blue glow in background */}
-      <div style={{ position: "absolute", width: 480, height: 480, borderRadius: "50%", background: "radial-gradient(circle, rgba(100,160,220,0.10) 0%, transparent 70%)", top: "15%", left: "50%", transform: "translateX(-50%)", pointerEvents: "none" }} />
+    <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "linear-gradient(172deg, #6BB8D4 0%, #80C2D8 27%, #96CBDB 53%, #AACFDB 78%, #B8D4DC 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(236,243,248,0.58) 0%, transparent 40%, rgba(220,235,244,0.27) 100%)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(186,206,220,0.30) 0%, transparent 50%)", pointerEvents: "none" }} />
+      <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.16, pointerEvents: "none" }} xmlns="http://www.w3.org/2000/svg">
+        <filter id="grain-login"><feTurbulence type="fractalNoise" baseFrequency="0.78" numOctaves="5" stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+        <rect width="100%" height="100%" filter="url(#grain-login)" />
+      </svg>
 
       <div
         className="login-card-92k"
@@ -8837,17 +8853,16 @@ function SplashScreen({ onDone }) {
       ...irisStyle,
     }}>
       {/* Lớp 1: gradient nền — khớp hero */}
-      <div style={{
-        position: "absolute", inset: 0,
-        background: "linear-gradient(175deg, #7AAFC0 0%, #9EC4D0 30%, #B8D4DC 60%, #C4D9E2 85%, #BDD0D8 100%)",
-      }} />
-      {/* Vignette */}
-      <div style={{
-        position: "absolute", inset: 0,
-        background: "radial-gradient(ellipse 90% 90% at 50% 50%, transparent 40%, rgba(8,20,35,0.25) 100%)",
-        pointerEvents: "none",
-      }} />
-
+      <div style={{ position: "absolute", inset: 0, background: "#85C5DC" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(172deg, #6BB8D4 0%, #80C2D8 27%, #96CBDB 53%, #AACFDB 78%, #B8D4DC 100%)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(236,243,248,0.58) 0%, transparent 40%, rgba(220,235,244,0.27) 100%)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(186,206,220,0.30) 0%, transparent 50%)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(200,220,210,0.10) 0%, transparent 50%, rgba(180,200,225,0.08) 100%)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 100% 100% at 50% 50%, transparent 55%, rgba(20,50,75,0.14) 100%)" }} />
+      <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.22 }} xmlns="http://www.w3.org/2000/svg">
+        <filter id="grain-splash"><feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="5" stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+        <rect width="100%" height="100%" filter="url(#grain-splash)" />
+      </svg>
       {/* LOGO */}
       <div style={{
         display: "inline-flex", alignItems: "center",
@@ -9142,7 +9157,7 @@ function AppRoot() {
         }
         *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
         html{-webkit-text-size-adjust:100%;scroll-padding-top:72px;}
-        body{background:#D9D9D9;overflow-x:hidden;} canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
+        body{background:#B8D4DC;overflow-x:hidden;} canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
         ::-webkit-scrollbar{width:4px;height:4px}
         ::-webkit-scrollbar-track{background:#C8C8C8}
         ::-webkit-scrollbar-thumb{background:#888888;border-radius:2px}
