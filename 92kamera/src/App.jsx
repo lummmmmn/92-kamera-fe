@@ -1527,12 +1527,16 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
 
                 {/* ══ ARC TEXT ══ */}
                 {(() => {
+                  // scale = tỉ lệ lens so với viewBox 520px
+                  // fontSize trong SVG user-units — cần NHÂN scale để chữ co theo lens
                   const scale = sz / 520;
-                  const baseFontSize = rOut > 228 ? 9.5 : rOut > 178 ? 10.5 : rOut > 128 ? 11.5 : 12.5;
-                  const fontSize = baseFontSize / scale;
-                  const baseLS = rOut > 228 ? 6.5 : rOut > 178 ? 5.5 : 4.5;
-                  const hovLS  = rOut > 228 ? 9.0 : rOut > 178 ? 7.5 : 6.0;
-                  const letterSpacing = isHov ? hovLS / scale : baseLS / scale;
+                  // base size trong viewBox units, nhân scale → pixel thật
+                  const baseFS = rOut > 228 ? 10.5 : rOut > 178 ? 11.5 : rOut > 128 ? 12.5 : 13.5;
+                  const fontSize = Math.max(7.0, baseFS * scale);
+                  // letterSpacing cũng scale theo
+                  const baseLS = rOut > 228 ? 5.5 : rOut > 178 ? 4.5 : 3.8;
+                  const hovLS  = rOut > 228 ? 8.0 : rOut > 178 ? 6.5 : 5.5;
+                  const letterSpacing = Math.max(2.5, (isHov ? hovLS : baseLS) * scale);
                   return (
                     <>
                       {/* Shadow — cùng letterSpacing với main, chỉ lệch dy nhỏ theo chiều cung */}
