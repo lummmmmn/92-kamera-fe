@@ -5701,11 +5701,10 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
               animation:"heroFadeIn 1.1s cubic-bezier(.25,.46,.45,.94) both",
               order: 2,
             } : {
-              position:"absolute", left:"4%", top:"48%",
+              position:"absolute", left:"4%", top:"52%",
               display:"flex", flexDirection:"column",
               alignItems:"flex-start", textAlign:"left",
-              transform:"scale(0.60)",
-              transformOrigin:"left top",
+              transform:"translateY(-50%)",
               zIndex:10,
               animation:"heroFadeIn 1.1s cubic-bezier(.25,.46,.45,.94) both",
             }),
@@ -5722,12 +5721,12 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
                 }}>
                 {/* Left bracket — SVG để tránh flicker iOS */}
                 {(() => {
-                  const bw = isMobile?14:26, bh = isMobile?42:72, sw = 5;
-                  const tx = bracketSpread ? (isMobile?-8:-14) : 0;
-                  const tyT = bracketSpread ? (isMobile?-8:-14) : 0;
-                  const tyB = bracketSpread ? (isMobile?8:14) : 0;
+                  const bw = isMobile?14:22, bh = isMobile?42:60, sw = 5;
+                  const tx = bracketSpread ? (isMobile?-8:-12) : 0;
+                  const tyT = bracketSpread ? (isMobile?-8:-12) : 0;
+                  const tyB = bracketSpread ? (isMobile?8:12) : 0;
                   return (
-                    <svg width={bw} height={bh} viewBox={`0 0 ${bw} ${bh}`} style={{ flexShrink:0, marginRight: isMobile?10:16, overflow:"visible" }}>
+                    <svg width={bw} height={bh} viewBox={`0 0 ${bw} ${bh}`} style={{ flexShrink:0, marginRight: isMobile?10:13, overflow:"visible" }}>
                       {/* Top half */}
                       <path
                         d={`M ${bw} ${sw/2} L ${sw/2} ${sw/2} L ${sw/2} ${bh/2}`}
@@ -5745,29 +5744,29 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
                 })()}
 
                 {/* Text */}
-                <span style={{ fontSize: isMobile?30:48, fontWeight:400, letterSpacing: isMobile?1:2, whiteSpace:"nowrap", display:"inline-flex", alignItems:"center" }}>
+                <span style={{ fontSize: isMobile?30:41, fontWeight:400, letterSpacing: isMobile?1:1.7, whiteSpace:"nowrap", display:"inline-flex", alignItems:"center" }}>
                   <span>92</span>
-                  <span style={{ marginLeft: isMobile?10:18 }}>KA</span>
-                  <span style={{ marginLeft: isMobile?10:18 }}>MÊ</span>
-                  <span style={{ marginLeft: isMobile?10:18 }}>RA</span>
+                  <span style={{ marginLeft: isMobile?10:16 }}>KA</span>
+                  <span style={{ marginLeft: isMobile?10:16 }}>MÊ</span>
+                  <span style={{ marginLeft: isMobile?10:16 }}>RA</span>
                   {/* REC dot */}
                   <span style={{
-                    display:"inline-block", width: isMobile?7:11, height: isMobile?7:11, borderRadius:"50%",
+                    display:"inline-block", width: isMobile?7:10, height: isMobile?7:10, borderRadius:"50%",
                     background:"radial-gradient(circle at 38% 34%, #ff5050 0%, #cc0000 52%, #820000 100%)",
                     boxShadow:"0 0 7px rgba(210,0,0,0.72), 0 0 14px rgba(210,0,0,0.32), 0 0 28px rgba(210,0,0,0.12), inset 0 1px 0 rgba(255,155,155,0.5)",
-                    marginLeft: isMobile?3:5, flexShrink:0, position:"relative", top: isMobile?-9:-14,
+                    marginLeft: isMobile?3:5, flexShrink:0, position:"relative", top: isMobile?-9:-12,
                     animation:"recPulse 2.4s ease-in-out infinite",
                   }}/>
                 </span>
 
                 {/* Right bracket — SVG */}
                 {(() => {
-                  const bw = isMobile?14:26, bh = isMobile?42:72, sw = 5;
-                  const tx = bracketSpread ? (isMobile?8:14) : 0;
-                  const tyT = bracketSpread ? (isMobile?-8:-14) : 0;
-                  const tyB = bracketSpread ? (isMobile?8:14) : 0;
+                  const bw = isMobile?14:22, bh = isMobile?42:60, sw = 5;
+                  const tx = bracketSpread ? (isMobile?8:12) : 0;
+                  const tyT = bracketSpread ? (isMobile?-8:-12) : 0;
+                  const tyB = bracketSpread ? (isMobile?8:12) : 0;
                   return (
-                    <svg width={bw} height={bh} viewBox={`0 0 ${bw} ${bh}`} style={{ flexShrink:0, marginLeft: isMobile?10:16, overflow:"visible" }}>
+                    <svg width={bw} height={bh} viewBox={`0 0 ${bw} ${bh}`} style={{ flexShrink:0, marginLeft: isMobile?10:13, overflow:"visible" }}>
                       {/* Top half */}
                       <path
                         d={`M 0 ${sw/2} L ${bw-sw/2} ${sw/2} L ${bw-sw/2} ${bh/2}`}
@@ -5788,8 +5787,8 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
 
             {/* ── SUBTITLE — 1 dòng desktop ── */}
             <div style={{
-              marginTop: isMobile?16:22,
-              fontSize: isMobile?10:11, letterSpacing: isMobile?2.5:3,
+              marginTop: isMobile?16:15,
+              fontSize: isMobile?10:9.6, letterSpacing: isMobile?2.5:2.5,
               fontFamily:"var(--font-ui)", color:"#2a2825", fontWeight:700,
               whiteSpace: isMobile?"normal":"nowrap", lineHeight: isMobile?2:1,
               minHeight: isMobile?"auto":16,
@@ -5799,8 +5798,8 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
 
             {/* ── TAGLINE ── */}
             <div style={{
-              marginTop: isMobile?10:14,
-              fontSize: isMobile?13:15, fontStyle:"italic", color:"#3d3a37",
+              marginTop: isMobile?10:10,
+              fontSize: isMobile?13:12.6, fontStyle:"italic", color:"#3d3a37",
               fontFamily:'"Palatino Linotype","Book Antiqua","Palatino",Georgia,serif',
               letterSpacing:0.3, lineHeight:1.6, fontWeight:400,
               minHeight: isMobile?"auto":20,
@@ -5813,7 +5812,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
               <div className="btn-hero-wrap"
                 onMouseEnter={e=>{e.currentTarget.style.boxShadow="0 0 32px rgba(200,200,240,0.55), 0 0 64px rgba(200,200,240,0.2)";e.currentTarget.style.transform="translateY(-3px)";}}
                 onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 0 18px rgba(200,200,240,0.15)";e.currentTarget.style.transform="translateY(0)";}}
-                style={{ transition:"all .28s cubic-bezier(.4,0,.2,1)", flexShrink:0, width: isMobile?132:170, height: isMobile?34:40, boxSizing:"border-box" }}>
+                style={{ transition:"all .28s cubic-bezier(.4,0,.2,1)", flexShrink:0, width: isMobile?132:143, height: isMobile?34:34, boxSizing:"border-box" }}>
               <button onClick={openQS}
                 style={{
                   display:"flex", alignItems:"center", justifyContent:"center",
@@ -5833,7 +5832,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
                 THUÊ NGAY
               </button>
               </div>
-              <div style={{ flexShrink:0, width: isMobile?132:170, height: isMobile?34:40, padding:1.5, boxSizing:"border-box", borderRadius:16 }}>
+              <div style={{ flexShrink:0, width: isMobile?132:143, height: isMobile?34:34, padding:1.5, boxSizing:"border-box", borderRadius:16 }}>
                 <button onClick={() => setLookupOpen(true)} data-tracuu style={{
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                   background: "rgba(74,89,104,0.85)",
@@ -5977,7 +5976,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       <FeedbackMarquee photos={photos || []} feedbacks={feedbacks || []} isMobile={isMobile} />
 
       {/* ABOUT */}
-      <div id="about" style={{ padding: isMobile ? "56px 16px 72px" : "80px 60px 100px", margin: isMobile ? "20px 12px" : "32px auto", maxWidth: isMobile ? "none" : 1100, textAlign: "center", border: "1px solid rgba(255,255,255,0.22)", borderRadius: 28, background: "rgba(255,255,255,0.13)", backdropFilter: "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: "blur(52px) saturate(180%) brightness(1.04)", boxShadow: "0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
+      <div id="about" style={{ padding: isMobile ? "56px 16px 72px" : "80px 60px 100px", margin: isMobile ? "20px 12px" : "32px auto", maxWidth: isMobile ? "none" : 1100, textAlign: "center", border: "1px solid rgba(255,255,255,0.22)", borderRadius: 28, background: "rgba(150,203,219,0.25)", backdropFilter: "blur(52px) saturate(180%) brightness(0.97)", WebkitBackdropFilter: "blur(52px) saturate(180%) brightness(0.97)", boxShadow: "0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
         <div style={{ fontSize: 9, letterSpacing: 7, color: G, opacity: 0.55, marginBottom: 16, fontFamily: "var(--font-ui)", fontWeight: 700 }}>VỀ CHÚNG TÔI</div>
         <SecretTitle
           defaultText="92 KA MÊ RA"
@@ -5994,7 +5993,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       </div>
 
       {/* FOOTER */}
-      <footer style={{ padding: isMobile ? "20px 16px" : "28px 60px", display: "flex", flexWrap: "wrap", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "center" : "center", gap: isMobile ? 10 : 16, background: "rgba(255,255,255,0.13)", backdropFilter: "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: "blur(52px) saturate(180%) brightness(1.04)", borderTop: "1px solid rgba(255,255,255,0.18)" }}>
+      <footer style={{ padding: isMobile ? "20px 16px" : "28px 60px", display: "flex", flexWrap: "wrap", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "center" : "center", gap: isMobile ? 10 : 16, background: "linear-gradient(135deg, rgba(107,184,212,0.55) 0%, rgba(107,184,212,0.45) 100%)", backdropFilter: "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: "blur(52px) saturate(180%) brightness(1.04)", borderTop: "1px solid rgba(107,184,212,0.35)" }}>
         <Logo size={0.7} />
         <div style={{ color: "rgba(10,10,20,0.75)", fontSize: 12, fontFamily: "var(--font-ui)", fontWeight: 500, letterSpacing: 0.5, display: "grid", gridTemplateColumns: "auto auto 1fr", gap: "2px 4px" }}>
           <span>Hotline</span><span>:</span><span>{siteContent.zalo}</span>
@@ -8761,7 +8760,7 @@ function FlowBg() {
       lastDraw = now;
 
       const W = canvas.width, H = canvas.height;
-      ctx.fillStyle = "#F4F3F1";
+      ctx.fillStyle = "#96CBDB";
       ctx.fillRect(0, 0, W, H);
 
       blobs.forEach(b => {
@@ -9147,7 +9146,7 @@ function AppRoot() {
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: BG, position: "relative", animation: "contentIn 1s ease both" }}>
+    <div style={{ minHeight: "100vh", background: "#96CBDB", position: "relative", animation: "contentIn 1s ease both", paddingBottom: 0 }}>
       <FlowBg />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap&subset=vietnamese');
@@ -9157,7 +9156,7 @@ function AppRoot() {
         }
         *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
         html{-webkit-text-size-adjust:100%;scroll-padding-top:72px;}
-        body{background:#B8D4DC;overflow-x:hidden;} canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
+        body{background:#96CBDB;overflow-x:hidden;} canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
         ::-webkit-scrollbar{width:4px;height:4px}
         ::-webkit-scrollbar-track{background:#C8C8C8}
         ::-webkit-scrollbar-thumb{background:#888888;border-radius:2px}
