@@ -2208,13 +2208,15 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             onPointerDown={(e) => { e.preventDefault(); setMobileMenuOpen(o => !o); }}
             style={{
               display: "flex", alignItems: "center", gap: 8,
-              background: mobileMenuOpen ? `linear-gradient(135deg,${G}22,${G}11)` : "rgba(255,255,255,0.13)",
-              border: `1px solid ${mobileMenuOpen ? G+"66" : "rgba(255,255,255,0.22)"}`,
+              background: mobileMenuOpen
+                ? `linear-gradient(135deg, rgba(218,232,248,0.98) 0%, rgba(197,218,242,0.96) 100%)`
+                : "linear-gradient(160deg, rgba(232,240,248,0.97) 0%, rgba(210,226,244,0.95) 100%)",
+              border: `1.5px solid ${mobileMenuOpen ? G+"88" : "rgba(180,205,230,0.80)"}`,
               borderRadius: 50, padding: "8px 14px 8px 10px",
-              backdropFilter: "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: "blur(52px) saturate(180%) brightness(1.04)",
+              backdropFilter: "none", WebkitBackdropFilter: "none",
               boxShadow: mobileMenuOpen
-                ? `0 0 0 3px ${G}22, 0 8px 32px rgba(0,0,0,0.3)`
-                : "0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset",
+                ? `0 0 0 3px ${G}22, 0 4px 20px rgba(13,27,42,0.18)`
+                : "0 2px 12px rgba(13,27,42,0.12), 0 1px 0 rgba(255,255,255,0.90) inset",
               cursor: "pointer", transition: "all .22s", touchAction: "manipulation",
               WebkitTapHighlightColor: "transparent",
             }}>
@@ -2229,11 +2231,11 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
           {mobileMenuOpen && (
             <div style={{
               position: "absolute", top: "calc(100% + 8px)", left: 0,
-              background: "linear-gradient(160deg, rgba(232,240,248,0.95) 0%, rgba(197,216,236,0.92) 60%, rgba(181,206,230,0.90) 100%)",
-              border: "1px solid rgba(255,255,255,0.72)",
+              background: "linear-gradient(160deg, rgba(235,244,255,0.99) 0%, rgba(215,230,248,0.98) 60%, rgba(200,220,244,0.98) 100%)",
+              border: "1px solid rgba(180,205,230,0.85)",
               borderRadius: 22,
-              backdropFilter: "blur(40px) saturate(160%) brightness(1.04)", WebkitBackdropFilter: "blur(40px) saturate(160%) brightness(1.04)",
-              boxShadow: "0 1px 0 rgba(255,255,255,0.85) inset, 0 8px 32px rgba(13,27,42,0.14)",
+              backdropFilter: "none", WebkitBackdropFilter: "none",
+              boxShadow: "0 2px 0 rgba(255,255,255,0.95) inset, 0 8px 32px rgba(13,27,42,0.16)",
               minWidth: 190, padding: "8px 0",
               animation: "cMenuIn .22s cubic-bezier(.4,0,.2,1)",
               zIndex: 201,
@@ -2286,11 +2288,11 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             style={{
               position: "fixed", top: 10, right: 12, zIndex: 200,
               display: "flex", alignItems: "center", gap: 6,
-              background: "rgba(255,255,255,0.13)",
-              border: "1px solid rgba(255,255,255,0.22)",
+              background: "linear-gradient(160deg, rgba(232,240,248,0.97) 0%, rgba(210,226,244,0.95) 100%)",
+              border: "1.5px solid rgba(180,205,230,0.80)",
               borderRadius: 50, padding: "8px 14px",
-              backdropFilter: "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: "blur(52px) saturate(180%) brightness(1.04)",
-              boxShadow: "0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset",
+              backdropFilter: "none", WebkitBackdropFilter: "none",
+              boxShadow: "0 2px 12px rgba(13,27,42,0.12), 0 1px 0 rgba(255,255,255,0.90) inset",
               cursor: "pointer", touchAction: "manipulation",
               WebkitTapHighlightColor: "transparent",
             }}>
@@ -2326,7 +2328,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
       <div style={{ maxWidth: 1000, margin: "0 auto", padding: isMobile ? "64px 16px 32px" : "32px 24px" }}>
 
         {/* Profile banner */}
-        <div style={{ background:"rgba(255,255,255,0.13)", border:`1px solid rgba(255,255,255,0.22)`, borderRadius:28, padding:"28px 20px 24px", marginBottom:20, textAlign:"center", position:"relative", overflow:"hidden", backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
+        <div style={{ background:"rgba(245,249,255,0.98)", border:`1px solid rgba(200,218,238,0.80)`, borderRadius:28, padding:"28px 20px 24px", marginBottom:20, textAlign:"center", position:"relative", overflow:"hidden", backdropFilter:"none", WebkitBackdropFilter:"none", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
           {/* Subtle glow top-right */}
           <div style={{ position:"absolute", top:-60, right:-60, width:200, height:200, background:`radial-gradient(circle, ${G}0b 0%, transparent 70%)`, pointerEvents:"none" }} />
 
@@ -2386,7 +2388,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                 { icon:"📅", label:"Ngày thuê",      value: totalDays,              unit:"ngày", col:"#a78bfa", dot:"#a78bfa" },
                 { icon:"✅", label:"Hoàn thành",     value: completedOrders.length, unit:"đơn",  col:"#22c55e", dot:"#22c55e" },
               ].map(s => (
-                <div key={s.label} style={{ background:"rgba(255,255,255,0.13)", border:`1px solid rgba(255,255,255,0.22)`, borderRadius:24, padding:"18px 16px 16px", position:"relative", overflow:"hidden", backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
+                <div key={s.label} style={{ background:"rgba(245,249,255,0.98)", border:`1px solid rgba(200,218,238,0.80)`, borderRadius:24, padding:"18px 16px 16px", position:"relative", overflow:"hidden", backdropFilter:"none", WebkitBackdropFilter:"none", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
                   {/* Accent dot top-right */}
                   <div style={{ position:"absolute", top:14, right:14, width:7, height:7, borderRadius:"50%", background:s.dot, boxShadow:`0 0 8px ${s.dot}99` }} />
                   {/* Icon */}
@@ -2403,7 +2405,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
 
             {/* Thiết bị đã thuê */}
             {usedCameras.length > 0 && (
-              <div style={{ background:"rgba(255,255,255,0.13)", border:`1px solid rgba(255,255,255,0.22)`, borderRadius:24, padding:"18px 18px 16px", marginBottom:12, backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
+              <div style={{ background:"rgba(245,249,255,0.98)", border:`1px solid rgba(200,218,238,0.80)`, borderRadius:24, padding:"18px 18px 16px", marginBottom:12, backdropFilter:"none", WebkitBackdropFilter:"none", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14 }}>
                   <span style={{ color:MUT, fontSize:10, fontWeight:700, letterSpacing:1.5, fontFamily:"system-ui,sans-serif" }}>THIẾT BỊ ĐÃ THUÊ</span>
                   <button onClick={() => setTab("orders")} style={{ background:"none", border:"none", color:G, fontSize:11.5, fontWeight:700, cursor:"pointer", padding:0, fontFamily:"system-ui,sans-serif", display:"flex", alignItems:"center", gap:3 }}>
@@ -2429,7 +2431,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                 )
               ));
               return unreviewed.length > 0 && (
-                <div style={{ background:"rgba(255,255,255,0.13)", border:`1px solid rgba(255,255,255,0.22)`, borderRadius:24, padding:"16px 18px", marginBottom:12, display:"flex", alignItems:"center", justifyContent:"space-between", gap:14, backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
+                <div style={{ background:"rgba(245,249,255,0.98)", border:`1px solid rgba(200,218,238,0.80)`, borderRadius:24, padding:"16px 18px", marginBottom:12, display:"flex", alignItems:"center", justifyContent:"space-between", gap:14, backdropFilter:"none", WebkitBackdropFilter:"none", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
                   <div>
                     <div style={{ color:TXT, fontWeight:700, fontSize:14, fontFamily:"system-ui,sans-serif", marginBottom:3 }}>Bạn có {unreviewed.length} đơn chưa đánh giá</div>
                     <div style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>Chia sẻ trải nghiệm để nhận huy hiệu</div>
@@ -2445,7 +2447,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             {/* Book more CTA */}
             {onOpenBooking && (
               <button onClick={onOpenBooking}
-                style={{ width:"100%", background:"rgba(255,255,255,0.08)", border:"1.5px dashed rgba(255,255,255,0.30)", borderRadius:24, padding:"18px 20px", cursor:"pointer", display:"flex", alignItems:"center", gap:14, transition:"all .2s", textAlign:"left", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)" }}
+                style={{ width:"100%", background:"rgba(255,255,255,0.08)", border:"1.5px dashed rgba(255,255,255,0.30)", borderRadius:24, padding:"18px 20px", cursor:"pointer", display:"flex", alignItems:"center", gap:14, transition:"all .2s", textAlign:"left", backdropFilter:"none", WebkitBackdropFilter:"none" }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor="rgba(255,255,255,0.55)"; e.currentTarget.style.background="rgba(255,255,255,0.13)"; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor="rgba(255,255,255,0.30)"; e.currentTarget.style.background="rgba(255,255,255,0.08)"; }}>
                 <div style={{ width:40, height:40, borderRadius:16, border:`1.5px solid ${G}44`, display:"flex", alignItems:"center", justifyContent:"center", color:G, fontSize:20, flexShrink:0 }}>＋</div>
@@ -2465,7 +2467,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
               <div style={{ color: TXT, fontWeight: 700, fontSize: 17 }}>Đơn thuê của tôi</div>
               <button onClick={() => refreshOrders(false)} disabled={refreshing}
-                style={{ padding: "6px 12px", background: "rgba(255,255,255,0.13)", color: refreshing ? MUT : G, border: `1px solid ${refreshing ? "rgba(255,255,255,0.22)" : G + "55"}`, borderRadius: 10, cursor: refreshing ? "default" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 5, transition: "all .2s", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)" }}>
+                style={{ padding: "6px 12px", background: "rgba(255,255,255,0.13)", color: refreshing ? MUT : G, border: `1px solid ${refreshing ? "rgba(255,255,255,0.22)" : G + "55"}`, borderRadius: 10, cursor: refreshing ? "default" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 5, transition: "all .2s", backdropFilter:"none", WebkitBackdropFilter:"none" }}>
                 <span style={{ display: "inline-block", animation: refreshing ? "spin 1s linear infinite" : "none" }}>🔄</span>
                 {refreshing ? "Đang tải..." : "Làm mới"}
               </button>
@@ -2476,7 +2478,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
               {["all","pending","confirmed","active","completed","cancelled"].map(s => (
                 <button key={s} onClick={() => setFilterStatus(s)}
-                  style={{ padding: "7px 14px", background: filterStatus === s ? `${G}22` : "rgba(255,255,255,0.13)", color: filterStatus === s ? G : MUT, border: `1px solid ${filterStatus === s ? G + "55" : "rgba(255,255,255,0.22)"}`, borderRadius: 99, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", fontWeight: filterStatus === s ? 700 : 400, transition: "all .15s", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)" }}>
+                  style={{ padding: "7px 14px", background: filterStatus === s ? `${G}22` : "rgba(255,255,255,0.13)", color: filterStatus === s ? G : MUT, border: `1px solid ${filterStatus === s ? G + "55" : "rgba(255,255,255,0.22)"}`, borderRadius: 99, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", fontWeight: filterStatus === s ? 700 : 400, transition: "all .15s", backdropFilter:"none", WebkitBackdropFilter:"none" }}>
                   {s === "all" ? "Tất cả" : (STATUS_CFG[s]?.label || s)}
                 </button>
               ))}
@@ -2499,7 +2501,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                   const fbStatus = feedbacks.find(_matchFb)?.status;
                   const canFeedback = o.status === "completed"; // Luôn cho phép đánh giá đơn hoàn thành
                   return (
-                    <div key={o.id} style={{ background:"rgba(255,255,255,0.13)", border:`1px solid ${o.status === "active" ? "#f59e0b44" : o.status === "completed" ? "#22c55e33" : "rgba(255,255,255,0.22)"}`, borderRadius:16, padding:"16px 20px", backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
+                    <div key={o.id} style={{ background:"rgba(245,249,255,0.98)", border:`1px solid ${o.status === "active" ? "#f59e0b44" : o.status === "completed" ? "#22c55e33" : "rgba(255,255,255,0.22)"}`, borderRadius:16, padding:"16px 20px", backdropFilter:"none", WebkitBackdropFilter:"none", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
                         <div>
                           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
@@ -2610,7 +2612,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 {myFeedbacks.map(f => {
                   return (
-                  <div key={f.id} style={{ background:"rgba(255,255,255,0.13)", border:`1px solid ${f.status === "approved" ? "#22c55e44" : f.status === "rejected" ? "#ef444433" : "rgba(255,255,255,0.22)"}`, borderRadius:16, padding:"18px 20px", backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
+                  <div key={f.id} style={{ background:"rgba(245,249,255,0.98)", border:`1px solid ${f.status === "approved" ? "#22c55e44" : f.status === "rejected" ? "#ef444433" : "rgba(255,255,255,0.22)"}`, borderRadius:16, padding:"18px 20px", backdropFilter:"none", WebkitBackdropFilter:"none", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                       <div>
                         <div style={{ color: G, fontSize: 13, fontWeight: 700, marginBottom: 3 }}>{"★".repeat(f.rating)}<span style={{ color: "#333" }}>{"★".repeat(5 - f.rating)}</span></div>
@@ -2678,15 +2680,15 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                         <div key={b.label} className="badge-card" style={{
                           minWidth:140, flexShrink:0,
                           scrollSnapAlign:"start",
-                          background:"rgba(255,255,255,0.13)",
+                          background:"rgba(245,249,255,0.98)",
                           border:`1.5px solid ${isTop ? G+"cc" : b.unlocked ? b.col+"55" : "rgba(255,255,255,0.22)"}`,
                           borderRadius:28,
                           padding:"20px 14px 16px",
                           textAlign:"center",
                           position:"relative",
                           opacity: b.unlocked ? 1 : 0.45,
-                          backdropFilter:"blur(52px) saturate(180%) brightness(1.04)",
-                          WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)",
+                          backdropFilter:"none",
+                          WebkitBackdropFilter:"none",
                           boxShadow: isTop ? `0 0 28px ${G}28, 0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset` : "0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset",
                         }}>
                           {/* dot / lock */}
@@ -2727,7 +2729,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                 { icon:"💬", label:"Đánh giá",           value: myFeedbacks.filter(f=>f.status==="approved").length,          unit:"reviews", col:"#f59e0b" },
                 { icon:"🏅", label:"Huy hiệu",           value: badges.length,                                                unit:"/ 6",     col:G },
               ].map(({ icon, label, value, unit, col }) => (
-                <div key={label} style={{ background:"rgba(255,255,255,0.13)", border:`1px solid rgba(255,255,255,0.22)`, borderRadius:22, padding:"16px 16px 14px", backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
+                <div key={label} style={{ background:"rgba(245,249,255,0.98)", border:`1px solid rgba(200,218,238,0.80)`, borderRadius:22, padding:"16px 16px 14px", backdropFilter:"none", WebkitBackdropFilter:"none", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:10 }}>
                     <span style={{ fontSize:16 }}>{icon}</span>
                     <span style={{ color:MUT, fontSize:10.5, fontFamily:"system-ui,sans-serif", fontWeight:600, letterSpacing:0.5 }}>{label}</span>
@@ -2759,7 +2761,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             <div style={{ width:36, height:3, background:G, borderRadius:2, marginBottom:28 }} />
 
             {/* ── Avatar block ── */}
-            <div style={{ background:"rgba(255,255,255,0.13)", border:`1px solid rgba(255,255,255,0.22)`, borderRadius:28, padding:"28px 20px 24px", textAlign:"center", marginBottom:14, backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
+            <div style={{ background:"rgba(245,249,255,0.98)", border:`1px solid rgba(200,218,238,0.80)`, borderRadius:28, padding:"28px 20px 24px", textAlign:"center", marginBottom:14, backdropFilter:"none", WebkitBackdropFilter:"none", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
               <div style={{ position:"relative", display:"inline-block", marginBottom:14 }}
                 onClick={() => avatarRef.current?.click()} title="Đổi ảnh đại diện">
                 <div style={{ width:96, height:96, borderRadius:"50%", background:`radial-gradient(circle, ${G}22, rgba(255,255,255,0.10))`, border:`3px solid ${G}88`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:40, overflow:"hidden", cursor:"pointer", boxShadow:`0 0 0 5px ${G}14, 0 0 32px ${G}18` }}>
@@ -2786,7 +2788,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             </div>
 
             {/* ── Form fields ── */}
-            <div style={{ background:"rgba(255,255,255,0.13)", border:`1px solid rgba(255,255,255,0.22)`, borderRadius:28, overflow:"hidden", marginBottom:14, backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
+            <div style={{ background:"rgba(245,249,255,0.98)", border:`1px solid rgba(200,218,238,0.80)`, borderRadius:28, overflow:"hidden", marginBottom:14, backdropFilter:"none", WebkitBackdropFilter:"none", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
               {[
                 { key:"displayName", icon:"👤", label:"Tên hiển thị",     hint:"Tự động điền khi đặt máy",         type:"text", placeholder:"Tên của bạn" },
                 { key:"phone",       icon:"📞", label:"Số điện thoại",    hint:"Gửi thông tin đặt máy",            type:"tel",  placeholder:"0901 234 567" },
@@ -2817,7 +2819,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                   <span style={{ color:MUT, fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>TÀI KHOẢN GOOGLE</span>
                 </div>
                 <input readOnly value={loggedUser?.email || ""}
-                  style={{ width:"100%", padding:"12px 14px", background:"rgba(255,255,255,0.10)", border:"1px solid rgba(255,255,255,0.22)", borderRadius:16, color:MUT, fontSize:13, fontFamily:"system-ui,sans-serif", boxSizing:"border-box" }} />
+                  style={{ width:"100%", padding:"12px 14px", background:"rgba(255,255,255,0.10)", border:"1px solid rgba(200,218,238,0.80)", borderRadius:16, color:MUT, fontSize:13, fontFamily:"system-ui,sans-serif", boxSizing:"border-box" }} />
                 <div style={{ marginTop:8, display:"flex", alignItems:"center", gap:5 }}>
                   <span style={{ color:"#22c55e", fontSize:13 }}>✅</span>
                   <span style={{ color:"#22c55e", fontSize:11, fontWeight:600, fontFamily:"system-ui,sans-serif" }}>Đã xác minh</span>
