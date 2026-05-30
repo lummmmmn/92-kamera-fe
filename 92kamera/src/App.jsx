@@ -9178,19 +9178,39 @@ function AppRoot() {
              thay bằng màu solid đồng nhất giống web khi blur hoạt động */
           #cameras, #accessories, #about, #feedback, #quy-trinh,
           .acc-section, .section-main {
-            background: rgba(255,255,255,0.60) !important;
+            background: rgba(255,255,255,0.22) !important;
             -webkit-backdrop-filter: none !important;
             backdrop-filter: none !important;
           }
           .acc-section::before {
-            background: rgba(255,255,255,0.60) !important;
+            background: rgba(255,255,255,0.22) !important;
             -webkit-backdrop-filter: none !important;
             backdrop-filter: none !important;
           }
           footer {
-            background: rgba(175,218,232,0.92) !important;
+            background: rgba(143,200,212,0.55) !important;
             -webkit-backdrop-filter: none !important;
             backdrop-filter: none !important;
+          }
+          /* Chữ nổi hơn trên mobile — tăng contrast */
+          #cameras, #accessories, #about, #feedback, #quy-trinh,
+          .acc-section {
+            color: #05111F !important;
+          }
+          #cameras h1, #cameras h2, #cameras h3,
+          #accessories h1, #accessories h2, #accessories h3,
+          #about h1, #about h2, #about h3,
+          #feedback h1, #feedback h2, #feedback h3,
+          #quy-trinh h1, #quy-trinh h2, #quy-trinh h3 {
+            color: #05111F !important;
+            text-shadow: 0 2px 8px rgba(255,255,255,0.6), 0 1px 0 rgba(255,255,255,0.8) !important;
+            font-weight: 800 !important;
+          }
+          #cameras p, #accessories p, #about p, #feedback p, #quy-trinh p,
+          #cameras span:not([style*="opacity"]), #accessories span:not([style*="opacity"]),
+          #about span:not([style*="opacity"]), #feedback span:not([style*="opacity"]) {
+            color: #05111F !important;
+            text-shadow: 0 1px 4px rgba(255,255,255,0.5) !important;
           }
           .nav-inner,
           [style*="linear-gradient(160deg, rgba(232,240,248"][style*="blur("] {
