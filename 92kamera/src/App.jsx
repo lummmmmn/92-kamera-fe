@@ -145,7 +145,7 @@ const isDateInOrder = (dateStr, o) => {
   return dateStr >= o.date && dateStr < endDate;
 };
 
-const G = "#0D1B2A", BG = "#B8D4DC", CARD = "#C5D8EC", BR = "#8BAECF", TXT = "#05111F", MUT = "#4A6A8A", RED = "#C0290A";
+const G = "#0D1B2A", BG = "#8fc8d4", CARD = "#C5D8EC", BR = "#8BAECF", TXT = "#05111F", MUT = "#4A6A8A", RED = "#C0290A";
 const CARD2 = "#B5CEEA", BR2 = "#7A9FBF";
 
 // ── GOOGLE OAUTH ──
@@ -1125,8 +1125,8 @@ function CamImage({ cam, height = 176 }) {
 function LensBackground({ isMob }) {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", overflow: "hidden" }}>
-      <div style={{ position: "absolute", inset: 0, background: "#85C5DC" }} />
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(172deg, #6BB8D4 0%, #80C2D8 27%, #96CBDB 53%, #AACFDB 78%, #B8D4DC 100%)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "#8fc8d4" }} />
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 130% 85% at 50% 22%, #5fccdd 0%, transparent 70%), radial-gradient(ellipse 55% 40% at 15% 55%, rgba(77,193,213,0.7) 0%, transparent 60%), linear-gradient(180deg, #8fc8d4 0%, #a9b8bc 100%)" }} />
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(236,243,248,0.58) 0%, transparent 40%, rgba(220,235,244,0.27) 100%)" }} />
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(186,206,220,0.30) 0%, transparent 50%)" }} />
       {/* Vintage: phủ tone ấm lạnh xen nhau nhẹ */}
@@ -1641,15 +1641,19 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
   const dur = Math.max(35, band.length * 4);
 
   return (
-    <div id="feedback" style={{ padding: isMobile ? "56px 0 52px" : "72px 0 64px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28, border: "1px solid rgba(255,255,255,0.22)", boxShadow: "0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset", background: "rgba(255,255,255,0.13)", backdropFilter: "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden", position: "relative" }}>
-      <style>{`@keyframes marqueeRun{0%{transform:translateX(0)}100%{transform:translateX(-50%)}} .marquee-band{will-change:transform;}`}</style>
+    <div id="feedback" style={{ padding: isMobile ? "56px 0 52px" : "72px 0 64px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28, border: "1px solid rgba(255,255,255,0.22)", boxShadow: "0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset", background: isMobile ? "rgba(230,240,255,0.82)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden", position: "relative" }}>
+      <style>{`
+        @keyframes marqueeRun{0%{transform:translate3d(0,0,0)}100%{transform:translate3d(-50%,0,0)}}
+        .marquee-band{will-change:transform;transform:translateZ(0);backface-visibility:hidden;}
+        .fb-card{contain:layout style paint;}
+      `}</style>
 
       {/* Header */}
       <div style={{ textAlign: "center", marginBottom: 36, padding: "0 16px" }}>
         <div style={{ fontSize: 9, letterSpacing: 7, color: G, opacity: 0.55, marginBottom: 14, fontFamily: "var(--font-ui)", fontWeight: 700 }}>ĐÁNH GIÁ / FEEDBACK</div>
         <h2 style={{ fontSize: isMobile ? 24 : 30, fontWeight: 700, letterSpacing: 1, margin: "0 0 14px", color: G, fontFamily: "var(--font-display)", textShadow: "0 1px 3px rgba(13,27,42,0.10)" }}>Feedback Khách Hàng</h2>
         <div style={{ width: 52, height: 1, background: `linear-gradient(90deg,transparent,${G}55,transparent)`, margin: "0 auto 20px" }} />
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.22)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 99, padding: "5px 18px", backdropFilter: "blur(24px) saturate(160%)" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.50)", border: "1px solid rgba(255,255,255,0.55)", borderRadius: 99, padding: "5px 18px" }}>
           <span style={{ color: "#c9a84c", fontSize: 14 }}>{"★".repeat(Math.round(parseFloat(avgRating)))}</span>
           <span style={{ color: "#c9a84c", fontWeight: 800, fontSize: 13, fontFamily: "var(--font-ui)" }}>{avgRating}</span>
           <span style={{ color: MUT, fontSize: 11, fontFamily: "var(--font-ui)", fontWeight: 500 }}>· {total} đánh giá</span>
@@ -1658,35 +1662,35 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
 
       {/* Dải băng */}
       <div style={{ position: "relative" }}
-        onMouseEnter={() => setPaused(true)}
-        onMouseLeave={() => setPaused(false)}>
+        onMouseEnter={() => !isMobile && setPaused(true)}
+        onMouseLeave={() => !isMobile && setPaused(false)}>
 
         {/* Fade edges */}
-        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 80, background: "linear-gradient(to right,rgba(255,255,255,0.85),transparent)", zIndex: 2, pointerEvents: "none" }} />
-        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 80, background: "linear-gradient(to left,rgba(255,255,255,0.85),transparent)", zIndex: 2, pointerEvents: "none" }} />
+        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: isMobile ? 40 : 80, background: isMobile ? "linear-gradient(to right,rgba(220,234,255,0.95),transparent)" : "linear-gradient(to right,rgba(255,255,255,0.85),transparent)", zIndex: 2, pointerEvents: "none" }} />
+        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: isMobile ? 40 : 80, background: isMobile ? "linear-gradient(to left,rgba(220,234,255,0.95),transparent)" : "linear-gradient(to left,rgba(255,255,255,0.85),transparent)", zIndex: 2, pointerEvents: "none" }} />
 
         <div className="marquee-band" style={{
-          display: "flex", gap: 16,
+          display: "flex", gap: isMobile ? 12 : 16,
           width: "max-content",
           animation: `marqueeRun ${dur}s linear infinite`,
           animationPlayState: paused ? "paused" : "running",
         }}>
           {band.map((c, i) => (
-            <div key={c.key + "_" + i} style={{
-              width: isMobile ? 240 : 280,
+            <div key={c.key + "_" + i} className="fb-card" style={{
+              width: isMobile ? 220 : 280,
               flexShrink: 0,
-              background: "rgba(255,255,255,0.72)",
+              background: isMobile ? "rgba(255,255,255,0.90)" : "rgba(255,255,255,0.72)",
               border: "1px solid rgba(5,17,31,0.10)",
-              borderRadius: 20,
-              padding: "20px 22px 18px",
+              borderRadius: 18,
+              padding: isMobile ? "16px 18px 14px" : "20px 22px 18px",
               display: "flex", flexDirection: "column", gap: 10,
-              transition: "all .28s cubic-bezier(.34,1.56,.64,1)",
-              backdropFilter: "blur(20px) saturate(130%)",
-              WebkitBackdropFilter: "blur(20px) saturate(130%)",
-              boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset, 0 4px 20px rgba(5,17,31,0.08)",
+              /* Bỏ hoàn toàn backdrop-filter trên mobile — nguyên nhân chính gây lag */
+              backdropFilter: isMobile ? "none" : "blur(20px) saturate(130%)",
+              WebkitBackdropFilter: isMobile ? "none" : "blur(20px) saturate(130%)",
+              boxShadow: isMobile ? "0 2px 12px rgba(5,17,31,0.10)" : "0 1px 0 rgba(255,255,255,0.9) inset, 0 4px 20px rgba(5,17,31,0.08)",
             }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(5,17,31,0.20)"; e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 1px 0 rgba(255,255,255,0.95) inset, 0 16px 48px rgba(5,17,31,0.15)"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(5,17,31,0.10)"; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 1px 0 rgba(255,255,255,0.9) inset, 0 4px 20px rgba(5,17,31,0.08)"; }}
+              onMouseEnter={e => { if(isMobile) return; e.currentTarget.style.borderColor = "rgba(5,17,31,0.20)"; e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 1px 0 rgba(255,255,255,0.95) inset, 0 16px 48px rgba(5,17,31,0.15)"; }}
+              onMouseLeave={e => { if(isMobile) return; e.currentTarget.style.borderColor = "rgba(5,17,31,0.10)"; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 1px 0 rgba(255,255,255,0.9) inset, 0 4px 20px rgba(5,17,31,0.08)"; }}
             >
               {/* Stars */}
               <div>
@@ -3533,7 +3537,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
     }
   };
 
-  const overlay = { position: "fixed", inset: 0, zIndex: 300, background: "linear-gradient(172deg, #6BB8D4 0%, #80C2D8 27%, #96CBDB 53%, #AACFDB 78%, #B8D4DC 100%)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px", overflowY: "auto" };
+  const overlay = { position: "fixed", inset: 0, zIndex: 300, background: "radial-gradient(ellipse 130% 85% at 50% 22%, #5fccdd 0%, transparent 70%), radial-gradient(ellipse 55% 40% at 15% 55%, rgba(77,193,213,0.7) 0%, transparent 60%), linear-gradient(180deg, #8fc8d4 0%, #a9b8bc 100%)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px", overflowY: "auto" };
   const box = { background: "linear-gradient(160deg, rgba(232,240,248,0.88) 0%, rgba(197,216,236,0.80) 60%, rgba(181,206,230,0.76) 100%)", border: "1px solid rgba(255,255,255,0.60)", borderRadius: 20, padding: "min(20px, 3vw)", width: "min(660px,96vw)", position: "relative", margin: "auto", transition: "width .3s", backdropFilter: "blur(28px) saturate(160%) brightness(1.04)", WebkitBackdropFilter: "blur(28px) saturate(160%) brightness(1.04)", boxShadow: "0 1px 0 rgba(255,255,255,0.80) inset, 0 -1px 0 rgba(0,0,0,0.06) inset, 0 12px 48px rgba(0,0,0,0.30), 0 2px 16px rgba(0,0,0,0.16)" };
   const inpS = { padding: "11px 14px", background: "rgba(255,255,255,0.55)", border: "1px solid rgba(255,255,255,0.70)", borderRadius: 12, color: TXT, fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "system-ui,sans-serif", transition: "border .2s", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" };
   const qtyBtn = (onClick, label) => (
@@ -3650,42 +3654,64 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                   const details = CAM_DETAIL[c.name] || [c.desc];
                   const isPopular = CAM_POPULAR.includes(c.name);
                   return (
-                    <div key={c.id} style={{
-                      border: `${isSelected ? "2px" : "1px"} solid ${isSelected ? "#2979CF" : BR}`,
-                      borderRadius: 16,
-                      background: isSelected ? "rgba(197,228,248,0.85)" : "rgba(255,255,255,0.38)",
-                      transition: "all .2s",
+                    <div key={c.id} onClick={() => toggleCam(c)} style={{
+                      border: `2px solid ${isSelected ? "#2979CF" : "rgba(255,255,255,0.55)"}`,
+                      borderRadius: 18,
+                      background: isSelected
+                        ? "linear-gradient(145deg, rgba(219,236,255,0.95) 0%, rgba(197,224,252,0.92) 100%)"
+                        : "linear-gradient(145deg, rgba(255,255,255,0.72) 0%, rgba(235,243,255,0.60) 100%)",
+                      transition: "all .22s cubic-bezier(.4,0,.2,1)",
                       overflow: "hidden",
                       position: "relative",
-                      boxShadow: isSelected ? "0 0 0 3px rgba(41,121,207,0.22), 0 6px 24px rgba(41,121,207,0.18)" : "none",
+                      cursor: "pointer",
+                      boxShadow: isSelected
+                        ? "0 0 0 3px rgba(41,121,207,0.28), 0 8px 32px rgba(41,121,207,0.22), inset 0 1px 0 rgba(255,255,255,0.8)"
+                        : "0 2px 12px rgba(30,60,120,0.10), inset 0 1px 0 rgba(255,255,255,0.75)",
                     }}>
                       {/* Ảnh — full card, tỉ lệ cố định */}
-                      <div style={{ position: "relative", width: "100%", paddingTop: "130%", background: "rgba(197,216,236,0.60)", overflow: "hidden" }}>
-                        {isPopular && null}
-                        {/* Checkbox góc trên phải */}
-                        <div onClick={() => toggleCam(c)} style={{ position: "absolute", top: 7, right: 7, zIndex: 3, width: 24, height: 24, borderRadius: 10, border: `2px solid ${isSelected ? "#2979CF" : "rgba(255,255,255,0.6)"}`, background: isSelected ? "#2979CF" : "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all .2s", boxShadow: isSelected ? "0 0 8px rgba(41,121,207,0.6)" : "none" }}>
-                          {isSelected && <span style={{ color: "#fff", fontSize: 13, fontWeight: 900, lineHeight: 1 }}>✓</span>}
+                      <div style={{ position: "relative", width: "100%", paddingTop: "130%", background: "linear-gradient(145deg, rgba(210,228,248,0.70) 0%, rgba(190,215,240,0.55) 100%)", overflow: "hidden" }}>
+                        {/* Checkbox góc trên phải — z-index cao, pointer-events riêng */}
+                        <div
+                          onClick={e => { e.stopPropagation(); toggleCam(c); }}
+                          style={{
+                            position: "absolute", top: 9, right: 9, zIndex: 10,
+                            width: 28, height: 28, borderRadius: 9,
+                            border: `2.5px solid ${isSelected ? "#2979CF" : "rgba(60,80,120,0.55)"}`,
+                            background: isSelected
+                              ? "linear-gradient(135deg, #2979CF 0%, #1a5bb8 100%)"
+                              : "rgba(255,255,255,0.88)",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            cursor: "pointer", transition: "all .2s",
+                            boxShadow: isSelected
+                              ? "0 0 0 3px rgba(41,121,207,0.30), 0 2px 8px rgba(41,121,207,0.5)"
+                              : "0 1px 4px rgba(0,0,0,0.18), 0 0 0 1px rgba(255,255,255,0.6)",
+                          }}
+                        >
+                          {isSelected
+                            ? <span style={{ color: "#fff", fontSize: 15, fontWeight: 900, lineHeight: 1 }}>✓</span>
+                            : <span style={{ color: "rgba(80,100,140,0.55)", fontSize: 13, fontWeight: 700, lineHeight: 1 }}>○</span>
+                          }
                         </div>
                         {/* Ảnh */}
                         {c.images?.length > 0
-                          ? <img src={c.images[0]} alt={c.name} onClick={() => toggleCam(c)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }} />
-                          : <span onClick={() => toggleCam(c)} style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, cursor: "pointer" }}>{c.icon}</span>}
+                          ? <img src={c.images[0]} alt={c.name} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }} />
+                          : <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, cursor: "pointer" }}>{c.icon}</span>}
 
-                        {/* Info overlay — dưới cùng, mặc định trong suốt */}
+                        {/* Info overlay — dưới cùng */}
                         <div style={{
                           position: "absolute", bottom: 0, left: 0, right: 0,
                           background: expandedCam === c.id
-                            ? "linear-gradient(to top, rgba(8,6,0,0.97) 0%, rgba(8,6,0,0.95) 80%, rgba(8,6,0,0.6) 100%)"
-                            : "linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.35) 60%, transparent 100%)",
+                            ? "linear-gradient(to top, rgba(6,8,18,0.97) 0%, rgba(6,8,18,0.94) 75%, rgba(6,8,18,0.55) 100%)"
+                            : "linear-gradient(to top, rgba(6,10,28,0.80) 0%, rgba(6,10,28,0.42) 55%, transparent 100%)",
                           transition: "background .3s",
-                          padding: expandedCam === c.id ? "14px 12px 12px" : "28px 12px 10px",
+                          padding: expandedCam === c.id ? "14px 12px 12px" : "32px 12px 11px",
                         }}>
                           {/* Tên + giá */}
-                          <div onClick={() => toggleCam(c)} style={{ cursor: "pointer", marginBottom: 5 }}>
-                            <div style={{ color: isSelected ? "#E0F0FF" : "#fff", fontWeight: 700, fontSize: 13, fontFamily: "system-ui,sans-serif", lineHeight: 1.3, marginBottom: 3, textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>{c.name}</div>
+                          <div style={{ cursor: "pointer", marginBottom: 5 }}>
+                            <div style={{ color: "#fff", fontWeight: 800, fontSize: 13, fontFamily: "system-ui,sans-serif", lineHeight: 1.3, marginBottom: 4, textShadow: "0 1px 8px rgba(0,0,0,1), 0 0 20px rgba(0,0,0,0.6)" }}>{c.name}</div>
                             <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-                              <span style={{ color: "#ffffff", fontWeight: 800, fontSize: 14, fontFamily: "system-ui,sans-serif", textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}>{new Intl.NumberFormat("vi-VN").format(c.price)}đ</span>
-                              <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 10, fontFamily: "system-ui,sans-serif" }}>/ ngày</span>
+                              <span style={{ color: "#fff", fontWeight: 900, fontSize: 14, fontFamily: "system-ui,sans-serif", textShadow: "0 1px 8px rgba(0,0,0,1)" }}>{new Intl.NumberFormat("vi-VN").format(c.price)}đ</span>
+                              <span style={{ color: "rgba(255,255,255,0.58)", fontSize: 10, fontFamily: "system-ui,sans-serif" }}>/ ngày</span>
                             </div>
                           </div>
 
@@ -3717,12 +3743,12 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                         const totalStock = c.qty || 1;
                         const curQty = selCams[c.id] || 1;
                         return (
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "rgba(255,255,255,0.50)", borderTop: `1px solid rgba(255,255,255,0.60)` }}>
-                          <span style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif" }}>SL:</span>
+                        <div onClick={e => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", background: "linear-gradient(90deg, rgba(219,236,255,0.90) 0%, rgba(205,228,252,0.85) 100%)", borderTop: "1px solid rgba(41,121,207,0.20)" }}>
+                          <span style={{ color: "#4a6fa5", fontSize: 10, fontFamily: "system-ui,sans-serif", fontWeight: 600 }}>SL:</span>
                           {qtyBtn(() => setCamQty(c.id, curQty - 1, totalStock), "−")}
-                          <span style={{ color: G, fontWeight: 700, fontSize: 14, minWidth: 20, textAlign: "center", fontFamily: "system-ui,sans-serif" }}>{curQty}</span>
+                          <span style={{ color: "#1a4a8a", fontWeight: 800, fontSize: 14, minWidth: 20, textAlign: "center", fontFamily: "system-ui,sans-serif" }}>{curQty}</span>
                           {qtyBtn(() => setCamQty(c.id, curQty + 1, totalStock), "+")}
-                          <span style={{ color: "#444", fontSize: 9, fontFamily: "system-ui,sans-serif", marginLeft: "auto" }}>
+                          <span style={{ color: "#6a8ab0", fontSize: 9, fontFamily: "system-ui,sans-serif", marginLeft: "auto", fontWeight: 500 }}>
                             / {totalStock} máy
                           </span>
                         </div>
@@ -6256,7 +6282,7 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
   return (
     <>
     {/* Backdrop with subtle grain */}
-    <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "linear-gradient(172deg, #6BB8D4 0%, #80C2D8 27%, #96CBDB 53%, #AACFDB 78%, #B8D4DC 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "radial-gradient(ellipse 130% 85% at 50% 22%, #5fccdd 0%, transparent 70%), radial-gradient(ellipse 55% 40% at 15% 55%, rgba(77,193,213,0.7) 0%, transparent 60%), linear-gradient(180deg, #8fc8d4 0%, #a9b8bc 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(236,243,248,0.58) 0%, transparent 40%, rgba(220,235,244,0.27) 100%)", pointerEvents: "none" }} />
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(186,206,220,0.30) 0%, transparent 50%)", pointerEvents: "none" }} />
       <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.16, pointerEvents: "none" }} xmlns="http://www.w3.org/2000/svg">
@@ -8760,7 +8786,7 @@ function FlowBg() {
       lastDraw = now;
 
       const W = canvas.width, H = canvas.height;
-      ctx.fillStyle = "#96CBDB";
+      ctx.fillStyle = "#8fc8d4";
       ctx.fillRect(0, 0, W, H);
 
       blobs.forEach(b => {
@@ -8852,8 +8878,8 @@ function SplashScreen({ onDone }) {
       ...irisStyle,
     }}>
       {/* Lớp 1: gradient nền — khớp hero */}
-      <div style={{ position: "absolute", inset: 0, background: "#85C5DC" }} />
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(172deg, #6BB8D4 0%, #80C2D8 27%, #96CBDB 53%, #AACFDB 78%, #B8D4DC 100%)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "#8fc8d4" }} />
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 130% 85% at 50% 22%, #5fccdd 0%, transparent 70%), radial-gradient(ellipse 55% 40% at 15% 55%, rgba(77,193,213,0.7) 0%, transparent 60%), linear-gradient(180deg, #8fc8d4 0%, #a9b8bc 100%)" }} />
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(236,243,248,0.58) 0%, transparent 40%, rgba(220,235,244,0.27) 100%)" }} />
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(186,206,220,0.30) 0%, transparent 50%)" }} />
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(200,220,210,0.10) 0%, transparent 50%, rgba(180,200,225,0.08) 100%)" }} />
@@ -9146,7 +9172,7 @@ function AppRoot() {
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: "#96CBDB", position: "relative", animation: "contentIn 1s ease both", paddingBottom: 0 }}>
+    <div style={{ minHeight: "100vh", background: "radial-gradient(ellipse 130% 85% at 50% 22%, #5fccdd 0%, transparent 70%), radial-gradient(ellipse 55% 40% at 15% 55%, rgba(77,193,213,0.7) 0%, transparent 60%), linear-gradient(180deg, #8fc8d4 0%, #a9b8bc 100%)", position: "relative", animation: "contentIn 1s ease both", paddingBottom: 0 }}>
       <FlowBg />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap&subset=vietnamese');
@@ -9156,7 +9182,7 @@ function AppRoot() {
         }
         *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
         html{-webkit-text-size-adjust:100%;scroll-padding-top:72px;}
-        body{background:#96CBDB;overflow-x:hidden;} canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
+        body{background:linear-gradient(180deg, #8fc8d4 0%, #a9b8bc 100%);overflow-x:hidden;} canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
         ::-webkit-scrollbar{width:4px;height:4px}
         ::-webkit-scrollbar-track{background:#C8C8C8}
         ::-webkit-scrollbar-thumb{background:#888888;border-radius:2px}
