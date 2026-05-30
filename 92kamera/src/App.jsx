@@ -1627,7 +1627,7 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
   const avgRating = total ? (cards.reduce((s, c) => s + c.rating, 0) / total).toFixed(1) : "5.0";
 
   if (total === 0) return (
-    <div id="feedback" style={{ padding: "72px 16px 64px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28, border: "1px solid rgba(255,255,255,0.22)", boxShadow: "0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset", background: "rgba(255,255,255,0.13)", backdropFilter: "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: "blur(52px) saturate(180%) brightness(1.04)", textAlign: "center" }}>
+    <div id="feedback" style={{ padding: "72px 16px 64px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28, border: "1px solid rgba(255,255,255,0.22)", boxShadow: "0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset", background: isMobile ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", textAlign: "center" }}>
       <h2 style={{ fontSize: 30, fontWeight: 700, letterSpacing: 1, margin: "0 0 14px", color: G, fontFamily: "var(--font-display)", textShadow: "0 1px 3px rgba(13,27,42,0.10)" }}>Feedback Khách Hàng</h2>
       <div style={{ width: 36, height: 1, background: G, margin: "0 auto 20px" }} />
       <div style={{ color: TXT, fontSize: 13, fontFamily: "var(--font-ui)", fontWeight: 500 }}>Chưa có feedback nào được duyệt</div>
@@ -1641,19 +1641,15 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
   const dur = Math.max(35, band.length * 4);
 
   return (
-    <div id="feedback" style={{ padding: isMobile ? "56px 0 52px" : "72px 0 64px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28, border: "1px solid rgba(255,255,255,0.22)", boxShadow: "0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset", background: isMobile ? "rgba(230,240,255,0.82)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden", position: "relative" }}>
-      <style>{`
-        @keyframes marqueeRun{0%{transform:translate3d(0,0,0)}100%{transform:translate3d(-50%,0,0)}}
-        .marquee-band{will-change:transform;transform:translateZ(0);backface-visibility:hidden;}
-        .fb-card{contain:layout style paint;}
-      `}</style>
+    <div id="feedback" style={{ padding: isMobile ? "56px 0 52px" : "72px 0 64px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28, border: "1px solid rgba(255,255,255,0.22)", boxShadow: "0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset", background: isMobile ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden", position: "relative" }}>
+      <style>{`@keyframes marqueeRun{0%{transform:translateX(0)}100%{transform:translateX(-50%)}} .marquee-band{will-change:transform;}`}</style>
 
       {/* Header */}
       <div style={{ textAlign: "center", marginBottom: 36, padding: "0 16px" }}>
         <div style={{ fontSize: 9, letterSpacing: 7, color: G, opacity: 0.55, marginBottom: 14, fontFamily: "var(--font-ui)", fontWeight: 700 }}>ĐÁNH GIÁ / FEEDBACK</div>
         <h2 style={{ fontSize: isMobile ? 24 : 30, fontWeight: 700, letterSpacing: 1, margin: "0 0 14px", color: G, fontFamily: "var(--font-display)", textShadow: "0 1px 3px rgba(13,27,42,0.10)" }}>Feedback Khách Hàng</h2>
         <div style={{ width: 52, height: 1, background: `linear-gradient(90deg,transparent,${G}55,transparent)`, margin: "0 auto 20px" }} />
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.50)", border: "1px solid rgba(255,255,255,0.55)", borderRadius: 99, padding: "5px 18px" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.22)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 99, padding: "5px 18px", backdropFilter: "blur(24px) saturate(160%)" }}>
           <span style={{ color: "#c9a84c", fontSize: 14 }}>{"★".repeat(Math.round(parseFloat(avgRating)))}</span>
           <span style={{ color: "#c9a84c", fontWeight: 800, fontSize: 13, fontFamily: "var(--font-ui)" }}>{avgRating}</span>
           <span style={{ color: MUT, fontSize: 11, fontFamily: "var(--font-ui)", fontWeight: 500 }}>· {total} đánh giá</span>
@@ -1662,35 +1658,35 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
 
       {/* Dải băng */}
       <div style={{ position: "relative" }}
-        onMouseEnter={() => !isMobile && setPaused(true)}
-        onMouseLeave={() => !isMobile && setPaused(false)}>
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}>
 
         {/* Fade edges */}
-        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: isMobile ? 40 : 80, background: isMobile ? "linear-gradient(to right,rgba(220,234,255,0.95),transparent)" : "linear-gradient(to right,rgba(255,255,255,0.85),transparent)", zIndex: 2, pointerEvents: "none" }} />
-        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: isMobile ? 40 : 80, background: isMobile ? "linear-gradient(to left,rgba(220,234,255,0.95),transparent)" : "linear-gradient(to left,rgba(255,255,255,0.85),transparent)", zIndex: 2, pointerEvents: "none" }} />
+        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 80, background: "linear-gradient(to right,rgba(255,255,255,0.85),transparent)", zIndex: 2, pointerEvents: "none" }} />
+        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 80, background: "linear-gradient(to left,rgba(255,255,255,0.85),transparent)", zIndex: 2, pointerEvents: "none" }} />
 
         <div className="marquee-band" style={{
-          display: "flex", gap: isMobile ? 12 : 16,
+          display: "flex", gap: 16,
           width: "max-content",
           animation: `marqueeRun ${dur}s linear infinite`,
           animationPlayState: paused ? "paused" : "running",
         }}>
           {band.map((c, i) => (
-            <div key={c.key + "_" + i} className="fb-card" style={{
-              width: isMobile ? 220 : 280,
+            <div key={c.key + "_" + i} style={{
+              width: isMobile ? 240 : 280,
               flexShrink: 0,
-              background: isMobile ? "rgba(255,255,255,0.90)" : "rgba(255,255,255,0.72)",
+              background: "rgba(255,255,255,0.72)",
               border: "1px solid rgba(5,17,31,0.10)",
-              borderRadius: 18,
-              padding: isMobile ? "16px 18px 14px" : "20px 22px 18px",
+              borderRadius: 20,
+              padding: "20px 22px 18px",
               display: "flex", flexDirection: "column", gap: 10,
-              /* Bỏ hoàn toàn backdrop-filter trên mobile — nguyên nhân chính gây lag */
-              backdropFilter: isMobile ? "none" : "blur(20px) saturate(130%)",
-              WebkitBackdropFilter: isMobile ? "none" : "blur(20px) saturate(130%)",
-              boxShadow: isMobile ? "0 2px 12px rgba(5,17,31,0.10)" : "0 1px 0 rgba(255,255,255,0.9) inset, 0 4px 20px rgba(5,17,31,0.08)",
+              transition: "all .28s cubic-bezier(.34,1.56,.64,1)",
+              backdropFilter: "blur(20px) saturate(130%)",
+              WebkitBackdropFilter: "blur(20px) saturate(130%)",
+              boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset, 0 4px 20px rgba(5,17,31,0.08)",
             }}
-              onMouseEnter={e => { if(isMobile) return; e.currentTarget.style.borderColor = "rgba(5,17,31,0.20)"; e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 1px 0 rgba(255,255,255,0.95) inset, 0 16px 48px rgba(5,17,31,0.15)"; }}
-              onMouseLeave={e => { if(isMobile) return; e.currentTarget.style.borderColor = "rgba(5,17,31,0.10)"; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 1px 0 rgba(255,255,255,0.9) inset, 0 4px 20px rgba(5,17,31,0.08)"; }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(5,17,31,0.20)"; e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 1px 0 rgba(255,255,255,0.95) inset, 0 16px 48px rgba(5,17,31,0.15)"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(5,17,31,0.10)"; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 1px 0 rgba(255,255,255,0.9) inset, 0 4px 20px rgba(5,17,31,0.08)"; }}
             >
               {/* Stars */}
               <div>
@@ -2208,15 +2204,13 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             onPointerDown={(e) => { e.preventDefault(); setMobileMenuOpen(o => !o); }}
             style={{
               display: "flex", alignItems: "center", gap: 8,
-              background: mobileMenuOpen
-                ? `linear-gradient(135deg, rgba(218,232,248,0.98) 0%, rgba(197,218,242,0.96) 100%)`
-                : "linear-gradient(160deg, rgba(232,240,248,0.97) 0%, rgba(210,226,244,0.95) 100%)",
-              border: `1.5px solid ${mobileMenuOpen ? G+"88" : "rgba(180,205,230,0.80)"}`,
+              background: mobileMenuOpen ? `linear-gradient(135deg,${G}22,${G}11)` : "rgba(255,255,255,0.13)",
+              border: `1px solid ${mobileMenuOpen ? G+"66" : "rgba(255,255,255,0.22)"}`,
               borderRadius: 50, padding: "8px 14px 8px 10px",
-              backdropFilter: "none", WebkitBackdropFilter: "none",
+              backdropFilter: "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: "blur(52px) saturate(180%) brightness(1.04)",
               boxShadow: mobileMenuOpen
-                ? `0 0 0 3px ${G}22, 0 4px 20px rgba(13,27,42,0.18)`
-                : "0 2px 12px rgba(13,27,42,0.12), 0 1px 0 rgba(255,255,255,0.90) inset",
+                ? `0 0 0 3px ${G}22, 0 8px 32px rgba(0,0,0,0.3)`
+                : "0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset",
               cursor: "pointer", transition: "all .22s", touchAction: "manipulation",
               WebkitTapHighlightColor: "transparent",
             }}>
@@ -2231,11 +2225,11 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
           {mobileMenuOpen && (
             <div style={{
               position: "absolute", top: "calc(100% + 8px)", left: 0,
-              background: "linear-gradient(160deg, rgba(235,244,255,0.99) 0%, rgba(215,230,248,0.98) 60%, rgba(200,220,244,0.98) 100%)",
-              border: "1px solid rgba(180,205,230,0.85)",
+              background: "linear-gradient(160deg, rgba(232,240,248,0.95) 0%, rgba(197,216,236,0.92) 60%, rgba(181,206,230,0.90) 100%)",
+              border: "1px solid rgba(255,255,255,0.72)",
               borderRadius: 22,
-              backdropFilter: "none", WebkitBackdropFilter: "none",
-              boxShadow: "0 2px 0 rgba(255,255,255,0.95) inset, 0 8px 32px rgba(13,27,42,0.16)",
+              backdropFilter: "blur(40px) saturate(160%) brightness(1.04)", WebkitBackdropFilter: "blur(40px) saturate(160%) brightness(1.04)",
+              boxShadow: "0 1px 0 rgba(255,255,255,0.85) inset, 0 8px 32px rgba(13,27,42,0.14)",
               minWidth: 190, padding: "8px 0",
               animation: "cMenuIn .22s cubic-bezier(.4,0,.2,1)",
               zIndex: 201,
@@ -2288,11 +2282,11 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             style={{
               position: "fixed", top: 10, right: 12, zIndex: 200,
               display: "flex", alignItems: "center", gap: 6,
-              background: "linear-gradient(160deg, rgba(232,240,248,0.97) 0%, rgba(210,226,244,0.95) 100%)",
-              border: "1.5px solid rgba(180,205,230,0.80)",
+              background: "rgba(255,255,255,0.13)",
+              border: "1px solid rgba(255,255,255,0.22)",
               borderRadius: 50, padding: "8px 14px",
-              backdropFilter: "none", WebkitBackdropFilter: "none",
-              boxShadow: "0 2px 12px rgba(13,27,42,0.12), 0 1px 0 rgba(255,255,255,0.90) inset",
+              backdropFilter: "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: "blur(52px) saturate(180%) brightness(1.04)",
+              boxShadow: "0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset",
               cursor: "pointer", touchAction: "manipulation",
               WebkitTapHighlightColor: "transparent",
             }}>
@@ -2328,7 +2322,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
       <div style={{ maxWidth: 1000, margin: "0 auto", padding: isMobile ? "64px 16px 32px" : "32px 24px" }}>
 
         {/* Profile banner */}
-        <div style={{ background:"rgba(245,249,255,0.98)", border:`1px solid rgba(200,218,238,0.80)`, borderRadius:28, padding:"28px 20px 24px", marginBottom:20, textAlign:"center", position:"relative", overflow:"hidden", backdropFilter:"none", WebkitBackdropFilter:"none", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
+        <div style={{ background:"rgba(255,255,255,0.13)", border:`1px solid rgba(255,255,255,0.22)`, borderRadius:28, padding:"28px 20px 24px", marginBottom:20, textAlign:"center", position:"relative", overflow:"hidden", backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
           {/* Subtle glow top-right */}
           <div style={{ position:"absolute", top:-60, right:-60, width:200, height:200, background:`radial-gradient(circle, ${G}0b 0%, transparent 70%)`, pointerEvents:"none" }} />
 
@@ -2388,7 +2382,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                 { icon:"📅", label:"Ngày thuê",      value: totalDays,              unit:"ngày", col:"#a78bfa", dot:"#a78bfa" },
                 { icon:"✅", label:"Hoàn thành",     value: completedOrders.length, unit:"đơn",  col:"#22c55e", dot:"#22c55e" },
               ].map(s => (
-                <div key={s.label} style={{ background:"rgba(245,249,255,0.98)", border:`1px solid rgba(200,218,238,0.80)`, borderRadius:24, padding:"18px 16px 16px", position:"relative", overflow:"hidden", backdropFilter:"none", WebkitBackdropFilter:"none", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
+                <div key={s.label} style={{ background:"rgba(255,255,255,0.13)", border:`1px solid rgba(255,255,255,0.22)`, borderRadius:24, padding:"18px 16px 16px", position:"relative", overflow:"hidden", backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
                   {/* Accent dot top-right */}
                   <div style={{ position:"absolute", top:14, right:14, width:7, height:7, borderRadius:"50%", background:s.dot, boxShadow:`0 0 8px ${s.dot}99` }} />
                   {/* Icon */}
@@ -2405,7 +2399,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
 
             {/* Thiết bị đã thuê */}
             {usedCameras.length > 0 && (
-              <div style={{ background:"rgba(245,249,255,0.98)", border:`1px solid rgba(200,218,238,0.80)`, borderRadius:24, padding:"18px 18px 16px", marginBottom:12, backdropFilter:"none", WebkitBackdropFilter:"none", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
+              <div style={{ background:"rgba(255,255,255,0.13)", border:`1px solid rgba(255,255,255,0.22)`, borderRadius:24, padding:"18px 18px 16px", marginBottom:12, backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14 }}>
                   <span style={{ color:MUT, fontSize:10, fontWeight:700, letterSpacing:1.5, fontFamily:"system-ui,sans-serif" }}>THIẾT BỊ ĐÃ THUÊ</span>
                   <button onClick={() => setTab("orders")} style={{ background:"none", border:"none", color:G, fontSize:11.5, fontWeight:700, cursor:"pointer", padding:0, fontFamily:"system-ui,sans-serif", display:"flex", alignItems:"center", gap:3 }}>
@@ -2431,7 +2425,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                 )
               ));
               return unreviewed.length > 0 && (
-                <div style={{ background:"rgba(245,249,255,0.98)", border:`1px solid rgba(200,218,238,0.80)`, borderRadius:24, padding:"16px 18px", marginBottom:12, display:"flex", alignItems:"center", justifyContent:"space-between", gap:14, backdropFilter:"none", WebkitBackdropFilter:"none", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
+                <div style={{ background:"rgba(255,255,255,0.13)", border:`1px solid rgba(255,255,255,0.22)`, borderRadius:24, padding:"16px 18px", marginBottom:12, display:"flex", alignItems:"center", justifyContent:"space-between", gap:14, backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
                   <div>
                     <div style={{ color:TXT, fontWeight:700, fontSize:14, fontFamily:"system-ui,sans-serif", marginBottom:3 }}>Bạn có {unreviewed.length} đơn chưa đánh giá</div>
                     <div style={{ color:MUT, fontSize:12, fontFamily:"system-ui,sans-serif" }}>Chia sẻ trải nghiệm để nhận huy hiệu</div>
@@ -2447,7 +2441,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             {/* Book more CTA */}
             {onOpenBooking && (
               <button onClick={onOpenBooking}
-                style={{ width:"100%", background:"rgba(255,255,255,0.08)", border:"1.5px dashed rgba(255,255,255,0.30)", borderRadius:24, padding:"18px 20px", cursor:"pointer", display:"flex", alignItems:"center", gap:14, transition:"all .2s", textAlign:"left", backdropFilter:"none", WebkitBackdropFilter:"none" }}
+                style={{ width:"100%", background:"rgba(255,255,255,0.08)", border:"1.5px dashed rgba(255,255,255,0.30)", borderRadius:24, padding:"18px 20px", cursor:"pointer", display:"flex", alignItems:"center", gap:14, transition:"all .2s", textAlign:"left", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)" }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor="rgba(255,255,255,0.55)"; e.currentTarget.style.background="rgba(255,255,255,0.13)"; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor="rgba(255,255,255,0.30)"; e.currentTarget.style.background="rgba(255,255,255,0.08)"; }}>
                 <div style={{ width:40, height:40, borderRadius:16, border:`1.5px solid ${G}44`, display:"flex", alignItems:"center", justifyContent:"center", color:G, fontSize:20, flexShrink:0 }}>＋</div>
@@ -2467,7 +2461,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
               <div style={{ color: TXT, fontWeight: 700, fontSize: 17 }}>Đơn thuê của tôi</div>
               <button onClick={() => refreshOrders(false)} disabled={refreshing}
-                style={{ padding: "6px 12px", background: "rgba(255,255,255,0.13)", color: refreshing ? MUT : G, border: `1px solid ${refreshing ? "rgba(255,255,255,0.22)" : G + "55"}`, borderRadius: 10, cursor: refreshing ? "default" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 5, transition: "all .2s", backdropFilter:"none", WebkitBackdropFilter:"none" }}>
+                style={{ padding: "6px 12px", background: "rgba(255,255,255,0.13)", color: refreshing ? MUT : G, border: `1px solid ${refreshing ? "rgba(255,255,255,0.22)" : G + "55"}`, borderRadius: 10, cursor: refreshing ? "default" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 5, transition: "all .2s", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)" }}>
                 <span style={{ display: "inline-block", animation: refreshing ? "spin 1s linear infinite" : "none" }}>🔄</span>
                 {refreshing ? "Đang tải..." : "Làm mới"}
               </button>
@@ -2478,7 +2472,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
               {["all","pending","confirmed","active","completed","cancelled"].map(s => (
                 <button key={s} onClick={() => setFilterStatus(s)}
-                  style={{ padding: "7px 14px", background: filterStatus === s ? `${G}22` : "rgba(255,255,255,0.13)", color: filterStatus === s ? G : MUT, border: `1px solid ${filterStatus === s ? G + "55" : "rgba(255,255,255,0.22)"}`, borderRadius: 99, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", fontWeight: filterStatus === s ? 700 : 400, transition: "all .15s", backdropFilter:"none", WebkitBackdropFilter:"none" }}>
+                  style={{ padding: "7px 14px", background: filterStatus === s ? `${G}22` : "rgba(255,255,255,0.13)", color: filterStatus === s ? G : MUT, border: `1px solid ${filterStatus === s ? G + "55" : "rgba(255,255,255,0.22)"}`, borderRadius: 99, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", fontWeight: filterStatus === s ? 700 : 400, transition: "all .15s", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)" }}>
                   {s === "all" ? "Tất cả" : (STATUS_CFG[s]?.label || s)}
                 </button>
               ))}
@@ -2501,7 +2495,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                   const fbStatus = feedbacks.find(_matchFb)?.status;
                   const canFeedback = o.status === "completed"; // Luôn cho phép đánh giá đơn hoàn thành
                   return (
-                    <div key={o.id} style={{ background:"rgba(245,249,255,0.98)", border:`1px solid ${o.status === "active" ? "#f59e0b44" : o.status === "completed" ? "#22c55e33" : "rgba(255,255,255,0.22)"}`, borderRadius:16, padding:"16px 20px", backdropFilter:"none", WebkitBackdropFilter:"none", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
+                    <div key={o.id} style={{ background:"rgba(255,255,255,0.13)", border:`1px solid ${o.status === "active" ? "#f59e0b44" : o.status === "completed" ? "#22c55e33" : "rgba(255,255,255,0.22)"}`, borderRadius:16, padding:"16px 20px", backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
                         <div>
                           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
@@ -2612,7 +2606,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 {myFeedbacks.map(f => {
                   return (
-                  <div key={f.id} style={{ background:"rgba(245,249,255,0.98)", border:`1px solid ${f.status === "approved" ? "#22c55e44" : f.status === "rejected" ? "#ef444433" : "rgba(255,255,255,0.22)"}`, borderRadius:16, padding:"18px 20px", backdropFilter:"none", WebkitBackdropFilter:"none", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
+                  <div key={f.id} style={{ background:"rgba(255,255,255,0.13)", border:`1px solid ${f.status === "approved" ? "#22c55e44" : f.status === "rejected" ? "#ef444433" : "rgba(255,255,255,0.22)"}`, borderRadius:16, padding:"18px 20px", backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                       <div>
                         <div style={{ color: G, fontSize: 13, fontWeight: 700, marginBottom: 3 }}>{"★".repeat(f.rating)}<span style={{ color: "#333" }}>{"★".repeat(5 - f.rating)}</span></div>
@@ -2680,15 +2674,15 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                         <div key={b.label} className="badge-card" style={{
                           minWidth:140, flexShrink:0,
                           scrollSnapAlign:"start",
-                          background:"rgba(245,249,255,0.98)",
+                          background:"rgba(255,255,255,0.13)",
                           border:`1.5px solid ${isTop ? G+"cc" : b.unlocked ? b.col+"55" : "rgba(255,255,255,0.22)"}`,
                           borderRadius:28,
                           padding:"20px 14px 16px",
                           textAlign:"center",
                           position:"relative",
                           opacity: b.unlocked ? 1 : 0.45,
-                          backdropFilter:"none",
-                          WebkitBackdropFilter:"none",
+                          backdropFilter:"blur(52px) saturate(180%) brightness(1.04)",
+                          WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)",
                           boxShadow: isTop ? `0 0 28px ${G}28, 0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset` : "0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset",
                         }}>
                           {/* dot / lock */}
@@ -2729,7 +2723,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                 { icon:"💬", label:"Đánh giá",           value: myFeedbacks.filter(f=>f.status==="approved").length,          unit:"reviews", col:"#f59e0b" },
                 { icon:"🏅", label:"Huy hiệu",           value: badges.length,                                                unit:"/ 6",     col:G },
               ].map(({ icon, label, value, unit, col }) => (
-                <div key={label} style={{ background:"rgba(245,249,255,0.98)", border:`1px solid rgba(200,218,238,0.80)`, borderRadius:22, padding:"16px 16px 14px", backdropFilter:"none", WebkitBackdropFilter:"none", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
+                <div key={label} style={{ background:"rgba(255,255,255,0.13)", border:`1px solid rgba(255,255,255,0.22)`, borderRadius:22, padding:"16px 16px 14px", backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:10 }}>
                     <span style={{ fontSize:16 }}>{icon}</span>
                     <span style={{ color:MUT, fontSize:10.5, fontFamily:"system-ui,sans-serif", fontWeight:600, letterSpacing:0.5 }}>{label}</span>
@@ -2761,7 +2755,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             <div style={{ width:36, height:3, background:G, borderRadius:2, marginBottom:28 }} />
 
             {/* ── Avatar block ── */}
-            <div style={{ background:"rgba(245,249,255,0.98)", border:`1px solid rgba(200,218,238,0.80)`, borderRadius:28, padding:"28px 20px 24px", textAlign:"center", marginBottom:14, backdropFilter:"none", WebkitBackdropFilter:"none", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
+            <div style={{ background:"rgba(255,255,255,0.13)", border:`1px solid rgba(255,255,255,0.22)`, borderRadius:28, padding:"28px 20px 24px", textAlign:"center", marginBottom:14, backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
               <div style={{ position:"relative", display:"inline-block", marginBottom:14 }}
                 onClick={() => avatarRef.current?.click()} title="Đổi ảnh đại diện">
                 <div style={{ width:96, height:96, borderRadius:"50%", background:`radial-gradient(circle, ${G}22, rgba(255,255,255,0.10))`, border:`3px solid ${G}88`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:40, overflow:"hidden", cursor:"pointer", boxShadow:`0 0 0 5px ${G}14, 0 0 32px ${G}18` }}>
@@ -2788,7 +2782,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             </div>
 
             {/* ── Form fields ── */}
-            <div style={{ background:"rgba(245,249,255,0.98)", border:`1px solid rgba(200,218,238,0.80)`, borderRadius:28, overflow:"hidden", marginBottom:14, backdropFilter:"none", WebkitBackdropFilter:"none", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
+            <div style={{ background:"rgba(255,255,255,0.13)", border:`1px solid rgba(255,255,255,0.22)`, borderRadius:28, overflow:"hidden", marginBottom:14, backdropFilter:"blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter:"blur(52px) saturate(180%) brightness(1.04)", boxShadow:"0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
               {[
                 { key:"displayName", icon:"👤", label:"Tên hiển thị",     hint:"Tự động điền khi đặt máy",         type:"text", placeholder:"Tên của bạn" },
                 { key:"phone",       icon:"📞", label:"Số điện thoại",    hint:"Gửi thông tin đặt máy",            type:"tel",  placeholder:"0901 234 567" },
@@ -2819,7 +2813,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                   <span style={{ color:MUT, fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>TÀI KHOẢN GOOGLE</span>
                 </div>
                 <input readOnly value={loggedUser?.email || ""}
-                  style={{ width:"100%", padding:"12px 14px", background:"rgba(255,255,255,0.10)", border:"1px solid rgba(200,218,238,0.80)", borderRadius:16, color:MUT, fontSize:13, fontFamily:"system-ui,sans-serif", boxSizing:"border-box" }} />
+                  style={{ width:"100%", padding:"12px 14px", background:"rgba(255,255,255,0.10)", border:"1px solid rgba(255,255,255,0.22)", borderRadius:16, color:MUT, fontSize:13, fontFamily:"system-ui,sans-serif", boxSizing:"border-box" }} />
                 <div style={{ marginTop:8, display:"flex", alignItems:"center", gap:5 }}>
                   <span style={{ color:"#22c55e", fontSize:13 }}>✅</span>
                   <span style={{ color:"#22c55e", fontSize:11, fontWeight:600, fontFamily:"system-ui,sans-serif" }}>Đã xác minh</span>
@@ -3656,64 +3650,42 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                   const details = CAM_DETAIL[c.name] || [c.desc];
                   const isPopular = CAM_POPULAR.includes(c.name);
                   return (
-                    <div key={c.id} onClick={() => toggleCam(c)} style={{
-                      border: `2px solid ${isSelected ? "#2979CF" : "rgba(255,255,255,0.55)"}`,
-                      borderRadius: 18,
-                      background: isSelected
-                        ? "linear-gradient(145deg, rgba(219,236,255,0.95) 0%, rgba(197,224,252,0.92) 100%)"
-                        : "linear-gradient(145deg, rgba(255,255,255,0.72) 0%, rgba(235,243,255,0.60) 100%)",
-                      transition: "all .22s cubic-bezier(.4,0,.2,1)",
+                    <div key={c.id} style={{
+                      border: `${isSelected ? "2px" : "1px"} solid ${isSelected ? "#2979CF" : BR}`,
+                      borderRadius: 16,
+                      background: isSelected ? "rgba(197,228,248,0.85)" : "rgba(255,255,255,0.38)",
+                      transition: "all .2s",
                       overflow: "hidden",
                       position: "relative",
-                      cursor: "pointer",
-                      boxShadow: isSelected
-                        ? "0 0 0 3px rgba(41,121,207,0.28), 0 8px 32px rgba(41,121,207,0.22), inset 0 1px 0 rgba(255,255,255,0.8)"
-                        : "0 2px 12px rgba(30,60,120,0.10), inset 0 1px 0 rgba(255,255,255,0.75)",
+                      boxShadow: isSelected ? "0 0 0 3px rgba(41,121,207,0.22), 0 6px 24px rgba(41,121,207,0.18)" : "none",
                     }}>
                       {/* Ảnh — full card, tỉ lệ cố định */}
-                      <div style={{ position: "relative", width: "100%", paddingTop: "130%", background: "linear-gradient(145deg, rgba(210,228,248,0.70) 0%, rgba(190,215,240,0.55) 100%)", overflow: "hidden" }}>
-                        {/* Checkbox góc trên phải — z-index cao, pointer-events riêng */}
-                        <div
-                          onClick={e => { e.stopPropagation(); toggleCam(c); }}
-                          style={{
-                            position: "absolute", top: 9, right: 9, zIndex: 10,
-                            width: 28, height: 28, borderRadius: 9,
-                            border: `2.5px solid ${isSelected ? "#2979CF" : "rgba(60,80,120,0.55)"}`,
-                            background: isSelected
-                              ? "linear-gradient(135deg, #2979CF 0%, #1a5bb8 100%)"
-                              : "rgba(255,255,255,0.88)",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            cursor: "pointer", transition: "all .2s",
-                            boxShadow: isSelected
-                              ? "0 0 0 3px rgba(41,121,207,0.30), 0 2px 8px rgba(41,121,207,0.5)"
-                              : "0 1px 4px rgba(0,0,0,0.18), 0 0 0 1px rgba(255,255,255,0.6)",
-                          }}
-                        >
-                          {isSelected
-                            ? <span style={{ color: "#fff", fontSize: 15, fontWeight: 900, lineHeight: 1 }}>✓</span>
-                            : <span style={{ color: "rgba(80,100,140,0.55)", fontSize: 13, fontWeight: 700, lineHeight: 1 }}>○</span>
-                          }
+                      <div style={{ position: "relative", width: "100%", paddingTop: "130%", background: "rgba(197,216,236,0.60)", overflow: "hidden" }}>
+                        {isPopular && null}
+                        {/* Checkbox góc trên phải */}
+                        <div onClick={() => toggleCam(c)} style={{ position: "absolute", top: 7, right: 7, zIndex: 3, width: 24, height: 24, borderRadius: 10, border: `2px solid ${isSelected ? "#2979CF" : "rgba(255,255,255,0.6)"}`, background: isSelected ? "#2979CF" : "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all .2s", boxShadow: isSelected ? "0 0 8px rgba(41,121,207,0.6)" : "none" }}>
+                          {isSelected && <span style={{ color: "#fff", fontSize: 13, fontWeight: 900, lineHeight: 1 }}>✓</span>}
                         </div>
                         {/* Ảnh */}
                         {c.images?.length > 0
-                          ? <img src={c.images[0]} alt={c.name} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }} />
-                          : <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, cursor: "pointer" }}>{c.icon}</span>}
+                          ? <img src={c.images[0]} alt={c.name} onClick={() => toggleCam(c)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }} />
+                          : <span onClick={() => toggleCam(c)} style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, cursor: "pointer" }}>{c.icon}</span>}
 
-                        {/* Info overlay — dưới cùng */}
+                        {/* Info overlay — dưới cùng, mặc định trong suốt */}
                         <div style={{
                           position: "absolute", bottom: 0, left: 0, right: 0,
                           background: expandedCam === c.id
-                            ? "linear-gradient(to top, rgba(6,8,18,0.97) 0%, rgba(6,8,18,0.94) 75%, rgba(6,8,18,0.55) 100%)"
-                            : "linear-gradient(to top, rgba(6,10,28,0.80) 0%, rgba(6,10,28,0.42) 55%, transparent 100%)",
+                            ? "linear-gradient(to top, rgba(8,6,0,0.97) 0%, rgba(8,6,0,0.95) 80%, rgba(8,6,0,0.6) 100%)"
+                            : "linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.35) 60%, transparent 100%)",
                           transition: "background .3s",
-                          padding: expandedCam === c.id ? "14px 12px 12px" : "32px 12px 11px",
+                          padding: expandedCam === c.id ? "14px 12px 12px" : "28px 12px 10px",
                         }}>
                           {/* Tên + giá */}
-                          <div style={{ cursor: "pointer", marginBottom: 5 }}>
-                            <div style={{ color: "#fff", fontWeight: 800, fontSize: 13, fontFamily: "system-ui,sans-serif", lineHeight: 1.3, marginBottom: 4, textShadow: "0 1px 8px rgba(0,0,0,1), 0 0 20px rgba(0,0,0,0.6)" }}>{c.name}</div>
+                          <div onClick={() => toggleCam(c)} style={{ cursor: "pointer", marginBottom: 5 }}>
+                            <div style={{ color: isSelected ? "#E0F0FF" : "#fff", fontWeight: 700, fontSize: 13, fontFamily: "system-ui,sans-serif", lineHeight: 1.3, marginBottom: 3, textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>{c.name}</div>
                             <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-                              <span style={{ color: "#fff", fontWeight: 900, fontSize: 14, fontFamily: "system-ui,sans-serif", textShadow: "0 1px 8px rgba(0,0,0,1)" }}>{new Intl.NumberFormat("vi-VN").format(c.price)}đ</span>
-                              <span style={{ color: "rgba(255,255,255,0.58)", fontSize: 10, fontFamily: "system-ui,sans-serif" }}>/ ngày</span>
+                              <span style={{ color: "#ffffff", fontWeight: 800, fontSize: 14, fontFamily: "system-ui,sans-serif", textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}>{new Intl.NumberFormat("vi-VN").format(c.price)}đ</span>
+                              <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 10, fontFamily: "system-ui,sans-serif" }}>/ ngày</span>
                             </div>
                           </div>
 
@@ -3745,12 +3717,12 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                         const totalStock = c.qty || 1;
                         const curQty = selCams[c.id] || 1;
                         return (
-                        <div onClick={e => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", background: "linear-gradient(90deg, rgba(219,236,255,0.90) 0%, rgba(205,228,252,0.85) 100%)", borderTop: "1px solid rgba(41,121,207,0.20)" }}>
-                          <span style={{ color: "#4a6fa5", fontSize: 10, fontFamily: "system-ui,sans-serif", fontWeight: 600 }}>SL:</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "rgba(255,255,255,0.50)", borderTop: `1px solid rgba(255,255,255,0.60)` }}>
+                          <span style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif" }}>SL:</span>
                           {qtyBtn(() => setCamQty(c.id, curQty - 1, totalStock), "−")}
-                          <span style={{ color: "#1a4a8a", fontWeight: 800, fontSize: 14, minWidth: 20, textAlign: "center", fontFamily: "system-ui,sans-serif" }}>{curQty}</span>
+                          <span style={{ color: G, fontWeight: 700, fontSize: 14, minWidth: 20, textAlign: "center", fontFamily: "system-ui,sans-serif" }}>{curQty}</span>
                           {qtyBtn(() => setCamQty(c.id, curQty + 1, totalStock), "+")}
-                          <span style={{ color: "#6a8ab0", fontSize: 9, fontFamily: "system-ui,sans-serif", marginLeft: "auto", fontWeight: 500 }}>
+                          <span style={{ color: "#444", fontSize: 9, fontFamily: "system-ui,sans-serif", marginLeft: "auto" }}>
                             / {totalStock} máy
                           </span>
                         </div>
@@ -4753,7 +4725,7 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
     };
     const shortDesc = (desc) => desc.split(/[,，、]/)[0].trim().toUpperCase();
     return (
-      <div id={id} style={{ padding: "72px 0 56px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28, border: "1px solid rgba(255,255,255,0.22)", boxShadow: "0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset", background: "rgba(255,255,255,0.13)", backdropFilter: "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden" }}>
+      <div id={id} style={{ padding: "72px 0 56px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28, border: "1px solid rgba(255,255,255,0.22)", boxShadow: "0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset", background: isMobile ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden" }}>
         <style>{`.cam-scroll::-webkit-scrollbar{display:none}.cam-scroll{-ms-overflow-style:none;scrollbar-width:none;}`}</style>
         <div style={{ padding: "0 16px 40px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
           <div>
@@ -4845,7 +4817,7 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
   const dur = Math.max(30, combined.length * 3.5);
 
   return (
-    <div id={id} style={{ padding: "96px 0 80px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28, border: "1px solid rgba(255,255,255,0.22)", boxShadow: "0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset", background: "rgba(255,255,255,0.13)", backdropFilter: "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden", position: "relative" }}>
+    <div id={id} style={{ padding: "96px 0 80px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28, border: "1px solid rgba(255,255,255,0.22)", boxShadow: "0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset", background: isMobile ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden", position: "relative" }}>
       <style>{`@keyframes scrollCam{0%{transform:translateX(-50%)}100%{transform:translateX(0)}}`}</style>
       <div style={{ position:"absolute", top:"50%", left:"50%", transform:"translate(-50%,-50%)", width:600, height:300, background:`radial-gradient(ellipse,${G}06,transparent 70%)`, pointerEvents:"none" }} />
 
@@ -5926,6 +5898,13 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
           -webkit-backdrop-filter: blur(52px) saturate(180%) brightness(1.04);
           z-index:0;
         }
+        @media (max-width: 768px) {
+          .acc-section::before {
+            background: rgba(255,255,255,0.55);
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+          }
+        }
         .acc-card {
           background: rgba(255,255,255,0.18);
           border: 1px solid rgba(255,255,255,0.30);
@@ -6004,7 +5983,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       <FeedbackMarquee photos={photos || []} feedbacks={feedbacks || []} isMobile={isMobile} />
 
       {/* ABOUT */}
-      <div id="about" style={{ padding: isMobile ? "56px 16px 72px" : "80px 60px 100px", margin: isMobile ? "20px 12px" : "32px auto", maxWidth: isMobile ? "none" : 1100, textAlign: "center", border: "1px solid rgba(255,255,255,0.22)", borderRadius: 28, background: "rgba(150,203,219,0.25)", backdropFilter: "blur(52px) saturate(180%) brightness(0.97)", WebkitBackdropFilter: "blur(52px) saturate(180%) brightness(0.97)", boxShadow: "0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
+      <div id="about" style={{ padding: isMobile ? "56px 16px 72px" : "80px 60px 100px", margin: isMobile ? "20px 12px" : "32px auto", maxWidth: isMobile ? "none" : 1100, textAlign: "center", border: "1px solid rgba(255,255,255,0.22)", borderRadius: 28, background: isMobile ? "rgba(255,255,255,0.55)" : "rgba(150,203,219,0.25)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(0.97)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(0.97)", boxShadow: "0 2px 40px rgba(5,17,31,0.10), 0 1px 0 rgba(255,255,255,0.30) inset" }}>
         <div style={{ fontSize: 9, letterSpacing: 7, color: G, opacity: 0.55, marginBottom: 16, fontFamily: "var(--font-ui)", fontWeight: 700 }}>VỀ CHÚNG TÔI</div>
         <SecretTitle
           defaultText="92 KA MÊ RA"
@@ -6021,7 +6000,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       </div>
 
       {/* FOOTER */}
-      <footer style={{ padding: isMobile ? "20px 16px" : "28px 60px", display: "flex", flexWrap: "wrap", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "center" : "center", gap: isMobile ? 10 : 16, background: "linear-gradient(135deg, rgba(107,184,212,0.55) 0%, rgba(107,184,212,0.45) 100%)", backdropFilter: "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: "blur(52px) saturate(180%) brightness(1.04)", borderTop: "1px solid rgba(107,184,212,0.35)" }}>
+      <footer style={{ padding: isMobile ? "20px 16px" : "28px 60px", display: "flex", flexWrap: "wrap", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "center" : "center", gap: isMobile ? 10 : 16, background: isMobile ? "rgba(180,220,235,0.88)" : "linear-gradient(135deg, rgba(107,184,212,0.55) 0%, rgba(107,184,212,0.45) 100%)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", borderTop: "1px solid rgba(107,184,212,0.35)" }}>
         <Logo size={0.7} />
         <div style={{ color: "rgba(10,10,20,0.75)", fontSize: 12, fontFamily: "var(--font-ui)", fontWeight: 500, letterSpacing: 0.5, display: "grid", gridTemplateColumns: "auto auto 1fr", gap: "2px 4px" }}>
           <span>Hotline</span><span>:</span><span>{siteContent.zalo}</span>
@@ -9195,13 +9174,21 @@ function AppRoot() {
         html { -webkit-overflow-scrolling: touch; }
         .cv-section { content-visibility: auto; contain-intrinsic-size: 0 600px; }
         @media (max-width: 900px) {
-          /* Mobile: dùng màu kính tĩnh thay vì live backdrop blur.
-             Live blur phải render lại mỗi frame khi scroll nên dễ bệt màu/giật Hz.
-             Lớp màu này giữ cảm giác gần desktop nhưng không nhảy màu khi lướt. */
-          [style*="background: rgba(255,255,255,0.13)"][style*="blur("],
+          /* Mobile: tắt backdrop-filter trên toàn bộ section lớn,
+             thay bằng màu solid đồng nhất giống web khi blur hoạt động */
+          #cameras, #accessories, #about, #feedback, #quy-trinh,
+          .acc-section, .section-main {
+            background: rgba(255,255,255,0.60) !important;
+            -webkit-backdrop-filter: none !important;
+            backdrop-filter: none !important;
+          }
           .acc-section::before {
-            background:
-              linear-gradient(160deg, rgba(255,255,255,0.24) 0%, rgba(232,240,248,0.18) 58%, rgba(197,216,236,0.16) 100%) !important;
+            background: rgba(255,255,255,0.60) !important;
+            -webkit-backdrop-filter: none !important;
+            backdrop-filter: none !important;
+          }
+          footer {
+            background: rgba(175,218,232,0.92) !important;
             -webkit-backdrop-filter: none !important;
             backdrop-filter: none !important;
           }
