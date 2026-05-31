@@ -1721,49 +1721,49 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
         backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
       }}>×</button>
 
-      {/* Mũi tên trái */}
-      {total > 1 && (
-        <button onClick={e => { e.stopPropagation(); prev(); }} style={{
-          position: "fixed", left: 14, top: "50%", transform: "translateY(-50%)",
-          width: 44, height: 44, borderRadius: "50%",
-          background: "rgba(5,12,22,0.70)", border: "1px solid rgba(255,255,255,0.15)",
-          color: "#d4cab8", fontSize: 22, cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
-        }}>‹</button>
-      )}
-
-      {/* Mũi tên phải */}
-      {total > 1 && (
-        <button onClick={e => { e.stopPropagation(); next(); }} style={{
-          position: "fixed", right: 14, top: "50%", transform: "translateY(-50%)",
-          width: 44, height: 44, borderRadius: "50%",
-          background: "rgba(5,12,22,0.70)", border: "1px solid rgba(255,255,255,0.15)",
-          color: "#d4cab8", fontSize: 22, cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
-        }}>›</button>
-      )}
-
-      {/* Thumbnail strip ở dưới — chỉ khi có nhiều hơn 1 ảnh */}
+      {/* Bottom bar: prev + thumbnails + next — gộp 1 hàng, không che nhau */}
       {total > 1 && (
         <div onClick={e => e.stopPropagation()} style={{
-          position: "fixed", bottom: 16, left: "50%", transform: "translateX(-50%)",
-          display: "flex", gap: 6, overflowX: "auto", maxWidth: "90vw",
-          padding: "6px 10px",
-          background: "rgba(5,12,22,0.65)", borderRadius: 12,
-          backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
-          scrollbarWidth: "none",
+          position: "fixed", bottom: 0, left: 0, right: 0,
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "10px 12px 18px",
+          background: "linear-gradient(to top, rgba(5,12,22,0.90) 0%, transparent 100%)",
+          zIndex: 10,
         }}>
-          {photos.map((p, i) => (
-            <img key={p.id || i} src={cdnUrl(p.url, "thumb")} alt="" onClick={() => setIdx(i)}
-              style={{
-                width: 48, height: 48, objectFit: "cover", borderRadius: 8, flexShrink: 0, cursor: "pointer",
-                border: i === idx ? "2px solid #c9a84c" : "2px solid transparent",
-                opacity: i === idx ? 1 : 0.55,
-                transition: "all .2s",
-              }} loading="lazy" />
-          ))}
+          {/* Nút trái */}
+          <button onClick={e => { e.stopPropagation(); prev(); }} style={{
+            flexShrink: 0, width: 38, height: 38, borderRadius: "50%",
+            background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.20)",
+            color: "#fff", fontSize: 20, cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+          }}>‹</button>
+
+          {/* Thumbnail strip */}
+          <div style={{
+            flex: 1, display: "flex", gap: 5, overflowX: "auto",
+            scrollbarWidth: "none", WebkitOverflowScrolling: "touch",
+            padding: "2px 0",
+          }}>
+            {photos.map((p, i) => (
+              <img key={p.id || i} src={cdnUrl(p.url, "thumb")} alt="" onClick={() => setIdx(i)}
+                style={{
+                  width: 40, height: 40, objectFit: "cover", borderRadius: 7, flexShrink: 0, cursor: "pointer",
+                  border: i === idx ? "2px solid #c9a84c" : "2px solid transparent",
+                  opacity: i === idx ? 1 : 0.50,
+                  transition: "all .2s",
+                }} loading="lazy" />
+            ))}
+          </div>
+
+          {/* Nút phải */}
+          <button onClick={e => { e.stopPropagation(); next(); }} style={{
+            flexShrink: 0, width: 38, height: 38, borderRadius: "50%",
+            background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.20)",
+            color: "#fff", fontSize: 20, cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+          }}>›</button>
         </div>
       )}
     </div>
@@ -1808,22 +1808,54 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
     </div>
   );
 
-  // Nhân đủ để băng chạy liền mạch
+  // Mobile: swipe cards — Desktop: marquee
+  const [swipeIdx, setSwipeIdx] = useState(0);
+  const swipeTouch = useRef(null);
+
+  // Nhân đủ để băng chạy liền mạch (desktop)
   let band = [...cards];
   while (band.length < 10) band = [...band, ...cards];
-  band = [...band, ...band]; // double để loop
+  band = [...band, ...band];
   const dur = Math.max(35, band.length * 4);
 
+  const FeedbackCard = ({ c, style: extraStyle }) => (
+    <div style={{
+      background: "rgba(255,255,255,0.82)",
+      border: "1px solid rgba(5,17,31,0.08)",
+      borderRadius: 20,
+      padding: "22px 20px 18px",
+      display: "flex", flexDirection: "column", gap: 12,
+      boxShadow: "0 2px 24px rgba(5,17,31,0.10)",
+      backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+      ...extraStyle,
+    }}>
+      <div>{Array.from({ length: 5 }).map((_, si) => (
+        <span key={si} style={{ color: si < c.rating ? "#c9a84c" : "rgba(13,27,42,0.12)", fontSize: 15 }}>★</span>
+      ))}</div>
+      <div style={{ color: G, fontSize: 13.5, lineHeight: 1.75, fontStyle: "italic", fontFamily: "var(--font-display)", fontWeight: 400, flex: 1, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 4, WebkitBoxOrient: "vertical" }}>
+        "{c.text}"
+      </div>
+      <div style={{ paddingTop: 12, borderTop: "1px solid rgba(13,27,42,0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <div style={{ color: G, fontSize: 12, fontFamily: "var(--font-ui)", fontWeight: 700 }}>{c.userName}</div>
+          <div style={{ color: MUT, fontSize: 11, fontFamily: "var(--font-ui)", fontWeight: 500, marginTop: 2 }}>📷 {c.camera}</div>
+        </div>
+        <span style={{ background: G + "14", color: G, borderRadius: 99, padding: "3px 10px", fontSize: 9.5, fontFamily: "var(--font-ui)", fontWeight: 700, letterSpacing: .5 }}>ĐÃ THUÊ ✓</span>
+      </div>
+    </div>
+  );
+
   return (
-    <div id="feedback" className="home-section" style={{ padding: isMobile ? "56px 0 52px" : "72px 0 64px", margin: isMobile ? "20px 12px" : "32px 20px", background: "transparent", boxShadow: "none", border: "none", overflow: "hidden", position: "relative" }}>
-      <style>{`@keyframes marqueeRun{0%{transform:translateX(0)}100%{transform:translateX(-50%)}} .marquee-band{will-change:transform;} .gal-thumb:hover .gal-overlay{opacity:1!important;} .gal-thumb:hover img{transform:scale(1.06);}`}</style>
+    <div id="feedback" className="home-section" style={{ padding: isMobile ? "48px 0 44px" : "72px 0 64px", margin: isMobile ? "16px 0" : "32px 20px", background: "transparent", boxShadow: "none", border: "none", overflow: "hidden", position: "relative" }}>
+      <style>{`@keyframes marqueeRun{0%{transform:translateX(0)}100%{transform:translateX(-50%)}} .marquee-band{will-change:transform;} .gal-thumb:hover .gal-overlay{opacity:1!important;} .gal-thumb:hover img{transform:scale(1.06);}
+      .fb-swipe-card{transition:transform .35s cubic-bezier(.25,.46,.45,.94),opacity .35s ease;}`}</style>
 
       {/* Header */}
       {total > 0 && (
-      <div style={{ textAlign: "center", marginBottom: 36, padding: "0 16px" }}>
-        <div style={{ fontSize: 9, letterSpacing: 7, color: G, opacity: 0.55, marginBottom: 14, fontFamily: "var(--font-ui)", fontWeight: 700 }}>ĐÁNH GIÁ / FEEDBACK</div>
-        <h2 style={{ fontSize: isMobile ? 24 : 30, fontWeight: 700, letterSpacing: 1, margin: "0 0 14px", color: G, fontFamily: "var(--font-display)", textShadow: "0 1px 3px rgba(13,27,42,0.10)" }}>Feedback Khách Hàng</h2>
-        <div style={{ width: 52, height: 1, background: `linear-gradient(90deg,transparent,${G}55,transparent)`, margin: "0 auto 20px" }} />
+      <div style={{ textAlign: "center", marginBottom: isMobile ? 28 : 36, padding: "0 20px" }}>
+        <div style={{ fontSize: 9, letterSpacing: 7, color: G, opacity: 0.50, marginBottom: 12, fontFamily: "var(--font-ui)", fontWeight: 700 }}>ĐÁNH GIÁ / FEEDBACK</div>
+        <h2 style={{ fontSize: isMobile ? 28 : 42, fontWeight: 800, letterSpacing: isMobile ? 4 : 8, margin: "0 0 14px", color: G, fontFamily: "var(--font-display)", textShadow: "0 1px 3px rgba(13,27,42,0.10)", textTransform: "uppercase" }}>Feedback Khách Hàng</h2>
+        <div style={{ width: 52, height: 1, background: `linear-gradient(90deg,transparent,${G}55,transparent)`, margin: "0 auto 16px" }} />
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.22)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 99, padding: "5px 18px", backdropFilter: "blur(24px) saturate(160%)" }}>
           <span style={{ color: "#c9a84c", fontSize: 14 }}>{"★".repeat(Math.round(parseFloat(avgRating)))}</span>
           <span style={{ color: "#c9a84c", fontWeight: 800, fontSize: 13, fontFamily: "var(--font-ui)" }}>{avgRating}</span>
@@ -1832,66 +1864,33 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
       </div>
       )}
 
-      {/* Dải băng */}
-      {total > 0 && (
+      {/* ── MOBILE: swipe card ── */}
+      {total > 0 && isMobile && (
+        <div style={{ padding: "0 16px" }}>
+          <FeedbackCard c={cards[swipeIdx]} />
+          {/* Dots + nút */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginTop: 18 }}>
+            <button onClick={() => setSwipeIdx(i => (i - 1 + cards.length) % cards.length)} style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.70)", border: "1px solid rgba(13,27,42,0.12)", color: G, fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 2px 8px rgba(5,17,31,0.10)" }}>‹</button>
+            <div style={{ display: "flex", gap: 6 }}>
+              {cards.map((_, i) => (
+                <div key={i} onClick={() => setSwipeIdx(i)} style={{ width: i === swipeIdx ? 18 : 6, height: 6, borderRadius: 99, background: i === swipeIdx ? G : G + "40", cursor: "pointer", transition: "all .3s ease" }} />
+              ))}
+            </div>
+            <button onClick={() => setSwipeIdx(i => (i + 1) % cards.length)} style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.70)", border: "1px solid rgba(13,27,42,0.12)", color: G, fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 2px 8px rgba(5,17,31,0.10)" }}>›</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── DESKTOP: marquee ── */}
+      {total > 0 && !isMobile && (
       <div style={{ position: "relative" }}
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}>
-
-        {/* Fade edges */}
-        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 80, background: "linear-gradient(to right,rgba(255,255,255,0.85),transparent)", zIndex: 2, pointerEvents: "none" }} />
-        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 80, background: "linear-gradient(to left,rgba(255,255,255,0.85),transparent)", zIndex: 2, pointerEvents: "none" }} />
-
-        <div className="marquee-band" style={{
-          display: "flex", gap: 16,
-          width: "max-content",
-          animation: `marqueeRun ${dur}s linear infinite`,
-          animationPlayState: paused ? "paused" : "running",
-        }}>
+        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 80, background: "linear-gradient(to right,rgba(180,220,235,0.70),transparent)", zIndex: 2, pointerEvents: "none" }} />
+        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 80, background: "linear-gradient(to left,rgba(180,220,235,0.70),transparent)", zIndex: 2, pointerEvents: "none" }} />
+        <div className="marquee-band" style={{ display: "flex", gap: 16, width: "max-content", animation: `marqueeRun ${dur}s linear infinite`, animationPlayState: paused ? "paused" : "running" }}>
           {band.map((c, i) => (
-            <div key={c.key + "_" + i} style={{
-              width: isMobile ? 240 : 280,
-              flexShrink: 0,
-              background: "rgba(255,255,255,0.72)",
-              border: "1px solid rgba(5,17,31,0.10)",
-              borderRadius: 20,
-              padding: "20px 22px 18px",
-              display: "flex", flexDirection: "column", gap: 10,
-              transition: "all .28s cubic-bezier(.34,1.56,.64,1)",
-              backdropFilter: "blur(20px) saturate(130%)",
-              WebkitBackdropFilter: "blur(20px) saturate(130%)",
-              boxShadow: "0 1px 0 rgba(255,255,255,0.9) inset, 0 4px 20px rgba(5,17,31,0.08)",
-            }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(5,17,31,0.20)"; e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 1px 0 rgba(255,255,255,0.95) inset, 0 16px 48px rgba(5,17,31,0.15)"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(5,17,31,0.10)"; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 1px 0 rgba(255,255,255,0.9) inset, 0 4px 20px rgba(5,17,31,0.08)"; }}
-            >
-              {/* Stars */}
-              <div>
-                {Array.from({ length: 5 }).map((_, si) => (
-                  <span key={si} style={{ color: si < c.rating ? "#c9a84c" : "rgba(255,255,255,0.15)", fontSize: 13 }}>★</span>
-                ))}
-              </div>
-
-              {/* Text */}
-              <div style={{
-                color: G, fontSize: 12.5, lineHeight: 1.8, fontStyle: "italic",
-                fontFamily: "var(--font-display)", fontWeight: 400,
-                overflow: "hidden", display: "-webkit-box",
-                WebkitLineClamp: 3, WebkitBoxOrient: "vertical", flex: 1,
-                textShadow: "0 1px 2px rgba(13,27,42,0.06)",
-              }}>
-                "{c.text}"
-              </div>
-
-              {/* Footer */}
-              <div style={{ paddingTop: 12, borderTop: `1px solid rgba(13,27,42,0.10)`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <div style={{ color: G, fontSize: 11, fontFamily: "var(--font-ui)", fontWeight: 700 }}>{c.userName}</div>
-                  <div style={{ color: MUT, fontSize: 10, fontFamily: "var(--font-ui)", fontWeight: 500, marginTop: 2 }}>📷 {c.camera}</div>
-                </div>
-                <span style={{ background: G + "18", color: G, borderRadius: 99, padding: "2px 8px", fontSize: 9, fontFamily: "var(--font-ui)", fontWeight: 700, letterSpacing: .5, whiteSpace: "nowrap" }}>ĐÃ THUÊ ✓</span>
-              </div>
-            </div>
+            <FeedbackCard key={c.key + "_" + i} c={c} style={{ width: 280, flexShrink: 0, transition: "all .28s cubic-bezier(.34,1.56,.64,1)" }} />
           ))}
         </div>
       </div>
@@ -1936,7 +1935,7 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
                       position: "relative", borderRadius: isMobile ? 18 : 24, overflow: "hidden",
                       cursor: "pointer", background: "rgba(13,27,42,0.08)",
                       boxShadow: "0 4px 28px rgba(5,17,31,0.18)",
-                      minHeight: isMobile ? 240 : "unset",
+                      minHeight: isMobile ? 280 : "unset",
                     }}
                   >
                     {big.coverUrl
@@ -1954,30 +1953,32 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
                       </div>
                     </div>
                     {/* Badge bottom */}
-                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: isMobile ? "40px 16px 14px" : "60px 20px 18px", background: "linear-gradient(to top, rgba(5,12,22,0.80) 0%, rgba(5,12,22,0.30) 60%, transparent 100%)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                        <div style={{ background: "rgba(255,255,255,0.18)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", borderRadius: 10, padding: "4px 10px", display: "flex", alignItems: "center", gap: 6 }}>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="5" width="22" height="16" rx="2"/><path d="M1 10h22"/><circle cx="12" cy="15" r="3"/></svg>
-                          <span style={{ color: "rgba(255,255,255,0.90)", fontSize: isMobile ? 11 : 12, fontFamily: "var(--font-ui)", fontWeight: 700 }}>{big.cameraTag || big.name}</span>
+                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: isMobile ? "48px 18px 16px" : "72px 24px 22px", background: "linear-gradient(to top, rgba(5,12,22,0.85) 0%, rgba(5,12,22,0.35) 60%, transparent 100%)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                        <div style={{ background: "rgba(255,255,255,0.20)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderRadius: 12, padding: isMobile ? "5px 12px" : "6px 14px", display: "flex", alignItems: "center", gap: 7 }}>
+                          <svg width={isMobile ? 14 : 16} height={isMobile ? 14 : 16} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.90)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="5" width="22" height="16" rx="2"/><path d="M1 10h22"/><circle cx="12" cy="15" r="3"/></svg>
+                          <span style={{ color: "rgba(255,255,255,0.95)", fontSize: isMobile ? 13 : 15, fontFamily: "var(--font-ui)", fontWeight: 700 }}>{big.cameraTag || big.name}</span>
                         </div>
                       </div>
-                      <div style={{ color: "rgba(255,255,255,0.65)", fontSize: isMobile ? 11 : 12, fontFamily: "var(--font-ui)", fontWeight: 500 }}>{big.name !== big.cameraTag ? big.name : ""}</div>
-                      <div style={{ color: "rgba(255,255,255,0.55)", fontSize: isMobile ? 10 : 11, fontFamily: "var(--font-ui)", marginTop: 2 }}>{(big.photos || []).length} ảnh</div>
+                      <div style={{ color: "rgba(255,255,255,0.75)", fontSize: isMobile ? 13 : 14, fontFamily: "var(--font-ui)", fontWeight: 500, marginBottom: 3 }}>{big.name !== big.cameraTag ? big.name : ""}</div>
+                      <div style={{ color: "rgba(255,255,255,0.60)", fontSize: isMobile ? 12 : 13, fontFamily: "var(--font-ui)" }}>{(big.photos || []).length} ảnh</div>
                     </div>
                   </div>
                 )}
 
-                {/* 2 ảnh nhỏ bên phải */}
-                {smalls.map((alb, si) => (
+                {/* 2 ảnh nhỏ bên phải — mobile: ngang nhau */}
+                {isMobile && smalls.length > 0 && (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    {smalls.map((alb) => (
                   <div
                     key={alb.id}
                     className="gal-thumb"
                     onClick={() => setOpenAlbum(alb)}
                     style={{
-                      position: "relative", borderRadius: isMobile ? 18 : 22, overflow: "hidden",
+                      position: "relative", borderRadius: 18, overflow: "hidden",
                       cursor: "pointer", background: "rgba(13,27,42,0.08)",
                       boxShadow: "0 4px 20px rgba(5,17,31,0.15)",
-                      minHeight: isMobile ? 180 : "unset",
+                      minHeight: 160,
                     }}
                   >
                     {alb.coverUrl
@@ -1995,15 +1996,50 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
                       </div>
                     </div>
                     {/* Badge bottom */}
-                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: isMobile ? "36px 14px 12px" : "44px 16px 14px", background: "linear-gradient(to top, rgba(5,12,22,0.80) 0%, rgba(5,12,22,0.30) 60%, transparent 100%)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                        <div style={{ background: "rgba(255,255,255,0.18)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", borderRadius: 8, padding: "3px 9px", display: "flex", alignItems: "center", gap: 5 }}>
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="5" width="22" height="16" rx="2"/><path d="M1 10h22"/><circle cx="12" cy="15" r="3"/></svg>
-                          <span style={{ color: "rgba(255,255,255,0.90)", fontSize: isMobile ? 10 : 11, fontFamily: "var(--font-ui)", fontWeight: 700 }}>{alb.cameraTag || alb.name}</span>
+                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: isMobile ? "40px 16px 14px" : "52px 20px 18px", background: "linear-gradient(to top, rgba(5,12,22,0.85) 0%, rgba(5,12,22,0.35) 60%, transparent 100%)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                        <div style={{ background: "rgba(255,255,255,0.20)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderRadius: 10, padding: isMobile ? "4px 11px" : "5px 13px", display: "flex", alignItems: "center", gap: 6 }}>
+                          <svg width={isMobile ? 12 : 14} height={isMobile ? 12 : 14} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.90)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="5" width="22" height="16" rx="2"/><path d="M1 10h22"/><circle cx="12" cy="15" r="3"/></svg>
+                          <span style={{ color: "rgba(255,255,255,0.95)", fontSize: isMobile ? 12 : 13, fontFamily: "var(--font-ui)", fontWeight: 700 }}>{alb.cameraTag || alb.name}</span>
                         </div>
                       </div>
-                      <div style={{ color: "rgba(255,255,255,0.60)", fontSize: isMobile ? 10 : 11, fontFamily: "var(--font-ui)" }}>{alb.name !== alb.cameraTag ? alb.name : ""}</div>
-                      <div style={{ color: "rgba(255,255,255,0.50)", fontSize: isMobile ? 9 : 10, fontFamily: "var(--font-ui)", marginTop: 2 }}>{(alb.photos || []).length} ảnh</div>
+                      <div style={{ color: "rgba(255,255,255,0.75)", fontSize: isMobile ? 12 : 13, fontFamily: "var(--font-ui)", fontWeight: 500, marginBottom: 2 }}>{alb.name !== alb.cameraTag ? alb.name : ""}</div>
+                      <div style={{ color: "rgba(255,255,255,0.60)", fontSize: isMobile ? 11 : 12, fontFamily: "var(--font-ui)" }}>{(alb.photos || []).length} ảnh</div>
+                    </div>
+                  </div>
+                  ))}
+                  </div>
+                )}
+                {!isMobile && smalls.map((alb, si) => (
+                  <div
+                    key={alb.id}
+                    className="gal-thumb"
+                    onClick={() => setOpenAlbum(alb)}
+                    style={{
+                      position: "relative", borderRadius: 22, overflow: "hidden",
+                      cursor: "pointer", background: "rgba(13,27,42,0.08)",
+                      boxShadow: "0 4px 20px rgba(5,17,31,0.15)",
+                    }}
+                  >
+                    {alb.coverUrl
+                      ? <img src={cdnUrl(alb.coverUrl, "thumb")} alt={alb.name} loading="lazy"
+                          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform .4s ease" }} />
+                      : <div style={{ width: "100%", height: "100%", background: "rgba(13,27,42,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>📷</div>
+                    }
+                    <div className="gal-overlay" style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(5,17,31,0.22)", opacity: 0, transition: "opacity .25s" }}>
+                      <div style={{ width: 46, height: 46, borderRadius: "50%", background: "rgba(255,255,255,0.82)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(0,0,0,0.20)" }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/></svg>
+                      </div>
+                    </div>
+                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "52px 20px 18px", background: "linear-gradient(to top, rgba(5,12,22,0.85) 0%, rgba(5,12,22,0.35) 60%, transparent 100%)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                        <div style={{ background: "rgba(255,255,255,0.20)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderRadius: 10, padding: "5px 13px", display: "flex", alignItems: "center", gap: 6 }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.90)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="5" width="22" height="16" rx="2"/><path d="M1 10h22"/><circle cx="12" cy="15" r="3"/></svg>
+                          <span style={{ color: "rgba(255,255,255,0.95)", fontSize: 13, fontFamily: "var(--font-ui)", fontWeight: 700 }}>{alb.cameraTag || alb.name}</span>
+                        </div>
+                      </div>
+                      <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 13, fontFamily: "var(--font-ui)", fontWeight: 500, marginBottom: 2 }}>{alb.name !== alb.cameraTag ? alb.name : ""}</div>
+                      <div style={{ color: "rgba(255,255,255,0.60)", fontSize: 12, fontFamily: "var(--font-ui)" }}>{(alb.photos || []).length} ảnh</div>
                     </div>
                   </div>
                 ))}
