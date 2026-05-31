@@ -1687,7 +1687,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
 
       {/* Ảnh chính */}
       <img
-        src={photos[idx].url}
+        src={cdnUrl(photos[idx].url, "full")}
         alt=""
         onClick={e => e.stopPropagation()}
         style={{
@@ -1756,7 +1756,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
           scrollbarWidth: "none",
         }}>
           {photos.map((p, i) => (
-            <img key={p.id || i} src={p.url} alt="" onClick={() => setIdx(i)}
+            <img key={p.id || i} src={cdnUrl(p.url, "thumb")} alt="" onClick={() => setIdx(i)}
               style={{
                 width: 48, height: 48, objectFit: "cover", borderRadius: 8, flexShrink: 0, cursor: "pointer",
                 border: i === idx ? "2px solid #c9a84c" : "2px solid transparent",
@@ -1917,7 +1917,7 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
                   background: "rgba(13,27,42,0.08)", boxShadow: "0 2px 16px rgba(5,17,31,0.14)", transition: "transform .28s cubic-bezier(.34,1.56,.64,1)",
                 }}>
                   {alb.coverUrl
-                    ? <img src={alb.coverUrl} alt={alb.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform .35s ease" }} />
+                    ? <img src={cdnUrl(alb.coverUrl, "thumb")} alt={alb.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform .35s ease" }} />
                     : <div style={{ width: "100%", height: "100%", background: "rgba(13,27,42,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>📷</div>
                   }
                   {/* Overlay */}
@@ -1954,7 +1954,7 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
                   position: "relative", borderRadius: isMobile ? 12 : 16, overflow: "hidden", aspectRatio: "1/1", cursor: "pointer",
                   background: "rgba(13,27,42,0.08)", boxShadow: "0 2px 12px rgba(5,17,31,0.12)",
                 }}>
-                  <img src={p.url} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform .35s ease" }} />
+                  <img src={cdnUrl(p.url, "thumb")} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform .35s ease" }} />
                   <div className="gal-overlay" style={{ position: "absolute", inset: 0, background: "rgba(5,17,31,0.38)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity .2s" }}>
                     <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.90)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>🔍</div>
                   </div>
@@ -7162,7 +7162,7 @@ function AlbumLightbox({ album, onClose }) {
 
       {/* Ảnh chính */}
       <div onClick={e => e.stopPropagation()} style={{ position: "relative", maxWidth: "min(92vw,900px)", maxHeight: "72vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <img src={photos[idx].url} alt="" style={{ maxWidth: "100%", maxHeight: "72vh", borderRadius: 16, objectFit: "contain", boxShadow: "0 24px 80px rgba(0,0,0,0.7)", userSelect: "none" }} />
+        <img src={cdnUrl(photos[idx].url, "full")} alt="" style={{ maxWidth: "100%", maxHeight: "72vh", borderRadius: 16, objectFit: "contain", boxShadow: "0 24px 80px rgba(0,0,0,0.7)", userSelect: "none" }} />
         {photos.length > 1 && (
           <>
             <button onClick={() => setIdx(i => (i - 1 + photos.length) % photos.length)}
@@ -7188,7 +7188,7 @@ function AlbumLightbox({ album, onClose }) {
               border: i === idx ? `2px solid ${G}` : "2px solid transparent",
               opacity: i === idx ? 1 : 0.5, transition: "all .2s",
             }}>
-              <img src={p.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <img src={cdnUrl(p.url, "thumb")} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             </div>
           ))}
         </div>
@@ -7301,7 +7301,7 @@ function AlbumManager({ photos, albums, setAlbums, isMobile }) {
                       border: selected ? `2px solid ${G}` : `2px solid transparent`,
                       opacity: selected ? 1 : 0.55, transition: "all .18s",
                     }}>
-                      <img src={p.url} alt="" onClick={() => togglePhoto(p)} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
+                      <img src={cdnUrl(p.url, "thumb")} alt="" onClick={() => togglePhoto(p)} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
                       {selected && (
                         <div style={{ position: "absolute", top: 4, left: 4, background: G, borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#000", fontWeight: 800 }}>✓</div>
                       )}
@@ -7341,7 +7341,7 @@ function AlbumManager({ photos, albums, setAlbums, isMobile }) {
                 {/* Cover */}
                 <div onClick={() => setOpenAlbum(alb)} style={{ width: 90, flexShrink: 0, cursor: "pointer", position: "relative", overflow: "hidden" }}>
                   {alb.coverUrl
-                    ? <img src={alb.coverUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                    ? <img src={cdnUrl(alb.coverUrl, "thumb")} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                     : <div style={{ width: "100%", height: "100%", background: CARD2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>📷</div>
                   }
                   <div style={{ position: "absolute", inset: 0, background: "rgba(5,12,22,0.28)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity .2s" }}
@@ -7380,6 +7380,18 @@ const CLOUD_NAME     = "dgre5eh7l";
 const UPLOAD_PRESET  = "92kamerafeedback";
 const CLOUDINARY_TAG = "92kamera";
 // CLOUDINARY_DELETE_FN được build lúc gọi để tránh lỗi before-initialization
+
+// ── CDN URL HELPER — chèn transformation để ảnh nét, không vỡ ──
+// thumb: hiển thị lưới nhỏ — w_800,q_auto:best,f_auto
+// full : xem lightbox/album — w_2000,q_auto:best,f_auto
+function cdnUrl(url, mode = "thumb") {
+  if (!url || !url.includes("res.cloudinary.com")) return url;
+  const t = mode === "full"
+    ? "w_2000,q_auto:best,f_auto"
+    : "w_800,q_auto:best,f_auto";
+  // Chèn transformation sau /upload/
+  return url.replace("/upload/", `/upload/${t}/`);
+}
 
 // Fetch từ Supabase gallery_photos (nguồn sự thật, đồng bộ mọi thiết bị)
 async function galleryFetchPhotos() {
@@ -7619,7 +7631,7 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: 10, marginBottom: 16 }}>
           {(photos || []).map((p, i) => (
             <div key={p.id} style={{ position: "relative", borderRadius: 12, overflow: "hidden", aspectRatio: "1/1", background: CARD2 }}>
-              <img src={p.url} alt="" onClick={() => setPreviewIdx(i)}
+              <img src={cdnUrl(p.url, "thumb")} alt="" onClick={() => setPreviewIdx(i)}
                 style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", cursor: "zoom-in" }} loading="lazy" />
               <button onClick={() => handleDelete(p)} title="Xóa ảnh vĩnh viễn" disabled={deletingId === p.public_id}
                 style={{ position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: "50%", background: deletingId === p.public_id ? "rgba(0,0,0,0.4)" : "rgba(192,41,10,0.85)", border: "none", color: "#fff", cursor: deletingId === p.public_id ? "wait" : "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
