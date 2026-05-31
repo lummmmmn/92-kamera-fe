@@ -1724,6 +1724,23 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
           ))}
         </div>
       </div>
+
+      {/* Gallery ảnh khách — masonry */}
+      {(photos || []).length > 0 && (
+        <div style={{ padding: isMobile ? "28px 16px 0" : "36px 32px 0" }}>
+          <div style={{ fontSize: 9, letterSpacing: 6, color: G, opacity: 0.45, marginBottom: 14, textAlign: "center", fontFamily: "var(--font-ui)", fontWeight: 700 }}>ẢNH THỰC TẾ TỪ KHÁCH HÀNG</div>
+          <div style={{
+            columns: isMobile ? 2 : 4,
+            columnGap: 10,
+          }}>
+            {(photos || []).map(p => (
+              <div key={p.id} style={{ breakInside: "avoid", marginBottom: 10, borderRadius: 14, overflow: "hidden", boxShadow: "0 2px 12px rgba(5,17,31,0.10)" }}>
+                <img src={p.url} alt="" style={{ width: "100%", display: "block" }} loading="lazy" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1867,6 +1884,7 @@ const STEPS = [
       { type:"list", items:["Thiết bị cần thuê","Ngày nhận máy","Ngày trả máy","Phụ kiện đi kèm"] },
       { type:"label", text:"Sau khi gửi yêu cầu thuê, hệ thống sẽ tự động kiểm tra tình trạng còn hàng theo đúng thời gian khách chọn." },
       { type:"label", text:"Nếu đơn hợp lệ, Shop sẽ xác nhận nhanh qua Zalo hoặc điện thoại." },
+      { type:"label", text:"💰 Sẽ nhận cọc giữ đơn sau khi xác minh nhanh — tuỳ giá trị từng đơn." },
     ],
     footer:"💡 Quý khách chủ động sao chép đơn và gửi tin nhắn qua Zalo cho mình để được hỗ trợ nhanh hơn nhé!",
   },
@@ -1879,11 +1897,11 @@ const STEPS = [
       { type:"list", items:["Nhận máy tại: Thôn Thạnh Mỹ, Tam Mỹ, TP. Đà Nẵng","Mang theo CCCD bản gốc để xác minh"] },
       { type:"heading", text:"Cách 2 — Shop giao máy tận nơi" },
       { type:"label", text:"Hỗ trợ giao máy khu vực:" },
-      { type:"list", items:["Tam Kỳ → Núi Thành"] },
+      { type:"list", items:["Tam Kỳ → Núi Thành","Mang theo CCCD bản gốc để xác minh"] },
       { type:"heading", text:"Lưu ý:" },
-      { type:"list", items:["Có phụ phí giao nhận tùy khu vực","Thanh toán khi nhận máy","Một số đơn cần giữ CCCD trong thời gian thuê"] },
+      { type:"list", items:["Có phụ phí giao nhận tùy khu vực","Thanh toán toàn bộ đơn hàng và tiền cọc thiết bị (nếu có) khi nhận máy","Một số đơn cần giữ CCCD trong thời gian thuê"] },
     ],
-    footer:"🛡️ Hỗ trợ miễn cọc tiền mặt với khách hàng đủ thông tin xác minh",
+    footer:"🛡️ Hỗ trợ miễn cọc tiền thiết bị với khách hàng đủ thông tin xác minh",
   },
   {
     num:"03", title:"KIỂM TRA & SETUP",
@@ -1925,9 +1943,9 @@ const STEPS = [
     gradient:"linear-gradient(135deg,#0ea5e9 0%,#6366f1 100%)",
     icon:"⚡",
     content: [
-      { type:"list", items:["Kiểm tra tình trạng máy sau khi trả","Hoàn giấy tờ hoặc tiền cọc","Thanh toán chi phí phát sinh nếu có"] },
+      { type:"list", items:["Kiểm tra tình trạng máy sau khi trả","Hoàn giấy tờ hoặc tiền cọc thiết bị (nếu có)","Thanh toán chi phí phát sinh nếu có"] },
       { type:"heading", text:"Khách hàng có thể:" },
-      { type:"list", items:["Trả trực tiếp tại Shop","Hoặc đặt nhân viên Shop đến nhận tận nơi"] },
+      { type:"list", items:["Trả trực tiếp tại Shop: Thôn Thạnh Mỹ, Tam Mỹ, TP. Đà Nẵng","Hoặc đặt nhân viên Shop đến nhận tận nơi"] },
       { type:"italic", text:"⚠️ Không gửi thiết bị qua shipper hoặc đơn vị vận chuyển bên ngoài để tránh rủi ro phát sinh" },
     ],
     footer:"⚡ Kiểm tra & hoàn tất thủ tục nhanh chóng",
@@ -6868,6 +6886,257 @@ function AdminNoteEditor({ order, setOrders }) {
   );
 }
 
+// ── CLOUDINARY + SUPABASE GALLERY ──
+// Phân chia rõ ràng:
+//   Cloudinary  → lưu file ảnh thật (binary, CDN)
+//   Supabase    → lưu metadata (public_id, url, uploaded_at) trong bảng gallery_photos
+// Xóa = xóa đồng thời cả 2 nơi qua Edge Function cloudinary-delete
+const CLOUD_NAME    = "dgre5eh7l";
+const UPLOAD_PRESET = "92kamerafeedback";
+const CLOUDINARY_TAG = "92kamera";
+const CLOUDINARY_DELETE_FN = `${SB_URL}/functions/v1/cloudinary-delete`;
+
+// ── Fetch danh sách từ Supabase (nguồn sự thật) ──
+async function galleryFetchPhotos() {
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/gallery_photos?select=*&order=uploaded_at.desc`,
+      { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }, cache: "no-store" }
+    );
+    if (!res.ok) return [];
+    const rows = await res.json();
+    return (rows || []).map(r => ({
+      id:         r.public_id,
+      public_id:  r.public_id,
+      url:        r.url,
+      uploadedAt: r.uploaded_at,
+    }));
+  } catch (e) {
+    console.warn("[92K] galleryFetchPhotos failed:", e);
+    return [];
+  }
+}
+
+// ── Upload lên Cloudinary, ghi metadata vào Supabase ──
+async function cloudinaryUploadPhoto(file) {
+  // 1. Upload binary lên Cloudinary
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("upload_preset", UPLOAD_PRESET);
+  fd.append("tags", CLOUDINARY_TAG);
+  fd.append("folder", "92kamera_gallery");
+  const res = await fetch(
+    `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+    { method: "POST", body: fd }
+  );
+  if (!res.ok) throw new Error("Cloudinary upload failed");
+  const data = await res.json();
+
+  const photo = {
+    public_id:   data.public_id,
+    url:         data.secure_url,
+    uploaded_at: data.created_at || new Date().toISOString(),
+    uploaded_by: "admin",
+  };
+
+  // 2. Ghi metadata vào Supabase gallery_photos
+  const dbRes = await fetch(
+    `${SB_URL}/rest/v1/gallery_photos`,
+    {
+      method: "POST",
+      headers: {
+        apikey: SB_KEY,
+        Authorization: `Bearer ${SB_KEY}`,
+        "Content-Type": "application/json",
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify(photo),
+    }
+  );
+  if (!dbRes.ok) console.warn("[92K] Supabase insert photo metadata failed:", await dbRes.text());
+
+  return {
+    id:         data.public_id,
+    public_id:  data.public_id,
+    url:        data.secure_url,
+    uploadedAt: data.created_at || new Date().toISOString(),
+  };
+}
+
+// ── Xóa thật: Cloudinary + Supabase cùng lúc qua Edge Function ──
+// Edge Function giữ api_secret, ký SHA-1, gọi Cloudinary destroy + DELETE gallery_photos
+async function cloudinaryDeletePhoto(public_id) {
+  const res = await fetch(CLOUDINARY_DELETE_FN, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${SB_KEY}`,
+    },
+    body: JSON.stringify({ public_id }),
+  });
+  if (!res.ok) throw new Error(`Edge Function lỗi: ${res.status}`);
+  const data = await res.json();
+  if (data.result !== "ok" && data.result !== "not found") {
+    throw new Error(`Xóa thất bại: ${JSON.stringify(data)}`);
+  }
+  return data;
+}
+
+function GalleryUpload({ photos, setPhotos, isMobile }) {
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 });
+  const [uploadMsg, setUploadMsg] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Refresh danh sách từ Supabase (nguồn sự thật)
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    const fresh = await galleryFetchPhotos();
+    setPhotos(fresh);
+    setRefreshing(false);
+  };
+
+  const handleUpload = async (files) => {
+    if (!files || files.length === 0) return;
+    const fileArr = Array.from(files);
+    setUploading(true);
+    setUploadMsg(null);
+    setUploadProgress({ done: 0, total: fileArr.length });
+
+    let successCount = 0;
+    for (let i = 0; i < fileArr.length; i++) {
+      try {
+        await cloudinaryUploadPhoto(fileArr[i]);
+        successCount++;
+      } catch (e) { console.error("Upload lỗi:", fileArr[i].name, e); }
+      setUploadProgress({ done: i + 1, total: fileArr.length });
+    }
+
+    setUploading(false);
+    setUploadProgress({ done: 0, total: 0 });
+
+    if (successCount > 0) {
+      setUploadMsg({ type: "ok", text: `✓ Upload ${successCount}/${fileArr.length} ảnh — đang tải danh sách...` });
+      // Cloudinary cần vài giây để index tag mới → delay nhỏ rồi fetch lại
+      setTimeout(async () => {
+        const fresh = await galleryFetchPhotos();
+        setPhotos(fresh);
+        setUploadMsg({ type: "ok", text: `✓ Đã upload ${successCount} ảnh lên Cloudinary` });
+        setTimeout(() => setUploadMsg(null), 4000);
+      }, 2000);
+    } else {
+      setUploadMsg({ type: "err", text: "❌ Upload thất bại — kiểm tra preset Cloudinary" });
+      setTimeout(() => setUploadMsg(null), 5000);
+    }
+  };
+
+  const [deletingId, setDeletingId] = useState(null);
+
+  // Xóa ảnh thật khỏi Cloudinary qua Edge Function → không còn lưu ở đâu cả
+  const handleDelete = async (photo) => {
+    if (!window.confirm(`Xóa ảnh này khỏi Cloudinary vĩnh viễn?\n\nHành động này không thể hoàn tác.`)) return;
+    setDeletingId(photo.public_id);
+    try {
+      await cloudinaryDeletePhoto(photo.public_id);
+      // Xóa khỏi state ngay sau khi thành công
+      setPhotos(prev => (prev || []).filter(p => p.public_id !== photo.public_id));
+      setUploadMsg({ type: "ok", text: "✓ Đã xóa ảnh khỏi Cloudinary" });
+      setTimeout(() => setUploadMsg(null), 3000);
+    } catch (e) {
+      console.error("[92K] Cloudinary delete failed:", e);
+      setUploadMsg({ type: "err", text: `❌ Xóa thất bại: ${e.message}` });
+      setTimeout(() => setUploadMsg(null), 5000);
+    }
+    setDeletingId(null);
+  };
+
+  const pct = uploadProgress.total > 0 ? Math.round((uploadProgress.done / uploadProgress.total) * 100) : 0;
+
+  return (
+    <>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <div>
+          <h2 style={{ margin: 0, color: TXT, fontWeight: 600, fontSize: 18, fontFamily: "system-ui,sans-serif" }}>
+            Ảnh Gallery Khách ({(photos || []).length})
+          </h2>
+          <div style={{ width: 30, height: 2, background: G, marginTop: 6 }} />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button onClick={handleRefresh} disabled={refreshing}
+            style={{ ...btn("ghost"), fontSize: 11, padding: "6px 12px", opacity: refreshing ? 0.6 : 1 }}>
+            {refreshing ? "⏳ Đang tải..." : "🔄 Refresh"}
+          </button>
+          <div style={{ fontSize: 11, color: "#22c55e", fontFamily: "system-ui,sans-serif", fontWeight: 600 }}>
+            ☁️ Cloudinary
+          </div>
+        </div>
+      </div>
+
+      {/* Upload zone */}
+      <div
+        onClick={() => { if (!uploading) document.getElementById("gal-upload-input").click(); }}
+        onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = G; }}
+        onDragLeave={e => { e.currentTarget.style.borderColor = BR; }}
+        onDrop={e => { e.preventDefault(); e.currentTarget.style.borderColor = BR; handleUpload(e.dataTransfer.files); }}
+        style={{ border: `2px dashed ${BR}`, borderRadius: 16, padding: "28px 20px", textAlign: "center", cursor: uploading ? "wait" : "pointer", marginBottom: 18, background: "rgba(255,255,255,0.35)", transition: "border-color .2s" }}>
+        <input id="gal-upload-input" type="file" accept="image/*" multiple style={{ display: "none" }} onChange={e => handleUpload(e.target.files)} />
+        <div style={{ fontSize: 32, marginBottom: 8 }}>🖼️</div>
+        {uploading ? (
+          <>
+            <div style={{ color: TXT, fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif", marginBottom: 10 }}>
+              ⏳ Đang upload {uploadProgress.done}/{uploadProgress.total} ảnh...
+            </div>
+            <div style={{ width: "100%", maxWidth: 280, margin: "0 auto", height: 6, background: BR, borderRadius: 99, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${pct}%`, background: G, borderRadius: 99, transition: "width .3s ease" }} />
+            </div>
+            <div style={{ color: G, fontSize: 11, marginTop: 6, fontFamily: "system-ui,sans-serif", fontWeight: 600 }}>{pct}%</div>
+          </>
+        ) : (
+          <>
+            <div style={{ color: TXT, fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif" }}>
+              Bấm hoặc kéo thả ảnh vào đây
+            </div>
+            <div style={{ color: MUT, fontSize: 11, marginTop: 4, fontFamily: "system-ui,sans-serif" }}>
+              Ảnh → Cloudinary CDN · Supabase không lưu gì về ảnh
+            </div>
+          </>
+        )}
+      </div>
+
+      {uploadMsg && (
+        <div style={{ padding: "10px 14px", borderRadius: 10, marginBottom: 14, background: uploadMsg.type === "ok" ? "#EEF9F4" : "#FEF0F0", border: `1px solid ${uploadMsg.type === "ok" ? "#22c55e44" : "#ef444433"}`, color: uploadMsg.type === "ok" ? "#22c55e" : "#ef4444", fontSize: 13, fontFamily: "system-ui,sans-serif" }}>
+          {uploadMsg.text}
+        </div>
+      )}
+
+      {(photos || []).length === 0 ? (
+        <div style={{ color: MUT, fontSize: 13, padding: "16px 0" }}>
+          Chưa có ảnh nào — upload ảnh khách lên để hiện ở trang chủ
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: 10, marginBottom: 16 }}>
+          {(photos || []).map(p => (
+            <div key={p.id} style={{ position: "relative", borderRadius: 12, overflow: "hidden", aspectRatio: "3/4", background: CARD2 }}>
+              <img src={p.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
+              <button onClick={() => handleDelete(p)} title="Xóa ảnh khỏi Cloudinary vĩnh viễn" disabled={deletingId === p.public_id}
+                style={{ position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: "50%", background: deletingId === p.public_id ? "rgba(0,0,0,0.4)" : "rgba(192,41,10,0.85)", border: "none", color: "#fff", cursor: deletingId === p.public_id ? "wait" : "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", transition: "background .2s" }}>
+                {deletingId === p.public_id ? "⏳" : "🗑"}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Ghi chú */}
+      <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.2)", marginBottom: 28, fontSize: 11, color: MUT, fontFamily: "system-ui,sans-serif", lineHeight: 1.7 }}>
+        <strong style={{ color: G }}>💡 Quản lý:</strong> Bấm 🗑 để xóa ảnh vĩnh viễn khỏi Cloudinary (cần Edge Function <code>cloudinary-delete</code> đã deploy).
+        Quản lý thủ công → <a href="https://cloudinary.com/console" target="_blank" rel="noreferrer" style={{ color: G }}>Cloudinary Console</a> → Media Library → folder <code>92kamera_gallery</code>
+      </div>
+      <div style={{ width: "100%", height: 1, background: BR, marginBottom: 28, opacity: 0.4 }} />
+    </>
+  );
+}
+
 function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orders, setOrders, siteContent, setSiteContent, photos, setPhotos, feedbacks, setFeedbacks, users, setUsers, discounts, setDiscounts, onBack, isMobile }) {
   const [tab, setTab] = useState("overview");
   const [navOpen, setNavOpen] = useState(false);
@@ -7047,10 +7316,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
         });
         return count;
       }
-      if (key === STORE_KEYS.photos) {
-        // ⛔ Photos sync tắt — giảm egress Supabase
-        return 0;
-      }
+      // photos không qua Supabase kv_store nữa — Cloudinary quản lý hoàn toàn
       if (key === STORE_KEYS.feedbacks) {
         let count = 0;
         setFeedbacks(prev => {
@@ -7154,7 +7420,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
       clearInterval(hb); clearInterval(poll); clearTimeout(retryT);
       if (ws) ws.close();
     };
-  }, [setOrders, setPhotos, setFeedbacks]);
+  }, [setOrders, setFeedbacks]);
 
   // Mark orders as seen when entering orders tab
   useEffect(() => {
@@ -7961,8 +8227,8 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
         {/* FEEDBACK — chỉ còn mục feedback, đã bỏ ảnh khách */}
         {tab === "media" && (
           <div>
-
-            {/* ── Feedback đơn thuê ── */}
+            {/* ── Ảnh Gallery Khách (Cloudinary) ── */}
+            <GalleryUpload photos={photos} setPhotos={setPhotos} isMobile={isMobile} />
             {(() => {
               const fb = feedbacks || [];
               const pending = fb.filter(f => f.status === "pending");
@@ -8571,47 +8837,19 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
 }
 
 // ── STORAGE HELPERS — Supabase Cloud (sync mọi thiết bị) ──
-const STORE_KEYS = { cameras: "k92_cameras_v2", accessories: "k92_accessories_v2", orders: "k92_orders_v2", site: "k92_site_v2", photos: "k92_photos_v1", feedbacks: "k92_feedbacks_v1", users: "k92_users_v1", discounts: "k92_discounts_v1" };
+// photos KHÔNG có trong STORE_KEYS — Cloudinary quản lý hoàn toàn, Supabase không biết
+const STORE_KEYS = { cameras: "k92_cameras_v2", accessories: "k92_accessories_v2", orders: "k92_orders_v2", site: "k92_site_v2", feedbacks: "k92_feedbacks_v1", users: "k92_users_v1", discounts: "k92_discounts_v1" };
 
 const SB_URL = "https://gtgjixgcillbjwnnkavx.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Z2ppeGdjaWxsYmp3bm5rYXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5OTg4MzMsImV4cCI6MjA5MjU3NDgzM30.iFh0KP4vrTZUDMrakW1a9nM8naJScP-D1WqJKrH0hiI";
 const SB_TABLE = "kv_store";
 const SB_HEADERS = { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Content-Type": "application/json", "Prefer": "resolution=merge-duplicates" };
-const SB_BUCKET = "k92-photos"; // Supabase Storage bucket
+// ── ARCHITECTURE: Phân chia rõ ràng ──
+// Supabase kv_store → đơn hàng, máy ảnh, phụ kiện, feedback text, users (dữ liệu nghiệp vụ)
+// Cloudinary       → ảnh gallery feedback (binary file, CDN, optimize tự động)
+// Supabase KHÔNG lưu binary ảnh — chỉ lưu metadata nhẹ: [{ id, public_id, url, uploadedAt }]
 
-// Upload ảnh lên Supabase Storage — trả về public URL hoặc null nếu lỗi
-async function uploadToStorage(base64DataUrl) {
-  try {
-    // Chuyển base64 → Blob
-    const res = await fetch(base64DataUrl);
-    const blob = await res.blob();
-    const fileName = `photo_${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
-    const uploadRes = await fetch(
-      `${SB_URL}/storage/v1/object/${SB_BUCKET}/${fileName}`,
-      {
-        method: "POST",
-        headers: {
-          "apikey": SB_KEY,
-          "Authorization": `Bearer ${SB_KEY}`,
-          "Content-Type": "image/jpeg",
-          "x-upsert": "true"
-        },
-        body: blob
-      }
-    );
-    if (!uploadRes.ok) {
-      console.warn("[92K storage] upload failed:", await uploadRes.text());
-      return null;
-    }
-    // Public URL
-    return `${SB_URL}/storage/v1/object/public/${SB_BUCKET}/${fileName}`;
-  } catch (e) {
-    console.warn("[92K storage] uploadToStorage error:", e);
-    return null;
-  }
-}
-
-// ── CACHE TTL: 30 phút — giảm băng thông tối đa ──
+// ── CACHE TTL: 30 phút ──
 const CACHE_TTL_MS = 30 * 60 * 1000;
 function cacheKey(key) { return `__ts_${key}`; }
 function isCacheFresh(key) {
@@ -9124,8 +9362,7 @@ function AppRoot() {
   const setPhotos = useCallback((updater) => {
     _setPhotos(prev => {
       const next = typeof updater === "function" ? updater(prev) : updater;
-      // ⛔ Không sync photos lên Supabase — ảnh base64 gây egress cao
-      // storageSet(STORE_KEYS.photos, next) -- đã tắt
+      // ✅ Photos do Cloudinary quản lý hoàn toàn — KHÔNG ghi Supabase
       return next;
     });
   }, []);
@@ -9186,7 +9423,7 @@ function AppRoot() {
         });
       }
 
-      // Lazy: load feedbacks sau (photos đã tắt để giảm egress)
+      // Lazy: load feedbacks + photos sau
       setTimeout(async () => {
         const fbs = await storageGet(STORE_KEYS.feedbacks);
         if (fbs) {
@@ -9198,7 +9435,10 @@ function AppRoot() {
             return merged;
           });
         }
-      }, 2000); // delay 2s sau khi UI đã render
+        const pts = await galleryFetchPhotos();
+        if (pts.length > 0) _setPhotos(pts);
+        // Supabase gallery_photos là nguồn sự thật — đồng bộ mọi thiết bị
+      }, 2000);
 
       // Rất lazy: load users — chỉ cần khi login (delay 5s)
       setTimeout(async () => {
