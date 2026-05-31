@@ -1798,6 +1798,10 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
   const hasAlbums = albumsArr.length > 0;
   const hasPhotos = photosArr.length > 0;
 
+  // Mobile: swipe cards — Desktop: marquee
+  const [swipeIdx, setSwipeIdx] = useState(0);
+  const swipeTouch = useRef(null);
+
   if (total === 0 && !hasAlbums && !hasPhotos) return (
     <div id="feedback" className="home-section" style={{ padding: "72px 16px 64px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28,
       border: "none",
@@ -1808,10 +1812,6 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
       <div style={{ color: TXT, fontSize: 13, fontFamily: "var(--font-ui)", fontWeight: 500 }}>Chưa có feedback nào được duyệt</div>
     </div>
   );
-
-  // Mobile: swipe cards — Desktop: marquee
-  const [swipeIdx, setSwipeIdx] = useState(0);
-  const swipeTouch = useRef(null);
 
   // Nhân đủ để băng chạy liền mạch (desktop)
   let band = [...cards];
