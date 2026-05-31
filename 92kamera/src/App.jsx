@@ -833,7 +833,7 @@ function QuickSearchFloat({ cameras, accessories, orders, onBook, openTrigger = 
                     style={{ display:"flex", alignItems:"center", gap: isMobile ? 9 : 12, padding: isMobile ? "10px 11px" : "11px 14px", background: isSel ? "rgba(41,121,207,0.20)" : r.avail > 0 ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.25)", borderRadius:12, marginBottom:8, opacity: r.avail <= 0 ? 0.5 : 1, transition:"background .15s", border: isSel ? "1px solid rgba(41,121,207,0.6)" : "1px solid rgba(255,255,255,0.60)" }}
                   >
                     <div style={{ width:44, height:44, borderRadius:10, background:"rgba(0,0,0,0.08)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, flexShrink:0, overflow:"hidden" }}>
-                      {r.images?.[0] ? <img src={r.images[0]} alt={r.name} style={{ width:"100%", height:"100%", objectFit:"cover" }}/> : r.icon}
+                      {r.images?.[0] ? <img src={cdnUrl(r.images[0], "thumb")} alt={r.name} style={{ width:"100%", height:"100%", objectFit:"cover" }}/> : r.icon}
                     </div>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ color: isSel ? "#1a4a8a" : "#0d1b2a", fontSize:14, fontWeight:700, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", fontFamily:"system-ui,sans-serif" }}>{r.name}</div>
@@ -1142,7 +1142,7 @@ function CamImage({ cam, height = 176 }) {
   }
   return (
     <div style={{ height, position: "relative", overflow: "hidden", borderBottom: `1px solid ${BR}`, background: BG }}>
-      <img src={imgs[idx]} alt={cam.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
+      <img src={cdnUrl(imgs[idx], "full")} alt={cam.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
       {imgs.length > 1 && (
         <>
           <button onClick={e => { e.stopPropagation(); setIdx((idx - 1 + imgs.length) % imgs.length); }}
@@ -4095,7 +4095,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                         </div>
                         {/* Ảnh */}
                         {c.images?.length > 0
-                          ? <img src={c.images[0]} alt={c.name} onClick={() => toggleCam(c)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }} />
+                          ? <img src={cdnUrl(c.images[0], "thumb")} alt={c.name} onClick={() => toggleCam(c)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }} />
                           : <span onClick={() => toggleCam(c)} style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, cursor: "pointer" }}>{c.icon}</span>}
 
                         {/* Info overlay — dưới cùng, mặc định trong suốt */}
@@ -4205,7 +4205,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                   {selectedCamList[0] && (
                     <div style={{ width:32, height:32, background:CARD, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0, border:`1px solid ${BR}`, overflow:"hidden" }}>
                       {selectedCamList[0].images?.length > 0
-                        ? <img src={selectedCamList[0].images[0]} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                        ? <img src={cdnUrl(selectedCamList[0].images[0], "thumb")} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
                         : selectedCamList[0].icon}
                     </div>
                   )}
@@ -4227,7 +4227,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                       <div key={c.id} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
                         <div style={{ width:36, height:36, background:CARD, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, flexShrink:0, border:`1px solid ${BR}`, overflow:"hidden" }}>
                           {c.images?.length > 0
-                            ? <img src={c.images[0]} alt={c.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                            ? <img src={cdnUrl(c.images[0], "thumb")} alt={c.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
                             : c.icon}
                         </div>
                         <div style={{ flex:1, minWidth:0 }}>
@@ -4662,7 +4662,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                       <div key={c.id} style={{ display:"flex", alignItems:"center", gap:14, padding:"14px 16px", borderBottom: idx < selectedCamList.length - 1 ? `1px solid rgba(0,0,0,0.07)` : "none" }}>
                         <div style={{ width:82, height:82, borderRadius:14, overflow:"hidden", flexShrink:0, background:"rgba(0,0,0,0.12)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:26, border:"1px solid rgba(255,255,255,0.40)" }}>
                           {c.images?.length > 0
-                            ? <img src={c.images[0]} alt={c.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                            ? <img src={cdnUrl(c.images[0], "thumb")} alt={c.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
                             : c.icon}
                         </div>
                         <div style={{ minWidth:0 }}>
@@ -8520,7 +8520,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                     {/* Thumbnail */}
                     <div style={{ flexShrink: 0, width: 70, height: 70, borderRadius: 12, overflow: "hidden", background: CARD, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, border: `1px solid ${BR2}` }}>
                       {c.images?.length > 0
-                        ? <img src={c.images[0]} alt={c.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        ? <img src={cdnUrl(c.images[0], "thumb")} alt={c.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                         : <span>{c.icon}</span>}
                     </div>
 
@@ -9205,7 +9205,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                 <div key={c.id} style={{ display: "grid", gridTemplateColumns: "60px 2fr 1fr 1fr 1fr 1fr", borderBottom: i < cameras.length - 1 ? `1px solid ${BR2}` : "none", alignItems: "center" }}>
                   <div style={{ padding: "10px 12px" }}>
                     {c.images?.length > 0
-                      ? <img src={c.images[0]} alt={c.name} style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 5, border: `1px solid ${BR2}` }} />
+                      ? <img src={cdnUrl(c.images[0], "thumb")} alt={c.name} style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 5, border: `1px solid ${BR2}` }} />
                       : <div style={{ width: 36, height: 36, background: CARD, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{c.icon}</div>}
                   </div>
                   <div style={{ padding: "12px 12px", color: TXT, fontSize: 12 }}>{c.name}</div>
