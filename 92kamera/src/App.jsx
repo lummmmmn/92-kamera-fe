@@ -1777,6 +1777,7 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
   const [paused, setPaused] = useState(false);
   const [lightbox, setLightbox] = useState(null); // index ảnh rời
   const [openAlbum, setOpenAlbum] = useState(null); // album object
+  const [showAllAlbums, setShowAllAlbums] = useState(false);
 
   const cards = (feedbacks || [])
     .filter(f => f.status === "approved" && !f.hidden)
@@ -1914,7 +1915,7 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
 
           {/* ALBUM GRID — layout bất đối xứng giống design */}
           {hasAlbums && (() => {
-            const displayed = albumsArr.slice(0, isMobile ? 3 : 3);
+            const displayed = showAllAlbums ? albumsArr : albumsArr.slice(0, 3);
             const [big, ...smalls] = displayed;
             return (
               <div style={{
@@ -2047,11 +2048,11 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
             );
           })()}
 
-          {/* Nút XEM TẤT CẢ ALBUM */}
+          {/* Nút XEM TẤT CẢ / THU GỌN */}
           {hasAlbums && albumsArr.length > 3 && (
             <div style={{ textAlign: "center", marginTop: isMobile ? 20 : 28 }}>
               <button
-                onClick={() => setOpenAlbum(albumsArr[0])}
+                onClick={() => setShowAllAlbums(v => !v)}
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 10,
                   background: "transparent",
@@ -2069,8 +2070,11 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
                 onMouseEnter={e => { e.currentTarget.style.background = G + "12"; e.currentTarget.style.borderColor = G + "aa"; }}
                 onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = G + "55"; }}
               >
-                XEM TẤT CẢ ALBUM
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                {showAllAlbums ? "THU GỌN" : "XEM TẤT CẢ ALBUM"}
+                {showAllAlbums
+                  ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                  : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                }
               </button>
             </div>
           )}
@@ -7264,6 +7268,8 @@ function AdminNoteEditor({ order, setOrders }) {
 function AlbumLightbox({ album, onClose }) {
   const [idx, setIdx] = useState(0);
   const photos = album.photos || [];
+  const isMob = window.innerWidth < 640;
+
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === "Escape") onClose();
@@ -7274,54 +7280,127 @@ function AlbumLightbox({ album, onClose }) {
     return () => window.removeEventListener("keydown", handleKey);
   }, [photos.length, onClose]);
 
+  // Touch swipe
+  const touchStart = useRef(null);
+  const onTouchStart = (e) => { touchStart.current = e.touches[0].clientX; };
+  const onTouchEnd = (e) => {
+    if (touchStart.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStart.current;
+    if (Math.abs(dx) > 40) {
+      dx < 0
+        ? setIdx(i => (i + 1) % photos.length)
+        : setIdx(i => (i - 1 + photos.length) % photos.length);
+    }
+    touchStart.current = null;
+  };
+
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
   if (photos.length === 0) return null;
+
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(5,12,22,0.96)", zIndex: 9999, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-      {/* Header */}
-      <div onClick={e => e.stopPropagation()} style={{ position: "absolute", top: 0, left: 0, right: 0, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "linear-gradient(to bottom,rgba(5,12,22,0.85),transparent)", zIndex: 2 }}>
-        <div>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: "var(--font-display)" }}>{album.name}</div>
-          {album.cameraTag && <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 11, fontFamily: "var(--font-ui)", marginTop: 2 }}>📷 {album.cameraTag}</div>}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, fontFamily: "var(--font-ui)" }}>{idx + 1} / {photos.length}</span>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: "50%", width: 36, height: 36, color: "#fff", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
-        </div>
-      </div>
-
-      {/* Ảnh chính */}
-      <div onClick={e => e.stopPropagation()} style={{ position: "relative", maxWidth: "min(92vw,900px)", maxHeight: "72vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <img src={cdnUrl(photos[idx].url, "full")} alt="" style={{ maxWidth: "100%", maxHeight: "72vh", borderRadius: 16, objectFit: "contain", boxShadow: "0 24px 80px rgba(0,0,0,0.7)", userSelect: "none" }} />
-        {photos.length > 1 && (
-          <>
-            <button onClick={() => setIdx(i => (i - 1 + photos.length) % photos.length)}
-              style={{ position: "absolute", left: -52, top: "50%", transform: "translateY(-50%)", background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: "50%", width: 44, height: 44, color: "#fff", cursor: "pointer", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center", transition: "background .2s" }}
-              onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.22)"}
-              onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.10)"}
-            >‹</button>
-            <button onClick={() => setIdx(i => (i + 1) % photos.length)}
-              style={{ position: "absolute", right: -52, top: "50%", transform: "translateY(-50%)", background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: "50%", width: 44, height: 44, color: "#fff", cursor: "pointer", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center", transition: "background .2s" }}
-              onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.22)"}
-              onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.10)"}
-            >›</button>
-          </>
-        )}
-      </div>
-
-      {/* Thumbnail strip */}
-      {photos.length > 1 && (
-        <div onClick={e => e.stopPropagation()} style={{ display: "flex", gap: 8, marginTop: 18, overflowX: "auto", maxWidth: "min(92vw,900px)", padding: "4px 2px 8px" }}>
-          {photos.map((p, i) => (
-            <div key={p.id || i} onClick={() => setIdx(i)} style={{
-              flexShrink: 0, width: 60, height: 60, borderRadius: 10, overflow: "hidden", cursor: "pointer",
-              border: i === idx ? `2px solid ${G}` : "2px solid transparent",
-              opacity: i === idx ? 1 : 0.5, transition: "all .2s",
-            }}>
-              <img src={cdnUrl(p.url, "thumb")} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+    <div
+      onClick={onClose}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+      style={{ position: "fixed", inset: 0, background: "rgba(5,12,22,0.97)", zIndex: 9999, display: "flex", flexDirection: "column" }}
+    >
+      {/* ── HEADER gọn ── */}
+      <div onClick={e => e.stopPropagation()} style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: isMob ? "14px 16px 10px" : "16px 24px 12px",
+        background: "linear-gradient(to bottom, rgba(5,12,22,0.90) 0%, transparent 100%)",
+        flexShrink: 0,
+      }}>
+        {/* Tên + tag */}
+        <div style={{ minWidth: 0, flex: 1, marginRight: 12 }}>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: isMob ? 14 : 16, fontFamily: "var(--font-display)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {album.name}
+          </div>
+          {album.cameraTag && (
+            <div style={{ color: "rgba(255,255,255,0.50)", fontSize: isMob ? 10 : 11, fontFamily: "var(--font-ui)", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="5" width="22" height="16" rx="2"/><circle cx="12" cy="14" r="3"/></svg>
+              {album.cameraTag}
             </div>
-          ))}
+          )}
+        </div>
+        {/* Counter + X */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+          <span style={{ color: "rgba(255,255,255,0.40)", fontSize: isMob ? 11 : 12, fontFamily: "var(--font-ui)", letterSpacing: 1 }}>
+            {idx + 1} / {photos.length}
+          </span>
+          <button onClick={onClose} style={{
+            background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.15)",
+            borderRadius: "50%", width: isMob ? 32 : 36, height: isMob ? 32 : 36,
+            color: "#fff", cursor: "pointer", fontSize: isMob ? 15 : 17,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>✕</button>
+        </div>
+      </div>
+
+      {/* ── ẢNH CHÍNH — flex-grow chiếm hết không gian giữa ── */}
+      <div onClick={e => e.stopPropagation()} style={{
+        flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
+        overflow: "hidden", padding: isMob ? "0 8px" : "0 16px",
+      }}>
+        <img
+          src={cdnUrl(photos[idx].url, "full")}
+          alt=""
+          style={{
+            maxWidth: "100%", maxHeight: "100%",
+            borderRadius: isMob ? 12 : 16,
+            objectFit: "contain",
+            boxShadow: "0 24px 80px rgba(0,0,0,0.60)",
+            userSelect: "none", display: "block",
+          }}
+          loading="eager"
+        />
+      </div>
+
+      {/* ── BOTTOM BAR: prev + thumbnails + next ── */}
+      {photos.length > 1 && (
+        <div onClick={e => e.stopPropagation()} style={{
+          display: "flex", alignItems: "center", gap: isMob ? 8 : 12,
+          padding: isMob ? "10px 12px 20px" : "12px 24px 20px",
+          background: "linear-gradient(to top, rgba(5,12,22,0.90) 0%, transparent 100%)",
+          flexShrink: 0,
+        }}>
+          {/* Nút prev */}
+          <button onClick={() => setIdx(i => (i - 1 + photos.length) % photos.length)} style={{
+            flexShrink: 0, width: isMob ? 34 : 40, height: isMob ? 34 : 40, borderRadius: "50%",
+            background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)",
+            color: "#fff", fontSize: isMob ? 18 : 20, cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>‹</button>
+
+          {/* Thumbnail strip */}
+          <div style={{
+            flex: 1, display: "flex", gap: isMob ? 6 : 8,
+            overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch",
+            padding: "2px 0",
+          }}>
+            {photos.map((p, i) => (
+              <div key={p.id || i} onClick={() => setIdx(i)} style={{
+                flexShrink: 0,
+                width: isMob ? 44 : 52, height: isMob ? 44 : 52,
+                borderRadius: isMob ? 8 : 10, overflow: "hidden", cursor: "pointer",
+                border: i === idx ? "2px solid #c9a84c" : "2px solid rgba(255,255,255,0.10)",
+                opacity: i === idx ? 1 : 0.45,
+                transition: "all .2s ease",
+                transform: i === idx ? "scale(1.08)" : "scale(1)",
+              }}>
+                <img src={cdnUrl(p.url, "thumb")} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
+              </div>
+            ))}
+          </div>
+
+          {/* Nút next */}
+          <button onClick={() => setIdx(i => (i + 1) % photos.length)} style={{
+            flexShrink: 0, width: isMob ? 34 : 40, height: isMob ? 34 : 40, borderRadius: "50%",
+            background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)",
+            color: "#fff", fontSize: isMob ? 18 : 20, cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>›</button>
         </div>
       )}
     </div>
