@@ -1018,19 +1018,39 @@ function compressIcon(file) {
   });
 }
 
-// ── IMAGE UPLOADER ──
-function ImageUploader({ images = [], onChange, max = 3 }) {
+// ── IMAGE UPLOADER — upload Cloudinary, lưu URL ──
+// images[] = mảng URL (Cloudinary) hoặc base64 cũ (backward-compat)
+// imagesMeta[] = mảng { url, public_id } để có thể xóa khỏi Cloudinary
+function ImageUploader({ images = [], imagesMeta = [], onChange, onChangeMeta, max = 3, folder = "92kamera_cameras" }) {
   const fileRef = useRef();
+  const [uploading, setUploading] = useState(false);
+  const [uploadErr, setUploadErr] = useState("");
 
   const handleFiles = async (files) => {
     const remaining = max - images.length;
     const toProcess = Array.from(files).slice(0, remaining).filter(f => f.type.startsWith("image/"));
     if (!toProcess.length) return;
-    const compressed = await Promise.all(toProcess.map(f => compressImage(f)));
-    onChange([...images, ...compressed]);
+    setUploading(true);
+    setUploadErr("");
+    try {
+      const results = await Promise.all(toProcess.map(f => cloudinaryUploadAsset(f, folder)));
+      const newUrls = results.map(r => r.url);
+      const newMeta = results.map(r => ({ url: r.url, public_id: r.public_id }));
+      onChange([...images, ...newUrls]);
+      if (onChangeMeta) onChangeMeta([...imagesMeta, ...newMeta]);
+    } catch (e) {
+      setUploadErr("❌ Upload thất bại — kiểm tra preset Cloudinary");
+    }
+    setUploading(false);
   };
 
-  const removeImg = (i) => onChange(images.filter((_, idx) => idx !== i));
+  const removeImg = async (i) => {
+    // Xóa khỏi Cloudinary nếu có public_id
+    const meta = imagesMeta[i];
+    if (meta?.public_id) cloudinaryDeleteAsset(meta.public_id);
+    onChange(images.filter((_, idx) => idx !== i));
+    if (onChangeMeta) onChangeMeta(imagesMeta.filter((_, idx) => idx !== i));
+  };
 
   return (
     <div>
@@ -1041,28 +1061,44 @@ function ImageUploader({ images = [], onChange, max = 3 }) {
             <button onClick={() => removeImg(i)} style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: "50%", background: "#ef4444", color: "#fff", border: "none", cursor: "pointer", fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>✕</button>
           </div>
         ))}
-        {images.length < max && (
+        {images.length < max && !uploading && (
           <button onClick={() => fileRef.current?.click()}
             style={{ width: 72, height: 72, border: `2px dashed ${G}55`, borderRadius: 10, background: CARD2, color: G, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, fontSize: 10, fontFamily: "system-ui,sans-serif" }}>
             <span style={{ fontSize: 20 }}>+</span>
             <span>Thêm ảnh</span>
           </button>
         )}
+        {uploading && (
+          <div style={{ width: 72, height: 72, border: `1px solid ${BR2}`, borderRadius: 10, background: CARD2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: MUT, fontFamily: "system-ui,sans-serif" }}>
+            ⏳ Upload...
+          </div>
+        )}
       </div>
       <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: "none" }}
         onChange={e => { handleFiles(e.target.files); e.target.value = ""; }} />
-      {images.length > 0 && <div style={{ color: MUT, fontSize: 10 }}>{images.length}/{max} ảnh · Nhấn ✕ để xoá</div>}
+      {uploadErr && <div style={{ color: RED, fontSize: 10, marginBottom: 4 }}>{uploadErr}</div>}
+      {images.length > 0 && <div style={{ color: MUT, fontSize: 10 }}>{images.length}/{max} ảnh · Cloudinary CDN · Nhấn ✕ để xoá</div>}
     </div>
   );
 }
 
-// ── ACC ICON UPLOADER — 1 ảnh vuông 96x96, siêu nhẹ ──
-function AccIconUploader({ image, onChange }) {
+// ── ACC ICON UPLOADER — upload Cloudinary, lưu URL ──
+function AccIconUploader({ image, imageMeta, onChange, onChangeMeta }) {
   const fileRef = useRef();
+  const [uploading, setUploading] = useState(false);
   const handleFile = async (file) => {
     if (!file || !file.type.startsWith("image/")) return;
-    const compressed = await compressIcon(file);
-    onChange(compressed);
+    setUploading(true);
+    try {
+      // Xóa ảnh cũ nếu có
+      if (imageMeta?.public_id) cloudinaryDeleteAsset(imageMeta.public_id);
+      const result = await cloudinaryUploadAsset(file, "92kamera_accessories");
+      onChange(result.url);
+      if (onChangeMeta) onChangeMeta({ url: result.url, public_id: result.public_id });
+    } catch (e) {
+      console.warn("[92K] AccIcon upload failed:", e);
+    }
+    setUploading(false);
   };
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1070,24 +1106,24 @@ function AccIconUploader({ image, onChange }) {
         {image
           ? <>
               <img src={image} alt="icon" style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 12, border: `1px solid ${BR2}` }} />
-              <button onClick={() => onChange("")} style={{ position: "absolute", top: -6, right: -6, width: 18, height: 18, borderRadius: "50%", background: "#ef4444", color: "#fff", border: "none", cursor: "pointer", fontSize: 9, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>✕</button>
+              <button onClick={() => { if (imageMeta?.public_id) cloudinaryDeleteAsset(imageMeta.public_id); onChange(""); if (onChangeMeta) onChangeMeta(null); }} style={{ position: "absolute", top: -6, right: -6, width: 18, height: 18, borderRadius: "50%", background: "#ef4444", color: "#fff", border: "none", cursor: "pointer", fontSize: 9, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>✕</button>
             </>
-          : <button onClick={() => fileRef.current?.click()}
-              style={{ width: 56, height: 56, border: `2px dashed ${G}55`, borderRadius: 12, background: CARD2, color: G, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, fontSize: 9, fontFamily: "system-ui,sans-serif" }}>
-              <span style={{ fontSize: 18 }}>📷</span>
-              <span>Ảnh icon</span>
+          : <button onClick={() => !uploading && fileRef.current?.click()}
+              style={{ width: 56, height: 56, border: `2px dashed ${G}55`, borderRadius: 12, background: CARD2, color: G, cursor: uploading ? "default" : "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, fontSize: 9, fontFamily: "system-ui,sans-serif" }}>
+              <span style={{ fontSize: 18 }}>{uploading ? "⏳" : "📷"}</span>
+              <span>{uploading ? "Upload..." : "Ảnh icon"}</span>
             </button>
         }
       </div>
       <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }}
         onChange={e => { handleFile(e.target.files?.[0]); e.target.value = ""; }} />
-      {image && (
+      {image && !uploading && (
         <button onClick={() => fileRef.current?.click()}
           style={{ fontSize: 10, color: MUT, background: "none", border: `1px solid ${BR}`, borderRadius: 8, padding: "4px 10px", cursor: "pointer", fontFamily: "system-ui,sans-serif" }}>
           Đổi ảnh
         </button>
       )}
-      <span style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif" }}>~5KB · 96×96px</span>
+      <span style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif" }}>Cloudinary CDN · 96×96px</span>
     </div>
   );
 }
@@ -1606,11 +1642,140 @@ function MobileBackground() {
   return <LensBackground isMob={true} />;
 }
 
+// ── PHOTO LIGHTBOX — full màn hình, lướt trái/phải ──
+function PhotoLightbox({ photos, startIndex, onClose }) {
+  const [idx, setIdx] = useState(startIndex || 0);
+  const total = photos.length;
+
+  // Khoá scroll body khi lightbox mở
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  // Phím tắt
+  useEffect(() => {
+    const fn = (e) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft")  setIdx(i => (i - 1 + total) % total);
+      if (e.key === "ArrowRight") setIdx(i => (i + 1) % total);
+    };
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
+  }, [onClose, total]);
+
+  const prev = () => setIdx(i => (i - 1 + total) % total);
+  const next = () => setIdx(i => (i + 1) % total);
+
+  // Touch swipe
+  const touchStart = useRef(null);
+  const onTouchStart = (e) => { touchStart.current = e.touches[0].clientX; };
+  const onTouchEnd = (e) => {
+    if (touchStart.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStart.current;
+    if (Math.abs(dx) > 50) dx < 0 ? next() : prev();
+    touchStart.current = null;
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+      style={{ position: "fixed", inset: 0, zIndex: 99999, background: "rgba(5,12,22,0.94)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+
+      {/* Ảnh chính */}
+      <img
+        src={photos[idx].url}
+        alt=""
+        onClick={e => e.stopPropagation()}
+        style={{
+          maxWidth: "92vw", maxHeight: "88vh",
+          objectFit: "contain",
+          borderRadius: 14,
+          boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
+          userSelect: "none",
+          display: "block",
+        }}
+        loading="eager"
+      />
+
+      {/* Counter */}
+      <div onClick={e => e.stopPropagation()} style={{
+        position: "fixed", top: 18, left: "50%", transform: "translateX(-50%)",
+        background: "rgba(5,12,22,0.70)", borderRadius: 99, padding: "5px 16px",
+        color: "#d4cab8", fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: 600, letterSpacing: 1,
+        backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+      }}>
+        {idx + 1} / {total}
+      </div>
+
+      {/* Nút đóng */}
+      <button onClick={onClose} style={{
+        position: "fixed", top: 14, right: 18,
+        width: 40, height: 40, borderRadius: "50%",
+        background: "rgba(5,12,22,0.70)", border: "1px solid rgba(255,255,255,0.15)",
+        color: "#d4cab8", fontSize: 22, lineHeight: 1,
+        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+        backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+      }}>×</button>
+
+      {/* Mũi tên trái */}
+      {total > 1 && (
+        <button onClick={e => { e.stopPropagation(); prev(); }} style={{
+          position: "fixed", left: 14, top: "50%", transform: "translateY(-50%)",
+          width: 44, height: 44, borderRadius: "50%",
+          background: "rgba(5,12,22,0.70)", border: "1px solid rgba(255,255,255,0.15)",
+          color: "#d4cab8", fontSize: 22, cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+        }}>‹</button>
+      )}
+
+      {/* Mũi tên phải */}
+      {total > 1 && (
+        <button onClick={e => { e.stopPropagation(); next(); }} style={{
+          position: "fixed", right: 14, top: "50%", transform: "translateY(-50%)",
+          width: 44, height: 44, borderRadius: "50%",
+          background: "rgba(5,12,22,0.70)", border: "1px solid rgba(255,255,255,0.15)",
+          color: "#d4cab8", fontSize: 22, cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+        }}>›</button>
+      )}
+
+      {/* Thumbnail strip ở dưới — chỉ khi có nhiều hơn 1 ảnh */}
+      {total > 1 && (
+        <div onClick={e => e.stopPropagation()} style={{
+          position: "fixed", bottom: 16, left: "50%", transform: "translateX(-50%)",
+          display: "flex", gap: 6, overflowX: "auto", maxWidth: "90vw",
+          padding: "6px 10px",
+          background: "rgba(5,12,22,0.65)", borderRadius: 12,
+          backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+          scrollbarWidth: "none",
+        }}>
+          {photos.map((p, i) => (
+            <img key={p.id || i} src={p.url} alt="" onClick={() => setIdx(i)}
+              style={{
+                width: 48, height: 48, objectFit: "cover", borderRadius: 8, flexShrink: 0, cursor: "pointer",
+                border: i === idx ? "2px solid #c9a84c" : "2px solid transparent",
+                opacity: i === idx ? 1 : 0.55,
+                transition: "all .2s",
+              }} loading="lazy" />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── FEEDBACK CARD
 // ── FEEDBACK CARD (text-only, không ảnh) ──
 // ── FEEDBACK MARQUEE — dải băng chạy ngang ──
 function FeedbackMarquee({ photos, feedbacks, isMobile }) {
   const [paused, setPaused] = useState(false);
+  const [lightbox, setLightbox] = useState(null); // index hoặc null
 
   const cards = (feedbacks || [])
     .filter(f => f.status === "approved" && !f.hidden)
@@ -1626,7 +1791,9 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
   const total = cards.length;
   const avgRating = total ? (cards.reduce((s, c) => s + c.rating, 0) / total).toFixed(1) : "5.0";
 
-  if (total === 0) return (
+  const photosArr = photos || [];
+
+  if (total === 0 && photosArr.length === 0) return (
     <div id="feedback" className="home-section" style={{ padding: "72px 16px 64px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28,
       border: "none",
       boxShadow: "0 1px 0 rgba(255,255,255,0.55) inset, 0 -1px 0 rgba(13,27,42,0.08) inset, 0 4px 6px rgba(13,27,42,0.06) inset, 0 16px 64px rgba(5,17,31,0.20), 0 4px 18px rgba(5,17,31,0.12), 0 0 0 1px rgba(13,27,42,0.07)",
@@ -1648,9 +1815,63 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
       border: "none",
       boxShadow: "0 1px 0 rgba(255,255,255,0.55) inset, 0 -1px 0 rgba(13,27,42,0.08) inset, 0 4px 6px rgba(13,27,42,0.06) inset, 0 16px 64px rgba(5,17,31,0.20), 0 4px 18px rgba(5,17,31,0.12), 0 0 0 1px rgba(13,27,42,0.07)",
       background: isMobile ? "rgba(255,255,255,0.62)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden", position: "relative" }}>
-      <style>{`@keyframes marqueeRun{0%{transform:translateX(0)}100%{transform:translateX(-50%)}} .marquee-band{will-change:transform;}`}</style>
+      <style>{`@keyframes marqueeRun{0%{transform:translateX(0)}100%{transform:translateX(-50%)}} .marquee-band{will-change:transform;} .gal-thumb:hover .gal-overlay{opacity:1!important;} .gal-thumb:hover img{transform:scale(1.06);}`}</style>
+
+      {/* ── GALLERY ẢNH ĐẦU SECTION ── */}
+      {photosArr.length > 0 && (
+        <div style={{ padding: isMobile ? "0 16px 36px" : "0 32px 44px" }}>
+          <div style={{ fontSize: 9, letterSpacing: 6, color: G, opacity: 0.45, marginBottom: 16, textAlign: "center", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
+            ẢNH THỰC TẾ TỪ KHÁCH HÀNG · BẤM ĐỂ XEM TO
+          </div>
+          {/* Grid thumbnail */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)",
+            gap: isMobile ? 8 : 10,
+          }}>
+            {photosArr.map((p, i) => (
+              <div key={p.id || i}
+                className="gal-thumb"
+                onClick={() => setLightbox(i)}
+                style={{
+                  position: "relative",
+                  borderRadius: isMobile ? 12 : 16,
+                  overflow: "hidden",
+                  aspectRatio: "1/1",
+                  cursor: "pointer",
+                  background: "rgba(13,27,42,0.08)",
+                  boxShadow: "0 2px 12px rgba(5,17,31,0.12)",
+                }}>
+                <img src={p.url} alt="" loading="lazy"
+                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform .35s ease" }} />
+                {/* Overlay khi hover */}
+                <div className="gal-overlay" style={{
+                  position: "absolute", inset: 0,
+                  background: "rgba(5,17,31,0.38)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  opacity: 0, transition: "opacity .2s",
+                }}>
+                  <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.90)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>🔍</div>
+                </div>
+                {/* Badge số ảnh còn lại ở ô cuối */}
+                {!isMobile && i === 7 && photosArr.length > 8 && (
+                  <div style={{ position: "absolute", inset: 0, background: "rgba(5,17,31,0.60)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ color: "#fff", fontSize: 22, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>+{photosArr.length - 8}</span>
+                  </div>
+                )}
+                {isMobile && i === 3 && photosArr.length > 4 && (
+                  <div style={{ position: "absolute", inset: 0, background: "rgba(5,17,31,0.60)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ color: "#fff", fontSize: 22, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>+{photosArr.length - 4}</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Header */}
+      {total > 0 && (
       <div style={{ textAlign: "center", marginBottom: 36, padding: "0 16px" }}>
         <div style={{ fontSize: 9, letterSpacing: 7, color: G, opacity: 0.55, marginBottom: 14, fontFamily: "var(--font-ui)", fontWeight: 700 }}>ĐÁNH GIÁ / FEEDBACK</div>
         <h2 style={{ fontSize: isMobile ? 24 : 30, fontWeight: 700, letterSpacing: 1, margin: "0 0 14px", color: G, fontFamily: "var(--font-display)", textShadow: "0 1px 3px rgba(13,27,42,0.10)" }}>Feedback Khách Hàng</h2>
@@ -1661,8 +1882,10 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
           <span style={{ color: MUT, fontSize: 11, fontFamily: "var(--font-ui)", fontWeight: 500 }}>· {total} đánh giá</span>
         </div>
       </div>
+      )}
 
       {/* Dải băng */}
+      {total > 0 && (
       <div style={{ position: "relative" }}
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}>
@@ -1724,22 +1947,11 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
           ))}
         </div>
       </div>
+      )}
 
-      {/* Gallery ảnh khách — masonry */}
-      {(photos || []).length > 0 && (
-        <div style={{ padding: isMobile ? "28px 16px 0" : "36px 32px 0" }}>
-          <div style={{ fontSize: 9, letterSpacing: 6, color: G, opacity: 0.45, marginBottom: 14, textAlign: "center", fontFamily: "var(--font-ui)", fontWeight: 700 }}>ẢNH THỰC TẾ TỪ KHÁCH HÀNG</div>
-          <div style={{
-            columns: isMobile ? 2 : 4,
-            columnGap: 10,
-          }}>
-            {(photos || []).map(p => (
-              <div key={p.id} style={{ breakInside: "avoid", marginBottom: 10, borderRadius: 14, overflow: "hidden", boxShadow: "0 2px 12px rgba(5,17,31,0.10)" }}>
-                <img src={p.url} alt="" style={{ width: "100%", display: "block" }} loading="lazy" />
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* Lightbox */}
+      {lightbox !== null && (
+        <PhotoLightbox photos={photosArr} startIndex={lightbox} onClose={() => setLightbox(null)} />
       )}
     </div>
   );
@@ -6967,11 +7179,43 @@ async function cloudinaryDeletePhoto(public_id) {
   return data;
 }
 
+// ── CLOUDINARY: Upload ảnh máy ảnh / phụ kiện ──
+// Dùng chung CLOUD_NAME + UPLOAD_PRESET nhưng folder riêng
+async function cloudinaryUploadAsset(file, folder = "92kamera_cameras") {
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("upload_preset", UPLOAD_PRESET);
+  fd.append("tags", CLOUDINARY_TAG);
+  fd.append("folder", folder);
+  const res = await fetch(
+    `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+    { method: "POST", body: fd }
+  );
+  if (!res.ok) throw new Error("Cloudinary upload failed");
+  const data = await res.json();
+  return { url: data.secure_url, public_id: data.public_id };
+}
+
+// Xóa ảnh máy/phụ kiện khỏi Cloudinary qua Edge Function (không ghi DB)
+async function cloudinaryDeleteAsset(public_id) {
+  try {
+    const res = await fetch(`${SB_URL}/functions/v1/cloudinary-delete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${SB_KEY}` },
+      body: JSON.stringify({ public_id, skip_db: true }),
+    });
+    if (!res.ok) console.warn("[92K] cloudinaryDeleteAsset failed:", res.status);
+  } catch (e) {
+    console.warn("[92K] cloudinaryDeleteAsset error:", e);
+  }
+}
+
 function GalleryUpload({ photos, setPhotos, isMobile }) {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 });
   const [uploadMsg, setUploadMsg] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [previewIdx, setPreviewIdx] = useState(null); // lightbox admin
 
   // Refresh từ Supabase (nguồn sự thật)
   const handleRefresh = async () => {
@@ -7099,9 +7343,10 @@ function GalleryUpload({ photos, setPhotos, isMobile }) {
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: 10, marginBottom: 16 }}>
-          {(photos || []).map(p => (
-            <div key={p.id} style={{ position: "relative", borderRadius: 12, overflow: "hidden", aspectRatio: "3/4", background: CARD2 }}>
-              <img src={p.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
+          {(photos || []).map((p, i) => (
+            <div key={p.id} style={{ position: "relative", borderRadius: 12, overflow: "hidden", aspectRatio: "1/1", background: CARD2 }}>
+              <img src={p.url} alt="" onClick={() => setPreviewIdx(i)}
+                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", cursor: "zoom-in" }} loading="lazy" />
               <button onClick={() => handleDelete(p)} title="Xóa ảnh vĩnh viễn" disabled={deletingId === p.public_id}
                 style={{ position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: "50%", background: deletingId === p.public_id ? "rgba(0,0,0,0.4)" : "rgba(192,41,10,0.85)", border: "none", color: "#fff", cursor: deletingId === p.public_id ? "wait" : "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 {deletingId === p.public_id ? "⏳" : "🗑"}
@@ -7109,6 +7354,11 @@ function GalleryUpload({ photos, setPhotos, isMobile }) {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Lightbox xem ảnh to trong admin */}
+      {previewIdx !== null && (photos || []).length > 0 && (
+        <PhotoLightbox photos={photos} startIndex={previewIdx} onClose={() => setPreviewIdx(null)} />
       )}
 
       {/* Ghi chú */}
@@ -7126,10 +7376,10 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   const [navOpen, setNavOpen] = useState(false);
   const [editCam, setEditCam] = useState(null);
   const [addCamOpen, setAddCamOpen] = useState(false);
-  const [nc, setNc] = useState({ name: "", price: "", desc: "", qty: 1, status: "available", icon: "📷", images: [] });
+  const [nc, setNc] = useState({ name: "", price: "", desc: "", qty: 1, status: "available", icon: "📷", images: [], imagesMeta: [] });
   const [editAcc, setEditAcc] = useState(null);
   const [addAcc, setAddAcc] = useState(false);
-  const [na, setNa] = useState({ name: "", price: "", qty: 1, active: true, priceShift: "", desc: "", image: "" });
+  const [na, setNa] = useState({ name: "", price: "", qty: 1, active: true, priceShift: "", desc: "", image: "", imageMeta: null });
   const [saved, setSaved] = useState(false);
   // ── Đổi mật khẩu ──
   const [pwOld, setPwOld] = useState("");
@@ -7457,7 +7707,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   const addCamera = () => {
     if (!nc.name || !nc.price) return;
     setCameras(p => [...p, { ...nc, id: newCamId(), price: parseInt(nc.price) }]);
-    setNc({ name: "", price: "", desc: "", qty: 1, status: "available", icon: "📷", images: [] });
+    setNc({ name: "", price: "", desc: "", qty: 1, status: "available", icon: "📷", images: [], imagesMeta: [] });
     setAddCamOpen(false);
   };
 
@@ -7727,7 +7977,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                 </div>
                 <div style={{ marginBottom: 16 }}>
                   <div style={{ color: MUT, fontSize: 10, marginBottom: 8, letterSpacing: 1 }}>HÌNH ẢNH SẢN PHẨM</div>
-                  <ImageUploader images={nc.images} onChange={imgs => setNc(p => ({ ...p, images: imgs }))} max={6} />
+                  <ImageUploader images={nc.images} imagesMeta={nc.imagesMeta || []} onChange={imgs => setNc(p => ({ ...p, images: imgs }))} onChangeMeta={meta => setNc(p => ({ ...p, imagesMeta: meta }))} max={6} />
                 </div>
                 <div style={{ display: "flex", gap: 10 }}>
                   <button onClick={addCamera} disabled={!nc.name || !nc.price} style={{ ...btn("gold"), opacity: !nc.name || !nc.price ? 0.5 : 1 }}>✓ Đăng sản phẩm</button>
@@ -7767,7 +8017,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                           </div>
                           <div style={{ marginBottom: 12 }}>
                             <div style={{ color: MUT, fontSize: 10, marginBottom: 6, letterSpacing: 1 }}>HÌNH ẢNH ({(editCam.images || []).length}/6)</div>
-                            <ImageUploader images={editCam.images || []} onChange={imgs => setEditCam(p => ({ ...p, images: imgs }))} max={6} />
+                            <ImageUploader images={editCam.images || []} imagesMeta={editCam.imagesMeta || []} onChange={imgs => setEditCam(p => ({ ...p, images: imgs }))} onChangeMeta={meta => setEditCam(p => ({ ...p, imagesMeta: meta }))} max={6} />
                           </div>
                           <div style={{ display: "flex", gap: 8 }}>
                             <button onClick={() => saveCam(c, editCam)} style={btn("gold")}>✓ Lưu & cập nhật web</button>
@@ -7884,7 +8134,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                 </div>
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ color: MUT, fontSize: 10, marginBottom: 6, letterSpacing: 1 }}>ẢNH ICON (tuỳ chọn)</div>
-                  <AccIconUploader image={na.image} onChange={img => setNa(p => ({ ...p, image: img }))} />
+                  <AccIconUploader image={na.image} imageMeta={na.imageMeta} onChange={img => setNa(p => ({ ...p, image: img }))} onChangeMeta={meta => setNa(p => ({ ...p, imageMeta: meta }))} />
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <button onClick={() => {
@@ -7897,8 +8147,9 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                       active: na.active,
                       desc: na.desc,
                       image: na.image || "",
+                      imageMeta: na.imageMeta || null,
                     }]);
-                    setNa({ name: "", price: "", qty: 1, active: true, priceShift: "", desc: "", image: "" });
+                    setNa({ name: "", price: "", qty: 1, active: true, priceShift: "", desc: "", image: "", imageMeta: null });
                     setAddAcc(false);
                   }} style={btn("gold")}>✓ Lưu</button>
                   <button onClick={() => setAddAcc(false)} style={btn("ghost")}>Huỷ</button>
@@ -7950,7 +8201,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                         </div>
                         <div style={{ marginBottom: 12 }}>
                           <div style={{ color: MUT, fontSize: 10, marginBottom: 6, letterSpacing: 1 }}>ẢNH ICON</div>
-                          <AccIconUploader image={editAcc.image || ""} onChange={img => setEditAcc(p => ({ ...p, image: img }))} />
+                          <AccIconUploader image={editAcc.image || ""} imageMeta={editAcc.imageMeta} onChange={img => setEditAcc(p => ({ ...p, image: img }))} onChangeMeta={meta => setEditAcc(p => ({ ...p, imageMeta: meta }))} />
                         </div>
                         <div style={{ display: "flex", gap: 8 }}>
                           <button onClick={() => saveAcc(a, editAcc)} style={btn("gold")}>✓ Lưu</button>
@@ -8887,8 +9138,8 @@ function storageSet(key, val) {
   try { localStorage.setItem(key, value); } catch {}
   // 2. Invalidate cache để lần next fetch sẽ re-read từ Supabase
   invalidateCache(key);
-  // 3. Debounce Supabase write — delay 5s, gộp nhiều cập nhật liên tiếp (cameras có ảnh lớn)
-  const debounceMs = key === STORE_KEYS.cameras || key === "cameras_img" ? 5000 : key === STORE_KEYS.orders ? 500 : 2000;
+  // 3. Debounce Supabase write — delay 2s cho cameras (URLs nhẹ), 500ms cho orders
+  const debounceMs = key === STORE_KEYS.orders ? 500 : 2000;
   clearTimeout(_writeTimers[key]);
   _writeTimers[key] = setTimeout(() => {
     fetch(`${SB_URL}/rest/v1/${SB_TABLE}`, {
@@ -8971,31 +9222,33 @@ async function rollbackDiscountUsage(discountId) {
   }
 }
 
-// Cameras: tách meta (ko ảnh) và images (có ảnh) để giảm bandwidth
-// cameras_meta: dữ liệu máy không có ảnh — fetch mọi lần
-// cameras_img: chỉ chứa {id, images} — fetch khi cần hiển thị ảnh
+// Cameras: images giờ là Cloudinary URL (nhẹ) → lưu thẳng, không cần tách
 function saveCamerasToStorage(cams) {
-  // Lưu meta (không images) cho key chính — nhẹ hơn nhiều
-  const meta = cams.map(c => ({ ...c, images: [] }));
-  storageSet(STORE_KEYS.cameras, meta);
-  // Lưu images riêng — chỉ khi có ảnh
-  const imgs = cams.filter(c => c.images?.length > 0).map(c => ({ id: c.id, images: c.images }));
-  if (imgs.length > 0) {
-    storageSet("cameras_img", imgs);
-  }
+  storageSet(STORE_KEYS.cameras, cams);
+  // Xóa key cũ cameras_img nếu còn (migration)
+  try { localStorage.removeItem("cameras_img"); } catch {}
 }
 
 async function loadCamerasFromStorage() {
-  const [meta, imgs] = await Promise.all([
-    storageGet(STORE_KEYS.cameras),
-    storageGet("cameras_img"),
-  ]);
-  if (!meta) return null;
-  if (!imgs || imgs.length === 0) return meta;
-  // Merge images vào meta
-  const imgMap = {};
-  imgs.forEach(i => { imgMap[i.id] = i.images; });
-  return meta.map(c => ({ ...c, images: imgMap[c.id] || [] }));
+  // Thử load key mới trước
+  const cams = await storageGet(STORE_KEYS.cameras);
+  if (cams) {
+    // Migration: merge cameras_img cũ (base64) nếu còn
+    try {
+      const imgs = await storageGet("cameras_img");
+      if (imgs && imgs.length > 0) {
+        const imgMap = {};
+        imgs.forEach(i => { imgMap[i.id] = i.images; });
+        // Chỉ merge nếu cam chưa có images URL Cloudinary
+        return cams.map(c => ({
+          ...c,
+          images: (c.images && c.images.length > 0) ? c.images : (imgMap[c.id] || []),
+        }));
+      }
+    } catch {}
+    return cams;
+  }
+  return null;
 }
 
 // ── ERROR BOUNDARY — bắt mọi lỗi render, hiện fallback thay vì màn hình trắng ──
