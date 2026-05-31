@@ -1773,9 +1773,10 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
 // ── FEEDBACK CARD
 // ── FEEDBACK CARD (text-only, không ảnh) ──
 // ── FEEDBACK MARQUEE — dải băng chạy ngang ──
-function FeedbackMarquee({ photos, feedbacks, isMobile }) {
+function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
   const [paused, setPaused] = useState(false);
-  const [lightbox, setLightbox] = useState(null); // index hoặc null
+  const [lightbox, setLightbox] = useState(null); // index ảnh rời
+  const [openAlbum, setOpenAlbum] = useState(null); // album object
 
   const cards = (feedbacks || [])
     .filter(f => f.status === "approved" && !f.hidden)
@@ -1792,8 +1793,11 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
   const avgRating = total ? (cards.reduce((s, c) => s + c.rating, 0) / total).toFixed(1) : "5.0";
 
   const photosArr = photos || [];
+  const albumsArr = (albums || []).filter(a => (a.photos || []).length > 0);
+  const hasAlbums = albumsArr.length > 0;
+  const hasPhotos = photosArr.length > 0;
 
-  if (total === 0 && photosArr.length === 0) return (
+  if (total === 0 && !hasAlbums && !hasPhotos) return (
     <div id="feedback" className="home-section" style={{ padding: "72px 16px 64px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28,
       border: "none",
       boxShadow: "0 1px 0 rgba(255,255,255,0.55) inset, 0 -1px 0 rgba(13,27,42,0.08) inset, 0 4px 6px rgba(13,27,42,0.06) inset, 0 16px 64px rgba(5,17,31,0.20), 0 4px 18px rgba(5,17,31,0.12), 0 0 0 1px rgba(13,27,42,0.07)",
@@ -1816,59 +1820,6 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
       boxShadow: "0 1px 0 rgba(255,255,255,0.55) inset, 0 -1px 0 rgba(13,27,42,0.08) inset, 0 4px 6px rgba(13,27,42,0.06) inset, 0 16px 64px rgba(5,17,31,0.20), 0 4px 18px rgba(5,17,31,0.12), 0 0 0 1px rgba(13,27,42,0.07)",
       background: isMobile ? "rgba(255,255,255,0.62)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden", position: "relative" }}>
       <style>{`@keyframes marqueeRun{0%{transform:translateX(0)}100%{transform:translateX(-50%)}} .marquee-band{will-change:transform;} .gal-thumb:hover .gal-overlay{opacity:1!important;} .gal-thumb:hover img{transform:scale(1.06);}`}</style>
-
-      {/* ── GALLERY ẢNH ĐẦU SECTION ── */}
-      {photosArr.length > 0 && (
-        <div style={{ padding: isMobile ? "0 16px 36px" : "0 32px 44px" }}>
-          <div style={{ fontSize: 9, letterSpacing: 6, color: G, opacity: 0.45, marginBottom: 16, textAlign: "center", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
-            ẢNH THỰC TẾ TỪ KHÁCH HÀNG · BẤM ĐỂ XEM TO
-          </div>
-          {/* Grid thumbnail */}
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)",
-            gap: isMobile ? 8 : 10,
-          }}>
-            {photosArr.map((p, i) => (
-              <div key={p.id || i}
-                className="gal-thumb"
-                onClick={() => setLightbox(i)}
-                style={{
-                  position: "relative",
-                  borderRadius: isMobile ? 12 : 16,
-                  overflow: "hidden",
-                  aspectRatio: "1/1",
-                  cursor: "pointer",
-                  background: "rgba(13,27,42,0.08)",
-                  boxShadow: "0 2px 12px rgba(5,17,31,0.12)",
-                }}>
-                <img src={p.url} alt="" loading="lazy"
-                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform .35s ease" }} />
-                {/* Overlay khi hover */}
-                <div className="gal-overlay" style={{
-                  position: "absolute", inset: 0,
-                  background: "rgba(5,17,31,0.38)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  opacity: 0, transition: "opacity .2s",
-                }}>
-                  <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.90)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>🔍</div>
-                </div>
-                {/* Badge số ảnh còn lại ở ô cuối */}
-                {!isMobile && i === 7 && photosArr.length > 8 && (
-                  <div style={{ position: "absolute", inset: 0, background: "rgba(5,17,31,0.60)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <span style={{ color: "#fff", fontSize: 22, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>+{photosArr.length - 8}</span>
-                  </div>
-                )}
-                {isMobile && i === 3 && photosArr.length > 4 && (
-                  <div style={{ position: "absolute", inset: 0, background: "rgba(5,17,31,0.60)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <span style={{ color: "#fff", fontSize: 22, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>+{photosArr.length - 4}</span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Header */}
       {total > 0 && (
@@ -1949,10 +1900,88 @@ function FeedbackMarquee({ photos, feedbacks, isMobile }) {
       </div>
       )}
 
-      {/* Lightbox */}
+      {/* ── GALLERY / ALBUM CUỐI SECTION ── */}
+      {(hasAlbums || hasPhotos) && (
+        <div style={{ padding: isMobile ? "36px 16px 0" : "44px 32px 0" }}>
+          <div style={{ width: 52, height: 1, background: `linear-gradient(90deg,transparent,${G}55,transparent)`, margin: "0 auto 28px" }} />
+          <div style={{ fontSize: 9, letterSpacing: 6, color: G, opacity: 0.45, marginBottom: hasAlbums ? 20 : 16, textAlign: "center", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
+            {hasAlbums ? "ẢNH THỰC TẾ · PHÂN LOẠI THEO MÁY · BẤM ĐỂ XEM ALBUM" : "ẢNH THỰC TẾ TỪ KHÁCH HÀNG · BẤM ĐỂ XEM TO"}
+          </div>
+
+          {/* ALBUM GRID */}
+          {hasAlbums && (
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(3,1fr)", gap: isMobile ? 10 : 14 }}>
+              {albumsArr.map(alb => (
+                <div key={alb.id} className="gal-thumb" onClick={() => setOpenAlbum(alb)} style={{
+                  position: "relative", borderRadius: isMobile ? 14 : 20, overflow: "hidden", aspectRatio: "4/3", cursor: "pointer",
+                  background: "rgba(13,27,42,0.08)", boxShadow: "0 2px 16px rgba(5,17,31,0.14)", transition: "transform .28s cubic-bezier(.34,1.56,.64,1)",
+                }}>
+                  {alb.coverUrl
+                    ? <img src={alb.coverUrl} alt={alb.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform .35s ease" }} />
+                    : <div style={{ width: "100%", height: "100%", background: "rgba(13,27,42,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>📷</div>
+                  }
+                  {/* Overlay */}
+                  <div className="gal-overlay" style={{
+                    position: "absolute", inset: 0,
+                    background: "linear-gradient(to top, rgba(5,12,22,0.82) 0%, rgba(5,12,22,0.18) 55%, transparent 100%)",
+                    opacity: 0, transition: "opacity .25s",
+                  }}>
+                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: isMobile ? "10px 12px" : "14px 16px" }}>
+                      <div style={{ color: "#fff", fontWeight: 700, fontSize: isMobile ? 12 : 14, fontFamily: "var(--font-display)", marginBottom: 2 }}>{alb.name}</div>
+                      {alb.cameraTag && <div style={{ color: "rgba(255,255,255,0.70)", fontSize: isMobile ? 10 : 11, fontFamily: "var(--font-ui)" }}>📷 {alb.cameraTag}</div>}
+                    </div>
+                  </div>
+                  {/* Badge tên album (luôn hiện) */}
+                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: isMobile ? "28px 12px 10px" : "32px 14px 12px", background: "linear-gradient(to top, rgba(5,12,22,0.72) 0%, transparent 100%)" }}>
+                    <div style={{ color: "#fff", fontWeight: 700, fontSize: isMobile ? 11.5 : 13, fontFamily: "var(--font-display)", textShadow: "0 1px 4px rgba(0,0,0,0.6)", marginBottom: 2 }}>{alb.name}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      {alb.cameraTag && <span style={{ color: "rgba(255,255,255,0.65)", fontSize: 10, fontFamily: "var(--font-ui)" }}>📷 {alb.cameraTag}</span>}
+                      <span style={{ background: "rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", color: "rgba(255,255,255,0.85)", borderRadius: 99, padding: "1px 7px", fontSize: 9, fontFamily: "var(--font-ui)", fontWeight: 700 }}>{(alb.photos || []).length} ảnh</span>
+                    </div>
+                  </div>
+                  {/* Icon play */}
+                  <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,0.88)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, boxShadow: "0 4px 16px rgba(0,0,0,0.25)", opacity: 0.9 }}>▶</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Fallback ảnh rời nếu chưa có album */}
+          {!hasAlbums && hasPhotos && (
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: isMobile ? 8 : 10 }}>
+              {photosArr.map((p, i) => (
+                <div key={p.id || i} className="gal-thumb" onClick={() => setLightbox(i)} style={{
+                  position: "relative", borderRadius: isMobile ? 12 : 16, overflow: "hidden", aspectRatio: "1/1", cursor: "pointer",
+                  background: "rgba(13,27,42,0.08)", boxShadow: "0 2px 12px rgba(5,17,31,0.12)",
+                }}>
+                  <img src={p.url} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform .35s ease" }} />
+                  <div className="gal-overlay" style={{ position: "absolute", inset: 0, background: "rgba(5,17,31,0.38)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity .2s" }}>
+                    <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.90)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>🔍</div>
+                  </div>
+                  {!isMobile && i === 7 && photosArr.length > 8 && (
+                    <div style={{ position: "absolute", inset: 0, background: "rgba(5,17,31,0.60)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <span style={{ color: "#fff", fontSize: 22, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>+{photosArr.length - 8}</span>
+                    </div>
+                  )}
+                  {isMobile && i === 3 && photosArr.length > 4 && (
+                    <div style={{ position: "absolute", inset: 0, background: "rgba(5,17,31,0.60)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <span style={{ color: "#fff", fontSize: 22, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>+{photosArr.length - 4}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Lightbox ảnh rời */}
       {lightbox !== null && (
         <PhotoLightbox photos={photosArr} startIndex={lightbox} onClose={() => setLightbox(null)} />
       )}
+
+      {/* Album Lightbox */}
+      {openAlbum && <AlbumLightbox album={openAlbum} onClose={() => setOpenAlbum(null)} />}
     </div>
   );
 }
@@ -5778,7 +5807,7 @@ function HeroTagline({ isMobile }) {
   );
 }
 
-function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, isMobile, photos, feedbacks, loggedUser, onOpenLogin, onOpenCustomer }) {
+function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, isMobile, photos, albums, feedbacks, loggedUser, onOpenLogin, onOpenCustomer }) {
   const [scrollY, setScrollY] = useState(0);
   const [scrollDir, setScrollDir] = useState("up");
   const prevScrollY = useRef(0);
@@ -6282,7 +6311,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       <QuyTrinh6Buoc isMobile={isMobile} />
 
       {/* CUSTOMER PHOTO FEED */}
-      <FeedbackMarquee photos={photos || []} feedbacks={feedbacks || []} isMobile={isMobile} />
+      <FeedbackMarquee photos={photos || []} albums={albums || []} feedbacks={feedbacks || []} isMobile={isMobile} />
 
       {/* ABOUT */}
       <div id="about" className="home-section" style={{ padding: isMobile ? "56px 16px 72px" : "80px 60px 100px", margin: isMobile ? "20px 12px" : "32px auto", maxWidth: isMobile ? "none" : 1100, textAlign: "center",
@@ -7100,6 +7129,251 @@ function AdminNoteEditor({ order, setOrders }) {
 
 // ── CLOUDINARY + SUPABASE GALLERY ──
 // Cloudinary  → lưu file ảnh thật (binary, CDN)
+// ── ALBUM LIGHTBOX — xem hết ảnh trong album ──
+function AlbumLightbox({ album, onClose }) {
+  const [idx, setIdx] = useState(0);
+  const photos = album.photos || [];
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft") setIdx(i => (i - 1 + photos.length) % photos.length);
+      if (e.key === "ArrowRight") setIdx(i => (i + 1) % photos.length);
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [photos.length, onClose]);
+
+  useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
+
+  if (photos.length === 0) return null;
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(5,12,22,0.96)", zIndex: 9999, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+      {/* Header */}
+      <div onClick={e => e.stopPropagation()} style={{ position: "absolute", top: 0, left: 0, right: 0, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "linear-gradient(to bottom,rgba(5,12,22,0.85),transparent)", zIndex: 2 }}>
+        <div>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: "var(--font-display)" }}>{album.name}</div>
+          {album.cameraTag && <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 11, fontFamily: "var(--font-ui)", marginTop: 2 }}>📷 {album.cameraTag}</div>}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, fontFamily: "var(--font-ui)" }}>{idx + 1} / {photos.length}</span>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: "50%", width: 36, height: 36, color: "#fff", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+        </div>
+      </div>
+
+      {/* Ảnh chính */}
+      <div onClick={e => e.stopPropagation()} style={{ position: "relative", maxWidth: "min(92vw,900px)", maxHeight: "72vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <img src={photos[idx].url} alt="" style={{ maxWidth: "100%", maxHeight: "72vh", borderRadius: 16, objectFit: "contain", boxShadow: "0 24px 80px rgba(0,0,0,0.7)", userSelect: "none" }} />
+        {photos.length > 1 && (
+          <>
+            <button onClick={() => setIdx(i => (i - 1 + photos.length) % photos.length)}
+              style={{ position: "absolute", left: -52, top: "50%", transform: "translateY(-50%)", background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: "50%", width: 44, height: 44, color: "#fff", cursor: "pointer", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center", transition: "background .2s" }}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.22)"}
+              onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.10)"}
+            >‹</button>
+            <button onClick={() => setIdx(i => (i + 1) % photos.length)}
+              style={{ position: "absolute", right: -52, top: "50%", transform: "translateY(-50%)", background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: "50%", width: 44, height: 44, color: "#fff", cursor: "pointer", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center", transition: "background .2s" }}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.22)"}
+              onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.10)"}
+            >›</button>
+          </>
+        )}
+      </div>
+
+      {/* Thumbnail strip */}
+      {photos.length > 1 && (
+        <div onClick={e => e.stopPropagation()} style={{ display: "flex", gap: 8, marginTop: 18, overflowX: "auto", maxWidth: "min(92vw,900px)", padding: "4px 2px 8px" }}>
+          {photos.map((p, i) => (
+            <div key={p.id || i} onClick={() => setIdx(i)} style={{
+              flexShrink: 0, width: 60, height: 60, borderRadius: 10, overflow: "hidden", cursor: "pointer",
+              border: i === idx ? `2px solid ${G}` : "2px solid transparent",
+              opacity: i === idx ? 1 : 0.5, transition: "all .2s",
+            }}>
+              <img src={p.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── ALBUM MANAGER (dùng trong admin GalleryUpload) ──
+function AlbumManager({ photos, albums, setAlbums, isMobile }) {
+  const [mode, setMode] = useState("list"); // "list" | "create" | "edit"
+  const [editAlbum, setEditAlbum] = useState(null);
+  const [form, setForm] = useState({ name: "", cameraTag: "", coverId: "", photoIds: [] });
+  const [openAlbum, setOpenAlbum] = useState(null);
+  const [msg, setMsg] = useState(null);
+
+  const showMsg = (type, text) => { setMsg({ type, text }); setTimeout(() => setMsg(null), 3500); };
+
+  const startCreate = () => { setForm({ name: "", cameraTag: "", coverId: "", photoIds: [] }); setEditAlbum(null); setMode("create"); };
+  const startEdit = (alb) => { setForm({ name: alb.name, cameraTag: alb.cameraTag || "", coverId: alb.coverId || "", photoIds: (alb.photos || []).map(p => p.id) }); setEditAlbum(alb); setMode("edit"); };
+
+  const togglePhoto = (p) => {
+    setForm(f => {
+      const has = f.photoIds.includes(p.id);
+      const newIds = has ? f.photoIds.filter(x => x !== p.id) : [...f.photoIds, p.id];
+      // Nếu bỏ ảnh bìa ra khỏi album thì clear coverId
+      const coverId = has && f.coverId === p.id ? "" : f.coverId;
+      return { ...f, photoIds: newIds, coverId };
+    });
+  };
+
+  const handleSave = () => {
+    if (!form.name.trim()) { showMsg("err", "Nhập tên album"); return; }
+    if (form.photoIds.length === 0) { showMsg("err", "Chọn ít nhất 1 ảnh"); return; }
+    const selectedPhotos = (photos || []).filter(p => form.photoIds.includes(p.id));
+    const coverId = form.coverId || form.photoIds[0];
+    const coverPhoto = selectedPhotos.find(p => p.id === coverId) || selectedPhotos[0];
+    const now = new Date().toISOString();
+    if (editAlbum) {
+      setAlbums(prev => prev.map(a => a.id === editAlbum.id ? {
+        ...a, name: form.name.trim(), cameraTag: form.cameraTag.trim(), coverId, coverUrl: coverPhoto?.url, photos: selectedPhotos, updatedAt: now,
+      } : a));
+      showMsg("ok", "✓ Đã lưu album");
+    } else {
+      setAlbums(prev => [{
+        id: "alb_" + Date.now(), name: form.name.trim(), cameraTag: form.cameraTag.trim(), coverId, coverUrl: coverPhoto?.url, photos: selectedPhotos, createdAt: now, updatedAt: now,
+      }, ...prev]);
+      showMsg("ok", "✓ Tạo album thành công");
+    }
+    setMode("list");
+  };
+
+  const handleDelete = (alb) => {
+    if (!window.confirm(`Xóa album "${alb.name}"?\n\nẢnh gốc không bị xóa.`)) return;
+    setAlbums(prev => prev.filter(a => a.id !== alb.id));
+    showMsg("ok", "✓ Đã xóa album");
+  };
+
+  return (
+    <div style={{ marginBottom: 28 }}>
+      {/* Title + nút tạo */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div>
+          <h3 style={{ margin: 0, color: TXT, fontWeight: 700, fontSize: 15, fontFamily: "system-ui,sans-serif" }}>
+            📂 Album Máy Ảnh ({(albums || []).length})
+          </h3>
+          <div style={{ color: MUT, fontSize: 11, marginTop: 4, fontFamily: "system-ui,sans-serif" }}>Phân loại ảnh theo từng máy để khách xem màu sắc, độ nét</div>
+        </div>
+        {mode === "list" && (
+          <button onClick={startCreate} style={{ ...btn("primary"), fontSize: 12, padding: "7px 14px" }}>+ Tạo album</button>
+        )}
+        {(mode === "create" || mode === "edit") && (
+          <button onClick={() => setMode("list")} style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px" }}>← Quay lại</button>
+        )}
+      </div>
+
+      {msg && <div style={{ padding: "9px 14px", borderRadius: 10, marginBottom: 14, background: msg.type === "ok" ? "#EEF9F4" : "#FEF0F0", border: `1px solid ${msg.type === "ok" ? "#22c55e44" : "#ef444433"}`, color: msg.type === "ok" ? "#22c55e" : "#ef4444", fontSize: 13, fontFamily: "system-ui,sans-serif" }}>{msg.text}</div>}
+
+      {/* FORM TẠO / SỬA */}
+      {(mode === "create" || mode === "edit") && (
+        <div style={{ background: "rgba(201,168,76,0.06)", border: `1px solid ${BR}`, borderRadius: 16, padding: 20, marginBottom: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, marginBottom: 16 }}>
+            <div>
+              <label style={{ display: "block", color: TXT, fontSize: 12, fontWeight: 600, marginBottom: 6, fontFamily: "system-ui,sans-serif" }}>Tên album *</label>
+              <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="VD: Sony A7C — Chụp phong cảnh"
+                style={{ width: "100%", padding: "9px 12px", background: CARD2, border: `1px solid ${BR}`, borderRadius: 10, color: TXT, fontSize: 13, fontFamily: "system-ui,sans-serif", outline: "none", boxSizing: "border-box" }} />
+            </div>
+            <div>
+              <label style={{ display: "block", color: TXT, fontSize: 12, fontWeight: 600, marginBottom: 6, fontFamily: "system-ui,sans-serif" }}>Tag máy ảnh</label>
+              <input value={form.cameraTag} onChange={e => setForm(f => ({ ...f, cameraTag: e.target.value }))} placeholder="VD: Sony A7C · Full-frame"
+                style={{ width: "100%", padding: "9px 12px", background: CARD2, border: `1px solid ${BR}`, borderRadius: 10, color: TXT, fontSize: 13, fontFamily: "system-ui,sans-serif", outline: "none", boxSizing: "border-box" }} />
+            </div>
+          </div>
+
+          {/* Chọn ảnh */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ color: TXT, fontSize: 12, fontWeight: 600, marginBottom: 10, fontFamily: "system-ui,sans-serif" }}>
+              Chọn ảnh cho album — <span style={{ color: G, fontWeight: 700 }}>{form.photoIds.length}</span> ảnh đã chọn
+              {form.photoIds.length > 0 && <span style={{ color: MUT, fontWeight: 400 }}> · Bấm vào ảnh đã chọn để bỏ</span>}
+            </div>
+            {(photos || []).length === 0 ? (
+              <div style={{ color: MUT, fontSize: 13, padding: "16px 0" }}>Chưa có ảnh nào — upload ảnh trước</div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(3,1fr)" : "repeat(5,1fr)", gap: 8 }}>
+                {(photos || []).map(p => {
+                  const selected = form.photoIds.includes(p.id);
+                  const isCover = form.coverId === p.id;
+                  return (
+                    <div key={p.id} style={{ position: "relative", borderRadius: 10, overflow: "hidden", aspectRatio: "1/1", cursor: "pointer",
+                      border: selected ? `2px solid ${G}` : `2px solid transparent`,
+                      opacity: selected ? 1 : 0.55, transition: "all .18s",
+                    }}>
+                      <img src={p.url} alt="" onClick={() => togglePhoto(p)} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
+                      {selected && (
+                        <div style={{ position: "absolute", top: 4, left: 4, background: G, borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#000", fontWeight: 800 }}>✓</div>
+                      )}
+                      {selected && (
+                        <button onClick={() => setForm(f => ({ ...f, coverId: isCover ? "" : p.id }))}
+                          title={isCover ? "Đang là ảnh bìa" : "Đặt làm ảnh bìa"}
+                          style={{ position: "absolute", bottom: 4, right: 4, background: isCover ? G : "rgba(0,0,0,0.55)", border: "none", borderRadius: 6, padding: "2px 6px", fontSize: 9, color: isCover ? "#000" : "#fff", cursor: "pointer", fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>
+                          {isCover ? "★ BÌA" : "☆ bìa"}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={handleSave} style={{ ...btn("primary"), flex: 1, padding: "10px 0", fontSize: 13, fontWeight: 700 }}>
+              {mode === "edit" ? "💾 Lưu thay đổi" : "✓ Tạo album"}
+            </button>
+            <button onClick={() => setMode("list")} style={{ ...btn("ghost"), padding: "10px 20px", fontSize: 13 }}>Huỷ</button>
+          </div>
+        </div>
+      )}
+
+      {/* DANH SÁCH ALBUM */}
+      {mode === "list" && (
+        (albums || []).length === 0 ? (
+          <div style={{ color: MUT, fontSize: 13, padding: "20px 0", textAlign: "center", border: `1px dashed ${BR}`, borderRadius: 12 }}>
+            Chưa có album nào · Bấm "Tạo album" để bắt đầu
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2,1fr)", gap: 12 }}>
+            {(albums || []).map(alb => (
+              <div key={alb.id} style={{ background: CARD, border: `1px solid ${BR}`, borderRadius: 14, overflow: "hidden", display: "flex", gap: 0 }}>
+                {/* Cover */}
+                <div onClick={() => setOpenAlbum(alb)} style={{ width: 90, flexShrink: 0, cursor: "pointer", position: "relative", overflow: "hidden" }}>
+                  {alb.coverUrl
+                    ? <img src={alb.coverUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                    : <div style={{ width: "100%", height: "100%", background: CARD2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>📷</div>
+                  }
+                  <div style={{ position: "absolute", inset: 0, background: "rgba(5,12,22,0.28)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity .2s" }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0}>
+                    <span style={{ color: "#fff", fontSize: 20 }}>▶</span>
+                  </div>
+                </div>
+                {/* Info */}
+                <div style={{ flex: 1, padding: "12px 14px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                  <div>
+                    <div style={{ color: TXT, fontWeight: 700, fontSize: 13, fontFamily: "system-ui,sans-serif", marginBottom: 3 }}>{alb.name}</div>
+                    {alb.cameraTag && <div style={{ color: G, fontSize: 11, fontFamily: "system-ui,sans-serif", marginBottom: 4 }}>📷 {alb.cameraTag}</div>}
+                    <div style={{ color: MUT, fontSize: 11, fontFamily: "system-ui,sans-serif" }}>{(alb.photos || []).length} ảnh</div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                    <button onClick={() => setOpenAlbum(alb)} style={{ flex: 1, padding: "6px 0", background: "rgba(201,168,76,0.10)", border: `1px solid ${G}44`, color: G, borderRadius: 8, cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>👁 Xem</button>
+                    <button onClick={() => startEdit(alb)} style={{ flex: 1, padding: "6px 0", background: CARD2, border: `1px solid ${BR}`, color: TXT, borderRadius: 8, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>✏️ Sửa</button>
+                    <button onClick={() => handleDelete(alb)} style={{ padding: "6px 10px", background: "#FEF0F0", border: "1px solid #ef444433", color: "#ef4444", borderRadius: 8, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>🗑</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      )}
+
+      {/* Album Lightbox trong admin */}
+      {openAlbum && <AlbumLightbox album={openAlbum} onClose={() => setOpenAlbum(null)} />}
+    </div>
+  );
+}
+
 // Supabase    → lưu metadata (public_id, url, uploaded_at) trong bảng gallery_photos
 // Xóa = xóa đồng thời cả 2 nơi qua Edge Function cloudinary-delete
 const CLOUD_NAME     = "dgre5eh7l";
@@ -7210,7 +7484,7 @@ async function cloudinaryDeleteAsset(public_id) {
   }
 }
 
-function GalleryUpload({ photos, setPhotos, isMobile }) {
+function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 });
   const [uploadMsg, setUploadMsg] = useState(null);
@@ -7367,11 +7641,14 @@ function GalleryUpload({ photos, setPhotos, isMobile }) {
         Quản lý thủ công → <a href="https://cloudinary.com/console" target="_blank" rel="noreferrer" style={{ color: G }}>Cloudinary Console</a> → Media Library → folder <code>92kamera_gallery</code>
       </div>
       <div style={{ width: "100%", height: 1, background: BR, marginBottom: 28, opacity: 0.4 }} />
+
+      {/* ── ALBUM MANAGER ── */}
+      <AlbumManager photos={photos} albums={albums} setAlbums={setAlbums} isMobile={isMobile} />
     </>
   );
 }
 
-function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orders, setOrders, siteContent, setSiteContent, photos, setPhotos, feedbacks, setFeedbacks, users, setUsers, discounts, setDiscounts, onBack, isMobile }) {
+function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orders, setOrders, siteContent, setSiteContent, photos, setPhotos, albums, setAlbums, feedbacks, setFeedbacks, users, setUsers, discounts, setDiscounts, onBack, isMobile }) {
   const [tab, setTab] = useState("overview");
   const [navOpen, setNavOpen] = useState(false);
   const [editCam, setEditCam] = useState(null);
@@ -8463,7 +8740,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
         {tab === "media" && (
           <div>
             {/* ── Ảnh Gallery Khách (Cloudinary) ── */}
-            <GalleryUpload photos={photos} setPhotos={setPhotos} isMobile={isMobile} />
+            <GalleryUpload photos={photos} setPhotos={setPhotos} albums={albums} setAlbums={setAlbums} isMobile={isMobile} />
             {(() => {
               const fb = feedbacks || [];
               const pending = fb.filter(f => f.status === "pending");
@@ -9073,7 +9350,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
 
 // ── STORAGE HELPERS — Supabase Cloud (sync mọi thiết bị) ──
 // photos KHÔNG có trong STORE_KEYS — Cloudinary quản lý hoàn toàn, Supabase không biết
-const STORE_KEYS = { cameras: "k92_cameras_v2", accessories: "k92_accessories_v2", orders: "k92_orders_v2", site: "k92_site_v2", feedbacks: "k92_feedbacks_v1", users: "k92_users_v1", discounts: "k92_discounts_v1" };
+const STORE_KEYS = { cameras: "k92_cameras_v2", accessories: "k92_accessories_v2", orders: "k92_orders_v2", site: "k92_site_v2", feedbacks: "k92_feedbacks_v1", users: "k92_users_v1", discounts: "k92_discounts_v1", albums: "k92_albums_v1" };
 
 const SB_URL = "https://gtgjixgcillbjwnnkavx.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Z2ppeGdjaWxsYmp3bm5rYXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5OTg4MzMsImV4cCI6MjA5MjU3NDgzM30.iFh0KP4vrTZUDMrakW1a9nM8naJScP-D1WqJKrH0hiI";
@@ -9532,6 +9809,7 @@ function AppRoot() {
   const [orders, _setOrders] = useState(ORDERS_INIT);
   const [siteContent, _setSiteContent] = useState(SITE_INIT);
   const [photos, _setPhotos] = useState([]);
+  const [albums, _setAlbums] = useState([]);
   const [feedbacks, _setFeedbacks] = useState([]);
   const [users, _setUsers] = useState({});
   const [discounts, _setDiscounts] = useState([]);
@@ -9600,6 +9878,14 @@ function AppRoot() {
     _setPhotos(prev => {
       const next = typeof updater === "function" ? updater(prev) : updater;
       // ✅ Photos do Cloudinary quản lý hoàn toàn — KHÔNG ghi Supabase
+      return next;
+    });
+  }, []);
+
+  const setAlbums = useCallback((updater) => {
+    _setAlbums(prev => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      if (next !== prev) setTimeout(() => storageSet(STORE_KEYS.albums, next), 0);
       return next;
     });
   }, []);
@@ -9674,6 +9960,8 @@ function AppRoot() {
         }
         const pts = await galleryFetchPhotos();
         if (pts.length > 0) _setPhotos(pts);
+        const albs = await storageGet(STORE_KEYS.albums);
+        if (albs) _setAlbums(albs);
         // Supabase gallery_photos là nguồn sự thật
       }, 2000);
 
@@ -10081,6 +10369,7 @@ function AppRoot() {
           onAdmin={() => setPage("admin")}
           isMobile={isMobile}
           photos={photos}
+          albums={albums}
           feedbacks={feedbacks}
           loggedUser={loggedUser}
           onOpenLogin={() => setLoginOpen(true)}
@@ -10115,6 +10404,7 @@ function AppRoot() {
           orders={orders} setOrders={setOrders}
           siteContent={siteContent} setSiteContent={setSiteContent}
           photos={photos} setPhotos={setPhotos}
+          albums={albums} setAlbums={setAlbums}
           feedbacks={feedbacks} setFeedbacks={setFeedbacks}
           users={users} setUsers={(u) => setUsers(u)}
           discounts={discounts} setDiscounts={setDiscounts}
