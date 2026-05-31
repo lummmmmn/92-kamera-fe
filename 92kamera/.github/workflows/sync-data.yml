@@ -1,71 +1,36 @@
-## .github/workflows/sync-data.yml
-##
-## Trigger theo 2 cách:
-##   1. Supabase Webhook → gọi GitHub API dispatch khi có INSERT/UPDATE/DELETE
-##   2. Cron mỗi 15 phút — fallback đảm bảo data luôn mới dù webhook miss
-##
-## Setup 1 lần:
-##   GitHub → Settings → Secrets → Actions → thêm:
-##     SUPABASE_URL = https://gtgjixgcillbjwnnkavx.supabase.co
-##     SUPABASE_KEY = eyJhbG... (anon key)
-##
-## Supabase → Database → Webhooks → New Webhook:
-##   Table: kv_store
-##   Events: INSERT, UPDATE, DELETE
-##   URL: https://api.github.com/repos/92-kameraok/92kamera/dispatches
-##   Headers:
-##     Authorization: Bearer <GITHUB_PAT>   (Personal Access Token, scope: repo)
-##     Content-Type: application/json
-##   Body: {"event_type": "supabase-data-changed"}
-
-name: Sync Supabase → static JSON
+name: Sync Supabase data
 
 on:
-  ## Cron fallback: chạy mỗi 15 phút (dù webhook miss vẫn an toàn)
   schedule:
     - cron: "*/15 * * * *"
-
-  ## Webhook từ Supabase gọi vào khi có thay đổi
-  repository_dispatch:
-    types: [supabase-data-changed]
-
-  ## Chạy tay từ GitHub UI nếu cần
   workflow_dispatch:
 
 jobs:
   export:
-    name: Export Supabase → public/data.json
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Node 20
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
 
-      - name: Chạy export script
+      - name: Export data
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: node scripts/export-data.js
 
-      - name: Commit & push nếu data thay đổi
+      - name: Commit if changed
         run: |
-          git config user.name  "92kamera-bot"
+          git config user.name "92kamera-bot"
           git config user.email "bot@92kamera.vercel.app"
           git add public/data.json
-          ## Chỉ commit nếu thực sự có thay đổi
           if git diff --staged --quiet; then
-            echo "⏭️  Không có thay đổi, skip commit."
+            echo "No changes"
           else
-            TRIGGER="${{ github.event_name }}"
-            git commit -m "chore: sync data [${TRIGGER}] $(date -u '+%Y-%m-%d %H:%M UTC')"
+            git commit -m "chore: sync data $(date -u '+%Y-%m-%d %H:%M UTC')"
             git push
-            echo "✅  Đã push data.json mới lên main."
           fi
