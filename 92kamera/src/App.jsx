@@ -1815,10 +1815,7 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
   const dur = Math.max(35, band.length * 4);
 
   return (
-    <div id="feedback" className="home-section" style={{ padding: isMobile ? "56px 0 52px" : "72px 0 64px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28,
-      border: "none",
-      boxShadow: "0 1px 0 rgba(255,255,255,0.55) inset, 0 -1px 0 rgba(13,27,42,0.08) inset, 0 4px 6px rgba(13,27,42,0.06) inset, 0 16px 64px rgba(5,17,31,0.20), 0 4px 18px rgba(5,17,31,0.12), 0 0 0 1px rgba(13,27,42,0.07)",
-      background: isMobile ? "rgba(255,255,255,0.62)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden", position: "relative" }}>
+    <div id="feedback" className="home-section" style={{ padding: isMobile ? "56px 0 52px" : "72px 0 64px", margin: isMobile ? "20px 12px" : "32px 20px", background: "transparent", boxShadow: "none", border: "none", overflow: "hidden", position: "relative" }}>
       <style>{`@keyframes marqueeRun{0%{transform:translateX(0)}100%{transform:translateX(-50%)}} .marquee-band{will-change:transform;} .gal-thumb:hover .gal-overlay{opacity:1!important;} .gal-thumb:hover img{transform:scale(1.06);}`}</style>
 
       {/* Header */}
@@ -1900,49 +1897,145 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
       </div>
       )}
 
-      {/* ── GALLERY / ALBUM CUỐI SECTION ── */}
+      {/* ── GALLERY / ALBUM — LAYOUT MỚI ── */}
       {(hasAlbums || hasPhotos) && (
-        <div style={{ padding: isMobile ? "36px 16px 0" : "44px 32px 0" }}>
-          <div style={{ width: 52, height: 1, background: `linear-gradient(90deg,transparent,${G}55,transparent)`, margin: "0 auto 28px" }} />
-          <div style={{ fontSize: 9, letterSpacing: 6, color: G, opacity: 0.45, marginBottom: hasAlbums ? 20 : 16, textAlign: "center", fontFamily: "var(--font-ui)", fontWeight: 700 }}>
-            {hasAlbums ? "ẢNH THỰC TẾ · PHÂN LOẠI THEO MÁY · BẤM ĐỂ XEM ALBUM" : "ẢNH THỰC TẾ TỪ KHÁCH HÀNG · BẤM ĐỂ XEM TO"}
+        <div style={{ padding: isMobile ? "48px 16px 0" : "60px 40px 0" }}>
+          {/* Header */}
+          <div style={{ textAlign: "center", marginBottom: isMobile ? 28 : 36 }}>
+            <div style={{ fontSize: isMobile ? 9 : 10, letterSpacing: 7, color: G, opacity: 0.50, marginBottom: 10, fontFamily: "var(--font-ui)", fontWeight: 700 }}>
+              PHÂN LOẠI THEO MÁY ẢNH · XEM ALBUM ĐẦY ĐỦ
+            </div>
+            <h2 style={{
+              fontSize: isMobile ? 28 : 42, fontWeight: 800, letterSpacing: isMobile ? 4 : 8, margin: 0,
+              color: G, fontFamily: "var(--font-display)",
+              textShadow: "0 2px 8px rgba(13,27,42,0.12)",
+              textTransform: "uppercase",
+            }}>Ảnh Thực Tế</h2>
           </div>
 
-          {/* ALBUM GRID */}
-          {hasAlbums && (
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(3,1fr)", gap: isMobile ? 10 : 14 }}>
-              {albumsArr.map(alb => (
-                <div key={alb.id} className="gal-thumb" onClick={() => setOpenAlbum(alb)} style={{
-                  position: "relative", borderRadius: isMobile ? 14 : 20, overflow: "hidden", aspectRatio: "4/3", cursor: "pointer",
-                  background: "rgba(13,27,42,0.08)", boxShadow: "0 2px 16px rgba(5,17,31,0.14)", transition: "transform .28s cubic-bezier(.34,1.56,.64,1)",
-                }}>
-                  {alb.coverUrl
-                    ? <img src={cdnUrl(alb.coverUrl, "thumb")} alt={alb.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform .35s ease" }} />
-                    : <div style={{ width: "100%", height: "100%", background: "rgba(13,27,42,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>📷</div>
-                  }
-                  {/* Overlay */}
-                  <div className="gal-overlay" style={{
-                    position: "absolute", inset: 0,
-                    background: "linear-gradient(to top, rgba(5,12,22,0.82) 0%, rgba(5,12,22,0.18) 55%, transparent 100%)",
-                    opacity: 0, transition: "opacity .25s",
-                  }}>
-                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: isMobile ? "10px 12px" : "14px 16px" }}>
-                      <div style={{ color: "#fff", fontWeight: 700, fontSize: isMobile ? 12 : 14, fontFamily: "var(--font-display)", marginBottom: 2 }}>{alb.name}</div>
-                      {alb.cameraTag && <div style={{ color: "rgba(255,255,255,0.70)", fontSize: isMobile ? 10 : 11, fontFamily: "var(--font-ui)" }}>📷 {alb.cameraTag}</div>}
+          {/* ALBUM GRID — layout bất đối xứng giống design */}
+          {hasAlbums && (() => {
+            const displayed = albumsArr.slice(0, isMobile ? 3 : 3);
+            const [big, ...smalls] = displayed;
+            return (
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+                gridTemplateRows: isMobile ? "auto" : "1fr 1fr",
+                gap: isMobile ? 10 : 14,
+                height: isMobile ? "auto" : 480,
+              }}>
+                {/* Ảnh lớn bên trái */}
+                {big && (
+                  <div
+                    key={big.id}
+                    className="gal-thumb"
+                    onClick={() => setOpenAlbum(big)}
+                    style={{
+                      gridRow: isMobile ? "auto" : "1 / 3",
+                      position: "relative", borderRadius: isMobile ? 18 : 24, overflow: "hidden",
+                      cursor: "pointer", background: "rgba(13,27,42,0.08)",
+                      boxShadow: "0 4px 28px rgba(5,17,31,0.18)",
+                      minHeight: isMobile ? 240 : "unset",
+                    }}
+                  >
+                    {big.coverUrl
+                      ? <img src={cdnUrl(big.coverUrl, "thumb")} alt={big.name} loading="lazy"
+                          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform .4s ease" }} />
+                      : <div style={{ width: "100%", height: "100%", background: "rgba(13,27,42,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>📷</div>
+                    }
+                    {/* Search icon center */}
+                    <div className="gal-overlay" style={{
+                      position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                      background: "rgba(5,17,31,0.22)", opacity: 0, transition: "opacity .25s",
+                    }}>
+                      <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(255,255,255,0.82)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(0,0,0,0.22)" }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/></svg>
+                      </div>
+                    </div>
+                    {/* Badge bottom */}
+                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: isMobile ? "40px 16px 14px" : "60px 20px 18px", background: "linear-gradient(to top, rgba(5,12,22,0.80) 0%, rgba(5,12,22,0.30) 60%, transparent 100%)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                        <div style={{ background: "rgba(255,255,255,0.18)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", borderRadius: 10, padding: "4px 10px", display: "flex", alignItems: "center", gap: 6 }}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="5" width="22" height="16" rx="2"/><path d="M1 10h22"/><circle cx="12" cy="15" r="3"/></svg>
+                          <span style={{ color: "rgba(255,255,255,0.90)", fontSize: isMobile ? 11 : 12, fontFamily: "var(--font-ui)", fontWeight: 700 }}>{big.cameraTag || big.name}</span>
+                        </div>
+                      </div>
+                      <div style={{ color: "rgba(255,255,255,0.65)", fontSize: isMobile ? 11 : 12, fontFamily: "var(--font-ui)", fontWeight: 500 }}>{big.name !== big.cameraTag ? big.name : ""}</div>
+                      <div style={{ color: "rgba(255,255,255,0.55)", fontSize: isMobile ? 10 : 11, fontFamily: "var(--font-ui)", marginTop: 2 }}>{(big.photos || []).length} ảnh</div>
                     </div>
                   </div>
-                  {/* Badge tên album (luôn hiện) */}
-                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: isMobile ? "28px 12px 10px" : "32px 14px 12px", background: "linear-gradient(to top, rgba(5,12,22,0.72) 0%, transparent 100%)" }}>
-                    <div style={{ color: "#fff", fontWeight: 700, fontSize: isMobile ? 11.5 : 13, fontFamily: "var(--font-display)", textShadow: "0 1px 4px rgba(0,0,0,0.6)", marginBottom: 2 }}>{alb.name}</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      {alb.cameraTag && <span style={{ color: "rgba(255,255,255,0.65)", fontSize: 10, fontFamily: "var(--font-ui)" }}>📷 {alb.cameraTag}</span>}
-                      <span style={{ background: "rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", color: "rgba(255,255,255,0.85)", borderRadius: 99, padding: "1px 7px", fontSize: 9, fontFamily: "var(--font-ui)", fontWeight: 700 }}>{(alb.photos || []).length} ảnh</span>
+                )}
+
+                {/* 2 ảnh nhỏ bên phải */}
+                {smalls.map((alb, si) => (
+                  <div
+                    key={alb.id}
+                    className="gal-thumb"
+                    onClick={() => setOpenAlbum(alb)}
+                    style={{
+                      position: "relative", borderRadius: isMobile ? 18 : 22, overflow: "hidden",
+                      cursor: "pointer", background: "rgba(13,27,42,0.08)",
+                      boxShadow: "0 4px 20px rgba(5,17,31,0.15)",
+                      minHeight: isMobile ? 180 : "unset",
+                    }}
+                  >
+                    {alb.coverUrl
+                      ? <img src={cdnUrl(alb.coverUrl, "thumb")} alt={alb.name} loading="lazy"
+                          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform .4s ease" }} />
+                      : <div style={{ width: "100%", height: "100%", background: "rgba(13,27,42,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>📷</div>
+                    }
+                    {/* Search icon center */}
+                    <div className="gal-overlay" style={{
+                      position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                      background: "rgba(5,17,31,0.22)", opacity: 0, transition: "opacity .25s",
+                    }}>
+                      <div style={{ width: 46, height: 46, borderRadius: "50%", background: "rgba(255,255,255,0.82)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(0,0,0,0.20)" }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/></svg>
+                      </div>
+                    </div>
+                    {/* Badge bottom */}
+                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: isMobile ? "36px 14px 12px" : "44px 16px 14px", background: "linear-gradient(to top, rgba(5,12,22,0.80) 0%, rgba(5,12,22,0.30) 60%, transparent 100%)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                        <div style={{ background: "rgba(255,255,255,0.18)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", borderRadius: 8, padding: "3px 9px", display: "flex", alignItems: "center", gap: 5 }}>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="5" width="22" height="16" rx="2"/><path d="M1 10h22"/><circle cx="12" cy="15" r="3"/></svg>
+                          <span style={{ color: "rgba(255,255,255,0.90)", fontSize: isMobile ? 10 : 11, fontFamily: "var(--font-ui)", fontWeight: 700 }}>{alb.cameraTag || alb.name}</span>
+                        </div>
+                      </div>
+                      <div style={{ color: "rgba(255,255,255,0.60)", fontSize: isMobile ? 10 : 11, fontFamily: "var(--font-ui)" }}>{alb.name !== alb.cameraTag ? alb.name : ""}</div>
+                      <div style={{ color: "rgba(255,255,255,0.50)", fontSize: isMobile ? 9 : 10, fontFamily: "var(--font-ui)", marginTop: 2 }}>{(alb.photos || []).length} ảnh</div>
                     </div>
                   </div>
-                  {/* Icon play */}
-                  <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,0.88)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, boxShadow: "0 4px 16px rgba(0,0,0,0.25)", opacity: 0.9 }}>▶</div>
-                </div>
-              ))}
+                ))}
+              </div>
+            );
+          })()}
+
+          {/* Nút XEM TẤT CẢ ALBUM */}
+          {hasAlbums && albumsArr.length > 3 && (
+            <div style={{ textAlign: "center", marginTop: isMobile ? 20 : 28 }}>
+              <button
+                onClick={() => setOpenAlbum(albumsArr[0])}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 10,
+                  background: "transparent",
+                  border: `1.5px solid ${G}55`,
+                  borderRadius: 99,
+                  padding: isMobile ? "10px 24px" : "12px 32px",
+                  color: G,
+                  fontSize: isMobile ? 11 : 12,
+                  fontFamily: "var(--font-ui)",
+                  fontWeight: 700,
+                  letterSpacing: 2,
+                  cursor: "pointer",
+                  transition: "all .25s ease",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = G + "12"; e.currentTarget.style.borderColor = G + "aa"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = G + "55"; }}
+              >
+                XEM TẤT CẢ ALBUM
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
             </div>
           )}
 
@@ -1956,7 +2049,9 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
                 }}>
                   <img src={cdnUrl(p.url, "thumb")} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform .35s ease" }} />
                   <div className="gal-overlay" style={{ position: "absolute", inset: 0, background: "rgba(5,17,31,0.38)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity .2s" }}>
-                    <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.90)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>🔍</div>
+                    <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.90)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/></svg>
+                    </div>
                   </div>
                   {!isMobile && i === 7 && photosArr.length > 8 && (
                     <div style={{ position: "absolute", inset: 0, background: "rgba(5,17,31,0.60)", display: "flex", alignItems: "center", justifyContent: "center" }}>
