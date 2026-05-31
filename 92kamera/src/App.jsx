@@ -77,10 +77,14 @@ const sessionConflicts = (oSession, targetSession) => {
 
 // getAvailQty: trả về số lượng còn lại cho 1 item trong 1 ngày + session
 const getAvailQty = (camId, camQty, orders, targetDate, targetSession) => {
-  // ── STATIC CACHE: dùng availability tính sẵn từ data.json, 0 CPU ──
-  const _cached = window.__92k_getStaticAvailability?.(camId, targetDate, targetSession);
-  if (_cached !== null && _cached !== undefined) return _cached;
-  // Fallback: tính runtime như cũ
+  // ── STATIC CACHE: chỉ dùng khi chưa có live orders (trang vừa load, orders==[])
+  // Khi đã có orders thực từ Supabase → tính runtime, không dùng cache tĩnh stale.
+  // Điều này đảm bảo BookingModal step 2 (liveOrdersForCheck) và handleFinish
+  // luôn tính tồn kho từ data thật, tránh double booking.
+  if (!orders || orders.length === 0) {
+    const _cached = window.__92k_getStaticAvailability?.(camId, targetDate, targetSession);
+    if (_cached !== null && _cached !== undefined) return _cached;
+  }
   const active = ["pending", "confirmed", "active"];
   let used = 0;
   orders.filter(o => active.includes(o.status)).forEach(o => {
@@ -3932,6 +3936,8 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
         const nextOrders = [{ ...order, seen: false }, ...liveOrders];
         if (await storageCasSet(STORE_KEYS.orders, nextOrders, orderMeta.updatedAt)) {
           finalOrder = order;
+          // Bust static JSON cache ngay — khách khác mở app sẽ fetch /data.json mới
+          window.__92k_invalidateStaticCache?.();
         }
       }
 
@@ -8957,6 +8963,8 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                               setOrders(p => p.map(x => x.id === o.id ? { ...x, status: s } : x));
                               // FIX RACE: đánh dấu đơn này vừa được admin sửa — lock 15s
                               localOrderChangesRef.current.set(o.id, Date.now());
+                              // Bust static cache — khách xem trang thấy status mới ngay lần refresh tiếp
+                              window.__92k_invalidateStaticCache?.();
                               // NOTE: usedCount đã được tăng lúc khách đặt đơn (BookingModal.handleFinish)
                               // Không tăng lại ở đây tránh double-count
                             }}
@@ -9596,7 +9604,7 @@ const STORE_KEYS = { cameras: "k92_cameras_v2", accessories: "k92_accessories_v2
 // Chỉ khi file lỗi mới fallback về Supabase trực tiếp.
 // Khi admin ghi đơn → Supabase webhook → GitHub Action → cập nhật data.json tự động.
 const STATIC_DATA_URL = "/data.json";
-const STATIC_CACHE_MS = 5 * 60 * 1000; // 5 phút memory cache
+const STATIC_CACHE_MS = 90 * 1000; // 90 giây — đủ để tránh spam CDN, đủ fresh cho booking
 let _staticDataCache = null;
 let _staticDataPromise = null;
 
@@ -9633,6 +9641,14 @@ function getStaticAvailability(camId, date, session) {
   return v !== undefined ? v : null;
 }
 window.__92k_getStaticAvailability = getStaticAvailability;
+
+// Bust static cache ngay khi đặt đơn thành công — lần fetch tiếp sẽ lấy data mới
+// Gọi từ handleFinish sau storageCasSet thành công
+function invalidateStaticCache() {
+  _staticDataCache = null;
+  _staticDataPromise = null;
+}
+window.__92k_invalidateStaticCache = invalidateStaticCache;
 // ── END STATIC DATA LOADER ───────────────────────────────────────────────────
 
 const SB_URL = "https://gtgjixgcillbjwnnkavx.supabase.co";
