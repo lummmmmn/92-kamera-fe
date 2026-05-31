@@ -6887,16 +6887,15 @@ function AdminNoteEditor({ order, setOrders }) {
 }
 
 // ── CLOUDINARY + SUPABASE GALLERY ──
-// Phân chia rõ ràng:
-//   Cloudinary  → lưu file ảnh thật (binary, CDN)
-//   Supabase    → lưu metadata (public_id, url, uploaded_at) trong bảng gallery_photos
+// Cloudinary  → lưu file ảnh thật (binary, CDN)
+// Supabase    → lưu metadata (public_id, url, uploaded_at) trong bảng gallery_photos
 // Xóa = xóa đồng thời cả 2 nơi qua Edge Function cloudinary-delete
-const CLOUD_NAME    = "dgre5eh7l";
-const UPLOAD_PRESET = "92kamerafeedback";
+const CLOUD_NAME     = "dgre5eh7l";
+const UPLOAD_PRESET  = "92kamerafeedback";
 const CLOUDINARY_TAG = "92kamera";
-const CLOUDINARY_DELETE_FN = `${SB_URL}/functions/v1/cloudinary-delete`;
+// CLOUDINARY_DELETE_FN được build lúc gọi để tránh lỗi before-initialization
 
-// ── Fetch danh sách từ Supabase (nguồn sự thật) ──
+// Fetch từ Supabase gallery_photos (nguồn sự thật, đồng bộ mọi thiết bị)
 async function galleryFetchPhotos() {
   try {
     const res = await fetch(
@@ -6906,9 +6905,9 @@ async function galleryFetchPhotos() {
     if (!res.ok) return [];
     const rows = await res.json();
     return (rows || []).map(r => ({
-      id:         r.public_id,
-      public_id:  r.public_id,
-      url:        r.url,
+      id:        r.public_id,
+      public_id: r.public_id,
+      url:       r.url,
       uploadedAt: r.uploaded_at,
     }));
   } catch (e) {
@@ -6917,9 +6916,8 @@ async function galleryFetchPhotos() {
   }
 }
 
-// ── Upload lên Cloudinary, ghi metadata vào Supabase ──
+// Upload lên Cloudinary, sau đó ghi metadata vào Supabase
 async function cloudinaryUploadPhoto(file) {
-  // 1. Upload binary lên Cloudinary
   const fd = new FormData();
   fd.append("file", file);
   fd.append("upload_preset", UPLOAD_PRESET);
@@ -6931,54 +6929,41 @@ async function cloudinaryUploadPhoto(file) {
   );
   if (!res.ok) throw new Error("Cloudinary upload failed");
   const data = await res.json();
-
-  const photo = {
-    public_id:   data.public_id,
-    url:         data.secure_url,
-    uploaded_at: data.created_at || new Date().toISOString(),
-    uploaded_by: "admin",
-  };
-
-  // 2. Ghi metadata vào Supabase gallery_photos
-  const dbRes = await fetch(
-    `${SB_URL}/rest/v1/gallery_photos`,
-    {
-      method: "POST",
-      headers: {
-        apikey: SB_KEY,
-        Authorization: `Bearer ${SB_KEY}`,
-        "Content-Type": "application/json",
-        Prefer: "return=representation",
-      },
-      body: JSON.stringify(photo),
-    }
-  );
-  if (!dbRes.ok) console.warn("[92K] Supabase insert photo metadata failed:", await dbRes.text());
-
+  // Ghi metadata vào Supabase gallery_photos
+  const dbRes = await fetch(`${SB_URL}/rest/v1/gallery_photos`, {
+    method: "POST",
+    headers: {
+      apikey: SB_KEY,
+      Authorization: `Bearer ${SB_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify({
+      public_id:   data.public_id,
+      url:         data.secure_url,
+      uploaded_at: data.created_at || new Date().toISOString(),
+      uploaded_by: "admin",
+    }),
+  });
+  if (!dbRes.ok) console.warn("[92K] Supabase insert failed:", await dbRes.text());
   return {
-    id:         data.public_id,
-    public_id:  data.public_id,
-    url:        data.secure_url,
+    id:        data.public_id,
+    public_id: data.public_id,
+    url:       data.secure_url,
     uploadedAt: data.created_at || new Date().toISOString(),
   };
 }
 
-// ── Xóa thật: Cloudinary + Supabase cùng lúc qua Edge Function ──
-// Edge Function giữ api_secret, ký SHA-1, gọi Cloudinary destroy + DELETE gallery_photos
+// Xóa thật qua Edge Function: Cloudinary destroy + DELETE gallery_photos cùng lúc
 async function cloudinaryDeletePhoto(public_id) {
-  const res = await fetch(CLOUDINARY_DELETE_FN, {
+  const res = await fetch(`${SB_URL}/functions/v1/cloudinary-delete`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${SB_KEY}`,
-    },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${SB_KEY}` },
     body: JSON.stringify({ public_id }),
   });
   if (!res.ok) throw new Error(`Edge Function lỗi: ${res.status}`);
   const data = await res.json();
-  if (data.result !== "ok" && data.result !== "not found") {
-    throw new Error(`Xóa thất bại: ${JSON.stringify(data)}`);
-  }
+  if (data.result !== "ok" && data.result !== "not found") throw new Error(`Xóa thất bại: ${JSON.stringify(data)}`);
   return data;
 }
 
@@ -6988,7 +6973,7 @@ function GalleryUpload({ photos, setPhotos, isMobile }) {
   const [uploadMsg, setUploadMsg] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Refresh danh sách từ Supabase (nguồn sự thật)
+  // Refresh từ Supabase (nguồn sự thật)
   const handleRefresh = async () => {
     setRefreshing(true);
     const fresh = await galleryFetchPhotos();
@@ -7032,18 +7017,17 @@ function GalleryUpload({ photos, setPhotos, isMobile }) {
 
   const [deletingId, setDeletingId] = useState(null);
 
-  // Xóa ảnh thật khỏi Cloudinary qua Edge Function → không còn lưu ở đâu cả
+  // Xóa thật khỏi Cloudinary + Supabase qua Edge Function
   const handleDelete = async (photo) => {
-    if (!window.confirm(`Xóa ảnh này khỏi Cloudinary vĩnh viễn?\n\nHành động này không thể hoàn tác.`)) return;
+    if (!window.confirm("Xóa ảnh này vĩnh viễn?\n\nHành động không thể hoàn tác.")) return;
     setDeletingId(photo.public_id);
     try {
       await cloudinaryDeletePhoto(photo.public_id);
-      // Xóa khỏi state ngay sau khi thành công
       setPhotos(prev => (prev || []).filter(p => p.public_id !== photo.public_id));
-      setUploadMsg({ type: "ok", text: "✓ Đã xóa ảnh khỏi Cloudinary" });
+      setUploadMsg({ type: "ok", text: "✓ Đã xóa ảnh khỏi Cloudinary + database" });
       setTimeout(() => setUploadMsg(null), 3000);
     } catch (e) {
-      console.error("[92K] Cloudinary delete failed:", e);
+      console.error("[92K] delete failed:", e);
       setUploadMsg({ type: "err", text: `❌ Xóa thất bại: ${e.message}` });
       setTimeout(() => setUploadMsg(null), 5000);
     }
@@ -7118,8 +7102,8 @@ function GalleryUpload({ photos, setPhotos, isMobile }) {
           {(photos || []).map(p => (
             <div key={p.id} style={{ position: "relative", borderRadius: 12, overflow: "hidden", aspectRatio: "3/4", background: CARD2 }}>
               <img src={p.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
-              <button onClick={() => handleDelete(p)} title="Xóa ảnh khỏi Cloudinary vĩnh viễn" disabled={deletingId === p.public_id}
-                style={{ position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: "50%", background: deletingId === p.public_id ? "rgba(0,0,0,0.4)" : "rgba(192,41,10,0.85)", border: "none", color: "#fff", cursor: deletingId === p.public_id ? "wait" : "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", transition: "background .2s" }}>
+              <button onClick={() => handleDelete(p)} title="Xóa ảnh vĩnh viễn" disabled={deletingId === p.public_id}
+                style={{ position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: "50%", background: deletingId === p.public_id ? "rgba(0,0,0,0.4)" : "rgba(192,41,10,0.85)", border: "none", color: "#fff", cursor: deletingId === p.public_id ? "wait" : "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 {deletingId === p.public_id ? "⏳" : "🗑"}
               </button>
             </div>
@@ -7129,7 +7113,7 @@ function GalleryUpload({ photos, setPhotos, isMobile }) {
 
       {/* Ghi chú */}
       <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.2)", marginBottom: 28, fontSize: 11, color: MUT, fontFamily: "system-ui,sans-serif", lineHeight: 1.7 }}>
-        <strong style={{ color: G }}>💡 Quản lý:</strong> Bấm 🗑 để xóa ảnh vĩnh viễn khỏi Cloudinary (cần Edge Function <code>cloudinary-delete</code> đã deploy).
+        <strong style={{ color: G }}>💡 Quản lý:</strong> Bấm 🗑 để xóa ảnh vĩnh viễn khỏi Cloudinary + database.
         Quản lý thủ công → <a href="https://cloudinary.com/console" target="_blank" rel="noreferrer" style={{ color: G }}>Cloudinary Console</a> → Media Library → folder <code>92kamera_gallery</code>
       </div>
       <div style={{ width: "100%", height: 1, background: BR, marginBottom: 28, opacity: 0.4 }} />
@@ -9437,7 +9421,7 @@ function AppRoot() {
         }
         const pts = await galleryFetchPhotos();
         if (pts.length > 0) _setPhotos(pts);
-        // Supabase gallery_photos là nguồn sự thật — đồng bộ mọi thiết bị
+        // Supabase gallery_photos là nguồn sự thật
       }, 2000);
 
       // Rất lazy: load users — chỉ cần khi login (delay 5s)
