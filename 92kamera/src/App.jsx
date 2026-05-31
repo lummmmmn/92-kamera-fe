@@ -1807,7 +1807,7 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
       border: "none",
       boxShadow: "0 1px 0 rgba(255,255,255,0.55) inset, 0 -1px 0 rgba(13,27,42,0.08) inset, 0 4px 6px rgba(13,27,42,0.06) inset, 0 16px 64px rgba(5,17,31,0.20), 0 4px 18px rgba(5,17,31,0.12), 0 0 0 1px rgba(13,27,42,0.07)",
       background: isMobile ? "rgba(255,255,255,0.62)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", textAlign: "center" }}>
-      <h2 style={{ fontSize: 30, fontWeight: 700, letterSpacing: 1, margin: "0 0 14px", color: G, fontFamily: "var(--font-display)", textShadow: "0 1px 3px rgba(13,27,42,0.10)" }}>Feedback Khách Hàng</h2>
+      <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight: 700, letterSpacing: 1, margin: "0 0 14px", color: G, fontFamily: "var(--font-display)", textShadow: "0 1px 3px rgba(13,27,42,0.10)" }}>Feedback khách hàng</h2>
       <div style={{ width: 36, height: 1, background: G, margin: "0 auto 20px" }} />
       <div style={{ color: TXT, fontSize: 13, fontFamily: "var(--font-ui)", fontWeight: 500 }}>Chưa có feedback nào được duyệt</div>
     </div>
@@ -1855,7 +1855,7 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
       {total > 0 && (
       <div style={{ textAlign: "center", marginBottom: isMobile ? 28 : 36, padding: "0 20px" }}>
         <div style={{ fontSize: 9, letterSpacing: 7, color: G, opacity: 0.50, marginBottom: 12, fontFamily: "var(--font-ui)", fontWeight: 700 }}>ĐÁNH GIÁ / FEEDBACK</div>
-        <h2 style={{ fontSize: isMobile ? 28 : 42, fontWeight: 800, letterSpacing: isMobile ? 4 : 8, margin: "0 0 14px", color: G, fontFamily: "var(--font-display)", textShadow: "0 1px 3px rgba(13,27,42,0.10)", textTransform: "uppercase" }}>Feedback Khách Hàng</h2>
+        <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight: 700, letterSpacing: 1, margin: "0 0 14px", color: G, fontFamily: "var(--font-display)", textShadow: "0 1px 3px rgba(13,27,42,0.10)" }}>Feedback khách hàng</h2>
         <div style={{ width: 52, height: 1, background: `linear-gradient(90deg,transparent,${G}55,transparent)`, margin: "0 auto 16px" }} />
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.22)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 99, padding: "5px 18px", backdropFilter: "blur(24px) saturate(160%)" }}>
           <span style={{ color: "#c9a84c", fontSize: 14 }}>{"★".repeat(Math.round(parseFloat(avgRating)))}</span>
@@ -1906,11 +1906,10 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
               PHÂN LOẠI THEO MÁY ẢNH · XEM ALBUM ĐẦY ĐỦ
             </div>
             <h2 style={{
-              fontSize: isMobile ? 28 : 42, fontWeight: 800, letterSpacing: isMobile ? 4 : 8, margin: 0,
+              fontSize: isMobile ? 28 : 36, fontWeight: 700, letterSpacing: 1, margin: 0,
               color: G, fontFamily: "var(--font-display)",
               textShadow: "0 2px 8px rgba(13,27,42,0.12)",
-              textTransform: "uppercase",
-            }}>Ảnh Thực Tế</h2>
+            }}>Ảnh thực tế</h2>
           </div>
 
           {/* ALBUM GRID — layout bất đối xứng giống design */}
@@ -2368,7 +2367,7 @@ function QuyTrinh6Buoc({ isMobile }) {
       {/* Header */}
       <div style={{ textAlign:"center", marginBottom: isMobile ? 28 : 36, padding:"0 20px" }}>
         <div style={{ fontSize:9, letterSpacing:7, color:"#2a4a6a", opacity:0.6, marginBottom:12, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>HƯỚNG DẪN CHI TIẾT</div>
-        <h2 style={{ fontSize: isMobile ? 32 : 48, fontWeight:900, margin:"0 0 12px", color:"#0d1b2a", fontFamily:"var(--font-display)", letterSpacing:-1 }}>QUY TRÌNH 6 BƯỚC</h2>
+        <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight: 700, margin:"0 0 12px", color:"#0d1b2a", fontFamily:"var(--font-display)", letterSpacing: 1 }}>Quy trình 6 bước</h2>
         <p style={{ fontSize:13, color:"#3a5a7a", fontFamily:"system-ui,sans-serif", lineHeight:1.7, maxWidth:480, margin:"0 auto" }}>Hướng dẫn chi tiết từng bước để thuê máy ảnh một cách nhanh chóng và an toàn</p>
       </div>
 
@@ -5150,7 +5149,7 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
         <div style={{ padding: "0 16px 40px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
           <div>
             <div style={{ fontSize:9, letterSpacing:7, color:G, fontFamily:"var(--font-ui)", marginBottom:6, fontWeight:700, opacity:0.55 }}>BỘ SƯU TẬP</div>
-            <h2 style={{ fontSize:24, fontWeight:700, letterSpacing:1, margin:0, color:G, fontFamily:'var(--font-display)', textShadow:'0 1px 3px rgba(13,27,42,0.10)' }}>Máy Ảnh Cho Thuê</h2>
+            <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight:700, letterSpacing:1, margin:0, color:G, fontFamily:'var(--font-display)', textShadow:'0 1px 3px rgba(13,27,42,0.10)' }}>Máy ảnh cho thuê</h2>
           </div>
         </div>
         <div ref={camScrollRef} className="cam-scroll"
@@ -5246,7 +5245,7 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
 
       <div style={{ textAlign:"center", marginBottom:32, position:"relative", zIndex:2 }}>
         <div style={{ fontSize:9, letterSpacing:7, color:G, fontFamily:"var(--font-ui)", marginBottom:14, fontWeight:700, opacity:0.55 }}>BỘ SƯU TẬP</div>
-        <h2 style={{ fontSize:30, fontWeight:700, letterSpacing:1, margin:"0 0 6px", color:G, fontFamily:"var(--font-display)", textShadow:"0 1px 3px rgba(13,27,42,0.10)" }}>Máy Ảnh Cho Thuê</h2>
+        <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight:700, letterSpacing:1, margin:"0 0 6px", color:G, fontFamily:"var(--font-display)", textShadow:"0 1px 3px rgba(13,27,42,0.10)" }}>Máy ảnh cho thuê</h2>
         <div style={{ width:36, height:1, background:G, margin:"14px auto 18px" }} />
         <button onClick={() => setCfPaused(p => !p)}
           style={{ background: cfPaused ? G+"22" : "none", border:`1px solid ${cfPaused ? G : BR}`, color: cfPaused ? G : MUT, padding:"6px 22px", borderRadius:99, fontSize:10, cursor:"pointer", fontFamily:"system-ui,sans-serif", letterSpacing:1.5, transition:"all .3s" }}>
@@ -6416,7 +6415,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         <div style={{ position:"relative", zIndex:2 }}>
           <div style={{ textAlign:"center", marginBottom: isMobile ? 36 : 56 }}>
             <div style={{ fontSize:9, letterSpacing:7, color:G, opacity:0.55, marginBottom:16, fontFamily:"var(--font-ui)", fontWeight:700 }}>PHỤ KIỆN</div>
-            <h2 style={{ fontSize: isMobile ? 26 : 38, fontWeight:700, letterSpacing: isMobile ? 1 : 2, margin:0, color:G, fontFamily:"var(--font-display)", lineHeight:1.2, textShadow:"0 1px 3px rgba(13,27,42,0.10)" }}>Bổ Sung Trang Thiết Bị</h2>
+            <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight:700, letterSpacing: 1, margin:0, color:G, fontFamily:"var(--font-display)", lineHeight:1.2, textShadow:"0 1px 3px rgba(13,27,42,0.10)" }}>Bổ sung trang thiết bị</h2>
             <div style={{ width:52, height:1, background:`linear-gradient(90deg,transparent,${G}55,transparent)`, margin:"20px auto 0" }} />
           </div>
           <div style={{ display:"grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: isMobile ? 10 : 18 }}>
