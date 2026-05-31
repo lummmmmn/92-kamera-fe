@@ -77,14 +77,7 @@ const sessionConflicts = (oSession, targetSession) => {
 
 // getAvailQty: trả về số lượng còn lại cho 1 item trong 1 ngày + session
 const getAvailQty = (camId, camQty, orders, targetDate, targetSession) => {
-  // ── STATIC CACHE: chỉ dùng khi chưa có live orders (trang vừa load, orders==[])
-  // Khi đã có orders thực từ Supabase → tính runtime, không dùng cache tĩnh stale.
-  // Điều này đảm bảo BookingModal step 2 (liveOrdersForCheck) và handleFinish
-  // luôn tính tồn kho từ data thật, tránh double booking.
-  if (!orders || orders.length === 0) {
-    const _cached = window.__92k_getStaticAvailability?.(camId, targetDate, targetSession);
-    if (_cached !== null && _cached !== undefined) return _cached;
-  }
+  // Orders luôn đến từ Supabase thẳng (không qua data.json) → tính runtime luôn đúng
   const active = ["pending", "confirmed", "active"];
   let used = 0;
   orders.filter(o => active.includes(o.status)).forEach(o => {
@@ -7626,24 +7619,35 @@ function cdnUrl(url, mode = "thumb") {
   return url.replace("/upload/", `/upload/${t}/`);
 }
 
+// Cache ảnh gallery 10 phút — ảnh ít thay đổi, không cần fetch mỗi lần load trang
+let _photosCache = null;
+let _photosCacheTs = 0;
+const PHOTOS_CACHE_MS = 10 * 60 * 1000;
+
 // Fetch từ Supabase gallery_photos (nguồn sự thật, đồng bộ mọi thiết bị)
-async function galleryFetchPhotos() {
+async function galleryFetchPhotos(forceRefresh = false) {
+  if (!forceRefresh && _photosCache && (Date.now() - _photosCacheTs) < PHOTOS_CACHE_MS) {
+    return _photosCache;
+  }
   try {
     const res = await fetch(
       `${SB_URL}/rest/v1/gallery_photos?select=*&order=uploaded_at.desc`,
       { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }, cache: "default" }
     );
-    if (!res.ok) return [];
+    if (!res.ok) return _photosCache || [];
     const rows = await res.json();
-    return (rows || []).map(r => ({
+    const photos = (rows || []).map(r => ({
       id:        r.public_id,
       public_id: r.public_id,
       url:       r.url,
       uploadedAt: r.uploaded_at,
     }));
+    _photosCache = photos;
+    _photosCacheTs = Date.now();
+    return photos;
   } catch (e) {
     console.warn("[92K] galleryFetchPhotos failed:", e);
-    return [];
+    return _photosCache || [];
   }
 }
 
@@ -7739,7 +7743,7 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
   // Refresh từ Supabase (nguồn sự thật)
   const handleRefresh = async () => {
     setRefreshing(true);
-    const fresh = await galleryFetchPhotos();
+    const fresh = await galleryFetchPhotos(true); // force refresh — bust cache
     setPhotos(fresh);
     setRefreshing(false);
   };
@@ -7767,7 +7771,7 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
       setUploadMsg({ type: "ok", text: `✓ Upload ${successCount}/${fileArr.length} ảnh — đang tải danh sách...` });
       // Cloudinary cần vài giây để index tag mới → delay nhỏ rồi fetch lại
       setTimeout(async () => {
-        const fresh = await galleryFetchPhotos();
+        const fresh = await galleryFetchPhotos(true); // force refresh sau upload
         setPhotos(fresh);
         setUploadMsg({ type: "ok", text: `✓ Đã upload ${successCount} ảnh lên Cloudinary` });
         setTimeout(() => setUploadMsg(null), 4000);
@@ -9634,16 +9638,8 @@ async function getStaticData(forceRefresh = false) {
   return _staticDataPromise;
 }
 
-// Lấy availability đã tính sẵn từ file JSON — thay getAvailQty runtime
-function getStaticAvailability(camId, date, session) {
-  if (!_staticDataCache?.data?.availabilityCache) return null;
-  const v = _staticDataCache.data.availabilityCache[camId]?.[date]?.[session];
-  return v !== undefined ? v : null;
-}
-window.__92k_getStaticAvailability = getStaticAvailability;
-
-// Bust static cache ngay khi đặt đơn thành công — lần fetch tiếp sẽ lấy data mới
-// Gọi từ handleFinish sau storageCasSet thành công
+// Bust static cache (cameras/accessories/site) khi cần force refresh CDN
+// Orders không cần — luôn fetch Supabase thẳng, không qua CDN
 function invalidateStaticCache() {
   _staticDataCache = null;
   _staticDataPromise = null;
@@ -10160,9 +10156,8 @@ function AppRoot() {
     });
   }, []);
 
-  // BUG-D+E FIX: opts.skipStorage=true → chỉ update React state, không ghi Supabase.
-  // Dùng khi Supabase đã được ghi bởi storageSetImmediate (handleNewOrder),
-  // hoặc khi chỉ sync state từ Supabase về local (refreshOrders) — tránh ghi đè đơn mới hơn.
+  // Orders: opts.skipStorage=true → chỉ update React state (dùng khi sync từ Supabase về).
+  // Ghi Supabase đi qua storageCasSet (handleFinish) hoặc storageSet (admin đổi status).
   const setOrders = useCallback((updater, opts = {}) => {
     _setOrders(prev => {
       const next = typeof updater === "function" ? updater(prev) : updater;
@@ -10219,21 +10214,34 @@ function AppRoot() {
     });
   }, []);
 
-  // ── On mount: load persisted data from storage (non-blocking) ──
-  // V2: ưu tiên fetch /data.json tĩnh từ Vercel CDN (1 request thay vì 5+)
-  // Fallback tự động về Supabase nếu file JSON chưa có hoặc lỗi mạng.
+  // ── On mount: load data song song ──
+  // Catalog (cameras/accessories/site/discounts): /data.json CDN → 0 Supabase request
+  // Orders: Supabase thẳng LUÔN LUÔN → fresh 100%, không lag GitHub Action
+  // Tách riêng vì orders cần chính xác realtime (tránh double booking, khách tra cứu đúng)
   useEffect(() => {
     setReady(true);
     (async () => {
+      // ── 1. Orders: fetch Supabase thẳng, không qua CDN ──
+      // Chạy song song với CDN fetch bên dưới, không block nhau
+      storageGet(STORE_KEYS.orders, true).then(ords => {
+        if (!ords || !Array.isArray(ords)) return;
+        _setOrders(prev => {
+          const storageIds = new Set(ords.map(o => o.id));
+          const initIds = new Set(ORDERS_INIT.map(o => o.id));
+          const localOnly = prev.filter(o => !storageIds.has(o.id) && !initIds.has(o.id));
+          return [...localOnly, ...ords];
+        });
+      }).catch(() => {});
+
+      // ── 2. Catalog: /data.json từ CDN (cameras, accs, site, discounts) ──
       const staticData = await getStaticData();
 
       if (staticData) {
-        // ── Dùng data từ file JSON tĩnh — 0 request Supabase ──
         const cams = staticData.cameras;
         const accs = staticData.accessories;
-        const ords = staticData.orders;
         const site = staticData.site;
         const disc = staticData.discounts;
+        // orders KHÔNG đọc từ staticData nữa — đã fetch Supabase thẳng ở trên
 
         if (cams) _setCameras(cams);
         if (accs) _setAccessories(accs.map(a => ({
@@ -10242,49 +10250,36 @@ function AppRoot() {
         })));
         if (site) _setSiteContent(site);
         if (disc) _setDiscounts(disc);
-        if (ords) {
-          // BUG1 FIX: không cần sync _orderNum nữa vì newOrderId() đã tự tính từ orders thực tế
-          _setOrders(prev => {
-            const storageIds = new Set(ords.map(o => o.id));
-            const initIds = new Set(ORDERS_INIT.map(o => o.id));
-            const fresh = prev.filter(o => !storageIds.has(o.id) && !initIds.has(o.id));
-            const merged = [...fresh, ...ords];
-            if (fresh.length > 0) setTimeout(() => storageSet(STORE_KEYS.orders, merged), 0);
-            return merged;
-          });
-        }
 
-        // Lazy sau 4s: feedbacks + photos + albums (từ static JSON hoặc Cloudinary)
+        // Lazy sau 4s: feedbacks + photos + albums
         setTimeout(async () => {
           if (staticData.feedbacks) {
             _setFeedbacks(prev => {
               const storageIds = new Set(staticData.feedbacks.map(f => f.id));
               const fresh = prev.filter(f => !storageIds.has(f.id));
-              const merged = [...fresh, ...staticData.feedbacks];
-              return merged;
+              return [...fresh, ...staticData.feedbacks];
             });
           }
           if (staticData.albums) _setAlbums(staticData.albums);
-          // Photos vẫn từ Cloudinary (binary, không export vào JSON)
           const pts = await galleryFetchPhotos();
           if (pts.length > 0) _setPhotos(pts);
         }, 4000);
 
-        // Users vẫn từ Supabase — có PII, không export ra file tĩnh
+        // Users từ Supabase — PII, không export ra file tĩnh
         setTimeout(async () => {
           const usrs = await storageGet(STORE_KEYS.users);
           if (usrs) _setUsers(usrs);
         }, 5000);
 
       } else {
-        // ── Fallback: Supabase trực tiếp (giống code cũ) ──
-        console.warn("[92K] Chạy fallback Supabase — kiểm tra public/data.json đã được export chưa");
-        const [cams, accs, ords, site, disc] = await Promise.all([
+        // ── Fallback: data.json lỗi → fetch catalog từ Supabase ──
+        console.warn("[92K] data.json lỗi, fallback Supabase cho catalog");
+        const [cams, accs, site, disc] = await Promise.all([
           loadCamerasFromStorage(),
           storageGet(STORE_KEYS.accessories),
-          storageGet(STORE_KEYS.orders, true),
           storageGet(STORE_KEYS.site),
           storageGet(STORE_KEYS.discounts),
+          // orders đã fetch ở trên rồi, không fetch lại
         ]);
         if (cams) _setCameras(cams);
         if (accs) _setAccessories(accs.map(a => ({
@@ -10293,25 +10288,13 @@ function AppRoot() {
         })));
         if (site) _setSiteContent(site);
         if (disc) _setDiscounts(disc);
-        if (ords) {
-          _setOrders(prev => {
-            const storageIds = new Set(ords.map(o => o.id));
-            const initIds = new Set(ORDERS_INIT.map(o => o.id));
-            const fresh = prev.filter(o => !storageIds.has(o.id) && !initIds.has(o.id));
-            const merged = [...fresh, ...ords];
-            if (fresh.length > 0) setTimeout(() => storageSet(STORE_KEYS.orders, merged), 0);
-            return merged;
-          });
-        }
         setTimeout(async () => {
           const fbs = await storageGet(STORE_KEYS.feedbacks);
           if (fbs) {
             _setFeedbacks(prev => {
               const storageIds = new Set(fbs.map(f => f.id));
               const fresh = prev.filter(f => !storageIds.has(f.id));
-              const merged = [...fresh, ...fbs];
-              if (fresh.length > 0) setTimeout(() => storageSet(STORE_KEYS.feedbacks, merged), 0);
-              return merged;
+              return [...fresh, ...fbs];
             });
           }
           const pts = await galleryFetchPhotos();
