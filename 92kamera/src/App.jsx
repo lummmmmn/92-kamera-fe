@@ -77,6 +77,10 @@ const sessionConflicts = (oSession, targetSession) => {
 
 // getAvailQty: trả về số lượng còn lại cho 1 item trong 1 ngày + session
 const getAvailQty = (camId, camQty, orders, targetDate, targetSession) => {
+  // ── STATIC CACHE: dùng availability tính sẵn từ data.json, 0 CPU ──
+  const _cached = window.__92k_getStaticAvailability?.(camId, targetDate, targetSession);
+  if (_cached !== null && _cached !== undefined) return _cached;
+  // Fallback: tính runtime như cũ
   const active = ["pending", "confirmed", "active"];
   let used = 0;
   orders.filter(o => active.includes(o.status)).forEach(o => {
@@ -1855,7 +1859,10 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
       {total > 0 && (
       <div style={{ textAlign: "center", marginBottom: isMobile ? 28 : 36, padding: "0 20px" }}>
         <div style={{ fontSize: 9, letterSpacing: 7, color: G, opacity: 0.50, marginBottom: 12, fontFamily: "var(--font-ui)", fontWeight: 700 }}>ĐÁNH GIÁ / FEEDBACK</div>
-        <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight: 700, letterSpacing: 1, margin: "0 0 14px", color: G, fontFamily: "var(--font-display)", textShadow: "0 1px 3px rgba(13,27,42,0.10)" }}>Feedback khách hàng</h2>
+        <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight: 700, letterSpacing: 1, margin: "0 0 10px", color: G, fontFamily: "var(--font-display)", textShadow: "0 1px 3px rgba(13,27,42,0.10)" }}>Feedback khách hàng</h2>
+        <p style={{ fontSize: isMobile ? 14 : 15, color:MUT, fontFamily:"var(--font-ui)", lineHeight:1.75, maxWidth: isMobile ? 260 : 400, margin:"0 auto 14px", fontWeight:500 }}>
+          {isMobile ? <>Trải nghiệm thật<br />từ khách đã thuê máy</> : <>Trải nghiệm thật từ những khách hàng<br />đã tin tưởng dịch vụ 92 Ka Mê Ra</>}
+        </p>
         <div style={{ width: 52, height: 1, background: `linear-gradient(90deg,transparent,${G}55,transparent)`, margin: "0 auto 16px" }} />
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.22)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 99, padding: "5px 18px", backdropFilter: "blur(24px) saturate(160%)" }}>
           <span style={{ color: "#c9a84c", fontSize: 14 }}>{"★".repeat(Math.round(parseFloat(avgRating)))}</span>
@@ -1906,10 +1913,13 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
               PHÂN LOẠI THEO MÁY ẢNH · XEM ALBUM ĐẦY ĐỦ
             </div>
             <h2 style={{
-              fontSize: isMobile ? 28 : 36, fontWeight: 700, letterSpacing: 1, margin: 0,
+              fontSize: isMobile ? 28 : 36, fontWeight: 700, letterSpacing: 1, margin: "0 0 10px",
               color: G, fontFamily: "var(--font-display)",
               textShadow: "0 2px 8px rgba(13,27,42,0.12)",
             }}>Ảnh thực tế</h2>
+            <p style={{ fontSize: isMobile ? 14 : 15, color:MUT, fontFamily:"var(--font-ui)", lineHeight:1.75, maxWidth: isMobile ? 260 : 400, margin:"0 auto", fontWeight:500 }}>
+              {isMobile ? <>Khoảnh khắc từ khách hàng<br />đã thuê máy tại 92 Ka Mê Ra</> : <>Những khoảnh khắc thực tế được ghi lại<br />bởi khách hàng đã thuê máy tại 92 Ka Mê Ra</>}
+            </p>
           </div>
 
           {/* ALBUM GRID — layout bất đối xứng giống design */}
@@ -2368,7 +2378,9 @@ function QuyTrinh6Buoc({ isMobile }) {
       <div style={{ textAlign:"center", marginBottom: isMobile ? 28 : 36, padding:"0 20px" }}>
         <div style={{ fontSize:9, letterSpacing:7, color:"#2a4a6a", opacity:0.6, marginBottom:12, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>HƯỚNG DẪN CHI TIẾT</div>
         <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight: 700, margin:"0 0 12px", color:"#0d1b2a", fontFamily:"var(--font-display)", letterSpacing: 1 }}>Quy trình 6 bước</h2>
-        <p style={{ fontSize:13, color:"#3a5a7a", fontFamily:"system-ui,sans-serif", lineHeight:1.7, maxWidth:480, margin:"0 auto" }}>Hướng dẫn chi tiết từng bước để thuê máy ảnh một cách nhanh chóng và an toàn</p>
+        <p style={{ fontSize: isMobile ? 14 : 15, color:"#3a5a7a", fontFamily:"var(--font-ui)", lineHeight:1.75, maxWidth: isMobile ? 280 : 460, margin:"0 auto", fontWeight:500 }}>
+          {isMobile ? <>Hướng dẫn từng bước<br />thuê máy nhanh &amp; an toàn</> : <>Hướng dẫn chi tiết từng bước để thuê máy ảnh<br />một cách nhanh chóng và an toàn</>}
+        </p>
       </div>
 
       {/* Scroll track */}
@@ -2496,7 +2508,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
   useEffect(() => {
     if (tab !== "orders") return;
     refreshOrders(true); // fetch ngay khi vào tab
-    const t = setInterval(() => refreshOrders(true), 30000); // poll 30s
+    const t = setInterval(() => refreshOrders(true), 30000); // poll 30s — khách cần biết trạng thái đơn kịp thời
     return () => clearInterval(t);
   }, [tab, refreshOrders]);
 
@@ -5245,8 +5257,11 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
 
       <div style={{ textAlign:"center", marginBottom:32, position:"relative", zIndex:2 }}>
         <div style={{ fontSize:9, letterSpacing:7, color:G, fontFamily:"var(--font-ui)", marginBottom:14, fontWeight:700, opacity:0.55 }}>BỘ SƯU TẬP</div>
-        <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight:700, letterSpacing:1, margin:"0 0 6px", color:G, fontFamily:"var(--font-display)", textShadow:"0 1px 3px rgba(13,27,42,0.10)" }}>Máy ảnh cho thuê</h2>
-        <div style={{ width:36, height:1, background:G, margin:"14px auto 18px" }} />
+        <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight:700, letterSpacing:1, margin:"0 0 10px", color:G, fontFamily:"var(--font-display)", textShadow:"0 1px 3px rgba(13,27,42,0.10)" }}>Máy ảnh cho thuê</h2>
+        <p style={{ fontSize: isMobile ? 14 : 15, color:MUT, fontFamily:"var(--font-ui)", lineHeight:1.75, maxWidth: isMobile ? 280 : 420, margin:"0 auto 14px", fontWeight:500 }}>
+          {isMobile ? <>Đa dạng thiết bị · Giá tốt<br />Nhận máy tại Núi Thành</> : <>Đa dạng thiết bị chất lượng cao · Giá thuê linh hoạt<br />Giao nhận tại Núi Thành – Tam Kỳ – Quảng Nam</>}
+        </p>
+        <div style={{ width:36, height:1, background:G, margin:"0 auto 18px" }} />
         <button onClick={() => setCfPaused(p => !p)}
           style={{ background: cfPaused ? G+"22" : "none", border:`1px solid ${cfPaused ? G : BR}`, color: cfPaused ? G : MUT, padding:"6px 22px", borderRadius:99, fontSize:10, cursor:"pointer", fontFamily:"system-ui,sans-serif", letterSpacing:1.5, transition:"all .3s" }}>
           {cfPaused ? "▶ TIẾP TỤC" : "⏸ DỪNG"}
@@ -6415,8 +6430,11 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         <div style={{ position:"relative", zIndex:2 }}>
           <div style={{ textAlign:"center", marginBottom: isMobile ? 36 : 56 }}>
             <div style={{ fontSize:9, letterSpacing:7, color:G, opacity:0.55, marginBottom:16, fontFamily:"var(--font-ui)", fontWeight:700 }}>PHỤ KIỆN</div>
-            <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight:700, letterSpacing: 1, margin:0, color:G, fontFamily:"var(--font-display)", lineHeight:1.2, textShadow:"0 1px 3px rgba(13,27,42,0.10)" }}>Bổ sung trang thiết bị</h2>
-            <div style={{ width:52, height:1, background:`linear-gradient(90deg,transparent,${G}55,transparent)`, margin:"20px auto 0" }} />
+            <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight:700, letterSpacing: 1, margin:"0 0 10px", color:G, fontFamily:"var(--font-display)", lineHeight:1.2, textShadow:"0 1px 3px rgba(13,27,42,0.10)" }}>Bổ sung trang thiết bị</h2>
+            <p style={{ fontSize: isMobile ? 14 : 15, color:MUT, fontFamily:"var(--font-ui)", lineHeight:1.75, maxWidth: isMobile ? 280 : 420, margin:"0 auto 16px", fontWeight:500 }}>
+              {isMobile ? <>Tripod, mic, lens và nhiều hơn<br />thuê kèm giá ưu đãi</> : <>Tripod, mic thu âm, lens, filter và nhiều hơn nữa<br />thuê kèm máy ảnh với giá ưu đãi</>}
+            </p>
+            <div style={{ width:52, height:1, background:`linear-gradient(90deg,transparent,${G}55,transparent)`, margin:"0 auto" }} />
           </div>
           <div style={{ display:"grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: isMobile ? 10 : 18 }}>
             {accessories.map((a,i) => {
@@ -7607,7 +7625,7 @@ async function galleryFetchPhotos() {
   try {
     const res = await fetch(
       `${SB_URL}/rest/v1/gallery_photos?select=*&order=uploaded_at.desc`,
-      { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }, cache: "no-store" }
+      { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }, cache: "default" }
     );
     if (!res.ok) return [];
     const rows = await res.json();
@@ -9573,6 +9591,50 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
 // photos KHÔNG có trong STORE_KEYS — Cloudinary quản lý hoàn toàn, Supabase không biết
 const STORE_KEYS = { cameras: "k92_cameras_v2", accessories: "k92_accessories_v2", orders: "k92_orders_v2", site: "k92_site_v2", feedbacks: "k92_feedbacks_v1", users: "k92_users_v1", discounts: "k92_discounts_v1", albums: "k92_albums_v1" };
 
+// ── STATIC DATA LOADER ──────────────────────────────────────────────────────
+// Luồng: mở app → fetch /data.json 1 lần từ Vercel CDN (0 request Supabase)
+// Chỉ khi file lỗi mới fallback về Supabase trực tiếp.
+// Khi admin ghi đơn → Supabase webhook → GitHub Action → cập nhật data.json tự động.
+const STATIC_DATA_URL = "/data.json";
+const STATIC_CACHE_MS = 5 * 60 * 1000; // 5 phút memory cache
+let _staticDataCache = null;
+let _staticDataPromise = null;
+
+async function getStaticData(forceRefresh = false) {
+  if (!forceRefresh && _staticDataCache && (Date.now() - _staticDataCache.ts) < STATIC_CACHE_MS) {
+    return _staticDataCache.data;
+  }
+  if (_staticDataPromise) return _staticDataPromise;
+  _staticDataPromise = (async () => {
+    try {
+      const res = await fetch(`${STATIC_DATA_URL}?_t=${Date.now()}`, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      _staticDataCache = { data, ts: Date.now() };
+      console.log(
+        `[92K] ✅ Static data loaded (${(JSON.stringify(data).length / 1024).toFixed(0)} KB)`,
+        `| exported: ${data._meta?.exportedAt?.slice(0, 19) ?? "unknown"}`
+      );
+      return data;
+    } catch (err) {
+      console.warn("[92K] ⚠️ Static data load failed, fallback Supabase:", err.message);
+      return null;
+    } finally {
+      _staticDataPromise = null;
+    }
+  })();
+  return _staticDataPromise;
+}
+
+// Lấy availability đã tính sẵn từ file JSON — thay getAvailQty runtime
+function getStaticAvailability(camId, date, session) {
+  if (!_staticDataCache?.data?.availabilityCache) return null;
+  const v = _staticDataCache.data.availabilityCache[camId]?.[date]?.[session];
+  return v !== undefined ? v : null;
+}
+window.__92k_getStaticAvailability = getStaticAvailability;
+// ── END STATIC DATA LOADER ───────────────────────────────────────────────────
+
 const SB_URL = "https://gtgjixgcillbjwnnkavx.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Z2ppeGdjaWxsYmp3bm5rYXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5OTg4MzMsImV4cCI6MjA5MjU3NDgzM30.iFh0KP4vrTZUDMrakW1a9nM8naJScP-D1WqJKrH0hiI";
 const SB_TABLE = "kv_store";
@@ -9582,13 +9644,19 @@ const SB_HEADERS = { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Con
 // Cloudinary       → ảnh gallery feedback (binary file, CDN, optimize tự động)
 // Supabase KHÔNG lưu binary ảnh — chỉ lưu metadata nhẹ: [{ id, public_id, url, uploadedAt }]
 
-// ── CACHE TTL: 30 phút ──
-const CACHE_TTL_MS = 30 * 60 * 1000;
+// ── CACHE TTL theo loại data ──
+// orders: KHÔNG cache — WebSocket realtime lo, luôn fetch fresh
+// cameras/accs/site/albums/discounts/feedbacks: 60 phút (ít thay đổi)
+const CACHE_TTL_MS = 60 * 60 * 1000;          // default 60 phút
+const CACHE_TTL_ORDERS_MS = 0;                 // orders: không bao giờ cache
 function cacheKey(key) { return `__ts_${key}`; }
 function isCacheFresh(key) {
   try {
+    // orders không bao giờ dùng cache — phải luôn fresh
+    if (key === STORE_KEYS.orders) return false;
     const ts = localStorage.getItem(cacheKey(key));
-    return ts && (Date.now() - parseInt(ts)) < CACHE_TTL_MS;
+    if (!ts) return false;
+    return (Date.now() - parseInt(ts)) < CACHE_TTL_MS;
   } catch { return false; }
 }
 function markCacheFresh(key) {
@@ -9634,10 +9702,10 @@ function storageSet(key, val) {
   const value = JSON.stringify(val);
   // 1. localStorage TRƯỚC — sync, không mất data
   try { localStorage.setItem(key, value); } catch {}
-  // 2. Invalidate cache để lần next fetch sẽ re-read từ Supabase
-  invalidateCache(key);
-  // 3. Debounce Supabase write — delay 2s cho cameras (URLs nhẹ), 500ms cho orders
-  const debounceMs = key === STORE_KEYS.orders ? 500 : 2000;
+  // 2. Mark cache fresh NGAY với data local — tránh fetch Supabase thừa trong window debounce
+  markCacheFresh(key);
+  // 3. Debounce Supabase write — delay 2s cho cameras, 800ms cho orders
+  const debounceMs = key === STORE_KEYS.orders ? 800 : 2000;
   clearTimeout(_writeTimers[key]);
   _writeTimers[key] = setTimeout(() => {
     fetch(`${SB_URL}/rest/v1/${SB_TABLE}`, {
@@ -9645,7 +9713,7 @@ function storageSet(key, val) {
       headers: SB_HEADERS,
       body: JSON.stringify({ key, value, updated_at: new Date().toISOString() })
     }).then(() => {
-      markCacheFresh(key); // Sau khi write thành công, mark cache fresh
+      markCacheFresh(key); // Re-mark sau write Supabase thành công
     }).catch(e => console.warn("[92K supabase] set failed:", key, e));
   }, debounceMs);
 }
@@ -10136,61 +10204,110 @@ function AppRoot() {
   }, []);
 
   // ── On mount: load persisted data from storage (non-blocking) ──
+  // V2: ưu tiên fetch /data.json tĩnh từ Vercel CDN (1 request thay vì 5+)
+  // Fallback tự động về Supabase nếu file JSON chưa có hoặc lỗi mạng.
   useEffect(() => {
-    // Show UI immediately with default data, then update from storage
     setReady(true);
     (async () => {
-      // Ưu tiên: load cameras, accessories, orders, site trước (nhẹ, cần thiết ngay)
-      const [cams, accs, ords, site, disc] = await Promise.all([
-        loadCamerasFromStorage(),
-        storageGet(STORE_KEYS.accessories),
-        storageGet(STORE_KEYS.orders, true), // force=true: luôn lấy từ Supabase, tránh cache cũ
-        storageGet(STORE_KEYS.site),
-        storageGet(STORE_KEYS.discounts),
-      ]);
-      if (cams) _setCameras(cams);
-      if (accs) _setAccessories(accs.map(a => ({
-        qty: 1, active: true, priceShift: null, desc: "",
-        ...a,
-      })));
-      if (site) _setSiteContent(site);
-      if (disc) _setDiscounts(disc);
-      if (ords) {
-        // BUG1 FIX: không cần sync _orderNum nữa vì newOrderId() đã tự tính từ orders thực tế
-        _setOrders(prev => {
-          const storageIds = new Set(ords.map(o => o.id));
-          const initIds = new Set(ORDERS_INIT.map(o => o.id));
-          const fresh = prev.filter(o => !storageIds.has(o.id) && !initIds.has(o.id));
-          const merged = [...fresh, ...ords];
-          if (fresh.length > 0) setTimeout(() => storageSet(STORE_KEYS.orders, merged), 0);
-          return merged;
-        });
-      }
+      const staticData = await getStaticData();
 
-      // Lazy: load feedbacks + photos sau
-      setTimeout(async () => {
-        const fbs = await storageGet(STORE_KEYS.feedbacks);
-        if (fbs) {
-          _setFeedbacks(prev => {
-            const storageIds = new Set(fbs.map(f => f.id));
-            const fresh = prev.filter(f => !storageIds.has(f.id));
-            const merged = [...fresh, ...fbs];
-            if (fresh.length > 0) setTimeout(() => storageSet(STORE_KEYS.feedbacks, merged), 0);
+      if (staticData) {
+        // ── Dùng data từ file JSON tĩnh — 0 request Supabase ──
+        const cams = staticData.cameras;
+        const accs = staticData.accessories;
+        const ords = staticData.orders;
+        const site = staticData.site;
+        const disc = staticData.discounts;
+
+        if (cams) _setCameras(cams);
+        if (accs) _setAccessories(accs.map(a => ({
+          qty: 1, active: true, priceShift: null, desc: "",
+          ...a,
+        })));
+        if (site) _setSiteContent(site);
+        if (disc) _setDiscounts(disc);
+        if (ords) {
+          // BUG1 FIX: không cần sync _orderNum nữa vì newOrderId() đã tự tính từ orders thực tế
+          _setOrders(prev => {
+            const storageIds = new Set(ords.map(o => o.id));
+            const initIds = new Set(ORDERS_INIT.map(o => o.id));
+            const fresh = prev.filter(o => !storageIds.has(o.id) && !initIds.has(o.id));
+            const merged = [...fresh, ...ords];
+            if (fresh.length > 0) setTimeout(() => storageSet(STORE_KEYS.orders, merged), 0);
             return merged;
           });
         }
-        const pts = await galleryFetchPhotos();
-        if (pts.length > 0) _setPhotos(pts);
-        const albs = await storageGet(STORE_KEYS.albums);
-        if (albs) _setAlbums(albs);
-        // Supabase gallery_photos là nguồn sự thật
-      }, 2000);
 
-      // Rất lazy: load users — chỉ cần khi login (delay 5s)
-      setTimeout(async () => {
-        const usrs = await storageGet(STORE_KEYS.users);
-        if (usrs) _setUsers(usrs);
-      }, 5000);
+        // Lazy sau 4s: feedbacks + photos + albums (từ static JSON hoặc Cloudinary)
+        setTimeout(async () => {
+          if (staticData.feedbacks) {
+            _setFeedbacks(prev => {
+              const storageIds = new Set(staticData.feedbacks.map(f => f.id));
+              const fresh = prev.filter(f => !storageIds.has(f.id));
+              const merged = [...fresh, ...staticData.feedbacks];
+              return merged;
+            });
+          }
+          if (staticData.albums) _setAlbums(staticData.albums);
+          // Photos vẫn từ Cloudinary (binary, không export vào JSON)
+          const pts = await galleryFetchPhotos();
+          if (pts.length > 0) _setPhotos(pts);
+        }, 4000);
+
+        // Users vẫn từ Supabase — có PII, không export ra file tĩnh
+        setTimeout(async () => {
+          const usrs = await storageGet(STORE_KEYS.users);
+          if (usrs) _setUsers(usrs);
+        }, 5000);
+
+      } else {
+        // ── Fallback: Supabase trực tiếp (giống code cũ) ──
+        console.warn("[92K] Chạy fallback Supabase — kiểm tra public/data.json đã được export chưa");
+        const [cams, accs, ords, site, disc] = await Promise.all([
+          loadCamerasFromStorage(),
+          storageGet(STORE_KEYS.accessories),
+          storageGet(STORE_KEYS.orders, true),
+          storageGet(STORE_KEYS.site),
+          storageGet(STORE_KEYS.discounts),
+        ]);
+        if (cams) _setCameras(cams);
+        if (accs) _setAccessories(accs.map(a => ({
+          qty: 1, active: true, priceShift: null, desc: "",
+          ...a,
+        })));
+        if (site) _setSiteContent(site);
+        if (disc) _setDiscounts(disc);
+        if (ords) {
+          _setOrders(prev => {
+            const storageIds = new Set(ords.map(o => o.id));
+            const initIds = new Set(ORDERS_INIT.map(o => o.id));
+            const fresh = prev.filter(o => !storageIds.has(o.id) && !initIds.has(o.id));
+            const merged = [...fresh, ...ords];
+            if (fresh.length > 0) setTimeout(() => storageSet(STORE_KEYS.orders, merged), 0);
+            return merged;
+          });
+        }
+        setTimeout(async () => {
+          const fbs = await storageGet(STORE_KEYS.feedbacks);
+          if (fbs) {
+            _setFeedbacks(prev => {
+              const storageIds = new Set(fbs.map(f => f.id));
+              const fresh = prev.filter(f => !storageIds.has(f.id));
+              const merged = [...fresh, ...fbs];
+              if (fresh.length > 0) setTimeout(() => storageSet(STORE_KEYS.feedbacks, merged), 0);
+              return merged;
+            });
+          }
+          const pts = await galleryFetchPhotos();
+          if (pts.length > 0) _setPhotos(pts);
+          const albs = await storageGet(STORE_KEYS.albums);
+          if (albs) _setAlbums(albs);
+        }, 4000);
+        setTimeout(async () => {
+          const usrs = await storageGet(STORE_KEYS.users);
+          if (usrs) _setUsers(usrs);
+        }, 5000);
+      }
     })();
   }, []);
 
