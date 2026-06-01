@@ -1773,7 +1773,8 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
         onDoubleClick={e => { e.stopPropagation(); zoom > 1 ? resetZoom() : zoomIn(); }}
         draggable={false}
         style={{
-          maxWidth: "92vw", maxHeight: "88vh",
+          maxWidth: window.innerWidth >= 768 ? "60vw" : "92vw",
+          maxHeight: window.innerWidth >= 768 ? "70vh" : "88vh",
           objectFit: "contain",
           borderRadius: zoom > 1 ? 6 : 14,
           boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
@@ -1816,11 +1817,12 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
             disabled={zoom <= ZOOM_MIN}
             style={btnStyle(zoom <= ZOOM_MIN)}
             title="Thu nhỏ (-)">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/>
             </svg>
           </button>
 
+          {/* % zoom - click để reset */}
           <span
             onClick={e => { e.stopPropagation(); resetZoom(); }}
             title="Click để reset zoom"
@@ -1838,7 +1840,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
             disabled={zoom >= ZOOM_MAX}
             style={btnStyle(zoom >= ZOOM_MAX)}
             title="Phóng to (+)">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
             </svg>
           </button>
@@ -1847,7 +1849,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
         {/* Nút đóng */}
         <button onClick={e => { e.stopPropagation(); onClose(); }} style={{
           ...btnStyle(false),
-          width: 28, height: 28, fontSize: 16,
+          width: 40, height: 40, fontSize: 22,
           background: "rgba(5,12,22,0.70)",
           color: "#d4cab8",
           pointerEvents: "auto",
@@ -1863,6 +1865,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
           background: "linear-gradient(to top, rgba(5,12,22,0.90) 0%, transparent 100%)",
           zIndex: 10,
         }}>
+          {/* Nút trái */}
           <button onClick={e => { e.stopPropagation(); prev(); }} style={{
             flexShrink: 0, width: 38, height: 38, borderRadius: "50%",
             background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.20)",
@@ -1871,6 +1874,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
             backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
           }}>‹</button>
 
+          {/* Thumbnail strip */}
           <div style={{
             flex: 1, display: "flex", gap: 5, overflowX: "auto",
             scrollbarWidth: "none", WebkitOverflowScrolling: "touch",
@@ -1887,6 +1891,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
             ))}
           </div>
 
+          {/* Nút phải */}
           <button onClick={e => { e.stopPropagation(); next(); }} style={{
             flexShrink: 0, width: 38, height: 38, borderRadius: "50%",
             background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.20)",
