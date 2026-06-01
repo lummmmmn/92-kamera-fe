@@ -1786,72 +1786,71 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
         loading="eager"
       />
 
-      {/* Top bar: counter + zoom controls + đóng */}
+      {/* Top bar: gom hết vào 1 pill góc phải trên */}
       <div onClick={e => e.stopPropagation()} style={{
-        position: "fixed", top: 14, left: 0, right: 0,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 14px",
-        pointerEvents: "none",
+        position: "fixed", top: 14, right: 14,
+        display: "flex", alignItems: "center", gap: 6,
+        background: "rgba(5,12,22,0.72)", borderRadius: 99, padding: "5px 10px",
+        backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+        pointerEvents: "auto",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.30)",
       }}>
         {/* Counter */}
-        <div style={{
-          background: "rgba(5,12,22,0.70)", borderRadius: 99, padding: "5px 14px",
-          color: "#d4cab8", fontSize: 12, fontFamily: "system-ui,sans-serif",
-          fontWeight: 600, letterSpacing: 1,
-          backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
-          pointerEvents: "auto",
+        <span style={{
+          color: "#d4cab8", fontSize: 11, fontFamily: "system-ui,sans-serif",
+          fontWeight: 600, letterSpacing: 1, padding: "0 6px",
+          userSelect: "none",
         }}>
           {idx + 1} / {total}
-        </div>
+        </span>
 
-        {/* Zoom controls */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 6,
-          background: "rgba(5,12,22,0.70)", borderRadius: 99, padding: "5px 10px",
-          backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
-          pointerEvents: "auto",
-        }}>
-          <button
-            onClick={e => { e.stopPropagation(); zoomOut(); }}
-            disabled={zoom <= ZOOM_MIN}
-            style={btnStyle(zoom <= ZOOM_MIN)}
-            title="Thu nhỏ (-)">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/>
-            </svg>
-          </button>
+        {/* Divider */}
+        <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.15)", flexShrink: 0 }} />
 
-          {/* % zoom - click để reset */}
-          <span
-            onClick={e => { e.stopPropagation(); resetZoom(); }}
-            title="Click để reset zoom"
-            style={{
-              color: zoom > 1 ? "#c9a84c" : "#d4cab8",
-              fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif",
-              minWidth: 32, textAlign: "center", cursor: "pointer",
-              letterSpacing: 0.5, userSelect: "none",
-            }}>
-            {Math.round(zoom * 100)}%
-          </span>
+        {/* Zoom out */}
+        <button
+          onClick={e => { e.stopPropagation(); zoomOut(); }}
+          disabled={zoom <= ZOOM_MIN}
+          style={btnStyle(zoom <= ZOOM_MIN)}
+          title="Thu nhỏ (-)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/>
+          </svg>
+        </button>
 
-          <button
-            onClick={e => { e.stopPropagation(); zoomIn(); }}
-            disabled={zoom >= ZOOM_MAX}
-            style={btnStyle(zoom >= ZOOM_MAX)}
-            title="Phóng to (+)">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
-            </svg>
-          </button>
-        </div>
+        {/* % zoom - click để reset */}
+        <span
+          onClick={e => { e.stopPropagation(); resetZoom(); }}
+          title="Click để reset zoom"
+          style={{
+            color: zoom > 1 ? "#c9a84c" : "#d4cab8",
+            fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif",
+            minWidth: 28, textAlign: "center", cursor: "pointer",
+            letterSpacing: 0.5, userSelect: "none",
+          }}>
+          {Math.round(zoom * 100)}%
+        </span>
+
+        {/* Zoom in */}
+        <button
+          onClick={e => { e.stopPropagation(); zoomIn(); }}
+          disabled={zoom >= ZOOM_MAX}
+          style={btnStyle(zoom >= ZOOM_MAX)}
+          title="Phóng to (+)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+          </svg>
+        </button>
+
+        {/* Divider */}
+        <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.15)", flexShrink: 0 }} />
 
         {/* Nút đóng */}
         <button onClick={e => { e.stopPropagation(); onClose(); }} style={{
           ...btnStyle(false),
           width: 28, height: 28, fontSize: 16,
-          background: "rgba(5,12,22,0.70)",
+          background: "transparent", border: "none",
           color: "#d4cab8",
-          pointerEvents: "auto",
         }}>×</button>
       </div>
 
