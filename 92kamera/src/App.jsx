@@ -1764,28 +1764,38 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
       }}>
 
       {/* Ảnh chính */}
-      <img
-        src={cdnUrl(photos[idx].url, "full")}
-        alt=""
+      <div
         onClick={e => e.stopPropagation()}
-        onMouseDown={onMouseDown}
-        onWheel={onWheel}
-        onDoubleClick={e => { e.stopPropagation(); zoom > 1 ? resetZoom() : zoomIn(); }}
-        draggable={false}
         style={{
-          maxWidth: window.innerWidth >= 768 ? "65vw" : "92vw",
-          maxHeight: window.innerWidth >= 768 ? "72vh" : "88vh",
-          objectFit: "contain",
+          width: window.innerWidth >= 768 ? "65vw" : "92vw",
+          height: window.innerWidth >= 768 ? "72vh" : "88vh",
+          overflow: zoom > 1 ? "visible" : "hidden",
           borderRadius: zoom > 1 ? 6 : 14,
           boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
-          userSelect: "none",
-          display: "block",
-          transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
-          transition: isDragging.current ? "none" : "transform 0.2s ease",
-          cursor: zoom > 1 ? "grab" : "zoom-in",
-        }}
-        loading="eager"
-      />
+          display: "flex", alignItems: "center", justifyContent: "center",
+          flexShrink: 0,
+        }}>
+        <img
+          src={cdnUrl(photos[idx].url, "full")}
+          alt=""
+          onMouseDown={onMouseDown}
+          onWheel={onWheel}
+          onDoubleClick={e => { e.stopPropagation(); zoom > 1 ? resetZoom() : zoomIn(); }}
+          draggable={false}
+          style={{
+            maxWidth: "100%",
+            maxHeight: "100%",
+            objectFit: "contain",
+            borderRadius: zoom > 1 ? 6 : 14,
+            userSelect: "none",
+            display: "block",
+            transform: zoom > 1 ? `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)` : "none",
+            transition: isDragging.current ? "none" : "transform 0.2s ease",
+            cursor: zoom > 1 ? "grab" : "zoom-in",
+          }}
+          loading="eager"
+        />
+      </div>
 
       {/* Top bar: counter + zoom controls + đóng */}
       <div onClick={e => e.stopPropagation()} style={{
