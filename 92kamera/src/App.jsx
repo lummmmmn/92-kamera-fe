@@ -3,6 +3,15 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 
 // ── HELPERS ──
 let _camIdNum = 100;
+
+// ── SHA-256 — dùng Web Crypto API (sẵn có trong browser, không cần thư viện) ──
+// Lưu hash thay v�� plaintext → ai đọc được Supabase cũng không biết password gốc
+async function sha256(str) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+// Hash mặc định của "admin92" — dùng khi chưa đổi password lần nào
+const ADMIN_PW_DEFAULT_HASH = "db08beaae1b06ae2e84f101f8e37a8c03e16eb8e514ec8c2274b5d89aa2f9d22";
 // BUG-RACE FIX: giữ số tuần tự (dễ đọc) + suffix 2-hex ngẫu nhiên → collision 1/256
 // parseInt("0004-AB") = 4 nên parser cũ với replace("#92K","") vẫn đọc được số thứ tự
 const newOrderId = (existingOrders = []) => {
@@ -2484,7 +2493,10 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // ── Tự động refresh orders mỗi 30s khi đang xem tab đơn hàng ──
+  const _refreshingRef = useRef(false);
   const refreshOrders = useCallback(async (silent = false) => {
+    if (_refreshingRef.current) return; // guard chống concurrent call
+    _refreshingRef.current = true;
     if (!silent) setRefreshing(true);
     try {
       const fresh = await storageGet(STORE_KEYS.orders, true);
@@ -2499,7 +2511,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
         }, { skipStorage: true });
       }
     } catch {}
-    if (!silent) setRefreshing(false);
+    finally { _refreshingRef.current = false; if (!silent) setRefreshing(false); }
   }, [setOrders]);
 
   useEffect(() => {
@@ -3770,6 +3782,9 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 
   const [submitError, setSubmitError] = useState(null);
   const [submitting, setSubmitting] = useState(false); // BUG4: chống double-click
+  // IDEMPOTENCY FIX: sinh UUID khi modal mount, ghi vào order
+  // Nếu khách bam submit 2 lần → lần 2 thấy submitKey trüng trong liveOrders → bị ch\u1eb7n
+  const submitKeyRef = useRef("sk-" + Date.now() + "-" + Math.random().toString(36).slice(2,8));
 
   // ── handleFinish: async — fetch fresh data trước khi validate và ghi ──
   // Fix BUG1 (trùng ID), BUG2 (overbooking), BUG3 (mất đơn), BUG4 (double-click), BUG5 (discount bypass)
@@ -3907,12 +3922,22 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
           return;
         }
 
+        // IDEMPOTENCY: check submitKey trước khi append
+        // Nếu submitKey įđã tồn tại trong liveOrders → đã gài thành công trước đó (retry sau WS)
+        const skKey = submitKeyRef.current;
+        const alreadySubmitted = liveOrders.some(o => o.submitKey === skKey);
+        if (alreadySubmitted) {
+          finalOrder = liveOrders.find(o => o.submitKey === skKey);
+          break;
+        }
+
         const id = newOrderId(liveOrders);
         const camNames = selectedCamList.map(c => `${c.name}${selCams[c.id] > 1 ? ` x${selCams[c.id]}` : ""}`).join(", ");
         const accNames = Object.entries(selAcc).map(([n, q]) => q > 1 ? `${n} x${q}` : n);
         const firstCam = selectedCamList[0];
         const order = {
           id,
+          submitKey: skKey,
           cameraName: camNames,
           cameraId: firstCam?.id,
           cameras: selectedCamList.map(c => ({ id: c.id, name: c.name, qty: selCams[c.id], price: c.price })),
@@ -4843,7 +4868,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                         onKeyDown={e => e.key === "Enter" && !discountLoading && applyDiscount()}
                         placeholder="Nhập mã..."
                       />
-                      <button onClick={() => { if (!discountLoading) applyDiscount().then(ok => { if (ok) setDiscountExpanded(false); }); }}
+                      <button onClick={() => { if (!discountLoading) applyDiscount().then(ok => { if (ok) setDiscountExpanded(false); }).catch(() => {}); }}
                         disabled={discountLoading}
                         style={{ padding:"0 16px", background: discountLoading ? "#555" : `linear-gradient(135deg,${G},#a07830)`, color:"#000", border:"none", borderRadius:16, cursor: discountLoading ? "not-allowed" : "pointer", fontSize:12, fontWeight:800, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap", flexShrink:0, minHeight:44, opacity: discountLoading ? 0.7 : 1, transition:"opacity 0.15s" }}>
                         {discountLoading ? "..." : "Áp dụng"}
@@ -6585,13 +6610,68 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
   const [pw, setPw] = useState("");
   const [err, setErr] = useState(false);
   const [shake, setShake] = useState(false);
-  const [storedAdminPw, setStoredAdminPw] = useState("admin92");
+  // Lưu hash SHA-256, không lưu plaintext
+  const [storedAdminHash, setStoredAdminHash] = useState(ADMIN_PW_DEFAULT_HASH);
   useEffect(() => {
-    storageGet("k92_admin_pw").then(d => { if (d) setStoredAdminPw(d); });
+    storageGet("k92_admin_pw_hash").then(d => { if (d) setStoredAdminHash(d); }).catch(() => {});
   }, []);
-  const checkAdmin = () => {
-    if (pw === storedAdminPw) { onLogin(); }
-    else { setErr(true); setShake(true); setTimeout(() => { setErr(false); setShake(false); }, 2000); }
+
+  // ── BRUTE FORCE LOCK ──
+  // Sau 5 lần sai → khóa 15 phú
+  // Dùng localStorage → không cần server, không reset khi refresh trang
+  const BF_KEY = "k92_bf";
+  const BF_MAX = 5;
+  const BF_LOCK_MS = 15 * 60 * 1000; // 15 phú
+
+  const getBfState = () => {
+    try { return JSON.parse(localStorage.getItem(BF_KEY) || "{}"); } catch { return {}; }
+  };
+  const saveBfState = (s) => {
+    try { localStorage.setItem(BF_KEY, JSON.stringify(s)); } catch {}
+  };
+
+  // Kiểm tra trạng thái lock khi component mount
+  const [lockUntil, setLockUntil] = useState(() => {
+    const s = JSON.parse(localStorage.getItem("k92_bf") || "{}");
+    return s.lockUntil || 0;
+  });
+  const [failCount, setFailCount] = useState(() => {
+    const s = JSON.parse(localStorage.getItem("k92_bf") || "{}");
+    // Reset fail count nếu đã hết lock
+    if (s.lockUntil && Date.now() > s.lockUntil) return 0;
+    return s.fails || 0;
+  });
+
+  const isLocked = () => Date.now() < lockUntil;
+  const lockRemainMin = () => Math.ceil((lockUntil - Date.now()) / 60000);
+
+  const checkAdmin = async () => {
+    // Kiểm tra lock trước mọi thẩu
+    if (isLocked()) {
+      setErr(true); setShake(true);
+      setTimeout(() => { setErr(false); setShake(false); }, 2000);
+      return;
+    }
+    const inputHash = await sha256(pw);
+    if (inputHash === storedAdminHash) {
+      // Đăng nhập thành công → reset brute force state
+      saveBfState({ fails: 0, lockUntil: 0 });
+      setFailCount(0); setLockUntil(0);
+      onLogin();
+    } else {
+      const newFails = failCount + 1;
+      if (newFails >= BF_MAX) {
+        // Đạt ngưỡng → khóa 15 phú
+        const until = Date.now() + BF_LOCK_MS;
+        saveBfState({ fails: newFails, lockUntil: until });
+        setFailCount(newFails); setLockUntil(until);
+      } else {
+        saveBfState({ fails: newFails, lockUntil: 0 });
+        setFailCount(newFails);
+      }
+      setErr(true); setShake(true);
+      setTimeout(() => { setErr(false); setShake(false); }, 2000);
+    }
   };
 
   // ── Tab Khách hàng — Google OAuth ──
@@ -7017,12 +7097,23 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
               <h3 style={{ color: TXT, fontWeight: 700, marginBottom: 4, fontFamily: "Georgia,serif", fontSize: 19, letterSpacing: 0.5, margin: "0 0 6px" }}>Quản trị viên</h3>
               <p style={{ color: MUT, fontSize: 12, marginBottom: 24, letterSpacing: .3, fontFamily: "system-ui,sans-serif", margin: "0 0 24px" }}>Nhập mật khẩu để truy cập dashboard</p>
             </div>
-            <input type="password" value={pw} onChange={e => setPw(e.target.value)} onKeyDown={e => e.key === "Enter" && checkAdmin()} placeholder="••••••••"
-              style={{ width: "100%", padding: "14px 18px", background: CARD, border: `1.5px solid ${err ? "#ef4444" : BR}`, borderRadius: 16, color: TXT, fontSize: 18, outline: "none", boxSizing: "border-box", marginBottom: 8, fontFamily: "monospace", letterSpacing: 4, textAlign: "center", transition: "border .2s", boxShadow: err ? "0 0 20px rgba(239,68,68,0.12)" : "none" }} />
-            {err && <p style={{ color: "#ef4444", fontSize: 12, marginBottom: 8, fontFamily: "system-ui,sans-serif", letterSpacing: 0.3 }}>❌ Sai mật khẩu. Thử lại!</p>}
-            <button onClick={checkAdmin}
-              style={{ width: "100%", padding: "14px 0", background: `linear-gradient(135deg, ${G}, #b8923e)`, color: "#FFF", border: "none", borderRadius: 16, cursor: "pointer", fontWeight: 800, fontSize: 14, fontFamily: "system-ui,sans-serif", marginTop: 4, boxShadow: `0 4px 24px ${G}44`, letterSpacing: 0.5, transition: "opacity .2s" }}
-              onMouseEnter={e => e.currentTarget.style.opacity = "0.88"}
+            <input type="password" value={pw} onChange={e => setPw(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && !isLocked() && checkAdmin()}
+              placeholder="••••••••" disabled={isLocked()}
+              style={{ width: "100%", padding: "14px 18px", background: isLocked() ? "#f3f4f6" : CARD, border: `1.5px solid ${err ? "#ef4444" : BR}`, borderRadius: 16, color: TXT, fontSize: 18, outline: "none", boxSizing: "border-box", marginBottom: 8, fontFamily: "monospace", letterSpacing: 4, textAlign: "center", transition: "border .2s", boxShadow: err ? "0 0 20px rgba(239,68,68,0.12)" : "none", opacity: isLocked() ? 0.5 : 1 }} />
+            {isLocked()
+              ? <p style={{ color: "#ef4444", fontSize: 12, marginBottom: 8, fontFamily: "system-ui,sans-serif", letterSpacing: 0.3 }}>
+                  🔒 Quá nhiều lần sai. Thử lại sau <strong>{lockRemainMin()}</strong> phú.
+                </p>
+              : err
+              ? <p style={{ color: "#ef4444", fontSize: 12, marginBottom: 8, fontFamily: "system-ui,sans-serif", letterSpacing: 0.3 }}>
+                  ❌ Sai mật khẩu ({BF_MAX - failCount} lần thử còn lại).
+                </p>
+              : null
+            }
+            <button onClick={checkAdmin} disabled={isLocked()}
+              style={{ width: "100%", padding: "14px 0", background: isLocked() ? "#9ca3af" : `linear-gradient(135deg, ${G}, #b8923e)`, color: "#FFF", border: "none", borderRadius: 16, cursor: isLocked() ? "not-allowed" : "pointer", fontWeight: 800, fontSize: 14, fontFamily: "system-ui,sans-serif", marginTop: 4, boxShadow: isLocked() ? "none" : `0 4px 24px ${G}44`, letterSpacing: 0.5, transition: "opacity .2s" }}
+              onMouseEnter={e => { if (!isLocked()) e.currentTarget.style.opacity = "0.88"; }}
               onMouseLeave={e => e.currentTarget.style.opacity = "1"}
             >Đăng nhập</button>
 
@@ -7920,18 +8011,21 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   const [discForm, setDiscForm] = useState({ code: "", type: "percent", value: "", minOrder: "", maxUse: "", active: true, requiredBadge: "none" });
   const [discMsg, setDiscMsg] = useState(null);
   const [editDiscId, setEditDiscId] = useState(null);
-  const [adminPw, setAdminPw] = useState("admin92");
+  // Lưu hash SHA-256, không lưu plaintext
+  const [adminPwHash, setAdminPwHash] = useState(ADMIN_PW_DEFAULT_HASH);
   useEffect(() => {
-    storageGet("k92_admin_pw").then(d => { if (d) setAdminPw(d); });
+    storageGet("k92_admin_pw_hash").then(d => { if (d) setAdminPwHash(d); }).catch(() => {});
   }, []);
-  const handleChangePw = () => {
+  const handleChangePw = async () => {
     setPwMsg(null);
     if (!pwOld || !pwNew || !pwConfirm) { setPwMsg({ type: "err", text: "Vui lòng điền đầy đủ" }); return; }
-    if (pwOld !== adminPw) { setPwMsg({ type: "err", text: "Mật khẩu hiện tại không đúng" }); return; }
-    if (pwNew.length < 6) { setPwMsg({ type: "err", text: "Mật khẩu mới phải có ít nhất 6 ký tự" }); return; }
+    const oldHash = await sha256(pwOld);
+    if (oldHash !== adminPwHash) { setPwMsg({ type: "err", text: "Mật khẩu hiện tại không đúng" }); return; }
+    if (pwNew.length < 6) { setPwMsg({ type: "err", text: "Mật khẩu mới phải có ít nhất 6 kỳ tự" }); return; }
     if (pwNew !== pwConfirm) { setPwMsg({ type: "err", text: "Mật khẩu xác nhận không khớp" }); return; }
-    storageSet("k92_admin_pw", pwNew);
-    setAdminPw(pwNew);
+    const newHash = await sha256(pwNew);
+    storageSet("k92_admin_pw_hash", newHash);
+    setAdminPwHash(newHash);
     setPwOld(""); setPwNew(""); setPwConfirm("");
     setPwMsg({ type: "ok", text: "✓ Đổi mật khẩu thành công!" });
     setTimeout(() => setPwMsg(null), 3000);
@@ -8116,12 +8210,42 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
     const WS_URL = SB_URL.replace("https://", "wss://") + "/realtime/v1/websocket?apikey=" + SB_KEY + "&vsn=1.0.0";
     let ws, hb, retryT, dead = false, retryDelay = 2000;
 
-    const connect = () => {
+    // ── Adaptive poll: chỉ chạy khi WS chết ──
+    // WS sống → poll tắt hoàn toàn
+    // WS chết → poll 30s bật ngay để bù realtime
+    // WS sống lại → poll tắt lại
+    let fallbackPoll = null;
+
+    const pollOnce = async () => {
+      const [ords, fbs] = await Promise.all([
+        storageGet(STORE_KEYS.orders, true),
+        storageGet(STORE_KEYS.feedbacks, true),
+      ]);
+      const newCount = mergeData(STORE_KEYS.orders, ords);
+      if (newCount > 0) playNotif();
+      const newFbCount = mergeData(STORE_KEYS.feedbacks, fbs);
+      if (newFbCount > 0) playNotif();
+    };
+
+    const startFallbackPoll = () => {
+      if (fallbackPoll) return; // đang chạy rồi
+      pollOnce(); // fetch ngay lập tức khi WS vừa chết
+      fallbackPoll = setInterval(pollOnce, 30000);
+    };
+
+    const stopFallbackPoll = () => {
+      if (!fallbackPoll) return;
+      clearInterval(fallbackPoll);
+      fallbackPoll = null;
+    };
+
+    const connectWithPoll = () => {
       if (dead) return;
-      try { ws = new WebSocket(WS_URL); } catch { return; }
+      try { ws = new WebSocket(WS_URL); } catch { startFallbackPoll(); return; }
 
       ws.onopen = () => {
         retryDelay = 2000;
+        stopFallbackPoll(); // WS sống → tắt poll
         ws.send(JSON.stringify({
           topic: "realtime:public:kv_store",
           event: "phx_join",
@@ -8153,31 +8277,19 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
       ws.onclose = () => {
         clearInterval(hb);
         if (!dead) {
-          retryT = setTimeout(connect, retryDelay);
+          startFallbackPoll(); // WS chết → bật poll 30s ngay
+          retryT = setTimeout(connectWithPoll, retryDelay);
           retryDelay = Math.min(retryDelay * 1.5, 30000);
         }
       };
       ws.onerror = () => ws.close();
     };
 
-    connect();
-
-    // Fallback poll 20 phút — WebSocket đã xử lý realtime, poll chỉ là safety net
-    const poll = setInterval(async () => {
-      const [ords, fbs] = await Promise.all([
-        storageGet(STORE_KEYS.orders, true),
-        storageGet(STORE_KEYS.feedbacks, true),
-        // ⛔ Photos không poll — đã tắt để giảm egress
-      ]);
-      const newCount = mergeData(STORE_KEYS.orders, ords);
-      if (newCount > 0) playNotif();
-      const newFbCount = mergeData(STORE_KEYS.feedbacks, fbs);
-      if (newFbCount > 0) playNotif();
-    }, 1200000);
+    connectWithPoll();
 
     return () => {
       dead = true;
-      clearInterval(hb); clearInterval(poll); clearTimeout(retryT);
+      clearInterval(hb); stopFallbackPoll(); clearTimeout(retryT);
       if (ws) ws.close();
     };
   }, [setOrders, setFeedbacks]);
@@ -9623,10 +9735,6 @@ async function getStaticData(forceRefresh = false) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       _staticDataCache = { data, ts: Date.now() };
-      console.log(
-        `[92K] ✅ Static data loaded (${(JSON.stringify(data).length / 1024).toFixed(0)} KB)`,
-        `| exported: ${data._meta?.exportedAt?.slice(0, 19) ?? "unknown"}`
-      );
       return data;
     } catch (err) {
       console.warn("[92K] ⚠️ Static data load failed, fallback Supabase:", err.message);
@@ -9708,6 +9816,31 @@ async function storageGet(key, forceRefresh = false) {
   } catch { return null; }
 }
 
+// ── WRITE ERROR TOAST — hiện thông báo khi Supabase write thất bại ──
+// Dùng module-level throttle → không spam nhiều toast cùng lúc
+let _writeErrToastTs = 0;
+function showWriteErrToast(key) {
+  const now = Date.now();
+  if (now - _writeErrToastTs < 8000) return; // throttle 8s
+  _writeErrToastTs = now;
+  const label = key === "kv_orders" ? "dữ liệu đề h��ng" :
+                key === "kv_cameras" ? "mủy ảnh" :
+                key === "kv_accessories" ? "phụ kiện" :
+                key === "kv_site" ? "nội dung trang" :
+                key === "kv_discounts" ? "mã giảm giá" : "dữ liệu";
+  const el = document.createElement("div");
+  el.style.cssText = "position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:99999;" +
+    "background:#7f1d1d;color:#fecaca;padding:10px 20px;border-radius:10px;font-size:13px;" +
+    "font-family:system-ui,sans-serif;box-shadow:0 4px 20px rgba(0,0,0,0.4);pointer-events:none;" +
+    "animation:fadeInUp .25s ease both;";
+  el.textContent = "⚠️ Lưu " + label + " thất bại. Kiểm tra mạng và thử lại.";
+  const style = document.createElement("style");
+  style.textContent = "@keyframes fadeInUp{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}";
+  document.head.appendChild(style);
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 5000);
+}
+
 // ── DEBOUNCE WRITE — mỗi key chỉ fire 1 request sau 2s yên lặng ──
 const _writeTimers = {};
 function storageSet(key, val) {
@@ -9726,7 +9859,10 @@ function storageSet(key, val) {
       body: JSON.stringify({ key, value, updated_at: new Date().toISOString() })
     }).then(() => {
       markCacheFresh(key); // Re-mark sau write Supabase thành công
-    }).catch(e => console.warn("[92K supabase] set failed:", key, e));
+    }).catch(e => {
+      console.warn("[92K supabase] set failed:", key, e);
+      showWriteErrToast(key); // báo admin/user biết lưu không thành công
+    });
   }, debounceMs);
 }
 
@@ -9782,7 +9918,8 @@ async function storageCasSet(key, val, expectedUpdatedAt) {
   });
   if (!res.ok) throw new Error(`[92K supabase] cas patch failed ${key}: ${res.status}`);
   const txt = await res.text();
-  const rows = txt ? JSON.parse(txt) : [];
+  let rows = [];
+  try { rows = txt ? JSON.parse(txt) : []; } catch { return false; }
   if (!rows.length) return false;
   try { localStorage.setItem(key, value); } catch {}
   invalidateCache(key);
