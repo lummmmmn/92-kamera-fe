@@ -1773,7 +1773,8 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
         onDoubleClick={e => { e.stopPropagation(); zoom > 1 ? resetZoom() : zoomIn(); }}
         draggable={false}
         style={{
-          maxWidth: "92vw", maxHeight: "88vh",
+          maxWidth: window.innerWidth < 768 ? "92vw" : "70vw",
+          maxHeight: window.innerWidth < 768 ? "88vh" : "76vh",
           objectFit: "contain",
           borderRadius: zoom > 1 ? 6 : 14,
           boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
