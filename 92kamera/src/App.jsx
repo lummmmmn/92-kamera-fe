@@ -1764,38 +1764,27 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
       }}>
 
       {/* Ảnh chính */}
-      <div
+      <img
+        src={cdnUrl(photos[idx].url, "full")}
+        alt=""
         onClick={e => e.stopPropagation()}
+        onMouseDown={onMouseDown}
+        onWheel={onWheel}
+        onDoubleClick={e => { e.stopPropagation(); zoom > 1 ? resetZoom() : zoomIn(); }}
+        draggable={false}
         style={{
-          width: window.innerWidth >= 768 ? "25vw" : "92vw",
-          height: window.innerWidth >= 768 ? "29vh" : "88vh",
-          overflow: zoom > 1 ? "visible" : "hidden",
+          maxWidth: "92vw", maxHeight: "88vh",
+          objectFit: "contain",
           borderRadius: zoom > 1 ? 6 : 14,
           boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          flexShrink: 0,
-        }}>
-        <img
-          src={cdnUrl(photos[idx].url, "full")}
-          alt=""
-          onMouseDown={onMouseDown}
-          onWheel={onWheel}
-          onDoubleClick={e => { e.stopPropagation(); zoom > 1 ? resetZoom() : zoomIn(); }}
-          draggable={false}
-          style={{
-            maxWidth: "100%",
-            maxHeight: "100%",
-            objectFit: "contain",
-            borderRadius: zoom > 1 ? 6 : 14,
-            userSelect: "none",
-            display: "block",
-            transform: zoom > 1 ? `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)` : "none",
-            transition: isDragging.current ? "none" : "transform 0.2s ease",
-            cursor: zoom > 1 ? "grab" : "zoom-in",
-          }}
-          loading="eager"
-        />
-      </div>
+          userSelect: "none",
+          display: "block",
+          transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+          transition: isDragging.current ? "none" : "transform 0.2s ease",
+          cursor: zoom > 1 ? "grab" : "zoom-in",
+        }}
+        loading="eager"
+      />
 
       {/* Top bar: counter + zoom controls + đóng */}
       <div onClick={e => e.stopPropagation()} style={{
