@@ -6478,38 +6478,47 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         .acc-section {
           position:relative; overflow:hidden; border-radius:28px;
           border: none;
+          /* 3D depth: highlight trên, bóng dày dưới, viền bottom tối */
           box-shadow:
-            0 1px 0 rgba(255,255,255,0.55) inset,
-            0 -1px 0 rgba(13,27,42,0.08) inset,
-            0 4px 6px rgba(13,27,42,0.06) inset,
-            0 12px 60px rgba(5,17,31,0.18),
-            0 4px 16px rgba(5,17,31,0.10),
-            0 0 0 1px rgba(13,27,42,0.06);
+            0 2px 0 rgba(255,255,255,0.70) inset,
+            0 -3px 0 rgba(13,27,42,0.18) inset,
+            0 1px 0 rgba(255,255,255,0.90) inset,
+            0 6px 0 rgba(255,255,255,0.12),
+            0 8px 0 rgba(5,17,31,0.10),
+            0 20px 80px rgba(5,17,31,0.28),
+            0 8px 24px rgba(5,17,31,0.18),
+            0 0 0 1px rgba(255,255,255,0.22),
+            0 1px 2px rgba(13,27,42,0.12);
+          transform: translateZ(0);
         }
-        /* Top shimmer line — thay border trắng cứng, trông tự nhiên hơn */
+        /* Top shimmer line dày hơn — ánh sáng từ trên */
         .acc-section::after {
-          content:''; position:absolute; top:0; left:5%; right:5%; height:1px; z-index:10;
-          background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.72) 30%, rgba(255,255,255,0.88) 50%, rgba(255,255,255,0.72) 70%, transparent 100%);
-          pointer-events:none;
+          content:''; position:absolute; top:0; left:3%; right:3%; height:2px; z-index:10;
+          background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.60) 20%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0.60) 80%, transparent 100%);
+          pointer-events:none; border-radius:2px;
         }
         /* CSS class dùng chung cho tất cả section trang chủ */
         .home-section {
           border-radius: 28px;
           border: none;
           box-shadow:
-            0 1px 0 rgba(255,255,255,0.55) inset,
-            0 -1px 0 rgba(13,27,42,0.08) inset,
-            0 4px 6px rgba(13,27,42,0.06) inset,
-            0 16px 64px rgba(5,17,31,0.20),
-            0 4px 18px rgba(5,17,31,0.12),
-            0 0 0 1px rgba(13,27,42,0.07);
+            0 2px 0 rgba(255,255,255,0.70) inset,
+            0 -3px 0 rgba(13,27,42,0.18) inset,
+            0 1px 0 rgba(255,255,255,0.90) inset,
+            0 6px 0 rgba(255,255,255,0.12),
+            0 8px 0 rgba(5,17,31,0.10),
+            0 24px 80px rgba(5,17,31,0.30),
+            0 8px 28px rgba(5,17,31,0.18),
+            0 0 0 1px rgba(255,255,255,0.22),
+            0 1px 2px rgba(13,27,42,0.12);
           position: relative;
           overflow: hidden;
+          transform: translateZ(0);
         }
         .home-section::after {
-          content:''; position:absolute; top:0; left:5%; right:5%; height:1px; z-index:10;
-          background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.72) 30%, rgba(255,255,255,0.88) 50%, rgba(255,255,255,0.72) 70%, transparent 100%);
-          pointer-events:none;
+          content:''; position:absolute; top:0; left:3%; right:3%; height:2px; z-index:10;
+          background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.60) 20%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0.60) 80%, transparent 100%);
+          pointer-events:none; border-radius:2px;
         }
         .acc-section::before {
           content:''; position:absolute; inset:0;
@@ -6520,13 +6529,13 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         }
         @media (max-width: 768px) {
           .acc-section::before {
-            background: rgba(255,255,255,0.55);
+            background: rgba(255,255,255,0.08);
             backdrop-filter: none;
             -webkit-backdrop-filter: none;
           }
         }
         .acc-card {
-          background: rgba(255,255,255,0.18);
+          background: rgba(255,255,255,0.22);
           border: none;
           border-radius: 20px;
           padding: 22px 18px;
@@ -6536,40 +6545,56 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
           backdrop-filter: blur(20px) saturate(130%);
           -webkit-backdrop-filter: blur(20px) saturate(130%);
           position: relative; overflow: hidden;
+          /* 3D card: nổi hơn section, bóng sâu hơn */
           box-shadow:
-            0 1px 0 rgba(255,255,255,0.55) inset,
-            0 -1px 0 rgba(13,27,42,0.10) inset,
-            0 2px 4px rgba(13,27,42,0.06) inset,
-            0 12px 40px rgba(13,27,42,0.16),
-            0 4px 12px rgba(13,27,42,0.10),
-            0 0 0 1px rgba(13,27,42,0.06);
+            0 2px 0 rgba(255,255,255,0.80) inset,
+            0 -4px 0 rgba(13,27,42,0.22) inset,
+            0 1px 0 rgba(255,255,255,0.95) inset,
+            0 6px 0 rgba(255,255,255,0.15),
+            0 8px 0 rgba(5,17,31,0.12),
+            0 16px 48px rgba(13,27,42,0.22),
+            0 6px 16px rgba(13,27,42,0.14),
+            0 0 0 1px rgba(255,255,255,0.30),
+            0 1px 2px rgba(13,27,42,0.10);
         }
+        /* Highlight trên card */
         .acc-card::before {
-          content:''; position:absolute; top:0; left:8%; right:8%; height:1px;
-          background: linear-gradient(90deg,transparent,rgba(255,255,255,0.80) 40%,rgba(255,255,255,0.95) 50%,rgba(255,255,255,0.80) 60%,transparent);
+          content:''; position:absolute; top:0; left:6%; right:6%; height:2px;
+          background: linear-gradient(90deg,transparent,rgba(255,255,255,0.80) 30%,rgba(255,255,255,0.98) 50%,rgba(255,255,255,0.80) 70%,transparent);
+          border-radius:2px;
+        }
+        /* Viền bottom tối tạo chiều dày 3D */
+        .acc-card::after {
+          content:''; position:absolute; bottom:0; left:0; right:0; height:4px;
+          background: linear-gradient(180deg, transparent, rgba(5,17,31,0.14));
+          border-radius: 0 0 20px 20px;
+          pointer-events:none;
         }
         .acc-card:hover {
-          transform: translateY(-7px) scale(1.025);
+          transform: translateY(-9px) scale(1.03);
           box-shadow:
-            0 1px 0 rgba(255,255,255,0.60) inset,
-            0 -1px 0 rgba(13,27,42,0.10) inset,
-            0 2px 4px rgba(13,27,42,0.06) inset,
-            0 28px 72px rgba(13,27,42,0.24),
-            0 8px 24px rgba(13,27,42,0.16),
-            0 0 0 1px rgba(13,27,42,0.10);
-          background: rgba(255,255,255,0.82);
+            0 2px 0 rgba(255,255,255,0.85) inset,
+            0 -4px 0 rgba(13,27,42,0.20) inset,
+            0 1px 0 rgba(255,255,255,1.0) inset,
+            0 10px 0 rgba(255,255,255,0.18),
+            0 12px 0 rgba(5,17,31,0.14),
+            0 36px 80px rgba(13,27,42,0.30),
+            0 12px 32px rgba(13,27,42,0.20),
+            0 0 0 1px rgba(255,255,255,0.40);
+          background: rgba(255,255,255,0.88);
         }
         .acc-icon-wrap {
           width:48px; height:48px; border-radius:50%; margin:0 auto 16px;
-          background: rgba(255,255,255,0.80);
+          background: linear-gradient(160deg, rgba(255,255,255,0.95) 0%, rgba(230,240,248,0.90) 100%);
           border: none;
           display:flex; align-items:center; justify-content:center;
           font-size:20px;
           box-shadow:
-            0 1px 0 rgba(255,255,255,0.90) inset,
-            0 -1px 0 rgba(13,27,42,0.08) inset,
-            0 4px 14px rgba(13,27,42,0.12),
-            0 0 0 1px rgba(13,27,42,0.06);
+            0 2px 0 rgba(255,255,255,1.0) inset,
+            0 -2px 0 rgba(13,27,42,0.12) inset,
+            0 6px 18px rgba(13,27,42,0.18),
+            0 2px 6px rgba(13,27,42,0.12),
+            0 0 0 1px rgba(255,255,255,0.50);
         }
       `}</style>
       <div id="accessories" className="acc-section" style={{ padding: isMobile ? "52px 20px 64px" : "80px 72px 96px", margin: isMobile ? "20px 12px" : "32px 20px" }}>
@@ -7498,53 +7523,82 @@ function AdminNoteEditor({ order, setOrders }) {
 // ── ALBUM LIGHTBOX — xem hết ảnh trong album ──
 function AlbumLightbox({ album, onClose }) {
   const [idx, setIdx] = useState(0);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const isDragging = useRef(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+  const panStart = useRef({ x: 0, y: 0 });
   const photos = album.photos || [];
   const isMob = window.innerWidth < 640;
 
+  const ZOOM_MIN = 1, ZOOM_MAX = 4, ZOOM_STEP = 0.5;
+  const resetZoom = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
+
+  useEffect(() => { resetZoom(); }, [idx]);
+  useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
+
+  const zoomIn  = () => setZoom(z => Math.min(ZOOM_MAX, parseFloat((z + ZOOM_STEP).toFixed(1))));
+  const zoomOut = () => setZoom(z => { const nz = Math.max(ZOOM_MIN, parseFloat((z - ZOOM_STEP).toFixed(1))); if (nz === 1) setPan({ x: 0, y: 0 }); return nz; });
+
   useEffect(() => {
     const handleKey = (e) => {
-      if (e.key === "Escape") onClose();
-      if (e.key === "ArrowLeft") setIdx(i => (i - 1 + photos.length) % photos.length);
-      if (e.key === "ArrowRight") setIdx(i => (i + 1) % photos.length);
+      if (e.key === "Escape") { if (zoom > 1) resetZoom(); else onClose(); }
+      if (e.key === "ArrowLeft"  && zoom === 1) setIdx(i => (i - 1 + photos.length) % photos.length);
+      if (e.key === "ArrowRight" && zoom === 1) setIdx(i => (i + 1) % photos.length);
+      if (e.key === "+" || e.key === "=") zoomIn();
+      if (e.key === "-") zoomOut();
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [photos.length, onClose]);
+  }, [photos.length, onClose, zoom]);
 
-  // Touch swipe
+  // Mouse drag khi zoom > 1
+  const onMouseDown = (e) => { if (zoom <= 1) return; e.preventDefault(); isDragging.current = true; dragStart.current = { x: e.clientX, y: e.clientY }; panStart.current = { ...pan }; };
+  const onMouseMove = (e) => { if (!isDragging.current) return; setPan({ x: panStart.current.x + (e.clientX - dragStart.current.x), y: panStart.current.y + (e.clientY - dragStart.current.y) }); };
+  const onMouseUp   = () => { isDragging.current = false; };
+  const onWheel     = (e) => { e.preventDefault(); if (e.deltaY < 0) zoomIn(); else zoomOut(); };
+
+  // Touch swipe (chỉ khi zoom = 1)
   const touchStart = useRef(null);
-  const onTouchStart = (e) => { touchStart.current = e.touches[0].clientX; };
+  const onTouchStart = (e) => { if (zoom > 1) return; touchStart.current = e.touches[0].clientX; };
   const onTouchEnd = (e) => {
-    if (touchStart.current === null) return;
+    if (touchStart.current === null || zoom > 1) return;
     const dx = e.changedTouches[0].clientX - touchStart.current;
-    if (Math.abs(dx) > 40) {
-      dx < 0
-        ? setIdx(i => (i + 1) % photos.length)
-        : setIdx(i => (i - 1 + photos.length) % photos.length);
-    }
+    if (Math.abs(dx) > 40) { dx < 0 ? setIdx(i => (i + 1) % photos.length) : setIdx(i => (i - 1 + photos.length) % photos.length); }
     touchStart.current = null;
   };
 
-  useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
+  const btnZ = (disabled) => ({
+    width: 34, height: 34, borderRadius: "50%",
+    background: disabled ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.16)",
+    border: "1px solid rgba(255,255,255,0.20)",
+    color: disabled ? "rgba(255,255,255,0.25)" : "#fff",
+    fontSize: 16, cursor: disabled ? "default" : "pointer",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    flexShrink: 0, transition: "background .15s",
+  });
 
   if (photos.length === 0) return null;
 
   return (
     <div
-      onClick={onClose}
+      onClick={() => { if (zoom > 1) return; onClose(); }}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
-      style={{ position: "fixed", inset: 0, background: "rgba(5,12,22,0.97)", zIndex: 9999, display: "flex", flexDirection: "column" }}
+      onMouseMove={onMouseMove}
+      onMouseUp={onMouseUp}
+      onMouseLeave={onMouseUp}
+      style={{ position: "fixed", inset: 0, background: "rgba(5,12,22,0.97)", zIndex: 9999, display: "flex", flexDirection: "column", cursor: zoom > 1 ? "grab" : "default" }}
     >
-      {/* ── HEADER gọn ── */}
+      {/* ── HEADER: tên album + zoom controls + đóng ── */}
       <div onClick={e => e.stopPropagation()} style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: isMob ? "14px 16px 10px" : "16px 24px 12px",
+        padding: isMob ? "14px 12px 10px" : "16px 20px 12px",
         background: "linear-gradient(to bottom, rgba(5,12,22,0.90) 0%, transparent 100%)",
-        flexShrink: 0,
+        flexShrink: 0, gap: 8,
       }}>
         {/* Tên + tag */}
-        <div style={{ minWidth: 0, flex: 1, marginRight: 12 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ color: "#fff", fontWeight: 700, fontSize: isMob ? 14 : 16, fontFamily: "var(--font-display)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {album.name}
           </div>
@@ -7555,12 +7609,30 @@ function AlbumLightbox({ album, onClose }) {
             </div>
           )}
         </div>
-        {/* Counter + X */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+
+        {/* Zoom controls + counter + đóng */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          {/* Zoom bar */}
+          <div style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(5,12,22,0.60)", borderRadius: 99, padding: "4px 8px", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }}>
+            <button onClick={e => { e.stopPropagation(); zoomOut(); }} disabled={zoom <= ZOOM_MIN} style={btnZ(zoom <= ZOOM_MIN)} title="Thu nhỏ (-)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            </button>
+            <span onClick={e => { e.stopPropagation(); resetZoom(); }} title="Reset zoom"
+              style={{ color: zoom > 1 ? "#c9a84c" : "rgba(255,255,255,0.55)", fontSize: 10, fontWeight: 700, fontFamily: "system-ui,sans-serif", minWidth: 30, textAlign: "center", cursor: "pointer", userSelect: "none" }}>
+              {Math.round(zoom * 100)}%
+            </span>
+            <button onClick={e => { e.stopPropagation(); zoomIn(); }} disabled={zoom >= ZOOM_MAX} style={btnZ(zoom >= ZOOM_MAX)} title="Phóng to (+)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            </button>
+          </div>
+
+          {/* Counter */}
           <span style={{ color: "rgba(255,255,255,0.40)", fontSize: isMob ? 11 : 12, fontFamily: "var(--font-ui)", letterSpacing: 1 }}>
             {idx + 1} / {photos.length}
           </span>
-          <button onClick={onClose} style={{
+
+          {/* Đóng */}
+          <button onClick={e => { e.stopPropagation(); onClose(); }} style={{
             background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.15)",
             borderRadius: "50%", width: isMob ? 32 : 36, height: isMob ? 32 : 36,
             color: "#fff", cursor: "pointer", fontSize: isMob ? 15 : 17,
@@ -7569,7 +7641,7 @@ function AlbumLightbox({ album, onClose }) {
         </div>
       </div>
 
-      {/* ── ẢNH CHÍNH — flex-grow chiếm hết không gian giữa ── */}
+      {/* ── ẢNH CHÍNH ── */}
       <div onClick={e => e.stopPropagation()} style={{
         flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
         overflow: "hidden", padding: isMob ? "0 8px" : "0 16px",
@@ -7577,12 +7649,19 @@ function AlbumLightbox({ album, onClose }) {
         <img
           src={cdnUrl(photos[idx].url, "full")}
           alt=""
+          onMouseDown={onMouseDown}
+          onWheel={onWheel}
+          onDoubleClick={e => { e.stopPropagation(); zoom > 1 ? resetZoom() : zoomIn(); }}
+          draggable={false}
           style={{
             maxWidth: "100%", maxHeight: "100%",
-            borderRadius: isMob ? 12 : 16,
+            borderRadius: zoom > 1 ? 6 : (isMob ? 12 : 16),
             objectFit: "contain",
             boxShadow: "0 24px 80px rgba(0,0,0,0.60)",
             userSelect: "none", display: "block",
+            transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+            transition: isDragging.current ? "none" : "transform 0.2s ease",
+            cursor: zoom > 1 ? "grab" : "zoom-in",
           }}
           loading="eager"
         />
@@ -7596,28 +7675,20 @@ function AlbumLightbox({ album, onClose }) {
           background: "linear-gradient(to top, rgba(5,12,22,0.90) 0%, transparent 100%)",
           flexShrink: 0,
         }}>
-          {/* Nút prev */}
-          <button onClick={() => setIdx(i => (i - 1 + photos.length) % photos.length)} style={{
+          <button onClick={() => { resetZoom(); setIdx(i => (i - 1 + photos.length) % photos.length); }} style={{
             flexShrink: 0, width: isMob ? 34 : 40, height: isMob ? 34 : 40, borderRadius: "50%",
             background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)",
             color: "#fff", fontSize: isMob ? 18 : 20, cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>‹</button>
 
-          {/* Thumbnail strip */}
-          <div style={{
-            flex: 1, display: "flex", gap: isMob ? 6 : 8,
-            overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch",
-            padding: "2px 0",
-          }}>
+          <div style={{ flex: 1, display: "flex", gap: isMob ? 6 : 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", padding: "2px 0" }}>
             {photos.map((p, i) => (
               <div key={p.id || i} onClick={() => setIdx(i)} style={{
-                flexShrink: 0,
-                width: isMob ? 44 : 52, height: isMob ? 44 : 52,
+                flexShrink: 0, width: isMob ? 44 : 52, height: isMob ? 44 : 52,
                 borderRadius: isMob ? 8 : 10, overflow: "hidden", cursor: "pointer",
                 border: i === idx ? "2px solid #c9a84c" : "2px solid rgba(255,255,255,0.10)",
-                opacity: i === idx ? 1 : 0.45,
-                transition: "all .2s ease",
+                opacity: i === idx ? 1 : 0.45, transition: "all .2s ease",
                 transform: i === idx ? "scale(1.08)" : "scale(1)",
               }}>
                 <img src={cdnUrl(p.url, "thumb")} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
@@ -7625,8 +7696,7 @@ function AlbumLightbox({ album, onClose }) {
             ))}
           </div>
 
-          {/* Nút next */}
-          <button onClick={() => setIdx(i => (i + 1) % photos.length)} style={{
+          <button onClick={() => { resetZoom(); setIdx(i => (i + 1) % photos.length); }} style={{
             flexShrink: 0, width: isMob ? 34 : 40, height: isMob ? 34 : 40, borderRadius: "50%",
             background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)",
             color: "#fff", fontSize: isMob ? 18 : 20, cursor: "pointer",
@@ -10615,33 +10685,63 @@ function AppRoot() {
         html { -webkit-overflow-scrolling: touch; }
         .cv-section { content-visibility: auto; contain-intrinsic-size: 0 600px; }
         @media (max-width: 900px) {
-          /* Mobile: tắt backdrop-filter, dùng màu cyan solid đồng bộ với nền trang */
+          /* Mobile: tắt backdrop-filter, dùng màu cyan solid + 3D shadow nổi */
           #cameras, #accessories, #about, #feedback, #quy-trinh,
           .acc-section, .section-main, .home-section {
-            background: linear-gradient(160deg, rgba(95,204,221,0.72) 0%, rgba(143,200,212,0.68) 60%, rgba(120,195,215,0.70) 100%) !important;
+            background: linear-gradient(
+              170deg,
+              rgba(140,215,228,0.88) 0%,
+              rgba(95,190,210,0.82) 40%,
+              rgba(75,175,200,0.78) 100%
+            ) !important;
             -webkit-backdrop-filter: none !important;
             backdrop-filter: none !important;
             border: none !important;
+            /* Layered 3D shadow: highlight trên + bóng dày dưới + ambient */
             box-shadow:
-              0 1px 0 rgba(255,255,255,0.50) inset,
-              0 -1px 0 rgba(13,27,42,0.08) inset,
-              0 4px 6px rgba(13,27,42,0.05) inset,
-              0 10px 48px rgba(5,17,31,0.14),
-              0 3px 12px rgba(5,17,31,0.08),
-              0 0 0 1px rgba(255,255,255,0.18) !important;
+              0 3px 0 rgba(255,255,255,0.72) inset,
+              0 -5px 0 rgba(5,60,80,0.28) inset,
+              0 1px 0 rgba(255,255,255,0.95) inset,
+              0 10px 0 rgba(255,255,255,0.14),
+              0 12px 0 rgba(5,50,70,0.14),
+              0 28px 60px rgba(5,40,60,0.38),
+              0 10px 28px rgba(5,40,60,0.24),
+              0 0 0 1px rgba(255,255,255,0.30),
+              0 2px 4px rgba(5,40,60,0.16) !important;
+            /* Đẩy lên nhẹ để thấy chiều sâu */
+            margin-bottom: 4px;
+          }
+          /* Dải sáng trên section trên mobile */
+          .acc-section::after,
+          .home-section::after {
+            height: 2px !important;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.55) 15%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0.55) 85%, transparent 100%) !important;
           }
           .acc-section::before {
-            background: linear-gradient(160deg, rgba(95,204,221,0.45) 0%, rgba(143,200,212,0.40) 100%) !important;
+            background: linear-gradient(170deg, rgba(160,225,235,0.25) 0%, rgba(95,190,210,0.15) 100%) !important;
             -webkit-backdrop-filter: none !important;
             backdrop-filter: none !important;
           }
+          /* Card phụ kiện trên mobile — nổi rõ hơn */
           .acc-card {
-            background: rgba(255,255,255,0.28) !important;
+            background: linear-gradient(160deg, rgba(255,255,255,0.55) 0%, rgba(230,245,250,0.45) 100%) !important;
             -webkit-backdrop-filter: none !important;
             backdrop-filter: none !important;
+            box-shadow:
+              0 2px 0 rgba(255,255,255,0.90) inset,
+              0 -4px 0 rgba(5,60,80,0.22) inset,
+              0 1px 0 rgba(255,255,255,1.0) inset,
+              0 6px 0 rgba(255,255,255,0.20),
+              0 8px 0 rgba(5,50,70,0.12),
+              0 14px 36px rgba(5,40,60,0.24),
+              0 4px 12px rgba(5,40,60,0.16),
+              0 0 0 1px rgba(255,255,255,0.50) !important;
           }
           footer {
-            background: rgba(95,180,200,0.72) !important;
+            background: rgba(60,160,185,0.82) !important;
+            box-shadow:
+              0 -4px 0 rgba(5,60,80,0.20) inset,
+              0 -20px 48px rgba(5,40,60,0.20) !important;
             -webkit-backdrop-filter: none !important;
             backdrop-filter: none !important;
           }
