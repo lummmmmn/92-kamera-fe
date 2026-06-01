@@ -1661,10 +1661,15 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
   const dragStart = useRef({ x: 0, y: 0 });
   const panStart = useRef({ x: 0, y: 0 });
   const total = photos.length;
+  const isMob = window.innerWidth < 768;
 
   const ZOOM_MIN = 1;
   const ZOOM_MAX = 4;
   const ZOOM_STEP = 0.5;
+
+  // Kích thước tối đa cho ảnh — luôn fit vừa màn hình ở zoom=1
+  const IMG_MAX_W = isMob ? "92vw" : "72vw";
+  const IMG_MAX_H = isMob ? "82vh" : "78vh";
 
   const resetZoom = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
 
@@ -1773,8 +1778,8 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
         onDoubleClick={e => { e.stopPropagation(); zoom > 1 ? resetZoom() : zoomIn(); }}
         draggable={false}
         style={{
-          maxWidth: window.innerWidth < 768 ? "92vw" : "70vw",
-          maxHeight: window.innerWidth < 768 ? "88vh" : "76vh",
+          maxWidth: IMG_MAX_W, maxHeight: IMG_MAX_H,
+          width: "auto", height: "auto",
           objectFit: "contain",
           borderRadius: zoom > 1 ? 6 : 14,
           boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
@@ -1829,10 +1834,8 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
             minWidth: 28, textAlign: "center", cursor: "pointer",
             letterSpacing: 0.5, userSelect: "none",
           }}>
-          {Math.round(zoom * 100)}%
+          {zoom === 1 ? "FIT" : Math.round(zoom * 100) + "%"}
         </span>
-
-        {/* Zoom in */}
         <button
           onClick={e => { e.stopPropagation(); zoomIn(); }}
           disabled={zoom >= ZOOM_MAX}
