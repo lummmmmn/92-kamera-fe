@@ -1661,15 +1661,10 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
   const dragStart = useRef({ x: 0, y: 0 });
   const panStart = useRef({ x: 0, y: 0 });
   const total = photos.length;
-  const isMob = window.innerWidth < 768;
 
   const ZOOM_MIN = 1;
   const ZOOM_MAX = 4;
   const ZOOM_STEP = 0.5;
-
-  // Kích thước tối đa cho ảnh — luôn fit vừa màn hình ở zoom=1
-  const IMG_MAX_W = isMob ? "92vw" : "72vw";
-  const IMG_MAX_H = isMob ? "82vh" : "78vh";
 
   const resetZoom = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
 
@@ -1778,8 +1773,8 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
         onDoubleClick={e => { e.stopPropagation(); zoom > 1 ? resetZoom() : zoomIn(); }}
         draggable={false}
         style={{
-          maxWidth: IMG_MAX_W, maxHeight: IMG_MAX_H,
-          width: "auto", height: "auto",
+          maxWidth: window.innerWidth >= 768 ? "65vw" : "92vw",
+          maxHeight: window.innerWidth >= 768 ? "72vh" : "88vh",
           objectFit: "contain",
           borderRadius: zoom > 1 ? 6 : 14,
           boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
@@ -1792,69 +1787,72 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
         loading="eager"
       />
 
-      {/* Top bar: gom hết vào 1 pill góc phải trên */}
+      {/* Top bar: counter + zoom controls + đóng */}
       <div onClick={e => e.stopPropagation()} style={{
-        position: "fixed", top: 14, right: 14,
-        display: "flex", alignItems: "center", gap: 6,
-        background: "rgba(5,12,22,0.72)", borderRadius: 99, padding: "5px 10px",
-        backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
-        pointerEvents: "auto",
-        boxShadow: "0 2px 12px rgba(0,0,0,0.30)",
+        position: "fixed", top: 14, left: 0, right: 0,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "0 14px",
+        pointerEvents: "none",
       }}>
         {/* Counter */}
-        <span style={{
-          color: "#d4cab8", fontSize: 11, fontFamily: "system-ui,sans-serif",
-          fontWeight: 600, letterSpacing: 1, padding: "0 6px",
-          userSelect: "none",
+        <div style={{
+          background: "rgba(5,12,22,0.70)", borderRadius: 99, padding: "5px 14px",
+          color: "#d4cab8", fontSize: 12, fontFamily: "system-ui,sans-serif",
+          fontWeight: 600, letterSpacing: 1,
+          backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+          pointerEvents: "auto",
         }}>
           {idx + 1} / {total}
-        </span>
+        </div>
 
-        {/* Divider */}
-        <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.15)", flexShrink: 0 }} />
+        {/* Zoom controls */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 6,
+          background: "rgba(5,12,22,0.70)", borderRadius: 99, padding: "5px 10px",
+          backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+          pointerEvents: "auto",
+        }}>
+          <button
+            onClick={e => { e.stopPropagation(); zoomOut(); }}
+            disabled={zoom <= ZOOM_MIN}
+            style={btnStyle(zoom <= ZOOM_MIN)}
+            title="Thu nhỏ (-)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/>
+            </svg>
+          </button>
 
-        {/* Zoom out */}
-        <button
-          onClick={e => { e.stopPropagation(); zoomOut(); }}
-          disabled={zoom <= ZOOM_MIN}
-          style={btnStyle(zoom <= ZOOM_MIN)}
-          title="Thu nhỏ (-)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/>
-          </svg>
-        </button>
+          {/* % zoom - click để reset */}
+          <span
+            onClick={e => { e.stopPropagation(); resetZoom(); }}
+            title="Click để reset zoom"
+            style={{
+              color: zoom > 1 ? "#c9a84c" : "#d4cab8",
+              fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif",
+              minWidth: 32, textAlign: "center", cursor: "pointer",
+              letterSpacing: 0.5, userSelect: "none",
+            }}>
+            {Math.round(zoom * 100)}%
+          </span>
 
-        {/* % zoom - click để reset */}
-        <span
-          onClick={e => { e.stopPropagation(); resetZoom(); }}
-          title="Click để reset zoom"
-          style={{
-            color: zoom > 1 ? "#c9a84c" : "#d4cab8",
-            fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif",
-            minWidth: 28, textAlign: "center", cursor: "pointer",
-            letterSpacing: 0.5, userSelect: "none",
-          }}>
-          {zoom === 1 ? "FIT" : Math.round(zoom * 100) + "%"}
-        </span>
-        <button
-          onClick={e => { e.stopPropagation(); zoomIn(); }}
-          disabled={zoom >= ZOOM_MAX}
-          style={btnStyle(zoom >= ZOOM_MAX)}
-          title="Phóng to (+)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
-          </svg>
-        </button>
-
-        {/* Divider */}
-        <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.15)", flexShrink: 0 }} />
+          <button
+            onClick={e => { e.stopPropagation(); zoomIn(); }}
+            disabled={zoom >= ZOOM_MAX}
+            style={btnStyle(zoom >= ZOOM_MAX)}
+            title="Phóng to (+)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+            </svg>
+          </button>
+        </div>
 
         {/* Nút đóng */}
         <button onClick={e => { e.stopPropagation(); onClose(); }} style={{
           ...btnStyle(false),
-          width: 28, height: 28, fontSize: 16,
-          background: "transparent", border: "none",
+          width: 40, height: 40, fontSize: 22,
+          background: "rgba(5,12,22,0.70)",
           color: "#d4cab8",
+          pointerEvents: "auto",
         }}>×</button>
       </div>
 
@@ -10807,14 +10805,15 @@ function AppRoot() {
           will-change: padding;
         }
         .nav-inner{
-          background: linear-gradient(160deg, rgba(255,255,255,0.26) 0%, rgba(230,228,224,0.16) 60%, rgba(200,198,195,0.12) 100%);
-          border: 1px solid rgba(255,255,255,0.38);
+          background: linear-gradient(160deg, rgba(255,255,255,0.32) 0%, rgba(230,228,224,0.22) 60%, rgba(200,198,195,0.18) 100%);
+          border: 1.5px solid rgba(255,255,255,0.72);
           border-radius: 50px;
           box-shadow:
-            0 1px 0 rgba(255,255,255,0.50) inset,
-            0 -1px 0 rgba(0,0,0,0.04) inset,
-            0 6px 28px rgba(0,0,0,0.09),
-            0 2px 8px rgba(0,0,0,0.05);
+            0 1px 0 rgba(255,255,255,0.90) inset,
+            0 -1px 0 rgba(0,0,0,0.06) inset,
+            0 8px 40px rgba(0,0,0,0.14),
+            0 2px 12px rgba(0,0,0,0.08),
+            0 0 0 1px rgba(255,255,255,0.18);
           backdrop-filter: blur(28px) saturate(160%) brightness(1.04);
           -webkit-backdrop-filter: blur(28px) saturate(160%) brightness(1.04);
           transition: height .4s cubic-bezier(.4,0,.2,1),
@@ -10836,24 +10835,26 @@ function AppRoot() {
           user-select: none;
         }
         .nav-inner.scrolled{
-          background: linear-gradient(160deg, rgba(245,245,245,0.30) 0%, rgba(215,213,210,0.20) 100%);
+          background: linear-gradient(160deg, rgba(245,245,245,0.38) 0%, rgba(215,213,210,0.26) 100%);
           border-radius: 50px;
-          border-color: rgba(255,255,255,0.42);
+          border-color: rgba(255,255,255,0.80);
           box-shadow:
-            0 1px 0 rgba(255,255,255,0.55) inset,
-            0 -1px 0 rgba(0,0,0,0.04) inset,
-            0 8px 36px rgba(0,0,0,0.09),
-            0 3px 12px rgba(0,0,0,0.06);
+            0 1px 0 rgba(255,255,255,0.90) inset,
+            0 -1px 0 rgba(0,0,0,0.05) inset,
+            0 12px 48px rgba(0,0,0,0.12),
+            0 4px 16px rgba(0,0,0,0.07),
+            0 0 0 1px rgba(255,255,255,0.22);
           backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
           -webkit-backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
         }
         .nav-inner.compact{
-          background: linear-gradient(160deg, rgba(240,238,235,0.30) 0%, rgba(210,208,205,0.18) 100%);
+          background: linear-gradient(160deg, rgba(240,238,235,0.40) 0%, rgba(210,208,205,0.26) 100%);
           border-radius: 50px;
-          border-color: rgba(255,255,255,0.38);
+          border-color: rgba(255,255,255,0.72);
           box-shadow:
-            0 1px 0 rgba(255,255,255,0.48) inset,
-            0 3px 16px rgba(0,0,0,0.08);
+            0 1px 0 rgba(255,255,255,0.88) inset,
+            0 4px 20px rgba(0,0,0,0.10),
+            0 0 0 1px rgba(255,255,255,0.18);
           opacity: 0.98;
           backdrop-filter: blur(32px) saturate(160%) brightness(1.04);
           -webkit-backdrop-filter: blur(32px) saturate(160%) brightness(1.04);
