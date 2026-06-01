@@ -1738,11 +1738,11 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
   };
 
   const btnStyle = (disabled) => ({
-    width: 28, height: 28, borderRadius: "50%",
+    width: 36, height: 36, borderRadius: "50%",
     background: disabled ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.18)",
     border: "1px solid rgba(255,255,255,0.22)",
     color: disabled ? "rgba(255,255,255,0.25)" : "#fff",
-    fontSize: 14, cursor: disabled ? "default" : "pointer",
+    fontSize: 18, cursor: disabled ? "default" : "pointer",
     display: "flex", alignItems: "center", justifyContent: "center",
     backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
     flexShrink: 0, transition: "background .15s",
@@ -1816,7 +1816,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
             disabled={zoom <= ZOOM_MIN}
             style={btnStyle(zoom <= ZOOM_MIN)}
             title="Thu nhỏ (-)">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/>
             </svg>
           </button>
@@ -1839,7 +1839,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
             disabled={zoom >= ZOOM_MAX}
             style={btnStyle(zoom >= ZOOM_MAX)}
             title="Phóng to (+)">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
             </svg>
           </button>
@@ -1848,7 +1848,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
         {/* Nút đóng */}
         <button onClick={e => { e.stopPropagation(); onClose(); }} style={{
           ...btnStyle(false),
-          width: 28, height: 28, fontSize: 16,
+          width: 40, height: 40, fontSize: 22,
           background: "rgba(5,12,22,0.70)",
           color: "#d4cab8",
           pointerEvents: "auto",
@@ -10804,14 +10804,15 @@ function AppRoot() {
           will-change: padding;
         }
         .nav-inner{
-          background: linear-gradient(160deg, rgba(255,255,255,0.26) 0%, rgba(230,228,224,0.16) 60%, rgba(200,198,195,0.12) 100%);
-          border: 1px solid rgba(255,255,255,0.38);
+          background: linear-gradient(160deg, rgba(255,255,255,0.32) 0%, rgba(230,228,224,0.22) 60%, rgba(200,198,195,0.18) 100%);
+          border: 1.5px solid rgba(255,255,255,0.72);
           border-radius: 50px;
           box-shadow:
-            0 1px 0 rgba(255,255,255,0.50) inset,
-            0 -1px 0 rgba(0,0,0,0.04) inset,
-            0 6px 28px rgba(0,0,0,0.09),
-            0 2px 8px rgba(0,0,0,0.05);
+            0 1px 0 rgba(255,255,255,0.90) inset,
+            0 -1px 0 rgba(0,0,0,0.06) inset,
+            0 8px 40px rgba(0,0,0,0.14),
+            0 2px 12px rgba(0,0,0,0.08),
+            0 0 0 1px rgba(255,255,255,0.18);
           backdrop-filter: blur(28px) saturate(160%) brightness(1.04);
           -webkit-backdrop-filter: blur(28px) saturate(160%) brightness(1.04);
           transition: height .4s cubic-bezier(.4,0,.2,1),
@@ -10833,24 +10834,26 @@ function AppRoot() {
           user-select: none;
         }
         .nav-inner.scrolled{
-          background: linear-gradient(160deg, rgba(245,245,245,0.30) 0%, rgba(215,213,210,0.20) 100%);
+          background: linear-gradient(160deg, rgba(245,245,245,0.38) 0%, rgba(215,213,210,0.26) 100%);
           border-radius: 50px;
-          border-color: rgba(255,255,255,0.42);
+          border-color: rgba(255,255,255,0.80);
           box-shadow:
-            0 1px 0 rgba(255,255,255,0.55) inset,
-            0 -1px 0 rgba(0,0,0,0.04) inset,
-            0 8px 36px rgba(0,0,0,0.09),
-            0 3px 12px rgba(0,0,0,0.06);
+            0 1px 0 rgba(255,255,255,0.90) inset,
+            0 -1px 0 rgba(0,0,0,0.05) inset,
+            0 12px 48px rgba(0,0,0,0.12),
+            0 4px 16px rgba(0,0,0,0.07),
+            0 0 0 1px rgba(255,255,255,0.22);
           backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
           -webkit-backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
         }
         .nav-inner.compact{
-          background: linear-gradient(160deg, rgba(240,238,235,0.30) 0%, rgba(210,208,205,0.18) 100%);
+          background: linear-gradient(160deg, rgba(240,238,235,0.40) 0%, rgba(210,208,205,0.26) 100%);
           border-radius: 50px;
-          border-color: rgba(255,255,255,0.38);
+          border-color: rgba(255,255,255,0.72);
           box-shadow:
-            0 1px 0 rgba(255,255,255,0.48) inset,
-            0 3px 16px rgba(0,0,0,0.08);
+            0 1px 0 rgba(255,255,255,0.88) inset,
+            0 4px 20px rgba(0,0,0,0.10),
+            0 0 0 1px rgba(255,255,255,0.18);
           opacity: 0.98;
           backdrop-filter: blur(32px) saturate(160%) brightness(1.04);
           -webkit-backdrop-filter: blur(32px) saturate(160%) brightness(1.04);
