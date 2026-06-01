@@ -1767,8 +1767,8 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          width: window.innerWidth >= 768 ? "65vw" : "92vw",
-          height: window.innerWidth >= 768 ? "72vh" : "88vh",
+          width: window.innerWidth >= 768 ? "25vw" : "92vw",
+          height: window.innerWidth >= 768 ? "29vh" : "88vh",
           overflow: zoom > 1 ? "visible" : "hidden",
           borderRadius: zoom > 1 ? 6 : 14,
           boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
