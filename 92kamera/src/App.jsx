@@ -1655,7 +1655,21 @@ function MobileBackground() {
 // ── PHOTO LIGHTBOX — full màn hình, lướt trái/phải ──
 function PhotoLightbox({ photos, startIndex, onClose }) {
   const [idx, setIdx] = useState(startIndex || 0);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const isDragging = useRef(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+  const panStart = useRef({ x: 0, y: 0 });
   const total = photos.length;
+
+  const ZOOM_MIN = 1;
+  const ZOOM_MAX = 4;
+  const ZOOM_STEP = 0.5;
+
+  const resetZoom = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
+
+  // Reset zoom khi đổi ảnh
+  useEffect(() => { resetZoom(); }, [idx]);
 
   // Khoá scroll body khi lightbox mở
   useEffect(() => {
@@ -1667,71 +1681,181 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
   // Phím tắt
   useEffect(() => {
     const fn = (e) => {
-      if (e.key === "Escape") onClose();
-      if (e.key === "ArrowLeft")  setIdx(i => (i - 1 + total) % total);
-      if (e.key === "ArrowRight") setIdx(i => (i + 1) % total);
+      if (e.key === "Escape") { if (zoom > 1) resetZoom(); else onClose(); }
+      if (e.key === "ArrowLeft"  && zoom === 1) setIdx(i => (i - 1 + total) % total);
+      if (e.key === "ArrowRight" && zoom === 1) setIdx(i => (i + 1) % total);
+      if (e.key === "+" || e.key === "=") zoomIn();
+      if (e.key === "-") zoomOut();
     };
     window.addEventListener("keydown", fn);
     return () => window.removeEventListener("keydown", fn);
-  }, [onClose, total]);
+  }, [onClose, total, zoom]);
 
-  const prev = () => setIdx(i => (i - 1 + total) % total);
-  const next = () => setIdx(i => (i + 1) % total);
+  const prev = () => { resetZoom(); setIdx(i => (i - 1 + total) % total); };
+  const next = () => { resetZoom(); setIdx(i => (i + 1) % total); };
 
-  // Touch swipe
+  const zoomIn  = () => setZoom(z => Math.min(ZOOM_MAX, parseFloat((z + ZOOM_STEP).toFixed(1))));
+  const zoomOut = () => setZoom(z => {
+    const nz = Math.max(ZOOM_MIN, parseFloat((z - ZOOM_STEP).toFixed(1)));
+    if (nz === 1) setPan({ x: 0, y: 0 });
+    return nz;
+  });
+
+  // Mouse drag khi zoom > 1
+  const onMouseDown = (e) => {
+    if (zoom <= 1) return;
+    e.preventDefault();
+    isDragging.current = true;
+    dragStart.current = { x: e.clientX, y: e.clientY };
+    panStart.current = { ...pan };
+  };
+  const onMouseMove = (e) => {
+    if (!isDragging.current) return;
+    setPan({
+      x: panStart.current.x + (e.clientX - dragStart.current.x),
+      y: panStart.current.y + (e.clientY - dragStart.current.y),
+    });
+  };
+  const onMouseUp = () => { isDragging.current = false; };
+
+  // Wheel zoom
+  const onWheel = (e) => {
+    e.preventDefault();
+    if (e.deltaY < 0) zoomIn(); else zoomOut();
+  };
+
+  // Touch swipe (chỉ khi zoom = 1)
   const touchStart = useRef(null);
-  const onTouchStart = (e) => { touchStart.current = e.touches[0].clientX; };
+  const onTouchStart = (e) => {
+    if (zoom > 1) return;
+    touchStart.current = e.touches[0].clientX;
+  };
   const onTouchEnd = (e) => {
-    if (touchStart.current === null) return;
+    if (touchStart.current === null || zoom > 1) return;
     const dx = e.changedTouches[0].clientX - touchStart.current;
     if (Math.abs(dx) > 50) dx < 0 ? next() : prev();
     touchStart.current = null;
   };
 
+  const btnStyle = (disabled) => ({
+    width: 36, height: 36, borderRadius: "50%",
+    background: disabled ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.18)",
+    border: "1px solid rgba(255,255,255,0.22)",
+    color: disabled ? "rgba(255,255,255,0.25)" : "#fff",
+    fontSize: 18, cursor: disabled ? "default" : "pointer",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+    flexShrink: 0, transition: "background .15s",
+  });
+
   return (
     <div
-      onClick={onClose}
+      onClick={() => { if (zoom > 1) return; onClose(); }}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
-      style={{ position: "fixed", inset: 0, zIndex: 99999, background: "rgba(5,12,22,0.94)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      onMouseMove={onMouseMove}
+      onMouseUp={onMouseUp}
+      onMouseLeave={onMouseUp}
+      style={{
+        position: "fixed", inset: 0, zIndex: 99999,
+        background: "rgba(5,12,22,0.94)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        cursor: zoom > 1 ? (isDragging.current ? "grabbing" : "grab") : "default",
+      }}>
 
       {/* Ảnh chính */}
       <img
         src={cdnUrl(photos[idx].url, "full")}
         alt=""
         onClick={e => e.stopPropagation()}
+        onMouseDown={onMouseDown}
+        onWheel={onWheel}
+        onDoubleClick={e => { e.stopPropagation(); zoom > 1 ? resetZoom() : zoomIn(); }}
+        draggable={false}
         style={{
           maxWidth: "92vw", maxHeight: "88vh",
           objectFit: "contain",
-          borderRadius: 14,
+          borderRadius: zoom > 1 ? 6 : 14,
           boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
           userSelect: "none",
           display: "block",
+          transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+          transition: isDragging.current ? "none" : "transform 0.2s ease",
+          cursor: zoom > 1 ? "grab" : "zoom-in",
         }}
         loading="eager"
       />
 
-      {/* Counter */}
+      {/* Top bar: counter + zoom controls + đóng */}
       <div onClick={e => e.stopPropagation()} style={{
-        position: "fixed", top: 18, left: "50%", transform: "translateX(-50%)",
-        background: "rgba(5,12,22,0.70)", borderRadius: 99, padding: "5px 16px",
-        color: "#d4cab8", fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: 600, letterSpacing: 1,
-        backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+        position: "fixed", top: 14, left: 0, right: 0,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "0 14px",
+        pointerEvents: "none",
       }}>
-        {idx + 1} / {total}
+        {/* Counter */}
+        <div style={{
+          background: "rgba(5,12,22,0.70)", borderRadius: 99, padding: "5px 14px",
+          color: "#d4cab8", fontSize: 12, fontFamily: "system-ui,sans-serif",
+          fontWeight: 600, letterSpacing: 1,
+          backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+          pointerEvents: "auto",
+        }}>
+          {idx + 1} / {total}
+        </div>
+
+        {/* Zoom controls */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 6,
+          background: "rgba(5,12,22,0.70)", borderRadius: 99, padding: "5px 10px",
+          backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+          pointerEvents: "auto",
+        }}>
+          <button
+            onClick={e => { e.stopPropagation(); zoomOut(); }}
+            disabled={zoom <= ZOOM_MIN}
+            style={btnStyle(zoom <= ZOOM_MIN)}
+            title="Thu nhỏ (-)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/>
+            </svg>
+          </button>
+
+          {/* % zoom - click để reset */}
+          <span
+            onClick={e => { e.stopPropagation(); resetZoom(); }}
+            title="Click để reset zoom"
+            style={{
+              color: zoom > 1 ? "#c9a84c" : "#d4cab8",
+              fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif",
+              minWidth: 32, textAlign: "center", cursor: "pointer",
+              letterSpacing: 0.5, userSelect: "none",
+            }}>
+            {Math.round(zoom * 100)}%
+          </span>
+
+          <button
+            onClick={e => { e.stopPropagation(); zoomIn(); }}
+            disabled={zoom >= ZOOM_MAX}
+            style={btnStyle(zoom >= ZOOM_MAX)}
+            title="Phóng to (+)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Nút đóng */}
+        <button onClick={e => { e.stopPropagation(); onClose(); }} style={{
+          ...btnStyle(false),
+          width: 40, height: 40, fontSize: 22,
+          background: "rgba(5,12,22,0.70)",
+          color: "#d4cab8",
+          pointerEvents: "auto",
+        }}>×</button>
       </div>
 
-      {/* Nút đóng */}
-      <button onClick={onClose} style={{
-        position: "fixed", top: 14, right: 18,
-        width: 40, height: 40, borderRadius: "50%",
-        background: "rgba(5,12,22,0.70)", border: "1px solid rgba(255,255,255,0.15)",
-        color: "#d4cab8", fontSize: 22, lineHeight: 1,
-        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-        backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
-      }}>×</button>
-
-      {/* Bottom bar: prev + thumbnails + next — gộp 1 hàng, không che nhau */}
+      {/* Bottom bar: prev + thumbnails + next */}
       {total > 1 && (
         <div onClick={e => e.stopPropagation()} style={{
           position: "fixed", bottom: 0, left: 0, right: 0,
@@ -1816,7 +1940,7 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
     <div id="feedback" className="home-section" style={{ padding: "72px 16px 64px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28,
       border: "none",
       boxShadow: "0 1px 0 rgba(255,255,255,0.55) inset, 0 -1px 0 rgba(13,27,42,0.08) inset, 0 4px 6px rgba(13,27,42,0.06) inset, 0 16px 64px rgba(5,17,31,0.20), 0 4px 18px rgba(5,17,31,0.12), 0 0 0 1px rgba(13,27,42,0.07)",
-      background: isMobile ? "rgba(255,255,255,0.62)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", textAlign: "center" }}>
+      background: isMobile ? "linear-gradient(160deg, rgba(95,204,221,0.68) 0%, rgba(143,200,212,0.64) 100%)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", textAlign: "center" }}>
       <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight: 700, letterSpacing: 1, margin: "0 0 14px", color: G, fontFamily: "var(--font-display)", textShadow: "0 1px 3px rgba(13,27,42,0.10)" }}>Feedback khách hàng</h2>
       <div style={{ width: 36, height: 1, background: G, margin: "0 auto 20px" }} />
       <div style={{ color: TXT, fontSize: 13, fontFamily: "var(--font-ui)", fontWeight: 500 }}>Chưa có feedback nào được duyệt</div>
@@ -5180,7 +5304,7 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
       <div id={id} className="home-section" style={{ padding: "72px 0 56px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28,
         border: "none",
         boxShadow: "0 1px 0 rgba(255,255,255,0.55) inset, 0 -1px 0 rgba(13,27,42,0.08) inset, 0 4px 6px rgba(13,27,42,0.06) inset, 0 16px 64px rgba(5,17,31,0.20), 0 4px 18px rgba(5,17,31,0.12), 0 0 0 1px rgba(13,27,42,0.07)",
-        background: isMobile ? "rgba(255,255,255,0.62)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden" }}>
+        background: isMobile ? "linear-gradient(160deg, rgba(95,204,221,0.68) 0%, rgba(143,200,212,0.64) 100%)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden" }}>
         <style>{`.cam-scroll::-webkit-scrollbar{display:none}.cam-scroll{-ms-overflow-style:none;scrollbar-width:none;}`}</style>
         <div style={{ padding: "0 16px 40px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
           <div>
@@ -5275,7 +5399,7 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
     <div id={id} className="home-section" style={{ padding: "96px 0 80px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28,
       border: "none",
       boxShadow: "0 1px 0 rgba(255,255,255,0.55) inset, 0 -1px 0 rgba(13,27,42,0.08) inset, 0 4px 6px rgba(13,27,42,0.06) inset, 0 16px 64px rgba(5,17,31,0.20), 0 4px 18px rgba(5,17,31,0.12), 0 0 0 1px rgba(13,27,42,0.07)",
-      background: isMobile ? "rgba(255,255,255,0.62)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden", position: "relative" }}>
+      background: isMobile ? "linear-gradient(160deg, rgba(95,204,221,0.68) 0%, rgba(143,200,212,0.64) 100%)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden", position: "relative" }}>
       <style>{`@keyframes scrollCam{0%{transform:translateX(-50%)}100%{transform:translateX(0)}}`}</style>
       <div style={{ position:"absolute", top:"50%", left:"50%", transform:"translate(-50%,-50%)", width:600, height:300, background:`radial-gradient(ellipse,${G}06,transparent 70%)`, pointerEvents:"none" }} />
 
@@ -6492,7 +6616,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       {/* ABOUT */}
       <div id="about" className="home-section" style={{ padding: isMobile ? "56px 16px 72px" : "80px 60px 100px", margin: isMobile ? "20px 12px" : "32px auto", maxWidth: isMobile ? "none" : 1100, textAlign: "center",
         border: "none",
-        borderRadius: 28, background: isMobile ? "rgba(255,255,255,0.62)" : "rgba(150,203,219,0.25)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(0.97)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(0.97)",
+        borderRadius: 28, background: isMobile ? "linear-gradient(160deg, rgba(95,204,221,0.68) 0%, rgba(143,200,212,0.64) 100%)" : "rgba(150,203,219,0.25)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(0.97)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(0.97)",
         boxShadow: "0 1px 0 rgba(255,255,255,0.55) inset, 0 -1px 0 rgba(13,27,42,0.08) inset, 0 4px 6px rgba(13,27,42,0.06) inset, 0 16px 64px rgba(5,17,31,0.20), 0 4px 18px rgba(5,17,31,0.12), 0 0 0 1px rgba(13,27,42,0.07)" }}>
         <div style={{ fontSize: 9, letterSpacing: 7, color: G, opacity: 0.55, marginBottom: 16, fontFamily: "var(--font-ui)", fontWeight: 700 }}>VỀ CHÚNG TÔI</div>
         <SecretTitle
@@ -10491,29 +10615,33 @@ function AppRoot() {
         html { -webkit-overflow-scrolling: touch; }
         .cv-section { content-visibility: auto; contain-intrinsic-size: 0 600px; }
         @media (max-width: 900px) {
-          /* Mobile: tắt backdrop-filter trên toàn bộ section lớn,
-             thay bằng màu solid đồng nhất giống web khi blur hoạt động */
+          /* Mobile: tắt backdrop-filter, dùng màu cyan solid đồng bộ với nền trang */
           #cameras, #accessories, #about, #feedback, #quy-trinh,
           .acc-section, .section-main, .home-section {
-            background: rgba(255,255,255,0.55) !important;
+            background: linear-gradient(160deg, rgba(95,204,221,0.72) 0%, rgba(143,200,212,0.68) 60%, rgba(120,195,215,0.70) 100%) !important;
             -webkit-backdrop-filter: none !important;
             backdrop-filter: none !important;
             border: none !important;
             box-shadow:
-              0 1px 0 rgba(255,255,255,0.55) inset,
+              0 1px 0 rgba(255,255,255,0.50) inset,
               0 -1px 0 rgba(13,27,42,0.08) inset,
-              0 4px 6px rgba(13,27,42,0.06) inset,
-              0 10px 48px rgba(5,17,31,0.16),
-              0 3px 12px rgba(5,17,31,0.10),
-              0 0 0 1px rgba(13,27,42,0.05) !important;
+              0 4px 6px rgba(13,27,42,0.05) inset,
+              0 10px 48px rgba(5,17,31,0.14),
+              0 3px 12px rgba(5,17,31,0.08),
+              0 0 0 1px rgba(255,255,255,0.18) !important;
           }
           .acc-section::before {
-            background: rgba(255,255,255,0.55) !important;
+            background: linear-gradient(160deg, rgba(95,204,221,0.45) 0%, rgba(143,200,212,0.40) 100%) !important;
+            -webkit-backdrop-filter: none !important;
+            backdrop-filter: none !important;
+          }
+          .acc-card {
+            background: rgba(255,255,255,0.28) !important;
             -webkit-backdrop-filter: none !important;
             backdrop-filter: none !important;
           }
           footer {
-            background: rgba(143,200,212,0.55) !important;
+            background: rgba(95,180,200,0.72) !important;
             -webkit-backdrop-filter: none !important;
             backdrop-filter: none !important;
           }
