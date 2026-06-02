@@ -1661,6 +1661,11 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
   const dragStart = useRef({ x: 0, y: 0 });
   const panStart = useRef({ x: 0, y: 0 });
   const total = photos.length;
+  const isMob = window.innerWidth < 640;
+  const imageFit = {
+    maxWidth: isMob ? "92vw" : "72vw",
+    maxHeight: isMob ? "62vh" : "68vh",
+  };
 
   const ZOOM_MIN = 1;
   const ZOOM_MAX = 4;
@@ -1773,7 +1778,8 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
         onDoubleClick={e => { e.stopPropagation(); zoom > 1 ? resetZoom() : zoomIn(); }}
         draggable={false}
         style={{
-          maxWidth: "92vw", maxHeight: "88vh",
+          maxWidth: imageFit.maxWidth, maxHeight: imageFit.maxHeight,
+          width: "auto", height: "auto",
           objectFit: "contain",
           borderRadius: zoom > 1 ? 6 : 14,
           boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
@@ -7532,6 +7538,10 @@ function AlbumLightbox({ album, onClose }) {
   const isMob = window.innerWidth < 640;
 
   const ZOOM_MIN = 1, ZOOM_MAX = 4, ZOOM_STEP = 0.5;
+  const imageFit = {
+    maxWidth: isMob ? "92vw" : "72vw",
+    maxHeight: isMob ? "62vh" : "68vh",
+  };
   const resetZoom = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
 
   useEffect(() => { resetZoom(); }, [idx]);
@@ -7654,7 +7664,8 @@ function AlbumLightbox({ album, onClose }) {
           onDoubleClick={e => { e.stopPropagation(); zoom > 1 ? resetZoom() : zoomIn(); }}
           draggable={false}
           style={{
-            maxWidth: "100%", maxHeight: "100%",
+            maxWidth: imageFit.maxWidth, maxHeight: imageFit.maxHeight,
+            width: "auto", height: "auto",
             borderRadius: zoom > 1 ? 6 : (isMob ? 12 : 16),
             objectFit: "contain",
             boxShadow: "0 24px 80px rgba(0,0,0,0.60)",
