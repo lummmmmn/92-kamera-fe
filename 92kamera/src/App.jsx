@@ -1800,7 +1800,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
       <div onClick={e => e.stopPropagation()} style={{
         position: "fixed", top: 14, left: 0, right: 0,
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 14px",
+        padding: "0 56px 0 14px",
         pointerEvents: "none",
       }}>
         {/* Counter */}
@@ -7615,7 +7615,7 @@ function AlbumLightbox({ album, onClose }) {
       style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh", ...lightboxUnzoom, background: "rgba(5,12,22,0.97)", zIndex: 2147483000, display: "flex", flexDirection: "column", cursor: zoom > 1 ? "grab" : "default" }}
     >
       <button onClick={e => { e.stopPropagation(); onClose(); }} style={{
-        position: "absolute", top: isMob ? 12 : 18, right: isMob ? 14 : 34, zIndex: 20,
+        position: "absolute", top: isMob ? 12 : 18, right: isMob ? 34 : 64, zIndex: 20,
         background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.24)",
         borderRadius: "50%", width: isMob ? 34 : 40, height: isMob ? 34 : 40,
         color: "#fff", cursor: "pointer", fontSize: isMob ? 16 : 19,
@@ -7625,7 +7625,7 @@ function AlbumLightbox({ album, onClose }) {
       {/* ── HEADER: tên album + zoom controls + đóng ── */}
       <div onClick={e => e.stopPropagation()} style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: isMob ? "14px 54px 10px 12px" : "16px 76px 12px 20px",
+        padding: isMob ? "14px 82px 10px 12px" : "16px 76px 12px 20px",
         background: "linear-gradient(to bottom, rgba(5,12,22,0.90) 0%, transparent 100%)",
         flexShrink: 0, gap: 8,
       }}>
@@ -7704,7 +7704,7 @@ function AlbumLightbox({ album, onClose }) {
       {photos.length > 1 && (
         <div onClick={e => e.stopPropagation()} style={{
           display: "flex", alignItems: "center", gap: isMob ? 8 : 12,
-          padding: isMob ? "10px 12px 20px" : "12px 24px 20px",
+          padding: isMob ? "10px 26px 20px 12px" : "12px 72px 20px 24px",
           background: "linear-gradient(to top, rgba(5,12,22,0.90) 0%, transparent 100%)",
           flexShrink: 0,
         }}>
@@ -7734,6 +7734,7 @@ function AlbumLightbox({ album, onClose }) {
             background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)",
             color: "#fff", fontSize: isMob ? 18 : 20, cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
+            marginRight: isMob ? 8 : 14,
           }}>›</button>
         </div>
       )}
