@@ -1663,11 +1663,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
     maxWidth: isMob ? "92vw" : "72vw",
     maxHeight: isMob ? "62vh" : "68vh",
   };
-  const lightboxUnzoom = isMob ? {} : {
-    zoom: 0.7692307692,
-    width: "130vw",
-    height: "130vh",
-  };
+  const lightboxUnzoom = {};
 
   const ZOOM_MIN = 1;
   const ZOOM_MAX = 4;
@@ -1680,9 +1676,14 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
 
   // Khoá scroll body khi lightbox mở
   useEffect(() => {
-    const prev = document.body.style.overflow;
+    const prevOverflow = document.body.style.overflow;
+    const prevHtmlZoom = document.documentElement.style.zoom;
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
+    document.documentElement.style.zoom = "1";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.documentElement.style.zoom = prevHtmlZoom;
+    };
   }, []);
 
   // Phím tắt
@@ -7545,15 +7546,20 @@ function AlbumLightbox({ album, onClose }) {
     maxWidth: isMob ? "92vw" : "72vw",
     maxHeight: isMob ? "62vh" : "68vh",
   };
-  const lightboxUnzoom = isMob ? {} : {
-    zoom: 0.7692307692,
-    width: "130vw",
-    height: "130vh",
-  };
+  const lightboxUnzoom = {};
   const resetZoom = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
 
   useEffect(() => { resetZoom(); }, [idx]);
-  useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    const prevHtmlZoom = document.documentElement.style.zoom;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.zoom = "1";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.documentElement.style.zoom = prevHtmlZoom;
+    };
+  }, []);
 
   const zoomIn  = () => setZoom(z => Math.min(ZOOM_MAX, parseFloat((z + ZOOM_STEP).toFixed(1))));
   const zoomOut = () => setZoom(z => { const nz = Math.max(ZOOM_MIN, parseFloat((z - ZOOM_STEP).toFixed(1))); if (nz === 1) setPan({ x: 0, y: 0 }); return nz; });
@@ -7609,7 +7615,7 @@ function AlbumLightbox({ album, onClose }) {
       style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh", ...lightboxUnzoom, background: "rgba(5,12,22,0.97)", zIndex: 2147483000, display: "flex", flexDirection: "column", cursor: zoom > 1 ? "grab" : "default" }}
     >
       <button onClick={e => { e.stopPropagation(); onClose(); }} style={{
-        position: "absolute", top: isMob ? 12 : 18, right: isMob ? 12 : 22, zIndex: 5,
+        position: "absolute", top: isMob ? 12 : 18, right: isMob ? 14 : 34, zIndex: 20,
         background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.24)",
         borderRadius: "50%", width: isMob ? 34 : 40, height: isMob ? 34 : 40,
         color: "#fff", cursor: "pointer", fontSize: isMob ? 16 : 19,
