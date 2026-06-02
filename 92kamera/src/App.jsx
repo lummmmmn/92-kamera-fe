@@ -542,22 +542,19 @@ function OrderLookupWidget({ orders, compact, forceOpen, onForceClose }) {
 
       {/* ── OVERLAY: position fixed tính từ viewport, không bị ảnh hưởng bởi parent ── */}
       {open && (
-        <div
+         <div
           ref={overlayRef}
           onClick={e => { if (e.target === overlayRef.current) close(); }}
           style={{
-            // Dùng style tag inline để tránh bị ghi đè bởi transform cha
             position: "fixed",
             top: 0, left: 0, right: 0, bottom: 0,
             zIndex: 99999,
             background: "rgba(5,17,31,0.80)",
             backdropFilter: "blur(8px)",
             WebkitBackdropFilter: "blur(8px)",
-            // Flex center — hoạt động đúng trên mọi trình duyệt
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            // overflowY để content không bị cắt khi keyboard mở trên mobile
             overflowY: "auto",
             padding: "16px 16px",
           }}
@@ -1667,8 +1664,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
     maxHeight: isMob ? "62vh" : "68vh",
   };
   const lightboxUnzoom = isMob ? {} : {
-    transform: "scale(0.7692307692)",
-    transformOrigin: "top left",
+    zoom: 0.7692307692,
   };
 
   const ZOOM_MIN = 1;
@@ -1766,7 +1762,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseUp}
       style={{
-        position: "fixed", inset: 0, width: "100vw", height: "100vh", zIndex: 99999,
+        position: "fixed", inset: 0, width: "100vw", height: "100vh", zIndex: 2147483000,
         ...lightboxUnzoom,
         background: "rgba(5,12,22,0.94)",
         display: "flex", alignItems: "center", justifyContent: "center",
@@ -7548,8 +7544,7 @@ function AlbumLightbox({ album, onClose }) {
     maxHeight: isMob ? "62vh" : "68vh",
   };
   const lightboxUnzoom = isMob ? {} : {
-    transform: "scale(0.7692307692)",
-    transformOrigin: "top left",
+    zoom: 0.7692307692,
   };
   const resetZoom = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
 
@@ -7607,7 +7602,7 @@ function AlbumLightbox({ album, onClose }) {
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseUp}
-      style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh", ...lightboxUnzoom, background: "rgba(5,12,22,0.97)", zIndex: 9999, display: "flex", flexDirection: "column", cursor: zoom > 1 ? "grab" : "default" }}
+      style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh", ...lightboxUnzoom, background: "rgba(5,12,22,0.97)", zIndex: 2147483000, display: "flex", flexDirection: "column", cursor: zoom > 1 ? "grab" : "default" }}
     >
       {/* ── HEADER: tên album + zoom controls + đóng ── */}
       <div onClick={e => e.stopPropagation()} style={{
