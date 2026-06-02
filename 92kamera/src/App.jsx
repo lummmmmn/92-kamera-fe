@@ -1665,6 +1665,8 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
   };
   const lightboxUnzoom = isMob ? {} : {
     zoom: 0.7692307692,
+    width: "130vw",
+    height: "130vh",
   };
 
   const ZOOM_MIN = 1;
@@ -7545,6 +7547,8 @@ function AlbumLightbox({ album, onClose }) {
   };
   const lightboxUnzoom = isMob ? {} : {
     zoom: 0.7692307692,
+    width: "130vw",
+    height: "130vh",
   };
   const resetZoom = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
 
@@ -7604,10 +7608,18 @@ function AlbumLightbox({ album, onClose }) {
       onMouseLeave={onMouseUp}
       style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh", ...lightboxUnzoom, background: "rgba(5,12,22,0.97)", zIndex: 2147483000, display: "flex", flexDirection: "column", cursor: zoom > 1 ? "grab" : "default" }}
     >
+      <button onClick={e => { e.stopPropagation(); onClose(); }} style={{
+        position: "absolute", top: isMob ? 12 : 18, right: isMob ? 12 : 22, zIndex: 5,
+        background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.24)",
+        borderRadius: "50%", width: isMob ? 34 : 40, height: isMob ? 34 : 40,
+        color: "#fff", cursor: "pointer", fontSize: isMob ? 16 : 19,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+      }}>✕</button>
       {/* ── HEADER: tên album + zoom controls + đóng ── */}
       <div onClick={e => e.stopPropagation()} style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: isMob ? "14px 12px 10px" : "16px 20px 12px",
+        padding: isMob ? "14px 54px 10px 12px" : "16px 76px 12px 20px",
         background: "linear-gradient(to bottom, rgba(5,12,22,0.90) 0%, transparent 100%)",
         flexShrink: 0, gap: 8,
       }}>
@@ -7650,7 +7662,7 @@ function AlbumLightbox({ album, onClose }) {
             background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.15)",
             borderRadius: "50%", width: isMob ? 32 : 36, height: isMob ? 32 : 36,
             color: "#fff", cursor: "pointer", fontSize: isMob ? 15 : 17,
-            display: "flex", alignItems: "center", justifyContent: "center",
+            display: "none", alignItems: "center", justifyContent: "center",
           }}>✕</button>
         </div>
       </div>
