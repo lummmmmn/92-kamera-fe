@@ -1666,6 +1666,10 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
     maxWidth: isMob ? "92vw" : "72vw",
     maxHeight: isMob ? "62vh" : "68vh",
   };
+  const lightboxUnzoom = isMob ? {} : {
+    transform: "scale(0.7692307692)",
+    transformOrigin: "top left",
+  };
 
   const ZOOM_MIN = 1;
   const ZOOM_MAX = 4;
@@ -1762,7 +1766,8 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseUp}
       style={{
-        position: "fixed", inset: 0, zIndex: 99999,
+        position: "fixed", inset: 0, width: "100vw", height: "100vh", zIndex: 99999,
+        ...lightboxUnzoom,
         background: "rgba(5,12,22,0.94)",
         display: "flex", alignItems: "center", justifyContent: "center",
         cursor: zoom > 1 ? (isDragging.current ? "grabbing" : "grab") : "default",
@@ -7542,6 +7547,10 @@ function AlbumLightbox({ album, onClose }) {
     maxWidth: isMob ? "92vw" : "72vw",
     maxHeight: isMob ? "62vh" : "68vh",
   };
+  const lightboxUnzoom = isMob ? {} : {
+    transform: "scale(0.7692307692)",
+    transformOrigin: "top left",
+  };
   const resetZoom = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
 
   useEffect(() => { resetZoom(); }, [idx]);
@@ -7598,7 +7607,7 @@ function AlbumLightbox({ album, onClose }) {
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseUp}
-      style={{ position: "fixed", inset: 0, background: "rgba(5,12,22,0.97)", zIndex: 9999, display: "flex", flexDirection: "column", cursor: zoom > 1 ? "grab" : "default" }}
+      style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh", ...lightboxUnzoom, background: "rgba(5,12,22,0.97)", zIndex: 9999, display: "flex", flexDirection: "column", cursor: zoom > 1 ? "grab" : "default" }}
     >
       {/* ── HEADER: tên album + zoom controls + đóng ── */}
       <div onClick={e => e.stopPropagation()} style={{
