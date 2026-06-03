@@ -1678,12 +1678,9 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
   // Khoá scroll body khi lightbox mở
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
-    const prevHtmlZoom = document.documentElement.style.zoom;
     document.body.style.overflow = "hidden";
-    document.documentElement.style.zoom = "1";
     return () => {
       document.body.style.overflow = prevOverflow;
-      document.documentElement.style.zoom = prevHtmlZoom;
     };
   }, []);
 
@@ -7553,12 +7550,9 @@ function AlbumLightbox({ album, onClose }) {
   useEffect(() => { resetZoom(); }, [idx]);
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
-    const prevHtmlZoom = document.documentElement.style.zoom;
     document.body.style.overflow = "hidden";
-    document.documentElement.style.zoom = "1";
     return () => {
       document.body.style.overflow = prevOverflow;
-      document.documentElement.style.zoom = prevHtmlZoom;
     };
   }, []);
 
@@ -10699,7 +10693,7 @@ function AppRoot() {
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: "radial-gradient(ellipse 130% 85% at 50% 22%, #5fccdd 0%, transparent 70%), radial-gradient(ellipse 55% 40% at 15% 55%, rgba(77,193,213,0.7) 0%, transparent 60%), linear-gradient(180deg, #8fc8d4 0%, #a9b8bc 100%)", position: "relative", paddingBottom: 0 }}>
+    <div style={{ minHeight: "100vh", background: "radial-gradient(ellipse 130% 85% at 50% 22%, #5fccdd 0%, transparent 70%), radial-gradient(ellipse 55% 40% at 15% 55%, rgba(77,193,213,0.7) 0%, transparent 60%), linear-gradient(180deg, #8fc8d4 0%, #a9b8bc 100%)", position: "relative", animation: "contentIn 1s ease both", paddingBottom: 0 }}>
       <FlowBg />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap&subset=vietnamese');
