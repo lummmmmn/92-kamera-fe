@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense, Component } from "react";
+import { createPortal } from "react-dom";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from "recharts";
 
 // ── HELPERS ──
@@ -1674,15 +1675,26 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
   // Reset zoom khi đổi ảnh
   useEffect(() => { resetZoom(); }, [idx]);
 
-  // Khoá scroll body khi lightbox mở
+  // Khoá scroll body khi lightbox mở — lưu scrollY để restore đúng vị trí
   useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
-    const prevHtmlZoom = document.documentElement.style.zoom;
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.zoom = "1";
+    const scrollY = window.scrollY;
+    const prevPosition = document.body.style.position;
+    const prevTop      = document.body.style.top;
+    const prevLeft     = document.body.style.left;
+    const prevRight    = document.body.style.right;
+    const prevWidth    = document.body.style.width;
+    document.body.style.position = "fixed";
+    document.body.style.top      = `-${scrollY}px`;
+    document.body.style.left     = "0";
+    document.body.style.right    = "0";
+    document.body.style.width    = "100%";
     return () => {
-      document.body.style.overflow = prevOverflow;
-      document.documentElement.style.zoom = prevHtmlZoom;
+      document.body.style.position = prevPosition;
+      document.body.style.top      = prevTop;
+      document.body.style.left     = prevLeft;
+      document.body.style.right    = prevRight;
+      document.body.style.width    = prevWidth;
+      window.scrollTo(0, scrollY);
     };
   }, []);
 
@@ -1756,7 +1768,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
     flexShrink: 0, transition: "background .15s",
   });
 
-  return (
+  return createPortal(
     <div
       onClick={() => { if (zoom > 1) return; onClose(); }}
       onTouchStart={onTouchStart}
@@ -1911,7 +1923,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
         </div>
       )}
     </div>
-  );
+  , document.body);
 }
 
 // ── FEEDBACK CARD
@@ -7551,13 +7563,24 @@ function AlbumLightbox({ album, onClose }) {
 
   useEffect(() => { resetZoom(); }, [idx]);
   useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
-    const prevHtmlZoom = document.documentElement.style.zoom;
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.zoom = "1";
+    const scrollY = window.scrollY;
+    const prevPosition = document.body.style.position;
+    const prevTop      = document.body.style.top;
+    const prevLeft     = document.body.style.left;
+    const prevRight    = document.body.style.right;
+    const prevWidth    = document.body.style.width;
+    document.body.style.position = "fixed";
+    document.body.style.top      = `-${scrollY}px`;
+    document.body.style.left     = "0";
+    document.body.style.right    = "0";
+    document.body.style.width    = "100%";
     return () => {
-      document.body.style.overflow = prevOverflow;
-      document.documentElement.style.zoom = prevHtmlZoom;
+      document.body.style.position = prevPosition;
+      document.body.style.top      = prevTop;
+      document.body.style.left     = prevLeft;
+      document.body.style.right    = prevRight;
+      document.body.style.width    = prevWidth;
+      window.scrollTo(0, scrollY);
     };
   }, []);
 
@@ -7604,7 +7627,7 @@ function AlbumLightbox({ album, onClose }) {
 
   if (photos.length === 0) return null;
 
-  return (
+  return createPortal(
     <div
       onClick={() => { if (zoom > 1) return; onClose(); }}
       onTouchStart={onTouchStart}
@@ -7739,7 +7762,7 @@ function AlbumLightbox({ album, onClose }) {
         </div>
       )}
     </div>
-  );
+  , document.body);
 }
 
 // ── ALBUM MANAGER (dùng trong admin GalleryUpload) ──
