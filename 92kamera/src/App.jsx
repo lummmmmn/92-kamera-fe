@@ -1675,19 +1675,15 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
   // Reset zoom khi đổi ảnh
   useEffect(() => { resetZoom(); }, [idx]);
 
-  // Khoá scroll body khi lightbox mở — lưu scrollY để restore đúng vị trí
+  // Khoá scroll body khi lightbox mở
   useEffect(() => {
-    const scrollY = window.scrollY;
-    // Bù scrollbar width để tránh layout shift khi ẩn scrollbar
-    const sbWidth = window.innerWidth - document.documentElement.clientWidth;
-    const prevOverflow      = document.body.style.overflow;
-    const prevPaddingRight  = document.body.style.paddingRight;
-    document.body.style.overflow     = "hidden";
-    document.body.style.paddingRight = sbWidth > 0 ? `${sbWidth}px` : "";
+    const prevOverflow = document.body.style.overflow;
+    const prevHtmlZoom = document.documentElement.style.zoom;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.zoom = "1";
     return () => {
-      document.body.style.overflow     = prevOverflow;
-      document.body.style.paddingRight = prevPaddingRight;
-      window.scrollTo(0, scrollY);
+      document.body.style.overflow = prevOverflow;
+      document.documentElement.style.zoom = prevHtmlZoom;
     };
   }, []);
 
@@ -1761,7 +1757,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
     flexShrink: 0, transition: "background .15s",
   });
 
-  return createPortal(
+  return (
     <div
       onClick={() => { if (zoom > 1) return; onClose(); }}
       onTouchStart={onTouchStart}
@@ -1916,7 +1912,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
         </div>
       )}
     </div>
-  , document.body);
+  );
 }
 
 // ── FEEDBACK CARD
@@ -7556,16 +7552,13 @@ function AlbumLightbox({ album, onClose }) {
 
   useEffect(() => { resetZoom(); }, [idx]);
   useEffect(() => {
-    const scrollY = window.scrollY;
-    const sbWidth = window.innerWidth - document.documentElement.clientWidth;
-    const prevOverflow      = document.body.style.overflow;
-    const prevPaddingRight  = document.body.style.paddingRight;
-    document.body.style.overflow     = "hidden";
-    document.body.style.paddingRight = sbWidth > 0 ? `${sbWidth}px` : "";
+    const prevOverflow = document.body.style.overflow;
+    const prevHtmlZoom = document.documentElement.style.zoom;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.zoom = "1";
     return () => {
-      document.body.style.overflow     = prevOverflow;
-      document.body.style.paddingRight = prevPaddingRight;
-      window.scrollTo(0, scrollY);
+      document.body.style.overflow = prevOverflow;
+      document.documentElement.style.zoom = prevHtmlZoom;
     };
   }, []);
 
@@ -7612,7 +7605,7 @@ function AlbumLightbox({ album, onClose }) {
 
   if (photos.length === 0) return null;
 
-  return createPortal(
+  return (
     <div
       onClick={() => { if (zoom > 1) return; onClose(); }}
       onTouchStart={onTouchStart}
@@ -7633,7 +7626,7 @@ function AlbumLightbox({ album, onClose }) {
       {/* ── HEADER: tên album + zoom controls + đóng ── */}
       <div onClick={e => e.stopPropagation()} style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: isMob ? "14px 12px 10px 12px" : "16px 24px 12px 24px",
+        padding: isMob ? "14px 82px 10px 12px" : "16px 76px 12px 20px",
         background: "linear-gradient(to bottom, rgba(5,12,22,0.90) 0%, transparent 100%)",
         flexShrink: 0, gap: 8,
       }}>
@@ -7712,7 +7705,7 @@ function AlbumLightbox({ album, onClose }) {
       {photos.length > 1 && (
         <div onClick={e => e.stopPropagation()} style={{
           display: "flex", alignItems: "center", gap: isMob ? 8 : 12,
-          padding: isMob ? "10px 12px 20px 12px" : "12px 24px 20px 24px",
+          padding: isMob ? "10px 26px 20px 12px" : "12px 72px 20px 24px",
           background: "linear-gradient(to top, rgba(5,12,22,0.90) 0%, transparent 100%)",
           flexShrink: 0,
         }}>
@@ -7742,11 +7735,12 @@ function AlbumLightbox({ album, onClose }) {
             background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)",
             color: "#fff", fontSize: isMob ? 18 : 20, cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
+            marginRight: isMob ? 8 : 14,
           }}>›</button>
         </div>
       )}
     </div>
-  , document.body);
+  );
 }
 
 // ── ALBUM MANAGER (dùng trong admin GalleryUpload) ──
@@ -10705,7 +10699,7 @@ function AppRoot() {
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: "radial-gradient(ellipse 130% 85% at 50% 22%, #5fccdd 0%, transparent 70%), radial-gradient(ellipse 55% 40% at 15% 55%, rgba(77,193,213,0.7) 0%, transparent 60%), linear-gradient(180deg, #8fc8d4 0%, #a9b8bc 100%)", position: "relative", animation: "contentIn 1s ease both", paddingBottom: 0 }}>
+    <div style={{ minHeight: "100vh", background: "radial-gradient(ellipse 130% 85% at 50% 22%, #5fccdd 0%, transparent 70%), radial-gradient(ellipse 55% 40% at 15% 55%, rgba(77,193,213,0.7) 0%, transparent 60%), linear-gradient(180deg, #8fc8d4 0%, #a9b8bc 100%)", position: "relative", paddingBottom: 0 }}>
       <FlowBg />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap&subset=vietnamese');
