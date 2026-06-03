@@ -1654,101 +1654,61 @@ function MobileBackground() {
 function PhotoLightbox({ photos, startIndex, onClose }) {
   const [idx, setIdx] = useState(startIndex || 0);
   const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const isDragging = useRef(false);
-  const dragStart = useRef({ x: 0, y: 0 });
-  const panStart = useRef({ x: 0, y: 0 });
   const total = photos.length;
   const isMob = window.innerWidth < 640;
-  const imageFit = {
-    maxWidth: isMob ? "92vw" : "72vw",
-    maxHeight: isMob ? "62vh" : "68vh",
-  };
-  const lightboxUnzoom = {};
 
   const ZOOM_MIN = 1;
   const ZOOM_MAX = 4;
   const ZOOM_STEP = 0.5;
 
-  const resetZoom = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
+  const resetZoom = () => setZoom(1);
+  const zoomIn    = () => setZoom(z => Math.min(ZOOM_MAX, parseFloat((z + ZOOM_STEP).toFixed(1))));
+  const zoomOut   = () => setZoom(z => Math.max(ZOOM_MIN, parseFloat((z - ZOOM_STEP).toFixed(1))));
 
   // Reset zoom khi đổi ảnh
   useEffect(() => { resetZoom(); }, [idx]);
 
-  // Khoá scroll body khi lightbox mở
+  // Khoá scroll khi lightbox mở — lock cả body + html, khôi phục vị trí khi đóng
   useEffect(() => {
     const prevBodyOverflow = document.body.style.overflow;
     const prevHtmlOverflow = document.documentElement.style.overflow;
-    const prevHtmlZoom = document.documentElement.style.zoom;
-    const scrollY = window.scrollY;
-    document.body.style.overflow = "hidden";
+    const prevHtmlZoom     = document.documentElement.style.zoom;
+    const savedScrollY     = window.scrollY;
+    document.body.style.overflow           = "hidden";
     document.documentElement.style.overflow = "hidden";
-    document.documentElement.style.zoom = "1";
+    document.documentElement.style.zoom    = "1";
     return () => {
-      document.body.style.overflow = prevBodyOverflow;
+      document.body.style.overflow           = prevBodyOverflow;
       document.documentElement.style.overflow = prevHtmlOverflow;
-      document.documentElement.style.zoom = prevHtmlZoom;
-      window.scrollTo(0, scrollY);
+      document.documentElement.style.zoom    = prevHtmlZoom;
+      window.scrollTo(0, savedScrollY);
     };
   }, []);
 
-  // Phím tắt
+  // Phím tắt (desktop only)
   useEffect(() => {
     const fn = (e) => {
-      if (e.key === "Escape") { if (zoom > 1) resetZoom(); else onClose(); }
-      if (e.key === "ArrowLeft"  && zoom === 1) setIdx(i => (i - 1 + total) % total);
-      if (e.key === "ArrowRight" && zoom === 1) setIdx(i => (i + 1) % total);
-      if (e.key === "+" || e.key === "=") zoomIn();
-      if (e.key === "-") zoomOut();
+      if (e.key === "Escape")                           { resetZoom(); onClose(); }
+      if (e.key === "ArrowLeft")                        setIdx(i => (i - 1 + total) % total);
+      if (e.key === "ArrowRight")                       setIdx(i => (i + 1) % total);
+      if ((e.key === "+" || e.key === "=") && !isMob)   zoomIn();
+      if (e.key === "-" && !isMob)                      zoomOut();
     };
     window.addEventListener("keydown", fn);
     return () => window.removeEventListener("keydown", fn);
-  }, [onClose, total, zoom]);
+  }, [onClose, total, isMob]);
 
   const prev = () => { resetZoom(); setIdx(i => (i - 1 + total) % total); };
   const next = () => { resetZoom(); setIdx(i => (i + 1) % total); };
 
-  const zoomIn  = () => setZoom(z => Math.min(ZOOM_MAX, parseFloat((z + ZOOM_STEP).toFixed(1))));
-  const zoomOut = () => setZoom(z => {
-    const nz = Math.max(ZOOM_MIN, parseFloat((z - ZOOM_STEP).toFixed(1)));
-    if (nz === 1) setPan({ x: 0, y: 0 });
-    return nz;
-  });
-
-  // Mouse drag khi zoom > 1
-  const onMouseDown = (e) => {
-    if (zoom <= 1) return;
-    e.preventDefault();
-    isDragging.current = true;
-    dragStart.current = { x: e.clientX, y: e.clientY };
-    panStart.current = { ...pan };
-  };
-  const onMouseMove = (e) => {
-    if (!isDragging.current) return;
-    setPan({
-      x: panStart.current.x + (e.clientX - dragStart.current.x),
-      y: panStart.current.y + (e.clientY - dragStart.current.y),
-    });
-  };
-  const onMouseUp = () => { isDragging.current = false; };
-
-  // Wheel zoom
-  const onWheel = (e) => {
-    e.preventDefault();
-    if (e.deltaY < 0) zoomIn(); else zoomOut();
-  };
-
-  // Touch swipe (chỉ khi zoom = 1)
-  const touchStart = useRef(null);
-  const onTouchStart = (e) => {
-    if (zoom > 1) return;
-    touchStart.current = e.touches[0].clientX;
-  };
-  const onTouchEnd = (e) => {
-    if (touchStart.current === null || zoom > 1) return;
-    const dx = e.changedTouches[0].clientX - touchStart.current;
+  // Touch swipe — chỉ chuyển ảnh, không zoom
+  const touchStartX = useRef(null);
+  const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
+  const onTouchEnd   = (e) => {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
     if (Math.abs(dx) > 50) dx < 0 ? next() : prev();
-    touchStart.current = null;
+    touchStartX.current = null;
   };
 
   const btnStyle = (disabled) => ({
@@ -1764,19 +1724,16 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
 
   return (
     <div
-      onClick={() => { if (zoom > 1) return; onClose(); }}
+      onClick={onClose}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
       onTouchMove={e => e.preventDefault()}
-      onMouseMove={onMouseMove}
-      onMouseUp={onMouseUp}
-      onMouseLeave={onMouseUp}
       style={{
         position: "fixed", inset: 0, width: "100vw", height: "100vh", zIndex: 2147483000,
-        ...lightboxUnzoom,
         background: "rgba(5,12,22,0.94)",
         display: "flex", alignItems: "center", justifyContent: "center",
-        cursor: zoom > 1 ? (isDragging.current ? "grabbing" : "grab") : "default",
+        cursor: "default",
+        touchAction: "none",
       }}>
 
       {/* Ảnh chính */}
@@ -1784,30 +1741,28 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
         src={cdnUrl(photos[idx].url, "full")}
         alt=""
         onClick={e => e.stopPropagation()}
-        onMouseDown={onMouseDown}
-        onWheel={onWheel}
-        onDoubleClick={e => { e.stopPropagation(); zoom > 1 ? resetZoom() : zoomIn(); }}
         draggable={false}
         style={{
-          maxWidth: imageFit.maxWidth, maxHeight: imageFit.maxHeight,
+          maxWidth: isMob ? "92vw" : "72vw",
+          maxHeight: isMob ? "72vh" : "68vh",
           width: "auto", height: "auto",
           objectFit: "contain",
-          borderRadius: zoom > 1 ? 6 : 14,
+          borderRadius: 14,
           boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
           userSelect: "none",
           display: "block",
-          transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
-          transition: isDragging.current ? "none" : "transform 0.2s ease",
-          cursor: zoom > 1 ? "grab" : "zoom-in",
+          transform: isMob ? "none" : `scale(${zoom})`,
+          transformOrigin: "center center",
+          transition: "transform 0.2s ease",
         }}
         loading="eager"
       />
 
-      {/* Top bar: counter + zoom controls + đóng */}
+      {/* Top bar: counter + zoom controls (desktop only) + đóng */}
       <div onClick={e => e.stopPropagation()} style={{
         position: "fixed", top: 14, left: 0, right: 0,
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 56px 0 14px",
+        padding: "0 14px",
         pointerEvents: "none",
       }}>
         {/* Counter */}
@@ -1821,46 +1776,34 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
           {idx + 1} / {total}
         </div>
 
-        {/* Zoom controls */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 6,
-          background: "rgba(5,12,22,0.70)", borderRadius: 99, padding: "5px 10px",
-          backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
-          pointerEvents: "auto",
-        }}>
-          <button
-            onClick={e => { e.stopPropagation(); zoomOut(); }}
-            disabled={zoom <= ZOOM_MIN}
-            style={btnStyle(zoom <= ZOOM_MIN)}
-            title="Thu nhỏ (-)">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/>
-            </svg>
-          </button>
-
-          {/* % zoom - click để reset */}
-          <span
-            onClick={e => { e.stopPropagation(); resetZoom(); }}
-            title="Click để reset zoom"
-            style={{
+        {/* Zoom controls — chỉ hiện trên desktop */}
+        {!isMob && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 6,
+            background: "rgba(5,12,22,0.70)", borderRadius: 99, padding: "5px 10px",
+            backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+            pointerEvents: "auto",
+          }}>
+            <button onClick={e => { e.stopPropagation(); zoomOut(); }} disabled={zoom <= ZOOM_MIN} style={btnStyle(zoom <= ZOOM_MIN)} title="Thu nhỏ (-)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/>
+              </svg>
+            </button>
+            <span onClick={e => { e.stopPropagation(); resetZoom(); }} title="Reset zoom" style={{
               color: zoom > 1 ? "#c9a84c" : "#d4cab8",
               fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif",
               minWidth: 32, textAlign: "center", cursor: "pointer",
               letterSpacing: 0.5, userSelect: "none",
             }}>
-            {Math.round(zoom * 100)}%
-          </span>
-
-          <button
-            onClick={e => { e.stopPropagation(); zoomIn(); }}
-            disabled={zoom >= ZOOM_MAX}
-            style={btnStyle(zoom >= ZOOM_MAX)}
-            title="Phóng to (+)">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
-            </svg>
-          </button>
-        </div>
+              {Math.round(zoom * 100)}%
+            </span>
+            <button onClick={e => { e.stopPropagation(); zoomIn(); }} disabled={zoom >= ZOOM_MAX} style={btnStyle(zoom >= ZOOM_MAX)} title="Phóng to (+)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+              </svg>
+            </button>
+          </div>
+        )}
 
         {/* Nút đóng */}
         <button onClick={e => { e.stopPropagation(); onClose(); }} style={{
@@ -1881,7 +1824,6 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
           background: "linear-gradient(to top, rgba(5,12,22,0.90) 0%, transparent 100%)",
           zIndex: 10,
         }}>
-          {/* Nút trái */}
           <button onClick={e => { e.stopPropagation(); prev(); }} style={{
             flexShrink: 0, width: 38, height: 38, borderRadius: "50%",
             background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.20)",
@@ -1890,7 +1832,6 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
             backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
           }}>‹</button>
 
-          {/* Thumbnail strip */}
           <div style={{
             flex: 1, display: "flex", gap: 5, overflowX: "auto",
             scrollbarWidth: "none", WebkitOverflowScrolling: "touch",
@@ -1907,7 +1848,6 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
             ))}
           </div>
 
-          {/* Nút phải */}
           <button onClick={e => { e.stopPropagation(); next(); }} style={{
             flexShrink: 0, width: 38, height: 38, borderRadius: "50%",
             background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.20)",
@@ -7541,67 +7481,55 @@ function AdminNoteEditor({ order, setOrders }) {
 function AlbumLightbox({ album, onClose }) {
   const [idx, setIdx] = useState(0);
   const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const isDragging = useRef(false);
-  const dragStart = useRef({ x: 0, y: 0 });
-  const panStart = useRef({ x: 0, y: 0 });
   const photos = album.photos || [];
   const isMob = window.innerWidth < 640;
 
   const ZOOM_MIN = 1, ZOOM_MAX = 4, ZOOM_STEP = 0.5;
-  const imageFit = {
-    maxWidth: isMob ? "92vw" : "72vw",
-    maxHeight: isMob ? "62vh" : "68vh",
-  };
-  const lightboxUnzoom = {};
-  const resetZoom = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
+
+  const resetZoom = () => setZoom(1);
+  const zoomIn    = () => setZoom(z => Math.min(ZOOM_MAX, parseFloat((z + ZOOM_STEP).toFixed(1))));
+  const zoomOut   = () => setZoom(z => Math.max(ZOOM_MIN, parseFloat((z - ZOOM_STEP).toFixed(1))));
 
   useEffect(() => { resetZoom(); }, [idx]);
+
+  // Khoá scroll khi lightbox mở — lock cả body + html, khôi phục vị trí khi đóng
   useEffect(() => {
     const prevBodyOverflow = document.body.style.overflow;
     const prevHtmlOverflow = document.documentElement.style.overflow;
-    const prevHtmlZoom = document.documentElement.style.zoom;
-    const scrollY = window.scrollY;
-    document.body.style.overflow = "hidden";
+    const prevHtmlZoom     = document.documentElement.style.zoom;
+    const savedScrollY     = window.scrollY;
+    document.body.style.overflow           = "hidden";
     document.documentElement.style.overflow = "hidden";
-    document.documentElement.style.zoom = "1";
+    document.documentElement.style.zoom    = "1";
     return () => {
-      document.body.style.overflow = prevBodyOverflow;
+      document.body.style.overflow           = prevBodyOverflow;
       document.documentElement.style.overflow = prevHtmlOverflow;
-      document.documentElement.style.zoom = prevHtmlZoom;
-      window.scrollTo(0, scrollY);
+      document.documentElement.style.zoom    = prevHtmlZoom;
+      window.scrollTo(0, savedScrollY);
     };
   }, []);
 
-  const zoomIn  = () => setZoom(z => Math.min(ZOOM_MAX, parseFloat((z + ZOOM_STEP).toFixed(1))));
-  const zoomOut = () => setZoom(z => { const nz = Math.max(ZOOM_MIN, parseFloat((z - ZOOM_STEP).toFixed(1))); if (nz === 1) setPan({ x: 0, y: 0 }); return nz; });
-
+  // Phím tắt (desktop only)
   useEffect(() => {
     const handleKey = (e) => {
-      if (e.key === "Escape") { if (zoom > 1) resetZoom(); else onClose(); }
-      if (e.key === "ArrowLeft"  && zoom === 1) setIdx(i => (i - 1 + photos.length) % photos.length);
-      if (e.key === "ArrowRight" && zoom === 1) setIdx(i => (i + 1) % photos.length);
-      if (e.key === "+" || e.key === "=") zoomIn();
-      if (e.key === "-") zoomOut();
+      if (e.key === "Escape")                          { resetZoom(); onClose(); }
+      if (e.key === "ArrowLeft")                       setIdx(i => (i - 1 + photos.length) % photos.length);
+      if (e.key === "ArrowRight")                      setIdx(i => (i + 1) % photos.length);
+      if ((e.key === "+" || e.key === "=") && !isMob)  zoomIn();
+      if (e.key === "-" && !isMob)                     zoomOut();
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [photos.length, onClose, zoom]);
+  }, [photos.length, onClose, isMob]);
 
-  // Mouse drag khi zoom > 1
-  const onMouseDown = (e) => { if (zoom <= 1) return; e.preventDefault(); isDragging.current = true; dragStart.current = { x: e.clientX, y: e.clientY }; panStart.current = { ...pan }; };
-  const onMouseMove = (e) => { if (!isDragging.current) return; setPan({ x: panStart.current.x + (e.clientX - dragStart.current.x), y: panStart.current.y + (e.clientY - dragStart.current.y) }); };
-  const onMouseUp   = () => { isDragging.current = false; };
-  const onWheel     = (e) => { e.preventDefault(); if (e.deltaY < 0) zoomIn(); else zoomOut(); };
-
-  // Touch swipe (chỉ khi zoom = 1)
-  const touchStart = useRef(null);
-  const onTouchStart = (e) => { if (zoom > 1) return; touchStart.current = e.touches[0].clientX; };
-  const onTouchEnd = (e) => {
-    if (touchStart.current === null || zoom > 1) return;
-    const dx = e.changedTouches[0].clientX - touchStart.current;
+  // Touch swipe — chỉ chuyển ảnh, không zoom
+  const touchStartX = useRef(null);
+  const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
+  const onTouchEnd   = (e) => {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
     if (Math.abs(dx) > 40) { dx < 0 ? setIdx(i => (i + 1) % photos.length) : setIdx(i => (i - 1 + photos.length) % photos.length); }
-    touchStart.current = null;
+    touchStartX.current = null;
   };
 
   const btnZ = (disabled) => ({
@@ -7618,14 +7546,11 @@ function AlbumLightbox({ album, onClose }) {
 
   return (
     <div
-      onClick={() => { if (zoom > 1) return; onClose(); }}
+      onClick={onClose}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
       onTouchMove={e => e.preventDefault()}
-      onMouseMove={onMouseMove}
-      onMouseUp={onMouseUp}
-      onMouseLeave={onMouseUp}
-      style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh", ...lightboxUnzoom, background: "rgba(5,12,22,0.97)", zIndex: 2147483000, display: "flex", flexDirection: "column", cursor: zoom > 1 ? "grab" : "default" }}
+      style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh", background: "rgba(5,12,22,0.97)", zIndex: 2147483000, display: "flex", flexDirection: "column", cursor: "default", touchAction: "none" }}
     >
       <button onClick={e => { e.stopPropagation(); onClose(); }} style={{
         position: "absolute", top: isMob ? 12 : 18, right: isMob ? 34 : 64, zIndex: 20,
@@ -7635,7 +7560,8 @@ function AlbumLightbox({ album, onClose }) {
         display: "flex", alignItems: "center", justifyContent: "center",
         boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
       }}>✕</button>
-      {/* ── HEADER: tên album + zoom controls + đóng ── */}
+
+      {/* ── HEADER: tên album + zoom controls (desktop only) + đóng ── */}
       <div onClick={e => e.stopPropagation()} style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: isMob ? "14px 82px 10px 12px" : "16px 76px 12px 20px",
@@ -7655,34 +7581,28 @@ function AlbumLightbox({ album, onClose }) {
           )}
         </div>
 
-        {/* Zoom controls + counter + đóng */}
+        {/* Zoom controls + counter */}
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-          {/* Zoom bar */}
-          <div style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(5,12,22,0.60)", borderRadius: 99, padding: "4px 8px", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }}>
-            <button onClick={e => { e.stopPropagation(); zoomOut(); }} disabled={zoom <= ZOOM_MIN} style={btnZ(zoom <= ZOOM_MIN)} title="Thu nhỏ (-)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-            </button>
-            <span onClick={e => { e.stopPropagation(); resetZoom(); }} title="Reset zoom"
-              style={{ color: zoom > 1 ? "#c9a84c" : "rgba(255,255,255,0.55)", fontSize: 10, fontWeight: 700, fontFamily: "system-ui,sans-serif", minWidth: 30, textAlign: "center", cursor: "pointer", userSelect: "none" }}>
-              {Math.round(zoom * 100)}%
-            </span>
-            <button onClick={e => { e.stopPropagation(); zoomIn(); }} disabled={zoom >= ZOOM_MAX} style={btnZ(zoom >= ZOOM_MAX)} title="Phóng to (+)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-            </button>
-          </div>
+          {/* Zoom bar — chỉ hiện trên desktop */}
+          {!isMob && (
+            <div style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(5,12,22,0.60)", borderRadius: 99, padding: "4px 8px", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }}>
+              <button onClick={e => { e.stopPropagation(); zoomOut(); }} disabled={zoom <= ZOOM_MIN} style={btnZ(zoom <= ZOOM_MIN)} title="Thu nhỏ (-)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+              </button>
+              <span onClick={e => { e.stopPropagation(); resetZoom(); }} title="Reset zoom"
+                style={{ color: zoom > 1 ? "#c9a84c" : "rgba(255,255,255,0.55)", fontSize: 10, fontWeight: 700, fontFamily: "system-ui,sans-serif", minWidth: 30, textAlign: "center", cursor: "pointer", userSelect: "none" }}>
+                {Math.round(zoom * 100)}%
+              </span>
+              <button onClick={e => { e.stopPropagation(); zoomIn(); }} disabled={zoom >= ZOOM_MAX} style={btnZ(zoom >= ZOOM_MAX)} title="Phóng to (+)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+              </button>
+            </div>
+          )}
 
           {/* Counter */}
           <span style={{ color: "rgba(255,255,255,0.40)", fontSize: isMob ? 11 : 12, fontFamily: "var(--font-ui)", letterSpacing: 1 }}>
             {idx + 1} / {photos.length}
           </span>
-
-          {/* Đóng */}
-          <button onClick={e => { e.stopPropagation(); onClose(); }} style={{
-            background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.15)",
-            borderRadius: "50%", width: isMob ? 32 : 36, height: isMob ? 32 : 36,
-            color: "#fff", cursor: "pointer", fontSize: isMob ? 15 : 17,
-            display: "none", alignItems: "center", justifyContent: "center",
-          }}>✕</button>
         </div>
       </div>
 
@@ -7694,20 +7614,18 @@ function AlbumLightbox({ album, onClose }) {
         <img
           src={cdnUrl(photos[idx].url, "full")}
           alt=""
-          onMouseDown={onMouseDown}
-          onWheel={onWheel}
-          onDoubleClick={e => { e.stopPropagation(); zoom > 1 ? resetZoom() : zoomIn(); }}
           draggable={false}
           style={{
-            maxWidth: imageFit.maxWidth, maxHeight: imageFit.maxHeight,
+            maxWidth: isMob ? "92vw" : "72vw",
+            maxHeight: isMob ? "72vh" : "68vh",
             width: "auto", height: "auto",
-            borderRadius: zoom > 1 ? 6 : (isMob ? 12 : 16),
+            borderRadius: isMob ? 12 : 16,
             objectFit: "contain",
             boxShadow: "0 24px 80px rgba(0,0,0,0.60)",
             userSelect: "none", display: "block",
-            transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
-            transition: isDragging.current ? "none" : "transform 0.2s ease",
-            cursor: zoom > 1 ? "grab" : "zoom-in",
+            transform: isMob ? "none" : `scale(${zoom})`,
+            transformOrigin: "center center",
+            transition: "transform 0.2s ease",
           }}
           loading="eager"
         />
