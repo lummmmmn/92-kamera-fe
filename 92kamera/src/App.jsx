@@ -292,9 +292,9 @@ const ACC_INIT = [
   { id: 7, name: "Thẻ nhớ 128GB",   price: 20000,  priceShift: 15000, qty: 5, active: true,  desc: "Class 10, tốc độ ghi 100MB/s", image: "" },
 ];
 const ORDERS_INIT = [
-  { id: "#92K0001", cameraName: "Fujifilm X-T20", cameraId: 1, accessories: ["Tripod 3 chân"], accessoriesDetail: [{ name: "Tripod 3 chân", qty: 1 }], days: 3, total: 650000, name: "Nguyễn Văn An", phone: "0901234567", zalo: "0901234567", address: "123 Trần Phú, Đà Nẵng", note: "", status: "active", date: "2026-04-15", seen: true },
+  { id: "#92K0001", cameraName: "Fujifilm X-T20", cameraId: 1, accessories: ["Tripod 3 chân"], accessoriesDetail: [{ name: "Tripod 3 chân", qty: 1 }], days: 3, total: 650000, name: "Nguyễn Văn An", phone: "0901234567", zalo: "0901234567", address: "123 Trần Phú, Đà Nẵng", note: "", status: "completed", date: "2026-04-15", seen: true },
   { id: "#92K0002", cameraName: "Sony ZV-E10", cameraId: 2, accessories: [], accessoriesDetail: [], days: 7, total: 1260000, name: "Trần Thị Bình", phone: "0912345678", zalo: "0912345678", address: "45 Lê Lợi, Hội An", note: "Cần thêm pin", status: "completed", date: "2026-04-10", seen: true },
-  { id: "#92K0003", cameraName: "GoPro Hero 12", cameraId: 5, accessories: ["Mic thu âm", "Pin dự phòng"], accessoriesDetail: [{ name: "Mic thu âm", qty: 1 }, { name: "Pin dự phòng", qty: 1 }], days: 1, total: 360000, name: "Lê Văn Cường", phone: "0923456789", zalo: "0923456789", address: "78 Nguyễn Huệ, Tam Kỳ", note: "", status: "confirmed", date: "2026-04-20", seen: true },
+  { id: "#92K0003", cameraName: "GoPro Hero 12", cameraId: 5, accessories: ["Mic thu âm", "Pin dự phòng"], accessoriesDetail: [{ name: "Mic thu âm", qty: 1 }, { name: "Pin dự phòng", qty: 1 }], days: 1, total: 360000, name: "Lê Văn Cường", phone: "0923456789", zalo: "0923456789", address: "78 Nguyễn Huệ, Tam Kỳ", note: "", status: "completed", date: "2026-04-20", seen: true },
 ];
 const SITE_INIT = { zalo: "0855 471 202", address: "Thạnh Mỹ Xã Tam Mỹ Thành Phố Đà Nẵng", tagline: "Trải nghiệm máy ảnh · Bắt giữ khoảnh khắc", desc: "Chúng tôi cung cấp dịch vụ cho thuê máy ảnh khu vực Núi Thành - Tam Kỳ.", phone: "0855 471 202", slogan: "Dịch vụ cho thuê máy ảnh · Núi Thành - Tam Kỳ", stats: [["📸", "50+", "Lượt thuê / tháng"], ["🎬", "10+", "Loại thiết bị"], ["⭐", "98%", "Khách hài lòng"]], zaloLink: "", zaloQR: "", socialLinks: { youtube: "", facebook: "", tiktok: "", instagram: "" }, secretText: "" };
 const DURATIONS = [
@@ -3017,6 +3017,17 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                         )}
                         {o.status === "pending" && (
                           <span style={{ color: MUT, fontSize: 11, display: "flex", alignItems: "center" }}>⏳ Đang chờ admin xác nhận</span>
+                        )}
+                        {/* FIX: Khách được phép hủy đơn khi còn ở trạng thái pending */}
+                        {o.status === "pending" && (
+                          <button onClick={() => {
+                            if (!window.confirm(`Bạn có chắc muốn hủy đơn ${o.id}?\n\nĐơn sẽ chuyển sang trạng thái "Đã hủy" và không thể khôi phục.`)) return;
+                            setOrders(p => p.map(x => x.id === o.id ? { ...x, status: "cancelled" } : x));
+                            window.__92k_invalidateStaticCache?.();
+                          }}
+                          style={{ padding: "7px 16px", background: "#FEF0F0", border: "1px solid #ef444433", color: "#ef4444", borderRadius: 10, cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", marginLeft: "auto" }}>
+                            ✕ Hủy đơn
+                          </button>
                         )}
                       </div>
                     </div>
@@ -7159,7 +7170,7 @@ function RentalCalendar({ orders, cameras }) {
   const monthLabel = new Date(y, m, 1).toLocaleDateString("vi-VN", { month: "long", year: "numeric" });
   const todayDate = todayStr();
 
-  const activeOrders = orders.filter(o => !["cancelled"].includes(o.status));
+  const activeOrders = orders.filter(o => !["cancelled", "completed"].includes(o.status));
 
   const getDay = (day) => {
     const ds = `${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
@@ -8044,6 +8055,9 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   const [search, setSearch] = useState("");
   const [newOrderIds, setNewOrderIds] = useState(new Set());
   const [expandedOrder, setExpandedOrder] = useState(null);
+  // ── Chỉnh sửa đơn hàng ──
+  const [editOrder, setEditOrder] = useState(null); // { id, name, phone, zalo, address, note, date, days, total }
+  const [editOrderMsg, setEditOrderMsg] = useState(null); // { type: "ok"|"err", text }
   const deletedOrderIdsRef = useRef(new Set());
   // FIX RACE: track orders admin vừa đổi locally — không cho WebSocket ghi đè trong 15s
   const localOrderChangesRef = useRef(new Map()); // Map<orderId, timestampMs>
@@ -8316,7 +8330,9 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   }, [tab]);
 
   const todayRev = orders.filter(o => o.status !== "cancelled" && o.date === todayStr()).reduce((s, o) => s + o.total, 0);
-  const monthRev = orders.filter(o => o.status !== "cancelled").reduce((s, o) => s + o.total, 0);
+  // FIX: monthRev chỉ tính tháng hiện tại, không phải tổng tất cả thời gian
+  const currentMonthPrefix = new Date().toISOString().slice(0, 7);
+  const monthRev = orders.filter(o => o.status !== "cancelled" && o.date && o.date.startsWith(currentMonthPrefix)).reduce((s, o) => s + o.total, 0);
   // Doanh thu 6 tháng gần nhất — tính từ orders thực, không hardcode
   const revData = (() => {
     const now = new Date();
@@ -8395,7 +8411,12 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   );
 
   const hotCam = cameras.reduce((best, c) => {
-    const cnt = orders.filter(o => o.cameraId === c.id && o.status !== "cancelled").length;
+    const cnt = orders.filter(o => {
+      if (o.status === "cancelled") return false;
+      // FIX: đếm cả đơn multi-camera (o.cameras) lẫn đơn cũ (o.cameraId)
+      if (o.cameras) return o.cameras.some(cam => cam.id === c.id);
+      return o.cameraId === c.id;
+    }).length;
     return cnt > (best.cnt || 0) ? { ...c, cnt } : best;
   }, {});
 
@@ -8547,14 +8568,14 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                 </div>
                 <div style={{ background: CARD2, border: `1px solid ${BR2}`, borderRadius: 14, padding: 18, flex: 1 }}>
                   <div style={{ color: MUT, fontSize: 10, letterSpacing: 1, marginBottom: 10 }}>TRẠNG THÁI KHO</div>
-                  {[["Còn máy", cameras.filter(c => c.status === "available").length, "#22c55e"],
-                  ["Đang thuê", cameras.filter(c => c.status === "rented").length, "#f59e0b"],
+                  {(() => { const _td=todayStr(); const _ao=orders.filter(o=>["pending","confirmed","active"].includes(o.status)&&isDateInOrder(_td,o)); const _ri=new Set(_ao.flatMap(o=>o.cameras?o.cameras.map(c=>c.id):[o.cameraId])); const rentedNow=cameras.filter(c=>_ri.has(c.id)).length; return [["Còn máy", cameras.filter(c => c.status === "available").length, "#22c55e"],
+                  ["Đang thuê hôm nay", rentedNow, "#f59e0b"],
                   ["Hết máy", cameras.filter(c => c.status === "unavailable").length, "#ef4444"]].map(([l, v, c]) => (
                     <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: `1px solid ${BR2}` }}>
                       <span style={{ color: MUT, fontSize: 11 }}>{l}</span>
                       <span style={{ color: c, fontWeight: 700, fontSize: 12 }}>{v}</span>
                     </div>
-                  ))}
+                  ))})()}
                 </div>
               </div>
             </div>
@@ -8976,7 +8997,15 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
               {filteredOrders.map(o => (
                 <div key={o.id} className={newOrderIds.has(o.id) ? "new-order-flash" : ""} style={{ background: CARD2, border: `1px solid ${!o.seen ? "#60a5fa33" : BR2}`, borderRadius: 14, overflow: "hidden" }}>
                   {/* Order header */}
-                  <div onClick={() => setExpandedOrder(expandedOrder === o.id ? null : o.id)}
+                  <div onClick={() => {
+                    const next = expandedOrder === o.id ? null : o.id;
+                    setExpandedOrder(next);
+                    // FIX: mark seen khi admin mở đơn
+                    if (next && !o.seen) {
+                      localOrderChangesRef.current.set(o.id, Date.now());
+                      setOrders(p => p.map(x => x.id === o.id ? { ...x, seen: true } : x));
+                    }
+                  }}
                     style={{ padding: "14px 18px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
@@ -9081,12 +9110,92 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                           🏷️ Mã giảm giá: <strong>{o.discountCode}</strong> — Giảm {fmtVND(o.discountAmt || 0)} · Tổng gốc: {fmtVND(o.subtotal || o.total)}
                         </div>
                       )}
+
+                      {/* ── CHỈNH SỬA THÔNG TIN ĐƠN (Admin) ── */}
+                      <div style={{ borderTop: `1px solid ${BR2}`, paddingTop: 12, marginBottom: 12 }}>
+                        {editOrder?.id === o.id ? (
+                          <div style={{ background: "rgba(201,168,76,0.07)", border: `1px solid ${BR2}`, borderRadius: 14, padding: 16 }}>
+                            <div style={{ color: G, fontSize: 11, fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>✏️ CHỈNH SỬA THÔNG TIN ĐƠN</div>
+                            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10, marginBottom: 10 }}>
+                              <div>
+                                <div style={{ color: MUT, fontSize: 10, marginBottom: 4, letterSpacing: 1 }}>HỌ TÊN</div>
+                                <input style={{ ...inp2, fontSize: 12 }} value={editOrder.name} onChange={e => setEditOrder(p => ({ ...p, name: e.target.value }))} placeholder="Tên khách hàng" />
+                              </div>
+                              <div>
+                                <div style={{ color: MUT, fontSize: 10, marginBottom: 4, letterSpacing: 1 }}>SỐ ĐIỆN THOẠI</div>
+                                <input style={{ ...inp2, fontSize: 12 }} value={editOrder.phone} onChange={e => setEditOrder(p => ({ ...p, phone: e.target.value }))} placeholder="0901234567" />
+                              </div>
+                              <div>
+                                <div style={{ color: MUT, fontSize: 10, marginBottom: 4, letterSpacing: 1 }}>ZALO</div>
+                                <input style={{ ...inp2, fontSize: 12 }} value={editOrder.zalo || ""} onChange={e => setEditOrder(p => ({ ...p, zalo: e.target.value }))} placeholder="Zalo (tuỳ chọn)" />
+                              </div>
+                              <div>
+                                <div style={{ color: MUT, fontSize: 10, marginBottom: 4, letterSpacing: 1 }}>NGÀY THUÊ</div>
+                                <input type="date" style={{ ...inp2, fontSize: 12 }} value={editOrder.date} onChange={e => setEditOrder(p => ({ ...p, date: e.target.value }))} />
+                              </div>
+                              <div>
+                                <div style={{ color: MUT, fontSize: 10, marginBottom: 4, letterSpacing: 1 }}>SỐ NGÀY / BUỔI</div>
+                                <input type="number" min={0.5} step={0.5} style={{ ...inp2, fontSize: 12 }} value={editOrder.days} onChange={e => setEditOrder(p => ({ ...p, days: parseFloat(e.target.value) || p.days }))} />
+                              </div>
+                              <div>
+                                <div style={{ color: MUT, fontSize: 10, marginBottom: 4, letterSpacing: 1 }}>TỔNG TIỀN (₫)</div>
+                                <input type="number" style={{ ...inp2, fontSize: 12 }} value={editOrder.total} onChange={e => setEditOrder(p => ({ ...p, total: parseInt(e.target.value) || 0 }))} />
+                              </div>
+                            </div>
+                            <div style={{ marginBottom: 10 }}>
+                              <div style={{ color: MUT, fontSize: 10, marginBottom: 4, letterSpacing: 1 }}>ĐỊA CHỈ</div>
+                              <input style={{ ...inp2, fontSize: 12 }} value={editOrder.address || ""} onChange={e => setEditOrder(p => ({ ...p, address: e.target.value }))} placeholder="Địa chỉ nhận / trả máy" />
+                            </div>
+                            <div style={{ marginBottom: 12 }}>
+                              <div style={{ color: MUT, fontSize: 10, marginBottom: 4, letterSpacing: 1 }}>GHI CHÚ KHÁCH</div>
+                              <textarea style={{ ...inp2, fontSize: 12, minHeight: 56, resize: "vertical" }} value={editOrder.note || ""} onChange={e => setEditOrder(p => ({ ...p, note: e.target.value }))} placeholder="Ghi chú của khách..." />
+                            </div>
+                            {editOrderMsg && (
+                              <div style={{ marginBottom: 10, padding: "7px 12px", background: editOrderMsg.type === "ok" ? "#EEF9F4" : "#FEF0F0", border: `1px solid ${editOrderMsg.type === "ok" ? "#22c55e44" : "#ef444433"}`, borderRadius: 10, color: editOrderMsg.type === "ok" ? "#22c55e" : "#ef4444", fontSize: 12 }}>{editOrderMsg.text}</div>
+                            )}
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <button onClick={() => {
+                                if (!editOrder.name.trim()) { setEditOrderMsg({ type: "err", text: "Tên không được để trống" }); return; }
+                                if (!editOrder.phone.trim()) { setEditOrderMsg({ type: "err", text: "SĐT không được để trống" }); return; }
+                                if (!editOrder.date) { setEditOrderMsg({ type: "err", text: "Ngày thuê không được để trống" }); return; }
+                                localOrderChangesRef.current.set(o.id, Date.now());
+                                setOrders(p => p.map(x => x.id === o.id ? {
+                                  ...x,
+                                  name: editOrder.name.trim(),
+                                  phone: editOrder.phone.trim(),
+                                  zalo: editOrder.zalo?.trim() || x.zalo,
+                                  address: editOrder.address?.trim() || x.address,
+                                  note: editOrder.note?.trim() || "",
+                                  date: editOrder.date,
+                                  days: editOrder.days,
+                                  total: editOrder.total,
+                                  seen: true,
+                                } : x));
+                                window.__92k_invalidateStaticCache?.();
+                                setEditOrderMsg({ type: "ok", text: "✓ Đã lưu thay đổi!" });
+                                setTimeout(() => { setEditOrder(null); setEditOrderMsg(null); }, 1200);
+                              }} style={{ flex: 1, padding: "9px 0", background: "#FFF8ED", border: `1px solid ${G}55`, color: G, borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>
+                                ✓ Lưu thay đổi
+                              </button>
+                              <button onClick={() => { setEditOrder(null); setEditOrderMsg(null); }} style={{ padding: "9px 16px", background: "none", border: `1px solid ${BR2}`, color: MUT, borderRadius: 10, cursor: "pointer", fontSize: 12, fontFamily: "system-ui,sans-serif" }}>Huỷ</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button onClick={() => {
+                            setEditOrder({ id: o.id, name: o.name, phone: o.phone, zalo: o.zalo || "", address: o.address || "", note: o.note || "", date: o.date, days: o.days, total: o.total });
+                            setEditOrderMsg(null);
+                          }} style={{ padding: "7px 14px", background: "rgba(255,248,237,0.60)", border: `1px solid ${G}33`, color: G, borderRadius: 10, cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 6 }}>
+                            ✏️ Chỉnh sửa thông tin đơn
+                          </button>
+                        )}
+                      </div>
+
                       <div style={{ borderTop: `1px solid ${BR2}`, paddingTop: 12 }}>
                         <div style={{ color: MUT, fontSize: 10, letterSpacing: 1, marginBottom: 8 }}>ĐỔI TRẠNG THÁI:</div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                           {Object.entries(ORDER_STATUSES).map(([s, l]) => (
                             <button key={s} onClick={() => {
-                              setOrders(p => p.map(x => x.id === o.id ? { ...x, status: s } : x));
+                              setOrders(p => p.map(x => x.id === o.id ? { ...x, status: s, seen: true } : x));
                               // FIX RACE: đánh dấu đơn này vừa được admin sửa — lock 15s
                               localOrderChangesRef.current.set(o.id, Date.now());
                               // Bust static cache — khách xem trang thấy status mới ngay lần refresh tiếp
@@ -9310,7 +9419,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: 12, marginBottom: 22 }}>
               {[
                 { l: "Sẵn sàng cho thuê", c: cameras.filter(c => c.status === "available").length, col: "#22c55e" },
-                { l: "Đang cho thuê", c: cameras.filter(c => c.status === "rented").length, col: "#f59e0b" },
+                { l: "Đang cho thuê hôm nay", c: (() => { const _td=todayStr(); const _ao=orders.filter(o=>["pending","confirmed","active"].includes(o.status)&&isDateInOrder(_td,o)); const _ri=new Set(_ao.flatMap(o=>o.cameras?o.cameras.map(c=>c.id):[o.cameraId])); return cameras.filter(c=>_ri.has(c.id)).length; })(), col: "#f59e0b" },
                 { l: "Hết / Bảo trì", c: cameras.filter(c => c.status === "unavailable").length, col: "#ef4444" }
               ].map(s => (
                 <div key={s.l} style={{ background: CARD2, border: `1px solid ${s.col}30`, borderRadius: 14, padding: "22px 20px", textAlign: "center" }}>
@@ -9332,8 +9441,8 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                   </div>
                   <div style={{ padding: "12px 12px", color: TXT, fontSize: 12 }}>{c.name}</div>
                   <div style={{ padding: "12px 12px", color: TXT, fontSize: 12 }}>{c.qty}</div>
-                  <div style={{ padding: "12px 12px", color: "#f59e0b", fontSize: 12 }}>{c.status === "rented" ? 1 : 0}</div>
-                  <div style={{ padding: "12px 12px", color: "#22c55e", fontSize: 12 }}>{c.status === "available" ? c.qty : 0}</div>
+                  <div style={{ padding: "12px 12px", color: "#f59e0b", fontSize: 12 }}>{(() => { const _td=todayStr(); const _ao=orders.filter(o=>["pending","confirmed","active"].includes(o.status)&&isDateInOrder(_td,o)); return _ao.reduce((s,o)=>{ if(o.cameras){const f=o.cameras.find(x=>x.id===c.id); return s+(f?f.qty:0);} return o.cameraId===c.id?s+1:s; },0); })()}</div>
+                  <div style={{ padding: "12px 12px", color: "#22c55e", fontSize: 12 }}>{(() => { const _td=todayStr(); const _ao=orders.filter(o=>["pending","confirmed","active"].includes(o.status)&&isDateInOrder(_td,o)); const used=_ao.reduce((s,o)=>{ if(o.cameras){const f=o.cameras.find(x=>x.id===c.id); return s+(f?f.qty:0);} return o.cameraId===c.id?s+1:s; },0); return Math.max(0,(c.qty||1)-used); })()}</div>
                   <div style={{ padding: "9px 12px", display: "flex", alignItems: "center" }}><Badge status={c.status} /></div>
                 </div>
               ))}
