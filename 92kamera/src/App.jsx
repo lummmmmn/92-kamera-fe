@@ -1816,7 +1816,7 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
     <div id="feedback" className="home-section" style={{ padding: "72px 16px 64px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28,
       border: "none",
       boxShadow: "0 1px 0 rgba(255,255,255,0.55) inset, 0 -1px 0 rgba(13,27,42,0.08) inset, 0 4px 6px rgba(13,27,42,0.06) inset, 0 16px 64px rgba(5,17,31,0.20), 0 4px 18px rgba(5,17,31,0.12), 0 0 0 1px rgba(13,27,42,0.07)",
-      background: isMobile ? "rgba(255,255,255,0.62)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", textAlign: "center" }}>
+      background: isMobile ? "rgba(143,200,212,0.52)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", textAlign: "center" }}>
       <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight: 700, letterSpacing: 1, margin: "0 0 14px", color: G, fontFamily: "var(--font-display)", textShadow: "0 1px 3px rgba(13,27,42,0.10)" }}>Feedback khách hàng</h2>
       <div style={{ width: 36, height: 1, background: G, margin: "0 auto 20px" }} />
       <div style={{ color: TXT, fontSize: 13, fontFamily: "var(--font-ui)", fontWeight: 500 }}>Chưa có feedback nào được duyệt</div>
@@ -5180,7 +5180,7 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
       <div id={id} className="home-section" style={{ padding: "72px 0 56px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28,
         border: "none",
         boxShadow: "0 1px 0 rgba(255,255,255,0.55) inset, 0 -1px 0 rgba(13,27,42,0.08) inset, 0 4px 6px rgba(13,27,42,0.06) inset, 0 16px 64px rgba(5,17,31,0.20), 0 4px 18px rgba(5,17,31,0.12), 0 0 0 1px rgba(13,27,42,0.07)",
-        background: isMobile ? "rgba(255,255,255,0.62)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden" }}>
+        background: isMobile ? "rgba(143,200,212,0.52)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden" }}>
         <style>{`.cam-scroll::-webkit-scrollbar{display:none}.cam-scroll{-ms-overflow-style:none;scrollbar-width:none;}`}</style>
         <div style={{ padding: "0 16px 40px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
           <div>
@@ -5275,7 +5275,7 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
     <div id={id} className="home-section" style={{ padding: "96px 0 80px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28,
       border: "none",
       boxShadow: "0 1px 0 rgba(255,255,255,0.55) inset, 0 -1px 0 rgba(13,27,42,0.08) inset, 0 4px 6px rgba(13,27,42,0.06) inset, 0 16px 64px rgba(5,17,31,0.20), 0 4px 18px rgba(5,17,31,0.12), 0 0 0 1px rgba(13,27,42,0.07)",
-      background: isMobile ? "rgba(255,255,255,0.62)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden", position: "relative" }}>
+      background: isMobile ? "rgba(143,200,212,0.52)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden", position: "relative" }}>
       <style>{`@keyframes scrollCam{0%{transform:translateX(-50%)}100%{transform:translateX(0)}}`}</style>
       <div style={{ position:"absolute", top:"50%", left:"50%", transform:"translate(-50%,-50%)", width:600, height:300, background:`radial-gradient(ellipse,${G}06,transparent 70%)`, pointerEvents:"none" }} />
 
@@ -6396,7 +6396,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         }
         @media (max-width: 768px) {
           .acc-section::before {
-            background: rgba(255,255,255,0.55);
+            background: rgba(143,200,212,0.52);
             backdrop-filter: none;
             -webkit-backdrop-filter: none;
           }
@@ -6419,6 +6419,16 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
             0 12px 40px rgba(13,27,42,0.16),
             0 4px 12px rgba(13,27,42,0.10),
             0 0 0 1px rgba(13,27,42,0.06);
+        }
+        @media (max-width: 900px) {
+          .acc-card {
+            background: rgba(175,215,225,0.55);
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+          }
+          .acc-card:hover {
+            background: rgba(175,215,225,0.75);
+          }
         }
         .acc-card::before {
           content:''; position:absolute; top:0; left:8%; right:8%; height:1px;
@@ -6492,7 +6502,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       {/* ABOUT */}
       <div id="about" className="home-section" style={{ padding: isMobile ? "56px 16px 72px" : "80px 60px 100px", margin: isMobile ? "20px 12px" : "32px auto", maxWidth: isMobile ? "none" : 1100, textAlign: "center",
         border: "none",
-        borderRadius: 28, background: isMobile ? "rgba(255,255,255,0.62)" : "rgba(150,203,219,0.25)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(0.97)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(0.97)",
+        borderRadius: 28, background: isMobile ? "rgba(143,200,212,0.52)" : "rgba(150,203,219,0.25)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(0.97)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(0.97)",
         boxShadow: "0 1px 0 rgba(255,255,255,0.55) inset, 0 -1px 0 rgba(13,27,42,0.08) inset, 0 4px 6px rgba(13,27,42,0.06) inset, 0 16px 64px rgba(5,17,31,0.20), 0 4px 18px rgba(5,17,31,0.12), 0 0 0 1px rgba(13,27,42,0.07)" }}>
         <div style={{ fontSize: 9, letterSpacing: 7, color: G, opacity: 0.55, marginBottom: 16, fontFamily: "var(--font-ui)", fontWeight: 700 }}>VỀ CHÚNG TÔI</div>
         <SecretTitle
@@ -6510,7 +6520,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       </div>
 
       {/* FOOTER */}
-      <footer style={{ padding: isMobile ? "20px 16px" : "28px 60px", display: "flex", flexWrap: "wrap", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "center" : "center", gap: isMobile ? 10 : 16, background: isMobile ? "rgba(180,220,235,0.88)" : "linear-gradient(135deg, rgba(107,184,212,0.55) 0%, rgba(107,184,212,0.45) 100%)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", borderTop: "1px solid rgba(107,184,212,0.35)" }}>
+      <footer style={{ padding: isMobile ? "20px 16px" : "28px 60px", display: "flex", flexWrap: "wrap", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "center" : "center", gap: isMobile ? 10 : 16, background: isMobile ? "rgba(107,184,212,0.60)" : "linear-gradient(135deg, rgba(107,184,212,0.55) 0%, rgba(107,184,212,0.45) 100%)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", borderTop: "1px solid rgba(107,184,212,0.35)" }}>
         <Logo size={0.7} />
         <div style={{ color: "rgba(10,10,20,0.75)", fontSize: 12, fontFamily: "var(--font-ui)", fontWeight: 500, letterSpacing: 0.5, display: "grid", gridTemplateColumns: "auto auto 1fr", gap: "2px 4px" }}>
           <span>Hotline</span><span>:</span><span>{siteContent.zalo}</span>
@@ -10491,11 +10501,10 @@ function AppRoot() {
         html { -webkit-overflow-scrolling: touch; }
         .cv-section { content-visibility: auto; contain-intrinsic-size: 0 600px; }
         @media (max-width: 900px) {
-          /* Mobile: tắt backdrop-filter trên toàn bộ section lớn,
-             thay bằng màu solid đồng nhất giống web khi blur hoạt động */
+          /* Mobile: tắt backdrop-filter, dùng màu xanh solid đồng bộ với desktop */
           #cameras, #accessories, #about, #feedback, #quy-trinh,
           .acc-section, .section-main, .home-section {
-            background: rgba(255,255,255,0.55) !important;
+            background: rgba(143,200,212,0.52) !important;
             -webkit-backdrop-filter: none !important;
             backdrop-filter: none !important;
             border: none !important;
@@ -10508,12 +10517,12 @@ function AppRoot() {
               0 0 0 1px rgba(13,27,42,0.05) !important;
           }
           .acc-section::before {
-            background: rgba(255,255,255,0.55) !important;
+            background: rgba(143,200,212,0.52) !important;
             -webkit-backdrop-filter: none !important;
             backdrop-filter: none !important;
           }
           footer {
-            background: rgba(143,200,212,0.55) !important;
+            background: rgba(107,184,212,0.60) !important;
             -webkit-backdrop-filter: none !important;
             backdrop-filter: none !important;
           }
