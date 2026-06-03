@@ -1677,13 +1677,18 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
 
   // Khoá scroll body khi lightbox mở
   useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
     const prevHtmlZoom = document.documentElement.style.zoom;
+    const scrollY = window.scrollY;
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
     document.documentElement.style.zoom = "1";
     return () => {
-      document.body.style.overflow = prevOverflow;
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
       document.documentElement.style.zoom = prevHtmlZoom;
+      window.scrollTo(0, scrollY);
     };
   }, []);
 
@@ -1762,6 +1767,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
       onClick={() => { if (zoom > 1) return; onClose(); }}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
+      onTouchMove={e => e.preventDefault()}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseUp}
@@ -7552,13 +7558,18 @@ function AlbumLightbox({ album, onClose }) {
 
   useEffect(() => { resetZoom(); }, [idx]);
   useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
     const prevHtmlZoom = document.documentElement.style.zoom;
+    const scrollY = window.scrollY;
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
     document.documentElement.style.zoom = "1";
     return () => {
-      document.body.style.overflow = prevOverflow;
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
       document.documentElement.style.zoom = prevHtmlZoom;
+      window.scrollTo(0, scrollY);
     };
   }, []);
 
@@ -7610,6 +7621,7 @@ function AlbumLightbox({ album, onClose }) {
       onClick={() => { if (zoom > 1) return; onClose(); }}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
+      onTouchMove={e => e.preventDefault()}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseUp}
