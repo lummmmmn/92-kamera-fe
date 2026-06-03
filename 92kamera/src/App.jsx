@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense, Component } from "react";
-import { createPortal } from "react-dom";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from "recharts";
 
 // ── HELPERS ──
@@ -543,19 +542,22 @@ function OrderLookupWidget({ orders, compact, forceOpen, onForceClose }) {
 
       {/* ── OVERLAY: position fixed tính từ viewport, không bị ảnh hưởng bởi parent ── */}
       {open && (
-         <div
+        <div
           ref={overlayRef}
           onClick={e => { if (e.target === overlayRef.current) close(); }}
           style={{
+            // Dùng style tag inline để tránh bị ghi đè bởi transform cha
             position: "fixed",
             top: 0, left: 0, right: 0, bottom: 0,
             zIndex: 99999,
             background: "rgba(5,17,31,0.80)",
             backdropFilter: "blur(8px)",
             WebkitBackdropFilter: "blur(8px)",
+            // Flex center — hoạt động đúng trên mọi trình duyệt
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            // overflowY để content không bị cắt khi keyboard mở trên mobile
             overflowY: "auto",
             padding: "16px 16px",
           }}
@@ -1653,169 +1655,83 @@ function MobileBackground() {
 // ── PHOTO LIGHTBOX — full màn hình, lướt trái/phải ──
 function PhotoLightbox({ photos, startIndex, onClose }) {
   const [idx, setIdx] = useState(startIndex || 0);
-  const [zoom, setZoom] = useState(1);
   const total = photos.length;
-  const isMob = window.innerWidth < 640;
 
-  const ZOOM_MIN = 1;
-  const ZOOM_MAX = 4;
-  const ZOOM_STEP = 0.5;
-
-  const resetZoom = () => setZoom(1);
-  const zoomIn    = () => setZoom(z => Math.min(ZOOM_MAX, parseFloat((z + ZOOM_STEP).toFixed(1))));
-  const zoomOut   = () => setZoom(z => Math.max(ZOOM_MIN, parseFloat((z - ZOOM_STEP).toFixed(1))));
-
-  // Reset zoom khi đổi ảnh
-  useEffect(() => { resetZoom(); }, [idx]);
-
-  // Khoá scroll khi lightbox mở — lock cả body + html, khôi phục vị trí khi đóng
+  // Khoá scroll body khi lightbox mở
   useEffect(() => {
-    const prevBodyOverflow = document.body.style.overflow;
-    const prevHtmlOverflow = document.documentElement.style.overflow;
-    const prevHtmlZoom     = document.documentElement.style.zoom;
-    const savedScrollY     = window.scrollY;
-    document.body.style.overflow           = "hidden";
-    document.documentElement.style.overflow = "hidden";
-    document.documentElement.style.zoom    = "1";
-    return () => {
-      document.body.style.overflow           = prevBodyOverflow;
-      document.documentElement.style.overflow = prevHtmlOverflow;
-      document.documentElement.style.zoom    = prevHtmlZoom;
-      window.scrollTo(0, savedScrollY);
-    };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
   }, []);
 
-  // Phím tắt (desktop only)
+  // Phím tắt
   useEffect(() => {
     const fn = (e) => {
-      if (e.key === "Escape")                           { resetZoom(); onClose(); }
-      if (e.key === "ArrowLeft")                        setIdx(i => (i - 1 + total) % total);
-      if (e.key === "ArrowRight")                       setIdx(i => (i + 1) % total);
-      if ((e.key === "+" || e.key === "=") && !isMob)   zoomIn();
-      if (e.key === "-" && !isMob)                      zoomOut();
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft")  setIdx(i => (i - 1 + total) % total);
+      if (e.key === "ArrowRight") setIdx(i => (i + 1) % total);
     };
     window.addEventListener("keydown", fn);
     return () => window.removeEventListener("keydown", fn);
-  }, [onClose, total, isMob]);
+  }, [onClose, total]);
 
-  const prev = () => { resetZoom(); setIdx(i => (i - 1 + total) % total); };
-  const next = () => { resetZoom(); setIdx(i => (i + 1) % total); };
+  const prev = () => setIdx(i => (i - 1 + total) % total);
+  const next = () => setIdx(i => (i + 1) % total);
 
-  // Touch swipe — chỉ chuyển ảnh, không zoom
-  const touchStartX = useRef(null);
-  const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
-  const onTouchEnd   = (e) => {
-    if (touchStartX.current === null) return;
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
+  // Touch swipe
+  const touchStart = useRef(null);
+  const onTouchStart = (e) => { touchStart.current = e.touches[0].clientX; };
+  const onTouchEnd = (e) => {
+    if (touchStart.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStart.current;
     if (Math.abs(dx) > 50) dx < 0 ? next() : prev();
-    touchStartX.current = null;
+    touchStart.current = null;
   };
-
-  const btnStyle = (disabled) => ({
-    width: 28, height: 28, borderRadius: "50%",
-    background: disabled ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.18)",
-    border: "1px solid rgba(255,255,255,0.22)",
-    color: disabled ? "rgba(255,255,255,0.25)" : "#fff",
-    fontSize: 14, cursor: disabled ? "default" : "pointer",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
-    flexShrink: 0, transition: "background .15s",
-  });
 
   return (
     <div
       onClick={onClose}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
-      onTouchMove={e => e.preventDefault()}
-      style={{
-        position: "fixed", inset: 0, width: "100vw", height: "100vh", zIndex: 2147483000,
-        background: "rgba(5,12,22,0.94)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        cursor: "default",
-        touchAction: "none",
-      }}>
+      style={{ position: "fixed", inset: 0, zIndex: 99999, background: "rgba(5,12,22,0.94)", display: "flex", alignItems: "center", justifyContent: "center" }}>
 
       {/* Ảnh chính */}
       <img
         src={cdnUrl(photos[idx].url, "full")}
         alt=""
         onClick={e => e.stopPropagation()}
-        draggable={false}
         style={{
-          maxWidth: isMob ? "92vw" : "72vw",
-          maxHeight: isMob ? "72vh" : "68vh",
-          width: "auto", height: "auto",
+          maxWidth: "92vw", maxHeight: "88vh",
           objectFit: "contain",
           borderRadius: 14,
           boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
           userSelect: "none",
           display: "block",
-          transform: isMob ? "none" : `scale(${zoom})`,
-          transformOrigin: "center center",
-          transition: "transform 0.2s ease",
         }}
         loading="eager"
       />
 
-      {/* Top bar: counter + zoom controls (desktop only) + đóng */}
+      {/* Counter */}
       <div onClick={e => e.stopPropagation()} style={{
-        position: "fixed", top: 14, left: 0, right: 0,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 14px",
-        pointerEvents: "none",
+        position: "fixed", top: 18, left: "50%", transform: "translateX(-50%)",
+        background: "rgba(5,12,22,0.70)", borderRadius: 99, padding: "5px 16px",
+        color: "#d4cab8", fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: 600, letterSpacing: 1,
+        backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
       }}>
-        {/* Counter */}
-        <div style={{
-          background: "rgba(5,12,22,0.70)", borderRadius: 99, padding: "5px 14px",
-          color: "#d4cab8", fontSize: 12, fontFamily: "system-ui,sans-serif",
-          fontWeight: 600, letterSpacing: 1,
-          backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
-          pointerEvents: "auto",
-        }}>
-          {idx + 1} / {total}
-        </div>
-
-        {/* Zoom controls — chỉ hiện trên desktop */}
-        {!isMob && (
-          <div style={{
-            display: "flex", alignItems: "center", gap: 6,
-            background: "rgba(5,12,22,0.70)", borderRadius: 99, padding: "5px 10px",
-            backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
-            pointerEvents: "auto",
-          }}>
-            <button onClick={e => { e.stopPropagation(); zoomOut(); }} disabled={zoom <= ZOOM_MIN} style={btnStyle(zoom <= ZOOM_MIN)} title="Thu nhỏ (-)">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/>
-              </svg>
-            </button>
-            <span onClick={e => { e.stopPropagation(); resetZoom(); }} title="Reset zoom" style={{
-              color: zoom > 1 ? "#c9a84c" : "#d4cab8",
-              fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif",
-              minWidth: 32, textAlign: "center", cursor: "pointer",
-              letterSpacing: 0.5, userSelect: "none",
-            }}>
-              {Math.round(zoom * 100)}%
-            </span>
-            <button onClick={e => { e.stopPropagation(); zoomIn(); }} disabled={zoom >= ZOOM_MAX} style={btnStyle(zoom >= ZOOM_MAX)} title="Phóng to (+)">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
-              </svg>
-            </button>
-          </div>
-        )}
-
-        {/* Nút đóng */}
-        <button onClick={e => { e.stopPropagation(); onClose(); }} style={{
-          ...btnStyle(false),
-          width: 28, height: 28, fontSize: 16,
-          background: "rgba(5,12,22,0.70)",
-          color: "#d4cab8",
-          pointerEvents: "auto",
-        }}>×</button>
+        {idx + 1} / {total}
       </div>
 
-      {/* Bottom bar: prev + thumbnails + next */}
+      {/* Nút đóng */}
+      <button onClick={onClose} style={{
+        position: "fixed", top: 14, right: 18,
+        width: 40, height: 40, borderRadius: "50%",
+        background: "rgba(5,12,22,0.70)", border: "1px solid rgba(255,255,255,0.15)",
+        color: "#d4cab8", fontSize: 22, lineHeight: 1,
+        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+        backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+      }}>×</button>
+
+      {/* Bottom bar: prev + thumbnails + next — gộp 1 hàng, không che nhau */}
       {total > 1 && (
         <div onClick={e => e.stopPropagation()} style={{
           position: "fixed", bottom: 0, left: 0, right: 0,
@@ -1824,6 +1740,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
           background: "linear-gradient(to top, rgba(5,12,22,0.90) 0%, transparent 100%)",
           zIndex: 10,
         }}>
+          {/* Nút trái */}
           <button onClick={e => { e.stopPropagation(); prev(); }} style={{
             flexShrink: 0, width: 38, height: 38, borderRadius: "50%",
             background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.20)",
@@ -1832,6 +1749,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
             backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
           }}>‹</button>
 
+          {/* Thumbnail strip */}
           <div style={{
             flex: 1, display: "flex", gap: 5, overflowX: "auto",
             scrollbarWidth: "none", WebkitOverflowScrolling: "touch",
@@ -1848,6 +1766,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
             ))}
           </div>
 
+          {/* Nút phải */}
           <button onClick={e => { e.stopPropagation(); next(); }} style={{
             flexShrink: 0, width: 38, height: 38, borderRadius: "50%",
             background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.20)",
@@ -1897,7 +1816,7 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
     <div id="feedback" className="home-section" style={{ padding: "72px 16px 64px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28,
       border: "none",
       boxShadow: "0 1px 0 rgba(255,255,255,0.55) inset, 0 -1px 0 rgba(13,27,42,0.08) inset, 0 4px 6px rgba(13,27,42,0.06) inset, 0 16px 64px rgba(5,17,31,0.20), 0 4px 18px rgba(5,17,31,0.12), 0 0 0 1px rgba(13,27,42,0.07)",
-      background: isMobile ? "linear-gradient(160deg, rgba(95,204,221,0.68) 0%, rgba(143,200,212,0.64) 100%)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", textAlign: "center" }}>
+      background: isMobile ? "rgba(255,255,255,0.62)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", textAlign: "center" }}>
       <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight: 700, letterSpacing: 1, margin: "0 0 14px", color: G, fontFamily: "var(--font-display)", textShadow: "0 1px 3px rgba(13,27,42,0.10)" }}>Feedback khách hàng</h2>
       <div style={{ width: 36, height: 1, background: G, margin: "0 auto 20px" }} />
       <div style={{ color: TXT, fontSize: 13, fontFamily: "var(--font-ui)", fontWeight: 500 }}>Chưa có feedback nào được duyệt</div>
@@ -1938,7 +1857,7 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
   );
 
   return (
-    <div id="feedback" className="home-section" style={{ padding: isMobile ? "48px 0 44px" : "72px 0 64px", margin: isMobile ? "16px 0" : "32px 20px", background: "transparent", boxShadow: "none", border: "none", position: "relative" }}>
+    <div id="feedback" className="home-section" style={{ padding: isMobile ? "48px 0 44px" : "72px 0 64px", margin: isMobile ? "16px 0" : "32px 20px", background: "transparent", boxShadow: "none", border: "none", overflow: "hidden", position: "relative" }}>
       <style>{`@keyframes marqueeRun{0%{transform:translateX(0)}100%{transform:translateX(-50%)}} .marquee-band{will-change:transform;} .gal-thumb:hover .gal-overlay{opacity:1!important;} .gal-thumb:hover img{transform:scale(1.06);}
       .fb-swipe-card{transition:transform .35s cubic-bezier(.25,.46,.45,.94),opacity .35s ease;}`}</style>
 
@@ -1978,7 +1897,7 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
 
       {/* ── DESKTOP: marquee ── */}
       {total > 0 && !isMobile && (
-      <div style={{ position: "relative", overflow: "hidden" }}
+      <div style={{ position: "relative" }}
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}>
         <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 80, background: "linear-gradient(to right,rgba(180,220,235,0.70),transparent)", zIndex: 2, pointerEvents: "none" }} />
@@ -5261,7 +5180,7 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
       <div id={id} className="home-section" style={{ padding: "72px 0 56px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28,
         border: "none",
         boxShadow: "0 1px 0 rgba(255,255,255,0.55) inset, 0 -1px 0 rgba(13,27,42,0.08) inset, 0 4px 6px rgba(13,27,42,0.06) inset, 0 16px 64px rgba(5,17,31,0.20), 0 4px 18px rgba(5,17,31,0.12), 0 0 0 1px rgba(13,27,42,0.07)",
-        background: isMobile ? "linear-gradient(160deg, rgba(95,204,221,0.68) 0%, rgba(143,200,212,0.64) 100%)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden" }}>
+        background: isMobile ? "rgba(255,255,255,0.62)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden" }}>
         <style>{`.cam-scroll::-webkit-scrollbar{display:none}.cam-scroll{-ms-overflow-style:none;scrollbar-width:none;}`}</style>
         <div style={{ padding: "0 16px 40px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
           <div>
@@ -5356,7 +5275,7 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
     <div id={id} className="home-section" style={{ padding: "96px 0 80px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28,
       border: "none",
       boxShadow: "0 1px 0 rgba(255,255,255,0.55) inset, 0 -1px 0 rgba(13,27,42,0.08) inset, 0 4px 6px rgba(13,27,42,0.06) inset, 0 16px 64px rgba(5,17,31,0.20), 0 4px 18px rgba(5,17,31,0.12), 0 0 0 1px rgba(13,27,42,0.07)",
-      background: isMobile ? "linear-gradient(160deg, rgba(95,204,221,0.68) 0%, rgba(143,200,212,0.64) 100%)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden", position: "relative" }}>
+      background: isMobile ? "rgba(255,255,255,0.62)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden", position: "relative" }}>
       <style>{`@keyframes scrollCam{0%{transform:translateX(-50%)}100%{transform:translateX(0)}}`}</style>
       <div style={{ position:"absolute", top:"50%", left:"50%", transform:"translate(-50%,-50%)", width:600, height:300, background:`radial-gradient(ellipse,${G}06,transparent 70%)`, pointerEvents:"none" }} />
 
@@ -6435,47 +6354,38 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         .acc-section {
           position:relative; overflow:hidden; border-radius:28px;
           border: none;
-          /* 3D depth: highlight trên, bóng dày dưới, viền bottom tối */
           box-shadow:
-            0 2px 0 rgba(255,255,255,0.70) inset,
-            0 -3px 0 rgba(13,27,42,0.18) inset,
-            0 1px 0 rgba(255,255,255,0.90) inset,
-            0 6px 0 rgba(255,255,255,0.12),
-            0 8px 0 rgba(5,17,31,0.10),
-            0 20px 80px rgba(5,17,31,0.28),
-            0 8px 24px rgba(5,17,31,0.18),
-            0 0 0 1px rgba(255,255,255,0.22),
-            0 1px 2px rgba(13,27,42,0.12);
-          transform: translateZ(0);
+            0 1px 0 rgba(255,255,255,0.55) inset,
+            0 -1px 0 rgba(13,27,42,0.08) inset,
+            0 4px 6px rgba(13,27,42,0.06) inset,
+            0 12px 60px rgba(5,17,31,0.18),
+            0 4px 16px rgba(5,17,31,0.10),
+            0 0 0 1px rgba(13,27,42,0.06);
         }
-        /* Top shimmer line dày hơn — ánh sáng từ trên */
+        /* Top shimmer line — thay border trắng cứng, trông tự nhiên hơn */
         .acc-section::after {
-          content:''; position:absolute; top:0; left:3%; right:3%; height:2px; z-index:10;
-          background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.60) 20%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0.60) 80%, transparent 100%);
-          pointer-events:none; border-radius:2px;
+          content:''; position:absolute; top:0; left:5%; right:5%; height:1px; z-index:10;
+          background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.72) 30%, rgba(255,255,255,0.88) 50%, rgba(255,255,255,0.72) 70%, transparent 100%);
+          pointer-events:none;
         }
         /* CSS class dùng chung cho tất cả section trang chủ */
         .home-section {
           border-radius: 28px;
           border: none;
           box-shadow:
-            0 2px 0 rgba(255,255,255,0.70) inset,
-            0 -3px 0 rgba(13,27,42,0.18) inset,
-            0 1px 0 rgba(255,255,255,0.90) inset,
-            0 6px 0 rgba(255,255,255,0.12),
-            0 8px 0 rgba(5,17,31,0.10),
-            0 24px 80px rgba(5,17,31,0.30),
-            0 8px 28px rgba(5,17,31,0.18),
-            0 0 0 1px rgba(255,255,255,0.22),
-            0 1px 2px rgba(13,27,42,0.12);
+            0 1px 0 rgba(255,255,255,0.55) inset,
+            0 -1px 0 rgba(13,27,42,0.08) inset,
+            0 4px 6px rgba(13,27,42,0.06) inset,
+            0 16px 64px rgba(5,17,31,0.20),
+            0 4px 18px rgba(5,17,31,0.12),
+            0 0 0 1px rgba(13,27,42,0.07);
           position: relative;
           overflow: hidden;
-          transform: translateZ(0);
         }
         .home-section::after {
-          content:''; position:absolute; top:0; left:3%; right:3%; height:2px; z-index:10;
-          background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.60) 20%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0.60) 80%, transparent 100%);
-          pointer-events:none; border-radius:2px;
+          content:''; position:absolute; top:0; left:5%; right:5%; height:1px; z-index:10;
+          background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.72) 30%, rgba(255,255,255,0.88) 50%, rgba(255,255,255,0.72) 70%, transparent 100%);
+          pointer-events:none;
         }
         .acc-section::before {
           content:''; position:absolute; inset:0;
@@ -6486,13 +6396,13 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         }
         @media (max-width: 768px) {
           .acc-section::before {
-            background: rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.55);
             backdrop-filter: none;
             -webkit-backdrop-filter: none;
           }
         }
         .acc-card {
-          background: rgba(255,255,255,0.22);
+          background: rgba(255,255,255,0.18);
           border: none;
           border-radius: 20px;
           padding: 22px 18px;
@@ -6502,56 +6412,40 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
           backdrop-filter: blur(20px) saturate(130%);
           -webkit-backdrop-filter: blur(20px) saturate(130%);
           position: relative; overflow: hidden;
-          /* 3D card: nổi hơn section, bóng sâu hơn */
           box-shadow:
-            0 2px 0 rgba(255,255,255,0.80) inset,
-            0 -4px 0 rgba(13,27,42,0.22) inset,
-            0 1px 0 rgba(255,255,255,0.95) inset,
-            0 6px 0 rgba(255,255,255,0.15),
-            0 8px 0 rgba(5,17,31,0.12),
-            0 16px 48px rgba(13,27,42,0.22),
-            0 6px 16px rgba(13,27,42,0.14),
-            0 0 0 1px rgba(255,255,255,0.30),
-            0 1px 2px rgba(13,27,42,0.10);
+            0 1px 0 rgba(255,255,255,0.55) inset,
+            0 -1px 0 rgba(13,27,42,0.10) inset,
+            0 2px 4px rgba(13,27,42,0.06) inset,
+            0 12px 40px rgba(13,27,42,0.16),
+            0 4px 12px rgba(13,27,42,0.10),
+            0 0 0 1px rgba(13,27,42,0.06);
         }
-        /* Highlight trên card */
         .acc-card::before {
-          content:''; position:absolute; top:0; left:6%; right:6%; height:2px;
-          background: linear-gradient(90deg,transparent,rgba(255,255,255,0.80) 30%,rgba(255,255,255,0.98) 50%,rgba(255,255,255,0.80) 70%,transparent);
-          border-radius:2px;
-        }
-        /* Viền bottom tối tạo chiều dày 3D */
-        .acc-card::after {
-          content:''; position:absolute; bottom:0; left:0; right:0; height:4px;
-          background: linear-gradient(180deg, transparent, rgba(5,17,31,0.14));
-          border-radius: 0 0 20px 20px;
-          pointer-events:none;
+          content:''; position:absolute; top:0; left:8%; right:8%; height:1px;
+          background: linear-gradient(90deg,transparent,rgba(255,255,255,0.80) 40%,rgba(255,255,255,0.95) 50%,rgba(255,255,255,0.80) 60%,transparent);
         }
         .acc-card:hover {
-          transform: translateY(-9px) scale(1.03);
+          transform: translateY(-7px) scale(1.025);
           box-shadow:
-            0 2px 0 rgba(255,255,255,0.85) inset,
-            0 -4px 0 rgba(13,27,42,0.20) inset,
-            0 1px 0 rgba(255,255,255,1.0) inset,
-            0 10px 0 rgba(255,255,255,0.18),
-            0 12px 0 rgba(5,17,31,0.14),
-            0 36px 80px rgba(13,27,42,0.30),
-            0 12px 32px rgba(13,27,42,0.20),
-            0 0 0 1px rgba(255,255,255,0.40);
-          background: rgba(255,255,255,0.88);
+            0 1px 0 rgba(255,255,255,0.60) inset,
+            0 -1px 0 rgba(13,27,42,0.10) inset,
+            0 2px 4px rgba(13,27,42,0.06) inset,
+            0 28px 72px rgba(13,27,42,0.24),
+            0 8px 24px rgba(13,27,42,0.16),
+            0 0 0 1px rgba(13,27,42,0.10);
+          background: rgba(255,255,255,0.82);
         }
         .acc-icon-wrap {
           width:48px; height:48px; border-radius:50%; margin:0 auto 16px;
-          background: linear-gradient(160deg, rgba(255,255,255,0.95) 0%, rgba(230,240,248,0.90) 100%);
+          background: rgba(255,255,255,0.80);
           border: none;
           display:flex; align-items:center; justify-content:center;
           font-size:20px;
           box-shadow:
-            0 2px 0 rgba(255,255,255,1.0) inset,
-            0 -2px 0 rgba(13,27,42,0.12) inset,
-            0 6px 18px rgba(13,27,42,0.18),
-            0 2px 6px rgba(13,27,42,0.12),
-            0 0 0 1px rgba(255,255,255,0.50);
+            0 1px 0 rgba(255,255,255,0.90) inset,
+            0 -1px 0 rgba(13,27,42,0.08) inset,
+            0 4px 14px rgba(13,27,42,0.12),
+            0 0 0 1px rgba(13,27,42,0.06);
         }
       `}</style>
       <div id="accessories" className="acc-section" style={{ padding: isMobile ? "52px 20px 64px" : "80px 72px 96px", margin: isMobile ? "20px 12px" : "32px 20px" }}>
@@ -6598,7 +6492,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       {/* ABOUT */}
       <div id="about" className="home-section" style={{ padding: isMobile ? "56px 16px 72px" : "80px 60px 100px", margin: isMobile ? "20px 12px" : "32px auto", maxWidth: isMobile ? "none" : 1100, textAlign: "center",
         border: "none",
-        borderRadius: 28, background: isMobile ? "linear-gradient(160deg, rgba(95,204,221,0.68) 0%, rgba(143,200,212,0.64) 100%)" : "rgba(150,203,219,0.25)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(0.97)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(0.97)",
+        borderRadius: 28, background: isMobile ? "rgba(255,255,255,0.62)" : "rgba(150,203,219,0.25)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(0.97)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(0.97)",
         boxShadow: "0 1px 0 rgba(255,255,255,0.55) inset, 0 -1px 0 rgba(13,27,42,0.08) inset, 0 4px 6px rgba(13,27,42,0.06) inset, 0 16px 64px rgba(5,17,31,0.20), 0 4px 18px rgba(5,17,31,0.12), 0 0 0 1px rgba(13,27,42,0.07)" }}>
         <div style={{ fontSize: 9, letterSpacing: 7, color: G, opacity: 0.55, marginBottom: 16, fontFamily: "var(--font-ui)", fontWeight: 700 }}>VỀ CHÚNG TÔI</div>
         <SecretTitle
@@ -7480,67 +7374,34 @@ function AdminNoteEditor({ order, setOrders }) {
 // ── ALBUM LIGHTBOX — xem hết ảnh trong album ──
 function AlbumLightbox({ album, onClose }) {
   const [idx, setIdx] = useState(0);
-  const [zoom, setZoom] = useState(1);
   const photos = album.photos || [];
   const isMob = window.innerWidth < 640;
 
-  const ZOOM_MIN = 1, ZOOM_MAX = 4, ZOOM_STEP = 0.5;
-
-  const resetZoom = () => setZoom(1);
-  const zoomIn    = () => setZoom(z => Math.min(ZOOM_MAX, parseFloat((z + ZOOM_STEP).toFixed(1))));
-  const zoomOut   = () => setZoom(z => Math.max(ZOOM_MIN, parseFloat((z - ZOOM_STEP).toFixed(1))));
-
-  useEffect(() => { resetZoom(); }, [idx]);
-
-  // Khoá scroll khi lightbox mở — lock cả body + html, khôi phục vị trí khi đóng
-  useEffect(() => {
-    const prevBodyOverflow = document.body.style.overflow;
-    const prevHtmlOverflow = document.documentElement.style.overflow;
-    const prevHtmlZoom     = document.documentElement.style.zoom;
-    const savedScrollY     = window.scrollY;
-    document.body.style.overflow           = "hidden";
-    document.documentElement.style.overflow = "hidden";
-    document.documentElement.style.zoom    = "1";
-    return () => {
-      document.body.style.overflow           = prevBodyOverflow;
-      document.documentElement.style.overflow = prevHtmlOverflow;
-      document.documentElement.style.zoom    = prevHtmlZoom;
-      window.scrollTo(0, savedScrollY);
-    };
-  }, []);
-
-  // Phím tắt (desktop only)
   useEffect(() => {
     const handleKey = (e) => {
-      if (e.key === "Escape")                          { resetZoom(); onClose(); }
-      if (e.key === "ArrowLeft")                       setIdx(i => (i - 1 + photos.length) % photos.length);
-      if (e.key === "ArrowRight")                      setIdx(i => (i + 1) % photos.length);
-      if ((e.key === "+" || e.key === "=") && !isMob)  zoomIn();
-      if (e.key === "-" && !isMob)                     zoomOut();
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft") setIdx(i => (i - 1 + photos.length) % photos.length);
+      if (e.key === "ArrowRight") setIdx(i => (i + 1) % photos.length);
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [photos.length, onClose, isMob]);
+  }, [photos.length, onClose]);
 
-  // Touch swipe — chỉ chuyển ảnh, không zoom
-  const touchStartX = useRef(null);
-  const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
-  const onTouchEnd   = (e) => {
-    if (touchStartX.current === null) return;
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
-    if (Math.abs(dx) > 40) { dx < 0 ? setIdx(i => (i + 1) % photos.length) : setIdx(i => (i - 1 + photos.length) % photos.length); }
-    touchStartX.current = null;
+  // Touch swipe
+  const touchStart = useRef(null);
+  const onTouchStart = (e) => { touchStart.current = e.touches[0].clientX; };
+  const onTouchEnd = (e) => {
+    if (touchStart.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStart.current;
+    if (Math.abs(dx) > 40) {
+      dx < 0
+        ? setIdx(i => (i + 1) % photos.length)
+        : setIdx(i => (i - 1 + photos.length) % photos.length);
+    }
+    touchStart.current = null;
   };
 
-  const btnZ = (disabled) => ({
-    width: 34, height: 34, borderRadius: "50%",
-    background: disabled ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.16)",
-    border: "1px solid rgba(255,255,255,0.20)",
-    color: disabled ? "rgba(255,255,255,0.25)" : "#fff",
-    fontSize: 16, cursor: disabled ? "default" : "pointer",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    flexShrink: 0, transition: "background .15s",
-  });
+  useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
   if (photos.length === 0) return null;
 
@@ -7549,27 +7410,17 @@ function AlbumLightbox({ album, onClose }) {
       onClick={onClose}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
-      onTouchMove={e => e.preventDefault()}
-      style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh", background: "rgba(5,12,22,0.97)", zIndex: 2147483000, display: "flex", flexDirection: "column", cursor: "default", touchAction: "none" }}
+      style={{ position: "fixed", inset: 0, background: "rgba(5,12,22,0.97)", zIndex: 9999, display: "flex", flexDirection: "column" }}
     >
-      <button onClick={e => { e.stopPropagation(); onClose(); }} style={{
-        position: "absolute", top: isMob ? 12 : 18, right: isMob ? 34 : 64, zIndex: 20,
-        background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.24)",
-        borderRadius: "50%", width: isMob ? 34 : 40, height: isMob ? 34 : 40,
-        color: "#fff", cursor: "pointer", fontSize: isMob ? 16 : 19,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
-      }}>✕</button>
-
-      {/* ── HEADER: tên album + zoom controls (desktop only) + đóng ── */}
+      {/* ── HEADER gọn ── */}
       <div onClick={e => e.stopPropagation()} style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: isMob ? "14px 82px 10px 12px" : "16px 76px 12px 20px",
+        padding: isMob ? "14px 16px 10px" : "16px 24px 12px",
         background: "linear-gradient(to bottom, rgba(5,12,22,0.90) 0%, transparent 100%)",
-        flexShrink: 0, gap: 8,
+        flexShrink: 0,
       }}>
         {/* Tên + tag */}
-        <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ minWidth: 0, flex: 1, marginRight: 12 }}>
           <div style={{ color: "#fff", fontWeight: 700, fontSize: isMob ? 14 : 16, fontFamily: "var(--font-display)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {album.name}
           </div>
@@ -7580,33 +7431,21 @@ function AlbumLightbox({ album, onClose }) {
             </div>
           )}
         </div>
-
-        {/* Zoom controls + counter */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-          {/* Zoom bar — chỉ hiện trên desktop */}
-          {!isMob && (
-            <div style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(5,12,22,0.60)", borderRadius: 99, padding: "4px 8px", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }}>
-              <button onClick={e => { e.stopPropagation(); zoomOut(); }} disabled={zoom <= ZOOM_MIN} style={btnZ(zoom <= ZOOM_MIN)} title="Thu nhỏ (-)">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-              </button>
-              <span onClick={e => { e.stopPropagation(); resetZoom(); }} title="Reset zoom"
-                style={{ color: zoom > 1 ? "#c9a84c" : "rgba(255,255,255,0.55)", fontSize: 10, fontWeight: 700, fontFamily: "system-ui,sans-serif", minWidth: 30, textAlign: "center", cursor: "pointer", userSelect: "none" }}>
-                {Math.round(zoom * 100)}%
-              </span>
-              <button onClick={e => { e.stopPropagation(); zoomIn(); }} disabled={zoom >= ZOOM_MAX} style={btnZ(zoom >= ZOOM_MAX)} title="Phóng to (+)">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-              </button>
-            </div>
-          )}
-
-          {/* Counter */}
+        {/* Counter + X */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
           <span style={{ color: "rgba(255,255,255,0.40)", fontSize: isMob ? 11 : 12, fontFamily: "var(--font-ui)", letterSpacing: 1 }}>
             {idx + 1} / {photos.length}
           </span>
+          <button onClick={onClose} style={{
+            background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.15)",
+            borderRadius: "50%", width: isMob ? 32 : 36, height: isMob ? 32 : 36,
+            color: "#fff", cursor: "pointer", fontSize: isMob ? 15 : 17,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>✕</button>
         </div>
       </div>
 
-      {/* ── ẢNH CHÍNH ── */}
+      {/* ── ẢNH CHÍNH — flex-grow chiếm hết không gian giữa ── */}
       <div onClick={e => e.stopPropagation()} style={{
         flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
         overflow: "hidden", padding: isMob ? "0 8px" : "0 16px",
@@ -7614,18 +7453,12 @@ function AlbumLightbox({ album, onClose }) {
         <img
           src={cdnUrl(photos[idx].url, "full")}
           alt=""
-          draggable={false}
           style={{
-            maxWidth: isMob ? "92vw" : "72vw",
-            maxHeight: isMob ? "72vh" : "68vh",
-            width: "auto", height: "auto",
+            maxWidth: "100%", maxHeight: "100%",
             borderRadius: isMob ? 12 : 16,
             objectFit: "contain",
             boxShadow: "0 24px 80px rgba(0,0,0,0.60)",
             userSelect: "none", display: "block",
-            transform: isMob ? "none" : `scale(${zoom})`,
-            transformOrigin: "center center",
-            transition: "transform 0.2s ease",
           }}
           loading="eager"
         />
@@ -7635,24 +7468,32 @@ function AlbumLightbox({ album, onClose }) {
       {photos.length > 1 && (
         <div onClick={e => e.stopPropagation()} style={{
           display: "flex", alignItems: "center", gap: isMob ? 8 : 12,
-          padding: isMob ? "10px 26px 20px 12px" : "12px 72px 20px 24px",
+          padding: isMob ? "10px 12px 20px" : "12px 24px 20px",
           background: "linear-gradient(to top, rgba(5,12,22,0.90) 0%, transparent 100%)",
           flexShrink: 0,
         }}>
-          <button onClick={() => { resetZoom(); setIdx(i => (i - 1 + photos.length) % photos.length); }} style={{
+          {/* Nút prev */}
+          <button onClick={() => setIdx(i => (i - 1 + photos.length) % photos.length)} style={{
             flexShrink: 0, width: isMob ? 34 : 40, height: isMob ? 34 : 40, borderRadius: "50%",
             background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)",
             color: "#fff", fontSize: isMob ? 18 : 20, cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>‹</button>
 
-          <div style={{ flex: 1, display: "flex", gap: isMob ? 6 : 8, overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", padding: "2px 0" }}>
+          {/* Thumbnail strip */}
+          <div style={{
+            flex: 1, display: "flex", gap: isMob ? 6 : 8,
+            overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch",
+            padding: "2px 0",
+          }}>
             {photos.map((p, i) => (
               <div key={p.id || i} onClick={() => setIdx(i)} style={{
-                flexShrink: 0, width: isMob ? 44 : 52, height: isMob ? 44 : 52,
+                flexShrink: 0,
+                width: isMob ? 44 : 52, height: isMob ? 44 : 52,
                 borderRadius: isMob ? 8 : 10, overflow: "hidden", cursor: "pointer",
                 border: i === idx ? "2px solid #c9a84c" : "2px solid rgba(255,255,255,0.10)",
-                opacity: i === idx ? 1 : 0.45, transition: "all .2s ease",
+                opacity: i === idx ? 1 : 0.45,
+                transition: "all .2s ease",
                 transform: i === idx ? "scale(1.08)" : "scale(1)",
               }}>
                 <img src={cdnUrl(p.url, "thumb")} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
@@ -7660,12 +7501,12 @@ function AlbumLightbox({ album, onClose }) {
             ))}
           </div>
 
-          <button onClick={() => { resetZoom(); setIdx(i => (i + 1) % photos.length); }} style={{
+          {/* Nút next */}
+          <button onClick={() => setIdx(i => (i + 1) % photos.length)} style={{
             flexShrink: 0, width: isMob ? 34 : 40, height: isMob ? 34 : 40, borderRadius: "50%",
             background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)",
             color: "#fff", fontSize: isMob ? 18 : 20, cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
-            marginRight: isMob ? 8 : 14,
           }}>›</button>
         </div>
       )}
@@ -10650,63 +10491,29 @@ function AppRoot() {
         html { -webkit-overflow-scrolling: touch; }
         .cv-section { content-visibility: auto; contain-intrinsic-size: 0 600px; }
         @media (max-width: 900px) {
-          /* Mobile: tắt backdrop-filter, dùng màu cyan solid + 3D shadow nổi */
+          /* Mobile: tắt backdrop-filter trên toàn bộ section lớn,
+             thay bằng màu solid đồng nhất giống web khi blur hoạt động */
           #cameras, #accessories, #about, #feedback, #quy-trinh,
           .acc-section, .section-main, .home-section {
-            background: linear-gradient(
-              170deg,
-              rgba(140,215,228,0.88) 0%,
-              rgba(95,190,210,0.82) 40%,
-              rgba(75,175,200,0.78) 100%
-            ) !important;
+            background: rgba(255,255,255,0.55) !important;
             -webkit-backdrop-filter: none !important;
             backdrop-filter: none !important;
             border: none !important;
-            /* Layered 3D shadow: highlight trên + bóng dày dưới + ambient */
             box-shadow:
-              0 3px 0 rgba(255,255,255,0.72) inset,
-              0 -5px 0 rgba(5,60,80,0.28) inset,
-              0 1px 0 rgba(255,255,255,0.95) inset,
-              0 10px 0 rgba(255,255,255,0.14),
-              0 12px 0 rgba(5,50,70,0.14),
-              0 28px 60px rgba(5,40,60,0.38),
-              0 10px 28px rgba(5,40,60,0.24),
-              0 0 0 1px rgba(255,255,255,0.30),
-              0 2px 4px rgba(5,40,60,0.16) !important;
-            /* Đẩy lên nhẹ để thấy chiều sâu */
-            margin-bottom: 4px;
-          }
-          /* Dải sáng trên section trên mobile */
-          .acc-section::after,
-          .home-section::after {
-            height: 2px !important;
-            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.55) 15%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0.55) 85%, transparent 100%) !important;
+              0 1px 0 rgba(255,255,255,0.55) inset,
+              0 -1px 0 rgba(13,27,42,0.08) inset,
+              0 4px 6px rgba(13,27,42,0.06) inset,
+              0 10px 48px rgba(5,17,31,0.16),
+              0 3px 12px rgba(5,17,31,0.10),
+              0 0 0 1px rgba(13,27,42,0.05) !important;
           }
           .acc-section::before {
-            background: linear-gradient(170deg, rgba(160,225,235,0.25) 0%, rgba(95,190,210,0.15) 100%) !important;
+            background: rgba(255,255,255,0.55) !important;
             -webkit-backdrop-filter: none !important;
             backdrop-filter: none !important;
-          }
-          /* Card phụ kiện trên mobile — nổi rõ hơn */
-          .acc-card {
-            background: linear-gradient(160deg, rgba(255,255,255,0.55) 0%, rgba(230,245,250,0.45) 100%) !important;
-            -webkit-backdrop-filter: none !important;
-            backdrop-filter: none !important;
-            box-shadow:
-              0 2px 0 rgba(255,255,255,0.90) inset,
-              0 -4px 0 rgba(5,60,80,0.22) inset,
-              0 1px 0 rgba(255,255,255,1.0) inset,
-              0 6px 0 rgba(255,255,255,0.20),
-              0 8px 0 rgba(5,50,70,0.12),
-              0 14px 36px rgba(5,40,60,0.24),
-              0 4px 12px rgba(5,40,60,0.16),
-              0 0 0 1px rgba(255,255,255,0.50) !important;
           }
           footer {
-            background: rgba(60,160,185,0.82) !important;
-            box-shadow:
-              0 -4px 0 rgba(5,60,80,0.20) inset,
-              0 -20px 48px rgba(5,40,60,0.20) !important;
+            background: rgba(143,200,212,0.55) !important;
             -webkit-backdrop-filter: none !important;
             backdrop-filter: none !important;
           }
@@ -10769,14 +10576,15 @@ function AppRoot() {
           will-change: padding;
         }
         .nav-inner{
-          background: linear-gradient(160deg, rgba(255,255,255,0.26) 0%, rgba(230,228,224,0.16) 60%, rgba(200,198,195,0.12) 100%);
-          border: 1px solid rgba(255,255,255,0.38);
+          background: linear-gradient(160deg, rgba(255,255,255,0.32) 0%, rgba(230,228,224,0.22) 60%, rgba(200,198,195,0.18) 100%);
+          border: 1.5px solid rgba(255,255,255,0.72);
           border-radius: 50px;
           box-shadow:
-            0 1px 0 rgba(255,255,255,0.50) inset,
-            0 -1px 0 rgba(0,0,0,0.04) inset,
-            0 6px 28px rgba(0,0,0,0.09),
-            0 2px 8px rgba(0,0,0,0.05);
+            0 1px 0 rgba(255,255,255,0.90) inset,
+            0 -1px 0 rgba(0,0,0,0.06) inset,
+            0 8px 40px rgba(0,0,0,0.14),
+            0 2px 12px rgba(0,0,0,0.08),
+            0 0 0 1px rgba(255,255,255,0.18);
           backdrop-filter: blur(28px) saturate(160%) brightness(1.04);
           -webkit-backdrop-filter: blur(28px) saturate(160%) brightness(1.04);
           transition: height .4s cubic-bezier(.4,0,.2,1),
@@ -10798,24 +10606,26 @@ function AppRoot() {
           user-select: none;
         }
         .nav-inner.scrolled{
-          background: linear-gradient(160deg, rgba(245,245,245,0.30) 0%, rgba(215,213,210,0.20) 100%);
+          background: linear-gradient(160deg, rgba(245,245,245,0.38) 0%, rgba(215,213,210,0.26) 100%);
           border-radius: 50px;
-          border-color: rgba(255,255,255,0.42);
+          border-color: rgba(255,255,255,0.80);
           box-shadow:
-            0 1px 0 rgba(255,255,255,0.55) inset,
-            0 -1px 0 rgba(0,0,0,0.04) inset,
-            0 8px 36px rgba(0,0,0,0.09),
-            0 3px 12px rgba(0,0,0,0.06);
+            0 1px 0 rgba(255,255,255,0.90) inset,
+            0 -1px 0 rgba(0,0,0,0.05) inset,
+            0 12px 48px rgba(0,0,0,0.12),
+            0 4px 16px rgba(0,0,0,0.07),
+            0 0 0 1px rgba(255,255,255,0.22);
           backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
           -webkit-backdrop-filter: blur(32px) saturate(170%) brightness(1.05);
         }
         .nav-inner.compact{
-          background: linear-gradient(160deg, rgba(240,238,235,0.30) 0%, rgba(210,208,205,0.18) 100%);
+          background: linear-gradient(160deg, rgba(240,238,235,0.40) 0%, rgba(210,208,205,0.26) 100%);
           border-radius: 50px;
-          border-color: rgba(255,255,255,0.38);
+          border-color: rgba(255,255,255,0.72);
           box-shadow:
-            0 1px 0 rgba(255,255,255,0.48) inset,
-            0 3px 16px rgba(0,0,0,0.08);
+            0 1px 0 rgba(255,255,255,0.88) inset,
+            0 4px 20px rgba(0,0,0,0.10),
+            0 0 0 1px rgba(255,255,255,0.18);
           opacity: 0.98;
           backdrop-filter: blur(32px) saturate(160%) brightness(1.04);
           -webkit-backdrop-filter: blur(32px) saturate(160%) brightness(1.04);
