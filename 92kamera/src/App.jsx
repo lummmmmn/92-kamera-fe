@@ -1678,9 +1678,12 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
   // Khoá scroll body khi lightbox mở
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
+    const prevHtmlZoom = document.documentElement.style.zoom;
     document.body.style.overflow = "hidden";
+    document.documentElement.style.zoom = "1";
     return () => {
       document.body.style.overflow = prevOverflow;
+      document.documentElement.style.zoom = prevHtmlZoom;
     };
   }, []);
 
@@ -1989,7 +1992,7 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
   );
 
   return (
-    <div id="feedback" className="home-section" style={{ padding: isMobile ? "48px 0 44px" : "72px 0 64px", margin: isMobile ? "16px 0" : "32px 20px", background: "transparent", boxShadow: "none", border: "none", overflow: "hidden", position: "relative" }}>
+    <div id="feedback" className="home-section" style={{ padding: isMobile ? "48px 0 44px" : "72px 0 64px", margin: isMobile ? "16px 0" : "32px 20px", background: "transparent", boxShadow: "none", border: "none", position: "relative" }}>
       <style>{`@keyframes marqueeRun{0%{transform:translateX(0)}100%{transform:translateX(-50%)}} .marquee-band{will-change:transform;} .gal-thumb:hover .gal-overlay{opacity:1!important;} .gal-thumb:hover img{transform:scale(1.06);}
       .fb-swipe-card{transition:transform .35s cubic-bezier(.25,.46,.45,.94),opacity .35s ease;}`}</style>
 
@@ -2029,7 +2032,7 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
 
       {/* ── DESKTOP: marquee ── */}
       {total > 0 && !isMobile && (
-      <div style={{ position: "relative" }}
+      <div style={{ position: "relative", overflow: "hidden" }}
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}>
         <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 80, background: "linear-gradient(to right,rgba(180,220,235,0.70),transparent)", zIndex: 2, pointerEvents: "none" }} />
@@ -7550,9 +7553,12 @@ function AlbumLightbox({ album, onClose }) {
   useEffect(() => { resetZoom(); }, [idx]);
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
+    const prevHtmlZoom = document.documentElement.style.zoom;
     document.body.style.overflow = "hidden";
+    document.documentElement.style.zoom = "1";
     return () => {
       document.body.style.overflow = prevOverflow;
+      document.documentElement.style.zoom = prevHtmlZoom;
     };
   }, []);
 
