@@ -1678,22 +1678,15 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
   // Khoá scroll body khi lightbox mở — lưu scrollY để restore đúng vị trí
   useEffect(() => {
     const scrollY = window.scrollY;
-    const prevPosition = document.body.style.position;
-    const prevTop      = document.body.style.top;
-    const prevLeft     = document.body.style.left;
-    const prevRight    = document.body.style.right;
-    const prevWidth    = document.body.style.width;
-    document.body.style.position = "fixed";
-    document.body.style.top      = `-${scrollY}px`;
-    document.body.style.left     = "0";
-    document.body.style.right    = "0";
-    document.body.style.width    = "100%";
+    // Bù scrollbar width để tránh layout shift khi ẩn scrollbar
+    const sbWidth = window.innerWidth - document.documentElement.clientWidth;
+    const prevOverflow      = document.body.style.overflow;
+    const prevPaddingRight  = document.body.style.paddingRight;
+    document.body.style.overflow     = "hidden";
+    document.body.style.paddingRight = sbWidth > 0 ? `${sbWidth}px` : "";
     return () => {
-      document.body.style.position = prevPosition;
-      document.body.style.top      = prevTop;
-      document.body.style.left     = prevLeft;
-      document.body.style.right    = prevRight;
-      document.body.style.width    = prevWidth;
+      document.body.style.overflow     = prevOverflow;
+      document.body.style.paddingRight = prevPaddingRight;
       window.scrollTo(0, scrollY);
     };
   }, []);
@@ -7564,22 +7557,14 @@ function AlbumLightbox({ album, onClose }) {
   useEffect(() => { resetZoom(); }, [idx]);
   useEffect(() => {
     const scrollY = window.scrollY;
-    const prevPosition = document.body.style.position;
-    const prevTop      = document.body.style.top;
-    const prevLeft     = document.body.style.left;
-    const prevRight    = document.body.style.right;
-    const prevWidth    = document.body.style.width;
-    document.body.style.position = "fixed";
-    document.body.style.top      = `-${scrollY}px`;
-    document.body.style.left     = "0";
-    document.body.style.right    = "0";
-    document.body.style.width    = "100%";
+    const sbWidth = window.innerWidth - document.documentElement.clientWidth;
+    const prevOverflow      = document.body.style.overflow;
+    const prevPaddingRight  = document.body.style.paddingRight;
+    document.body.style.overflow     = "hidden";
+    document.body.style.paddingRight = sbWidth > 0 ? `${sbWidth}px` : "";
     return () => {
-      document.body.style.position = prevPosition;
-      document.body.style.top      = prevTop;
-      document.body.style.left     = prevLeft;
-      document.body.style.right    = prevRight;
-      document.body.style.width    = prevWidth;
+      document.body.style.overflow     = prevOverflow;
+      document.body.style.paddingRight = prevPaddingRight;
       window.scrollTo(0, scrollY);
     };
   }, []);
@@ -7648,7 +7633,7 @@ function AlbumLightbox({ album, onClose }) {
       {/* ── HEADER: tên album + zoom controls + đóng ── */}
       <div onClick={e => e.stopPropagation()} style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: isMob ? "14px 82px 10px 12px" : "16px 76px 12px 20px",
+        padding: isMob ? "14px 12px 10px 12px" : "16px 24px 12px 24px",
         background: "linear-gradient(to bottom, rgba(5,12,22,0.90) 0%, transparent 100%)",
         flexShrink: 0, gap: 8,
       }}>
@@ -7727,7 +7712,7 @@ function AlbumLightbox({ album, onClose }) {
       {photos.length > 1 && (
         <div onClick={e => e.stopPropagation()} style={{
           display: "flex", alignItems: "center", gap: isMob ? 8 : 12,
-          padding: isMob ? "10px 26px 20px 12px" : "12px 72px 20px 24px",
+          padding: isMob ? "10px 12px 20px 12px" : "12px 24px 20px 24px",
           background: "linear-gradient(to top, rgba(5,12,22,0.90) 0%, transparent 100%)",
           flexShrink: 0,
         }}>
@@ -7757,7 +7742,6 @@ function AlbumLightbox({ album, onClose }) {
             background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)",
             color: "#fff", fontSize: isMob ? 18 : 20, cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
-            marginRight: isMob ? 8 : 14,
           }}>›</button>
         </div>
       )}
