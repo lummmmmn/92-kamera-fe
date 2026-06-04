@@ -1936,10 +1936,10 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
             return (
               <div style={{
                 display: "grid",
-                gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
-                gridTemplateRows: isMobile ? "auto" : "1fr 1fr",
+                gridTemplateColumns: isMobile ? "1fr" : (showAllAlbums ? "1fr 1fr 1fr" : "1fr 1fr"),
+                gridTemplateRows: isMobile ? "auto" : (showAllAlbums ? "auto" : "1fr 1fr"),
                 gap: isMobile ? 10 : 14,
-                height: isMobile ? "auto" : 480,
+                height: isMobile ? "auto" : (showAllAlbums ? "auto" : 480),
               }}>
                 {/* Ảnh lớn bên trái */}
                 {big && (
@@ -1948,7 +1948,7 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
                     className="gal-thumb"
                     onClick={() => setOpenAlbum(big)}
                     style={{
-                      gridRow: isMobile ? "auto" : "1 / 3",
+                      gridRow: (isMobile || showAllAlbums) ? "auto" : "1 / 3",
                       position: "relative", borderRadius: isMobile ? 18 : 24, overflow: "hidden",
                       cursor: "pointer", background: "rgba(13,27,42,0.08)",
                       boxShadow: "0 4px 28px rgba(5,17,31,0.18)",
@@ -3071,12 +3071,12 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                         {f.status === "approved" ? "✓ Đã duyệt" : f.status === "rejected" ? "✕ Từ chối" : "⏳ Chờ duyệt"}
                       </span>
                     </div>
-                    {f.text && <div style={{ color: "#0d1f2e", fontSize: 13, lineHeight: 1.6, marginBottom: 12, fontStyle: "italic", fontWeight: 600 }}>"{f.text}"</div>}
+                    {f.text && <div style={{ color: TXT, fontSize: 13, lineHeight: 1.6, marginBottom: 12, fontStyle: "italic" }}>"{f.text}"</div>}
                     {f.status === "approved" && !f.hidden && (
-                      <div style={{ marginTop: 10, fontSize: 10, color: "#166534", fontWeight: 600, fontFamily: "system-ui,sans-serif" }}>✨ Đang hiển thị trên trang chủ</div>
+                      <div style={{ marginTop: 10, fontSize: 10, color: "#22c55e66", fontFamily: "system-ui,sans-serif" }}>✨ Đang hiển thị trên trang chủ</div>
                     )}
                     {f.status === "pending" && (
-                      <div style={{ marginTop: 10, fontSize: 10, color: "#1a3a55", fontFamily: "system-ui,sans-serif" }}>
+                      <div style={{ marginTop: 10, fontSize: 10, color: MUT, fontFamily: "system-ui,sans-serif" }}>
                         ✏️ Chờ admin duyệt · <button onClick={() => { const o = myOrders.find(ord => ord.id === f.orderId); if (o) setFbOrder(o); }} style={{ background: "none", border: "none", color: G, cursor: "pointer", fontSize: 10, fontFamily: "system-ui,sans-serif", padding: 0, fontWeight: 700, textDecoration: "underline" }}>Sửa đánh giá</button>
                       </div>
                     )}
