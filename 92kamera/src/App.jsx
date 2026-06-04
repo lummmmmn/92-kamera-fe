@@ -3060,20 +3060,20 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                       <div>
                         <div style={{ color: G, fontSize: 13, fontWeight: 700, marginBottom: 3 }}>{"★".repeat(f.rating)}<span style={{ color: "#333" }}>{"★".repeat(5 - f.rating)}</span></div>
-                        <div style={{ color: "#1a3a55", fontSize: 11, fontWeight: 600 }}>📷 {f.cameraName} · {f.date}</div>
+                        <div style={{ color: MUT, fontSize: 11 }}>📷 {f.cameraName} · {f.date}</div>
                       </div>
                       <span style={{
                         padding: "3px 12px", borderRadius: 99, fontSize: 10, fontWeight: 700,
                         background: f.status === "approved" ? "#22c55e22" : f.status === "rejected" ? "#ef444422" : "#60a5fa22",
-                        color: f.status === "approved" ? "#166534" : f.status === "rejected" ? "#991b1b" : "#1e40af",
+                        color: f.status === "approved" ? "#22c55e" : f.status === "rejected" ? "#ef4444" : "#60a5fa",
                         border: `1px solid ${f.status === "approved" ? "#22c55e44" : f.status === "rejected" ? "#ef444444" : "#60a5fa44"}`
                       }}>
                         {f.status === "approved" ? "✓ Đã duyệt" : f.status === "rejected" ? "✕ Từ chối" : "⏳ Chờ duyệt"}
                       </span>
                     </div>
-                    {f.text && <div style={{ color: "#0d1f30", fontSize: 13, lineHeight: 1.6, marginBottom: 12, fontStyle: "italic", fontWeight: 500 }}>"{f.text}"</div>}
+                    {f.text && <div style={{ color: "#0d1f2e", fontSize: 13, lineHeight: 1.6, marginBottom: 12, fontStyle: "italic", fontWeight: 600 }}>"{f.text}"</div>}
                     {f.status === "approved" && !f.hidden && (
-                      <div style={{ marginTop: 10, fontSize: 10, color: "#22c55e66", fontFamily: "system-ui,sans-serif" }}>✨ Đang hiển thị trên trang chủ</div>
+                      <div style={{ marginTop: 10, fontSize: 10, color: "#166534", fontWeight: 600, fontFamily: "system-ui,sans-serif" }}>✨ Đang hiển thị trên trang chủ</div>
                     )}
                     {f.status === "pending" && (
                       <div style={{ marginTop: 10, fontSize: 10, color: "#1a3a55", fontFamily: "system-ui,sans-serif" }}>
