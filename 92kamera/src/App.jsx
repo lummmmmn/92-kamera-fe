@@ -8327,7 +8327,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   // Mark orders as seen when entering orders tab
   useEffect(() => {
     if (tab === "orders") {
-      setOrders(prev => prev.map(o => ({ ...o, seen: true })));
+      setOrders(prev => prev.map(o => ({ ...o, seen: true })), { skipStorage: true });
     }
     if (tab === "media") {
       setPhotos(prev => prev.map(p => ({ ...p, seen: true })));
@@ -9054,7 +9054,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
                         <span style={{ padding: "3px 10px", background: CARD, border: `1px solid ${BR2}`, borderRadius: 99, color: TXT, fontSize: 11 }}>📷 {o.cameraName}</span>
                         {(() => { const sess = o.session || o.shift; return (sess === "morning" || sess === "afternoon") ? <span style={{ padding: "3px 10px", background: sess === "morning" ? "#0a0800" : "#080010", border: `1px solid ${sess === "morning" ? "#f59e0b44" : "#818cf844"}`, borderRadius: 99, color: sess === "morning" ? "#f59e0b" : "#818cf8", fontSize: 11 }}>{sess === "morning" ? "🌅 Ca sáng 6h–12h" : "🌇 Ca chiều 14h–20h"}</span> : null; })()}
-                        {o.accessories.map(a => <span key={a} style={{ padding: "3px 10px", background: CARD, border: `1px solid ${BR2}`, borderRadius: 99, color: MUT, fontSize: 11 }}>{a}</span>)}
+                        {(o.accessories || []).map(a => <span key={a} style={{ padding: "3px 10px", background: CARD, border: `1px solid ${BR2}`, borderRadius: 99, color: MUT, fontSize: 11 }}>{a}</span>)}
                       </div>
 
                       {/* Giờ nhận / giờ trả */}
@@ -9677,8 +9677,8 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
             setDiscForm({ code: d.code, type: d.type, value: String(d.value), minOrder: d.minOrder ? String(d.minOrder) : "", maxUse: d.maxUse ? String(d.maxUse) : "", active: d.active, requiredBadge: d.requiredBadge || "none" });
             setDiscMsg(null);
           };
-          const deleteDisc = (id) => setDiscounts(prev => prev.filter(d => d.id !== id));
-          const toggleActive = (id) => setDiscounts(prev => prev.map(d => d.id === id ? { ...d, active: !d.active } : d));
+          const deleteDisc = (id) => { setDiscounts(prev => prev.filter(d => d.id !== id)); window.__92k_invalidateStaticCache?.(); };
+          const toggleActive = (id) => { setDiscounts(prev => prev.map(d => d.id === id ? { ...d, active: !d.active } : d)); window.__92k_invalidateStaticCache?.(); };
 
           return (
             <div>
