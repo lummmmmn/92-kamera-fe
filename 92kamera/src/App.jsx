@@ -390,7 +390,7 @@ const STATUS_CFG = {
   pending: { label: "Đang nhận đơn", color: "#60a5fa" },
   confirmed: { label: "Đã xác nhận", color: "#a78bfa" },
   active: { label: "Đang thuê", color: "#f59e0b" },
-  completed: { label: "Hoàn thành", color: "#22c55e" },
+  completed: { label: "Hoàn thành", color: "#0e7490" },
   cancelled: { label: "Đã huỷ", color: "#6b7280" },
 };
 const ORDER_STATUSES = { pending: "Đang nhận đơn", confirmed: "Đã xác nhận", active: "Đang thuê", completed: "Hoàn thành", cancelled: "Huỷ đơn" };
@@ -405,7 +405,7 @@ const btn = (variant = "gold") => ({
 // ── BADGE ──
 function Badge({ status }) {
   const c = STATUS_CFG[status] || { label: status, color: "#888" };
-  return <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: c.color + "22", color: c.color, border: `1px solid ${c.color}44`, whiteSpace: "nowrap", letterSpacing: .5 }}>{c.label}</span>;
+  return <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: c.color + "20", color: c.color, border: `1px solid ${c.color}80`, whiteSpace: "nowrap", letterSpacing: .5 }}>{c.label}</span>;
 }
 
 // ── ORDER LOOKUP WIDGET ──
@@ -3060,23 +3060,23 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                       <div>
                         <div style={{ color: G, fontSize: 13, fontWeight: 700, marginBottom: 3 }}>{"★".repeat(f.rating)}<span style={{ color: "#333" }}>{"★".repeat(5 - f.rating)}</span></div>
-                        <div style={{ color: MUT, fontSize: 11 }}>📷 {f.cameraName} · {f.date}</div>
+                        <div style={{ color: "#1e3a4a", fontSize: 11, fontWeight: 600 }}>📷 {f.cameraName} · {f.date}</div>
                       </div>
                       <span style={{
                         padding: "3px 12px", borderRadius: 99, fontSize: 10, fontWeight: 700,
-                        background: f.status === "approved" ? "#22c55e22" : f.status === "rejected" ? "#ef444422" : "#60a5fa22",
-                        color: f.status === "approved" ? "#22c55e" : f.status === "rejected" ? "#ef4444" : "#60a5fa",
-                        border: `1px solid ${f.status === "approved" ? "#22c55e44" : f.status === "rejected" ? "#ef444444" : "#60a5fa44"}`
+                        background: f.status === "approved" ? "#d1fae5" : f.status === "rejected" ? "#fee2e2" : "#dbeafe",
+                        color: f.status === "approved" ? "#065f46" : f.status === "rejected" ? "#991b1b" : "#1e40af",
+                        border: `1px solid ${f.status === "approved" ? "#059669" : f.status === "rejected" ? "#dc2626" : "#3b82f6"}`
                       }}>
                         {f.status === "approved" ? "✓ Đã duyệt" : f.status === "rejected" ? "✕ Từ chối" : "⏳ Chờ duyệt"}
                       </span>
                     </div>
-                    {f.text && <div style={{ color: TXT, fontSize: 13, lineHeight: 1.6, marginBottom: 12, fontStyle: "italic" }}>"{f.text}"</div>}
+                    {f.text && <div style={{ color: "#0d1f2e", fontSize: 13, lineHeight: 1.6, marginBottom: 12, fontStyle: "italic", fontWeight: 600 }}>"{f.text}"</div>}
                     {f.status === "approved" && !f.hidden && (
-                      <div style={{ marginTop: 10, fontSize: 10, color: "#22c55e66", fontFamily: "system-ui,sans-serif" }}>✨ Đang hiển thị trên trang chủ</div>
+                      <div style={{ marginTop: 10, fontSize: 10, color: "#065f46", fontWeight: 600, fontFamily: "system-ui,sans-serif" }}>✨ Đang hiển thị trên trang chủ</div>
                     )}
                     {f.status === "pending" && (
-                      <div style={{ marginTop: 10, fontSize: 10, color: MUT, fontFamily: "system-ui,sans-serif" }}>
+                      <div style={{ marginTop: 10, fontSize: 10, color: "#1e3a4a", fontFamily: "system-ui,sans-serif" }}>
                         ✏️ Chờ admin duyệt · <button onClick={() => { const o = myOrders.find(ord => ord.id === f.orderId); if (o) setFbOrder(o); }} style={{ background: "none", border: "none", color: G, cursor: "pointer", fontSize: 10, fontFamily: "system-ui,sans-serif", padding: 0, fontWeight: 700, textDecoration: "underline" }}>Sửa đánh giá</button>
                       </div>
                     )}
