@@ -1714,8 +1714,8 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
       {/* Counter */}
       <div onClick={e => e.stopPropagation()} style={{
         position: "fixed", top: 18, left: "50%", transform: "translateX(-50%)",
-        background: "rgba(5,12,22,0.70)", borderRadius: 99, padding: "5px 16px",
-        color: "#d4cab8", fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: 600, letterSpacing: 1,
+        background: "rgba(5,12,22,0.88)", borderRadius: 99, padding: "5px 16px",
+        color: "#ffffff", fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: 700, letterSpacing: 1,
         backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
       }}>
         {idx + 1} / {total}
@@ -8355,6 +8355,11 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   const filteredOrders = orders.filter(o => {
     if (orderFilter !== "all" && o.status !== orderFilter) return false;
     if (search && !`${o.id} ${o.name} ${o.cameraName}`.toLowerCase().includes(search.toLowerCase())) return false;
+    if (exportMonth && o.date) {
+      const [ey, em] = exportMonth.split("-").map(Number);
+      const d = new Date(o.date + "T00:00:00");
+      if (d.getFullYear() !== ey || d.getMonth() + 1 !== em) return false;
+    }
     return true;
   });
 
@@ -8932,7 +8937,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
         {/* ORDERS */}
         {tab === "orders" && (
           <div>
-            <STitle c={`Đơn thuê (${orders.length})`} />
+            <STitle c={`Đơn tháng ${exportMonth ? exportMonth.split("-")[1] + "/" + exportMonth.split("-")[0] : ""} (${filteredOrders.length})`} />
 
             {/* ── XUẤT EXCEL ── */}
             <div style={{ background: "#EEF9F4", border: "1px solid #22c55e33", borderRadius: 14, padding: "14px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
@@ -8977,11 +8982,11 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                 <span style={{ color: "#a78bfa", fontSize: 13, fontWeight: 600 }}>Có {orders.filter(o => !o.seen).length} đơn mới chưa xem!</span>
               </div>
             )}
-            {/* Alert đơn khách xin huỷ */}
-            {orders.filter(o => o.status === "cancelled" && o.cancelledBy === "customer").length > 0 && (
+            {/* Alert đơn khách xin huỷ — chỉ hiện khi còn đơn admin chưa mở xem */}
+            {orders.filter(o => o.status === "cancelled" && o.cancelledBy === "customer" && !o.cancelSeenByAdmin).length > 0 && (
               <div onClick={() => setOrderFilter("cancelled")} style={{ background: "#FEF0F0", border: "1px solid #ef444444", borderRadius: 9, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
                 <span style={{ fontSize: 18 }}>⚠️</span>
-                <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 600 }}>Có {orders.filter(o => o.status === "cancelled" && o.cancelledBy === "customer").length} đơn khách xin huỷ — bấm để xem</span>
+                <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 600 }}>Có {orders.filter(o => o.status === "cancelled" && o.cancelledBy === "customer" && !o.cancelSeenByAdmin).length} đơn khách xin huỷ — bấm để xem</span>
               </div>
             )}
 
@@ -9007,10 +9012,16 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                   <div onClick={() => {
                     const next = expandedOrder === o.id ? null : o.id;
                     setExpandedOrder(next);
-                    // FIX: mark seen khi admin mở đơn
-                    if (next && !o.seen) {
-                      localOrderChangesRef.current.set(o.id, Date.now());
-                      setOrders(p => p.map(x => x.id === o.id ? { ...x, seen: true } : x));
+                    if (next) {
+                      const updates = {};
+                      // mark seen đơn mới
+                      if (!o.seen) updates.seen = true;
+                      // mark đã đọc thông báo khách huỷ
+                      if (o.cancelledBy === "customer" && !o.cancelSeenByAdmin) updates.cancelSeenByAdmin = true;
+                      if (Object.keys(updates).length > 0) {
+                        localOrderChangesRef.current.set(o.id, Date.now());
+                        setOrders(p => p.map(x => x.id === o.id ? { ...x, ...updates } : x));
+                      }
                     }
                   }}
                     style={{ padding: "14px 18px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
