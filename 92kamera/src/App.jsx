@@ -1726,8 +1726,8 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
       <button onClick={onClose} style={{
         position: "fixed", top: 14, right: 18,
         width: 40, height: 40, borderRadius: "50%",
-        background: "rgba(5,12,22,0.70)", border: "1px solid rgba(255,255,255,0.15)",
-        color: "#d4cab8", fontSize: 22, lineHeight: 1,
+        background: "rgba(5,12,22,0.85)", border: "1px solid rgba(255,255,255,0.40)",
+        color: "#ffffff", fontSize: 22, lineHeight: 1,
         cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
         backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
       }}>×</button>
