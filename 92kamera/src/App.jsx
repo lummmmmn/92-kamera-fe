@@ -3018,15 +3018,15 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                         {o.status === "pending" && (
                           <span style={{ color: MUT, fontSize: 11, display: "flex", alignItems: "center" }}>⏳ Đang chờ admin xác nhận</span>
                         )}
-                        {/* FIX: Khách được phép hủy đơn khi còn ở trạng thái pending */}
-                        {o.status === "pending" && (
+                        {/* Chỉ khách đăng nhập mới được huỷ, và chỉ khi đơn còn ở pending (chưa xác nhận) */}
+                        {loggedUser && o.status === "pending" && (
                           <button onClick={() => {
-                            if (!window.confirm(`Bạn có chắc muốn hủy đơn ${o.id}?\n\nĐơn sẽ chuyển sang trạng thái "Đã hủy" và không thể khôi phục.`)) return;
-                            setOrders(p => p.map(x => x.id === o.id ? { ...x, status: "cancelled" } : x));
+                            if (!window.confirm(`Bạn có chắc muốn huỷ đơn ${o.id}?\n\nĐơn sẽ chuyển sang trạng thái "Đã huỷ" và không thể khôi phục.`)) return;
+                            setOrders(p => p.map(x => x.id === o.id ? { ...x, status: "cancelled", cancelledBy: "customer", cancelledAt: new Date().toISOString() } : x));
                             window.__92k_invalidateStaticCache?.();
                           }}
                           style={{ padding: "7px 16px", background: "#FEF0F0", border: "1px solid #ef444433", color: "#ef4444", borderRadius: 10, cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", marginLeft: "auto" }}>
-                            ✕ Hủy đơn
+                            ✕ Huỷ đơn
                           </button>
                         )}
                       </div>
@@ -8972,9 +8972,16 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
 
             {/* New orders alert */}
             {orders.filter(o => !o.seen).length > 0 && (
-              <div style={{ background: "#F5F0FF", border: "1px solid #a78bfa44", borderRadius: 9, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ background: "#F5F0FF", border: "1px solid #a78bfa44", borderRadius: 9, padding: "12px 16px", marginBottom: 8, display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ fontSize: 18 }}>🔔</span>
                 <span style={{ color: "#a78bfa", fontSize: 13, fontWeight: 600 }}>Có {orders.filter(o => !o.seen).length} đơn mới chưa xem!</span>
+              </div>
+            )}
+            {/* Alert đơn khách xin huỷ */}
+            {orders.filter(o => o.status === "cancelled" && o.cancelledBy === "customer").length > 0 && (
+              <div onClick={() => setOrderFilter("cancelled")} style={{ background: "#FEF0F0", border: "1px solid #ef444444", borderRadius: 9, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+                <span style={{ fontSize: 18 }}>⚠️</span>
+                <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 600 }}>Có {orders.filter(o => o.status === "cancelled" && o.cancelledBy === "customer").length} đơn khách xin huỷ — bấm để xem</span>
               </div>
             )}
 
@@ -9012,6 +9019,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                         <span style={{ color: !o.seen ? "#60a5fa" : TXT, fontWeight: 800, fontSize: 15, fontFamily: "monospace" }}>{o.id}</span>
                         {!o.seen && <span style={{ background: "#ef444422", color: "#ef4444", fontSize: 9, padding: "2px 7px", borderRadius: 99, fontWeight: 700 }}>MỚI</span>}
                         {o.adminNote && <span title={o.adminNote} style={{ background: "#FFF8ED", color: "#f59e0b", fontSize: 9, padding: "2px 7px", borderRadius: 99, fontWeight: 700, cursor: "help" }}>🔒 NOTE</span>}
+                        {o.cancelledBy === "customer" && <span style={{ background: "#ef444422", color: "#ef4444", fontSize: 9, padding: "2px 7px", borderRadius: 99, fontWeight: 700 }}>⚠️ KHÁCH HUỶ</span>}
                         <Badge status={o.status} />
                       </div>
                       <div style={{ color: MUT, fontSize: 11, marginTop: 3 }}>{o.date} · {o.name} · 📞 {o.phone}</div>
@@ -9060,8 +9068,16 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
 
                       {o.address && <div style={{ color: MUT, fontSize: 11, marginBottom: 6 }}>📍 {o.address}</div>}
                       {o.note && <div style={{ color: MUT, fontSize: 11, marginBottom: 12, fontStyle: "italic" }}>💬 {o.note}</div>}
-
-                      {/* Nút sao chép — hiện cho MỌI trạng thái */}
+                      {/* Thông báo đơn khách tự huỷ */}
+                      {o.cancelledBy === "customer" && (
+                        <div style={{ background: "#FEF0F0", border: "1px solid #ef444433", borderRadius: 10, padding: "9px 14px", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 16 }}>⚠️</span>
+                          <div>
+                            <div style={{ color: "#ef4444", fontSize: 12, fontWeight: 700 }}>Khách tự huỷ đơn</div>
+                            {o.cancelledAt && <div style={{ color: "#ef444499", fontSize: 10, marginTop: 2 }}>Lúc: {new Date(o.cancelledAt).toLocaleString("vi-VN")}</div>}
+                          </div>
+                        </div>
+                      )}
                       <div style={{ marginBottom:12 }}>
                         <CopyOrderBtn copyFn={() => {
                           const accList = Array.isArray(o.accessories) && o.accessories.length > 0 ? o.accessories.join(", ") : "Không có";
