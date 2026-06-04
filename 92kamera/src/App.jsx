@@ -133,9 +133,10 @@ const getAvailability = (itemId, itemTotal, orders, date) => {
 };
 
 // getItemStatus: "trống" | "còn ít" | "hết" (dùng cho UI badge)
-const getItemStatus = (morning, afternoon) => {
+// itemTotal: số lượng kho gốc — cần để không báo "còn ít" với máy chỉ có qty=1
+const getItemStatus = (morning, afternoon, itemTotal = 2) => {
   if (morning <= 0 && afternoon <= 0) return "hết";
-  if (morning <= 1 || afternoon <= 1) return "còn ít";
+  if (itemTotal > 1 && (morning <= 1 || afternoon <= 1)) return "còn ít";
   return "trống";
 };
 // Helpers cho lịch thuê
@@ -2595,12 +2596,13 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
     }
   };
 
-  // Gamification badges
+  // Gamification badges — chỉ tính đơn không huỷ (loại cancelled ra)
+  const validOrders = myOrders.filter(o => o.status !== "cancelled");
   const badges = [];
   const completedOrders = myOrders.filter(o => o.status === "completed");
-  if (myOrders.length >= 1) badges.push({ icon: "🥉", label: "Khách Đồng", desc: "Đã thuê ít nhất 1 lần", col: "#cd7f32" });
-  if (myOrders.length >= 3) badges.push({ icon: "🥈", label: "Khách Bạc", desc: "Đã thuê 3+ lần", col: "#aaa" });
-  if (myOrders.length >= 5) badges.push({ icon: "🥇", label: "Khách Vàng", desc: "Đã thuê 5+ lần", col: G });
+  if (validOrders.length >= 1) badges.push({ icon: "🥉", label: "Khách Đồng", desc: "Đã thuê ít nhất 1 lần", col: "#cd7f32" });
+  if (validOrders.length >= 3) badges.push({ icon: "🥈", label: "Khách Bạc", desc: "Đã thuê 3+ lần", col: "#aaa" });
+  if (validOrders.length >= 5) badges.push({ icon: "🥇", label: "Khách Vàng", desc: "Đã thuê 5+ lần", col: G });
   if (totalDays >= 30) badges.push({ icon: "👑", label: "Đại Gia Khoảnh Khắc", desc: "Tổng 30+ ngày thuê", col: G });
 
   const filteredOrders = filterStatus === "all" ? myOrders : myOrders.filter(o => o.status === filterStatus);
@@ -3058,23 +3060,23 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                       <div>
                         <div style={{ color: G, fontSize: 13, fontWeight: 700, marginBottom: 3 }}>{"★".repeat(f.rating)}<span style={{ color: "#333" }}>{"★".repeat(5 - f.rating)}</span></div>
-                        <div style={{ color: MUT, fontSize: 11 }}>📷 {f.cameraName} · {f.date}</div>
+                        <div style={{ color: "#1a3a55", fontSize: 11, fontWeight: 600 }}>📷 {f.cameraName} · {f.date}</div>
                       </div>
                       <span style={{
                         padding: "3px 12px", borderRadius: 99, fontSize: 10, fontWeight: 700,
                         background: f.status === "approved" ? "#22c55e22" : f.status === "rejected" ? "#ef444422" : "#60a5fa22",
-                        color: f.status === "approved" ? "#22c55e" : f.status === "rejected" ? "#ef4444" : "#60a5fa",
+                        color: f.status === "approved" ? "#166534" : f.status === "rejected" ? "#991b1b" : "#1e40af",
                         border: `1px solid ${f.status === "approved" ? "#22c55e44" : f.status === "rejected" ? "#ef444444" : "#60a5fa44"}`
                       }}>
                         {f.status === "approved" ? "✓ Đã duyệt" : f.status === "rejected" ? "✕ Từ chối" : "⏳ Chờ duyệt"}
                       </span>
                     </div>
-                    {f.text && <div style={{ color: TXT, fontSize: 13, lineHeight: 1.6, marginBottom: 12, fontStyle: "italic" }}>"{f.text}"</div>}
+                    {f.text && <div style={{ color: "#0d1f30", fontSize: 13, lineHeight: 1.6, marginBottom: 12, fontStyle: "italic", fontWeight: 500 }}>"{f.text}"</div>}
                     {f.status === "approved" && !f.hidden && (
                       <div style={{ marginTop: 10, fontSize: 10, color: "#22c55e66", fontFamily: "system-ui,sans-serif" }}>✨ Đang hiển thị trên trang chủ</div>
                     )}
                     {f.status === "pending" && (
-                      <div style={{ marginTop: 10, fontSize: 10, color: MUT, fontFamily: "system-ui,sans-serif" }}>
+                      <div style={{ marginTop: 10, fontSize: 10, color: "#1a3a55", fontFamily: "system-ui,sans-serif" }}>
                         ✏️ Chờ admin duyệt · <button onClick={() => { const o = myOrders.find(ord => ord.id === f.orderId); if (o) setFbOrder(o); }} style={{ background: "none", border: "none", color: G, cursor: "pointer", fontSize: 10, fontFamily: "system-ui,sans-serif", padding: 0, fontWeight: 700, textDecoration: "underline" }}>Sửa đánh giá</button>
                       </div>
                     )}
@@ -3100,9 +3102,9 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
             {/* ── Badge horizontal scroll ── */}
             {(() => {
               const allBadges = [
-                { icon:"🥉", label:"Khách Đồng",          desc:"Thuê ít nhất 1 lần",   col:"#cd7f32", unlocked: myOrders.length >= 1 },
-                { icon:"🥈", label:"Khách Bạc",            desc:"Thuê 3+ lần",           col:"#b0b8c8", unlocked: myOrders.length >= 3 },
-                { icon:"🥇", label:"Khách Vàng",           desc:"Thuê 5+ lần",           col:G,         unlocked: myOrders.length >= 5 },
+                { icon:"🥉", label:"Khách Đồng",          desc:"Thuê ít nhất 1 lần",   col:"#cd7f32", unlocked: validOrders.length >= 1 },
+                { icon:"🥈", label:"Khách Bạc",            desc:"Thuê 3+ lần",           col:"#b0b8c8", unlocked: validOrders.length >= 3 },
+                { icon:"🥇", label:"Khách Vàng",           desc:"Thuê 5+ lần",           col:G,         unlocked: validOrders.length >= 5 },
                 { icon:"👑", label:"Đại Gia Khoảnh Khắc", desc:"Tổng 30+ ngày",         col:G,         unlocked: totalDays >= 30 },
                 { icon:"💎", label:"Khách VIP",            desc:"Chi tiêu 5,000,000đ+",  col:"#38bdf8", unlocked: totalSpent >= 5000000 },
                 { icon:"💠", label:"Kim Cương",            desc:"Chi tiêu 10,000,000đ+", col:"#e879f9", unlocked: totalSpent >= 10000000 },
@@ -3707,9 +3709,10 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
           (loggedUser?.phone && o.userPhone === loggedUser.phone) ||
           (info.phone && o.phone === info.phone)
         );
-        const totalDaysUser = userOrders.reduce((s, o) => s + (o.days || 0), 0);
-        const totalSpentUser = userOrders.filter(o => o.status !== "cancelled").reduce((s, o) => s + (o.total || 0), 0);
-        const orderCount = userOrders.length;
+        const validUserOrders = userOrders.filter(o => o.status !== "cancelled");
+        const totalDaysUser = validUserOrders.reduce((s, o) => s + (o.days || 0), 0);
+        const totalSpentUser = validUserOrders.reduce((s, o) => s + (o.total || 0), 0);
+        const orderCount = validUserOrders.length;
         const hasDong = orderCount >= 1;
         const hasBac = orderCount >= 3;
         const hasVang = orderCount >= 5;
@@ -7305,7 +7308,7 @@ function RentalCalendar({ orders, cameras }) {
               const a = dayAvailMap[selDateStr].camAvails[i];
               morning   = a?.morning ?? 0;
               afternoon = a?.afternoon ?? 0;
-              statusLabel = getItemStatus(morning, afternoon);
+              statusLabel = getItemStatus(morning, afternoon, c.qty || 1);
             } else {
               // Không chọn ngày → hiện tổng kho
               morning = afternoon = c.qty || 1;
@@ -8177,7 +8180,10 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
             if (!fresh) return o;
             const locTs = localOrderChangesRef.current.get(o.id);
             if (locTs && (now - locTs) < LOCAL_LOCK_MS) return o; // giữ bản local
-            return { ...o, ...fresh };
+            // Giữ các field chỉ tồn tại local (không lưu Supabase)
+            const localOnlyFields = {};
+            if (o.cancelSeenByAdmin && !fresh.cancelSeenByAdmin) localOnlyFields.cancelSeenByAdmin = true;
+            return { ...o, ...fresh, ...localOnlyFields };
           });
           if (newOnes.length > 0) {
             setNewOrderIds(ids => new Set([...ids, ...newOnes.map(o => o.id)]));
@@ -8355,7 +8361,8 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   const filteredOrders = orders.filter(o => {
     if (orderFilter !== "all" && o.status !== orderFilter) return false;
     if (search && !`${o.id} ${o.name} ${o.cameraName}`.toLowerCase().includes(search.toLowerCase())) return false;
-    if (exportMonth && o.date) {
+    // Chỉ filter theo tháng khi không search — trảnh mất đơn khi t��m theo tên
+    if (!search && exportMonth && o.date) {
       const [ey, em] = exportMonth.split("-").map(Number);
       const d = new Date(o.date + "T00:00:00");
       if (d.getFullYear() !== ey || d.getMonth() + 1 !== em) return false;
