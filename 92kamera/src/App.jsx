@@ -371,7 +371,16 @@ function QuickOrderLookup({ orders, inp2, setExpandedOrder, setSearch, setOrderF
           <div style={{ color: TXT, fontSize: 12, marginTop: 4 }}>📷 {quickResult.cameraName} · {fmtDays(quickResult.days, quickResult.shift)}</div>
           <div style={{ color: MUT, fontSize: 11, marginTop: 2 }}>👤 {quickResult.name} · 📞 {quickResult.phone}</div>
           <div style={{ color: MUT, fontSize: 11, marginTop: 2 }}>📅 {quickResult.date}{quickResult.address ? ` · 📍 ${quickResult.address}` : ""}</div>
-          {quickResult.discountCode && <div style={{ color: "#22c55e", fontSize: 11, marginTop: 4 }}>🏷️ Mã: {quickResult.discountCode} — Giảm {fmtVND(quickResult.discountAmt || 0)}</div>}
+          {quickResult.appliedDiscounts && quickResult.appliedDiscounts.length > 0
+            ? quickResult.appliedDiscounts.map(ad => (
+                <div key={ad.code} style={{ color: ad.scope === "delivery" ? "#60a5fa" : "#22c55e", fontSize: 11, marginTop: 4 }}>
+                  {ad.scope === "delivery" ? "🚗" : "🎞️"} Mã: {ad.code} — Giảm {fmtVND(ad.amt || 0)}
+                </div>
+              ))
+            : quickResult.discountCode && (
+                <div style={{ color: "#22c55e", fontSize: 11, marginTop: 4 }}>🏷️ Mã: {quickResult.discountCode} — Giảm {fmtVND(quickResult.discountAmt || 0)}</div>
+              )
+          }
           <button onClick={() => { setSearch(quickResult.id); setOrderFilter("all"); setQuickId(""); setQuickResult(null); }}
             style={{ marginTop: 8, padding: "5px 12px", background: CARD, color: G, border: `1px solid ${G}44`, borderRadius: 10, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>
             → Xem trong danh sách
@@ -3583,11 +3592,19 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 
   // ── Discount state ──
   const [discountCode, setDiscountCode] = useState("");
-  const [appliedDiscount, setAppliedDiscount] = useState(null); // { code, type, value, discountAmt }
+  // appliedDiscounts: array tối đa 2 phần tử, mỗi phần tử { code, type, value, discountAmt, id, scope }
+  // scope: "rental" = giảm tiền thuê, "delivery" = giảm phí giao nhận
+  const [appliedDiscounts, setAppliedDiscounts] = useState([]);
   const [discountMsg, setDiscountMsg] = useState(null); // { type: "ok"|"err", text }
   const [discountExpanded, setDiscountExpanded] = useState(false);
   const [discountLoading, setDiscountLoading] = useState(false); // BUG-I FIX: loading state
   const discountInFlight = useRef(false); // BUG-I FIX: guard concurrent click
+
+  // Computed helpers — dùng ở nhiều chỗ
+  const appliedRental   = appliedDiscounts.find(d => d.scope === "rental")   || null;
+  const appliedDelivery = appliedDiscounts.find(d => d.scope === "delivery") || null;
+  // Compat alias — 1 mã duy nhất (fallback cho các chỗ cũ chưa đổi)
+  const appliedDiscount = appliedDiscounts[0] || null;
 
   const days = selDur ? selDur.days : (parseFloat(customDays) || 0);
   // BUG-SESSION FIX: customDays < 1 (VD: 0.5) → selSession = null, buộc dùng nút Ca Sáng/Ca Chiều
@@ -3663,27 +3680,48 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   }, 0);
   const subtotal = camCost + accCost;
 
-  // Re-check minOrder mỗi khi subtotal thay đổi: nếu giỏ hàng giảm xuống dưới minOrder thì huỷ discount
+  // Re-check minOrder mỗi khi subtotal/deliveryFeeCalc thay đổi
   useEffect(() => {
-    if (!appliedDiscount) return;
-    const disc = (Array.isArray(discounts) ? discounts : []).find(d => d.id === appliedDiscount.id);
-    if (disc?.minOrder && subtotal < disc.minOrder) {
-      setAppliedDiscount(null);
-      setDiscountCode("");
-      setDiscountMsg({ type: "err", text: `Đơn giảm xuống dưới ${fmtVND(disc.minOrder)} — mã giảm giá đã bị huỷ` });
-    }
+    if (appliedDiscounts.length === 0) return;
+    const allDiscs = Array.isArray(discounts) ? discounts : [];
+    setAppliedDiscounts(prev => {
+      let changed = false;
+      const next = prev.filter(ad => {
+        const disc = allDiscs.find(d => d.id === ad.id);
+        if (!disc) return true; // không tìm thấy → giữ nguyên, submit sẽ reject
+        const base = ad.scope === "delivery" ? deliveryFeeCalc : subtotal;
+        if (disc.minOrder && base < disc.minOrder) {
+          setDiscountMsg({ type: "err", text: `Đơn giảm xuống dưới ${fmtVND(disc.minOrder)} — mã ${ad.code} đã bị huỷ` });
+          changed = true;
+          return false;
+        }
+        return true;
+      });
+      return changed ? next : prev;
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subtotal]);
+  }, [subtotal, deliveryFeeCalc]);
 
-  const discountAmt = appliedDiscount
+  // Tính giảm riêng từng loại
+  const rentalDiscountAmt = appliedRental
     ? Math.min(
-        appliedDiscount.type === "percent"
-          ? Math.round(subtotal * appliedDiscount.value / 100)
-          : appliedDiscount.discountAmt,
+        appliedRental.type === "percent"
+          ? Math.round(subtotal * appliedRental.value / 100)
+          : appliedRental.discountAmt,
         subtotal
       )
     : 0;
-  const total = Math.max(0, subtotal - discountAmt + deliveryFeeCalc);
+  const deliveryDiscountAmt = appliedDelivery
+    ? Math.min(
+        appliedDelivery.type === "percent"
+          ? Math.round(deliveryFeeCalc * appliedDelivery.value / 100)
+          : appliedDelivery.discountAmt,
+        deliveryFeeCalc
+      )
+    : 0;
+  // Compat alias
+  const discountAmt = rentalDiscountAmt + deliveryDiscountAmt;
+  const total = Math.max(0, subtotal - rentalDiscountAmt + deliveryFeeCalc - deliveryDiscountAmt);
 
   const applyDiscount = async () => {
     // BUG-I FIX: chặn concurrent call — nếu đang fetch thì bỏ qua click mới
@@ -3700,8 +3738,6 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
     }
     try {
       // BUG-A FIX: fetch fresh discounts từ Supabase trước khi check maxUse/usedCount.
-      // Tránh trường hợp local state stale → mã "đã hết lượt" vẫn pass bước apply
-      // nhưng bị reject lúc submit → UX inconsistent.
       let allDiscs;
       try {
         const freshDiscs = await storageGet(STORE_KEYS.discounts, true);
@@ -3712,8 +3748,45 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
       if (allDiscs.length === 0) { setDiscountMsg({ type: "err", text: "Chưa có mã nào. Admin tạo mã trong dashboard trước" }); return false; }
       const disc = allDiscs.find(d => d.code.toUpperCase() === code && d.active === true);
       if (!disc) { setDiscountMsg({ type: "err", text: "Mã không tồn tại hoặc đã bị tắt" }); return false; }
+
+      // ── Check trùng mã ──
+      if (appliedDiscounts.some(ad => ad.code === disc.code.toUpperCase())) {
+        setDiscountMsg({ type: "err", text: "Mã này đã được áp dụng rồi" });
+        return false;
+      }
+
+      // ── Xác định scope từ DB, default là "rental" nếu chưa cài ──
+      const scope = disc.voucherScope === "delivery" ? "delivery" : "rental";
+
+      // ── Check trùng scope (tối đa 1 mã/scope) ──
+      if (appliedDiscounts.some(ad => ad.scope === scope)) {
+        const scopeLabel = scope === "delivery" ? "giảm phí giao nhận" : "giảm tiền thuê";
+        setDiscountMsg({ type: "err", text: `Đã có mã ${scopeLabel} rồi. Mỗi loại chỉ dùng 1 mã.` });
+        return false;
+      }
+
+      // ── Giới hạn tối đa 2 mã ──
+      if (appliedDiscounts.length >= 2) {
+        setDiscountMsg({ type: "err", text: "Đã đủ 2 mã giảm giá (1 giảm thuê + 1 giảm ship)" });
+        return false;
+      }
+
+      // ── Tính base theo scope ──
+      const base = scope === "delivery" ? deliveryFeeCalc : subtotal;
+
       if (disc.maxUse && disc.usedCount >= disc.maxUse) { setDiscountMsg({ type: "err", text: "Mã này đã dùng hết số lượt" }); return false; }
-      if (disc.minOrder && subtotal < disc.minOrder) { setDiscountMsg({ type: "err", text: `Đơn tối thiểu ${fmtVND(disc.minOrder)} mới được áp dụng` }); return false; }
+      if (disc.minOrder && base < disc.minOrder) {
+        const baseLabel = scope === "delivery" ? "Phí giao nhận" : "Đơn hàng";
+        setDiscountMsg({ type: "err", text: `${baseLabel} tối thiểu ${fmtVND(disc.minOrder)} mới được áp dụng mã này` });
+        return false;
+      }
+
+      // ── Check delivery scope: phải có giao nhận ──
+      if (scope === "delivery" && deliveryFeeCalc === 0) {
+        setDiscountMsg({ type: "err", text: "Mã này dành cho phí giao nhận. Vui lòng chọn dịch vụ giao nhận trước." });
+        return false;
+      }
+
       // ── Badge check ──
       if (disc.requiredBadge && disc.requiredBadge !== "none") {
         const userOrders = (Array.isArray(orders) ? orders : []).filter(o =>
@@ -3738,9 +3811,12 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
           return false;
         }
       }
-      const amt = disc.type === "percent" ? Math.round(subtotal * disc.value / 100) : disc.value;
-      setAppliedDiscount({ code: disc.code, type: disc.type, value: disc.value, discountAmt: amt, id: disc.id });
-      setDiscountMsg({ type: "ok", text: `Áp dụng thành công! Giảm ${disc.type === "percent" ? disc.value + "%" : fmtVND(disc.value)}` });
+
+      const amt = disc.type === "percent" ? Math.round(base * disc.value / 100) : disc.value;
+      const scopeLabel = scope === "delivery" ? "🚗 Giảm ship" : "🎞️ Giảm thuê";
+      setAppliedDiscounts(prev => [...prev, { code: disc.code, type: disc.type, value: disc.value, discountAmt: amt, id: disc.id, scope }]);
+      setDiscountCode("");
+      setDiscountMsg({ type: "ok", text: `${scopeLabel} áp dụng! Giảm ${disc.type === "percent" ? disc.value + "%" : fmtVND(disc.value)}` });
       return true;
     } finally {
       // BUG-I FIX: luôn unlock dù success hay error hay return sớm
@@ -3749,7 +3825,15 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
     }
   };
 
-  const removeDiscount = () => { setAppliedDiscount(null); setDiscountCode(""); setDiscountMsg(null); };
+  const removeDiscount = (code) => {
+    if (code) {
+      setAppliedDiscounts(prev => prev.filter(d => d.code !== code));
+    } else {
+      setAppliedDiscounts([]);
+    }
+    setDiscountCode("");
+    setDiscountMsg(null);
+  };
 
   const endDate = () => { if (!pickDate || !days) return ""; return new Date(dateAddDays(pickDate, days) + "T00:00:00").toLocaleDateString("vi-VN"); };
 
@@ -3852,7 +3936,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
     setSubmitting(true);
     setSubmitError(null);
 
-    let reservedDiscountId = null;
+    const reservedDiscountIds_outer = []; // tracked for catch block rollback
     try {
       const sess = selSession || "full";
       const submitDateRange = [];
@@ -3876,61 +3960,80 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
         return null;
       };
 
-      let finalDiscount = appliedDiscount;
+      let finalDiscount = appliedDiscount; // compat — mã đầu tiên
       let finalDiscountAmt = discountAmt;
       let finalTotal = total;
+      let finalRentalDiscountAmt = rentalDiscountAmt;
+      let finalDeliveryDiscountAmt = deliveryDiscountAmt;
+      let finalAppliedDiscounts = [...appliedDiscounts];
 
-      // Reserve mã giảm giá bằng CAS trước khi ghi đơn để không vượt maxUse.
-      if (appliedDiscount?.id) {
+      // Reserve từng mã giảm giá bằng CAS trước khi ghi đơn
+      const reservedDiscountIds = [];
+      for (const ad of appliedDiscounts) {
+        if (!ad?.id) continue;
         let reserved = false;
         for (let tries = 0; tries < 5 && !reserved; tries++) {
           const discMeta = await storageGetWithMeta(STORE_KEYS.discounts);
           const liveDiscounts = Array.isArray(discMeta.value) ? discMeta.value : (Array.isArray(discounts) ? discounts : []);
-          const freshDisc = liveDiscounts.find(d => d.id === appliedDiscount.id);
+          const freshDisc = liveDiscounts.find(d => d.id === ad.id);
           if (!freshDisc || freshDisc.active !== true) {
-            setSubmitError(`❌ Mã "${appliedDiscount.code}" không tồn tại hoặc đã bị tắt.`);
-            setAppliedDiscount(null);
-            setDiscountCode("");
+            // Rollback các mã đã reserve trước đó
+            for (const rid of reservedDiscountIds) await rollbackDiscountUsage(rid);
+            setDiscounts(prev => (prev || []).map(d => reservedDiscountIds.includes(d.id) ? { ...d, usedCount: Math.max(0, (d.usedCount || 0) - 1) } : d));
+            setSubmitError(`❌ Mã "${ad.code}" không tồn tại hoặc đã bị tắt.`);
+            setAppliedDiscounts(prev => prev.filter(x => x.code !== ad.code));
             setSubmitting(false);
             return;
           }
           if (freshDisc.maxUse && (freshDisc.usedCount || 0) >= freshDisc.maxUse) {
-            setSubmitError(`❌ Mã "${appliedDiscount.code}" vừa hết lượt dùng. Vui lòng thử mã khác.`);
-            setAppliedDiscount(null);
-            setDiscountCode("");
+            for (const rid of reservedDiscountIds) await rollbackDiscountUsage(rid);
+            setDiscounts(prev => (prev || []).map(d => reservedDiscountIds.includes(d.id) ? { ...d, usedCount: Math.max(0, (d.usedCount || 0) - 1) } : d));
+            setSubmitError(`❌ Mã "${ad.code}" vừa hết lượt dùng. Vui lòng thử mã khác.`);
+            setAppliedDiscounts(prev => prev.filter(x => x.code !== ad.code));
             setSubmitting(false);
             return;
           }
-          if (freshDisc.minOrder && subtotal < freshDisc.minOrder) {
-            setSubmitError(`❌ Đơn tối thiểu ${fmtVND(freshDisc.minOrder)} mới được áp dụng mã này.`);
-            setAppliedDiscount(null);
-            setDiscountCode("");
+          const base = ad.scope === "delivery" ? deliveryFeeCalc : subtotal;
+          if (freshDisc.minOrder && base < freshDisc.minOrder) {
+            for (const rid of reservedDiscountIds) await rollbackDiscountUsage(rid);
+            setDiscounts(prev => (prev || []).map(d => reservedDiscountIds.includes(d.id) ? { ...d, usedCount: Math.max(0, (d.usedCount || 0) - 1) } : d));
+            setSubmitError(`❌ Đơn tối thiểu ${fmtVND(freshDisc.minOrder)} mới được áp dụng mã "${ad.code}".`);
+            setAppliedDiscounts(prev => prev.filter(x => x.code !== ad.code));
             setSubmitting(false);
             return;
           }
-
           const nextAmt = Math.min(
-            freshDisc.type === "percent" ? Math.round(subtotal * freshDisc.value / 100) : freshDisc.value,
-            subtotal
+            freshDisc.type === "percent" ? Math.round(base * freshDisc.value / 100) : freshDisc.value,
+            base
           );
           const nextDiscs = liveDiscounts.map(d =>
             d.id === freshDisc.id ? { ...d, usedCount: (d.usedCount || 0) + 1 } : d
           );
           if (await storageCasSet(STORE_KEYS.discounts, nextDiscs, discMeta.updatedAt)) {
             reserved = true;
-            reservedDiscountId = freshDisc.id;
-            finalDiscount = { code: freshDisc.code, type: freshDisc.type, value: freshDisc.value, discountAmt: nextAmt, id: freshDisc.id };
-            finalDiscountAmt = nextAmt;
-            finalTotal = Math.max(0, subtotal - nextAmt);
+            reservedDiscountIds.push(freshDisc.id);
+            // Cập nhật finalAppliedDiscounts với amt fresh
+            finalAppliedDiscounts = finalAppliedDiscounts.map(x => x.id === freshDisc.id ? { ...x, discountAmt: nextAmt } : x);
             setDiscounts(nextDiscs);
           }
         }
         if (!reserved) {
+          for (const rid of reservedDiscountIds) await rollbackDiscountUsage(rid);
+          setDiscounts(prev => (prev || []).map(d => reservedDiscountIds.includes(d.id) ? { ...d, usedCount: Math.max(0, (d.usedCount || 0) - 1) } : d));
           setSubmitError("❌ Mã giảm giá đang có người dùng cùng lúc. Vui lòng bấm xác nhận lại.");
           setSubmitting(false);
           return;
         }
       }
+
+      // Tính lại final amounts sau khi reserve
+      const fRental = finalAppliedDiscounts.find(x => x.scope === "rental");
+      const fDelivery = finalAppliedDiscounts.find(x => x.scope === "delivery");
+      finalRentalDiscountAmt = fRental ? Math.min(fRental.discountAmt, subtotal) : 0;
+      finalDeliveryDiscountAmt = fDelivery ? Math.min(fDelivery.discountAmt, deliveryFeeCalc) : 0;
+      finalDiscountAmt = finalRentalDiscountAmt + finalDeliveryDiscountAmt;
+      finalTotal = Math.max(0, subtotal - finalRentalDiscountAmt + deliveryFeeCalc - finalDeliveryDiscountAmt);
+      finalDiscount = finalAppliedDiscounts[0] || null;
 
       // Ghi đơn bằng CAS retry: nếu có người vừa ghi orders, fetch lại, validate lại, rồi ghi lại.
       let finalOrder = null;
@@ -3939,9 +4042,9 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
         const liveOrders = Array.isArray(orderMeta.value) ? orderMeta.value : (Array.isArray(orders) ? orders : []);
         const stockErr = validateStock(liveOrders);
         if (stockErr) {
-          if (reservedDiscountId) {
-            await rollbackDiscountUsage(reservedDiscountId);
-            setDiscounts(prev => (prev || []).map(d => d.id === reservedDiscountId ? { ...d, usedCount: Math.max(0, (d.usedCount || 0) - 1) } : d));
+          for (const rid of reservedDiscountIds) {
+            await rollbackDiscountUsage(rid);
+            setDiscounts(prev => (prev || []).map(d => d.id === rid ? { ...d, usedCount: Math.max(0, (d.usedCount || 0) - 1) } : d));
           }
           setSubmitError(stockErr);
           setSubmitting(false);
@@ -3969,7 +4072,13 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
           cameras: selectedCamList.map(c => ({ id: c.id, name: c.name, qty: selCams[c.id], price: c.price })),
           accessories: accNames,
           accessoriesDetail: Object.entries(selAcc).map(([name, qty]) => ({ name, qty })),
-          days, subtotal, discountCode: finalDiscount?.code || null, discountAmt: finalDiscountAmt, total: finalTotal,
+          days, subtotal,
+          discountCode: finalDiscount?.code || null,
+          discountAmt: finalDiscountAmt,
+          rentalDiscountAmt: finalRentalDiscountAmt,
+          deliveryDiscountAmt: finalDeliveryDiscountAmt,
+          appliedDiscounts: finalAppliedDiscounts.map(x => ({ code: x.code, scope: x.scope, amt: x.discountAmt })),
+          total: finalTotal,
           session: selSession || "full",
           shift: days === 0.5 ? selSession : null,
           createdAt: new Date().toISOString(),
@@ -3992,9 +4101,9 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
       }
 
       if (!finalOrder) {
-        if (reservedDiscountId) {
-          await rollbackDiscountUsage(reservedDiscountId);
-          setDiscounts(prev => (prev || []).map(d => d.id === reservedDiscountId ? { ...d, usedCount: Math.max(0, (d.usedCount || 0) - 1) } : d));
+        for (const rid of reservedDiscountIds) {
+          await rollbackDiscountUsage(rid);
+          setDiscounts(prev => (prev || []).map(d => d.id === rid ? { ...d, usedCount: Math.max(0, (d.usedCount || 0) - 1) } : d));
         }
         setSubmitError("❌ Có nhiều người đặt cùng lúc. Vui lòng bấm xác nhận lại.");
         setSubmitting(false);
@@ -4006,10 +4115,12 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
       setDone(true);
     } catch (e) {
       console.error("[92K] submit error", e);
-      if (reservedDiscountId) {
+      if (reservedDiscountIds.length > 0) {
         try {
-          await rollbackDiscountUsage(reservedDiscountId);
-          setDiscounts(prev => (prev || []).map(d => d.id === reservedDiscountId ? { ...d, usedCount: Math.max(0, (d.usedCount || 0) - 1) } : d));
+          for (const rid of reservedDiscountIds) {
+            await rollbackDiscountUsage(rid);
+            setDiscounts(prev => (prev || []).map(d => d.id === rid ? { ...d, usedCount: Math.max(0, (d.usedCount || 0) - 1) } : d));
+          }
         } catch {}
       }
       setSubmitError("❌ Lỗi kết nối. Vui lòng thử lại.");
@@ -4592,11 +4703,17 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                     </div>
                   )}
 
-                  {/* Discount */}
-                  {appliedDiscount && (
+                  {/* Discount — tách từng loại */}
+                  {appliedRental && (
                     <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
-                      <span style={{ color:"#22c55e", fontSize:12, fontFamily:"system-ui,sans-serif" }}>🏷️ {appliedDiscount.code}</span>
-                      <span style={{ color:"#22c55e", fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif" }}>-{fmtVND(discountAmt)}</span>
+                      <span style={{ color:"#22c55e", fontSize:12, fontFamily:"system-ui,sans-serif" }}>🎞️ {appliedRental.code}</span>
+                      <span style={{ color:"#22c55e", fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif" }}>-{fmtVND(rentalDiscountAmt)}</span>
+                    </div>
+                  )}
+                  {appliedDelivery && (
+                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+                      <span style={{ color:"#60a5fa", fontSize:12, fontFamily:"system-ui,sans-serif" }}>🚗 {appliedDelivery.code}</span>
+                      <span style={{ color:"#60a5fa", fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif" }}>-{fmtVND(deliveryDiscountAmt)}</span>
                     </div>
                   )}
 
@@ -4794,14 +4911,14 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                       <div style={{ paddingTop:12, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
                         <span style={{ color:"#556", fontSize:9, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>TỔNG CỘNG</span>
                         <div style={{ textAlign:"right" }}>
-                          {appliedDiscount && (
-                            <>
-                              <div style={{ color:MUT, fontSize:10, textDecoration:"line-through", fontFamily:"system-ui,sans-serif" }}>{new Intl.NumberFormat("vi-VN").format(subtotal)}đ</div>
-                              <div style={{ color:"#22c55e", fontSize:10, fontFamily:"system-ui,sans-serif" }}>-{new Intl.NumberFormat("vi-VN").format(discountAmt)}đ</div>
-                            </>
+                          {appliedRental && (
+                            <div style={{ color:"#22c55e", fontSize:10, fontFamily:"system-ui,sans-serif" }}>🎞️ -{new Intl.NumberFormat("vi-VN").format(rentalDiscountAmt)}đ thuê</div>
                           )}
                           {deliveryFeeCalc > 0 && (
-                            <div style={{ color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif" }}>+{new Intl.NumberFormat("vi-VN").format(deliveryFeeCalc)}đ giao nhận</div>
+                            <div style={{ color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif" }}>+{new Intl.NumberFormat("vi-VN").format(deliveryFeeCalc)}đ giao nhận{appliedDelivery ? "" : ""}</div>
+                          )}
+                          {appliedDelivery && (
+                            <div style={{ color:"#60a5fa", fontSize:10, fontFamily:"system-ui,sans-serif" }}>🚗 -{new Intl.NumberFormat("vi-VN").format(deliveryDiscountAmt)}đ ship</div>
                           )}
                           <div style={{ color:G, fontWeight:900, fontSize:17, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap" }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</div>
                         </div>
@@ -4865,35 +4982,44 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 
                 {/* ── MÃ GIẢM GIÁ (collapsible) ── */}
                 <div style={{ marginBottom:18, paddingBottom:18, borderBottom:"1px solid rgba(0,0,0,0.08)" }}>
-                  {/* Header row – luôn hiển thị */}
-                  <div
-                    onClick={() => { if (!appliedDiscount) setDiscountExpanded(p => !p); }}
-                    style={{ display:"flex", alignItems:"center", justifyContent:"space-between", cursor: appliedDiscount ? "default" : "pointer", userSelect:"none" }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:7 }}>
-                      <span style={{ fontSize:14, opacity:0.5 }}>🎟</span>
-                      <span style={{ color:"#888", fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>MÃ GIẢM GIÁ</span>
-                      {appliedDiscount && (
-                        <span style={{ color:G, fontSize:11, fontFamily:"monospace", fontWeight:700, letterSpacing:1, marginLeft:4 }}>
-                          {appliedDiscount.code}
-                        </span>
-                      )}
-                      {!appliedDiscount && !discountExpanded && discountCode && (
-                        <span style={{ color:G, fontSize:11, fontFamily:"monospace", fontWeight:700, letterSpacing:1, marginLeft:4 }}>{discountCode}</span>
-                      )}
+                  {/* Tags mã đã áp dụng */}
+                  {appliedDiscounts.length > 0 && (
+                    <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:8 }}>
+                      {appliedDiscounts.map(ad => (
+                        <div key={ad.code} style={{ display:"flex", alignItems:"center", gap:6, background:"rgba(34,197,94,0.10)", border:"1px solid #22c55e44", borderRadius:20, padding:"4px 10px" }}>
+                          <span style={{ fontSize:11 }}>{ad.scope === "delivery" ? "🚗" : "🎞️"}</span>
+                          <span style={{ color:"#22c55e", fontSize:11, fontFamily:"monospace", fontWeight:700, letterSpacing:1 }}>{ad.code}</span>
+                          <span style={{ color:"#22c55e", fontSize:11, fontFamily:"system-ui,sans-serif" }}>
+                            -{ad.scope === "delivery" ? fmtVND(deliveryDiscountAmt) : fmtVND(rentalDiscountAmt)}
+                          </span>
+                          <button onClick={e => { e.stopPropagation(); removeDiscount(ad.code); }}
+                            style={{ background:"none", border:"none", color:"#888", cursor:"pointer", fontSize:13, padding:"0 2px", lineHeight:1, display:"flex", alignItems:"center" }}>✕</button>
+                        </div>
+                      ))}
                     </div>
-                    {appliedDiscount ? (
-                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                        <span style={{ color:"#22c55e", fontSize:11, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>-{fmtVND(discountAmt)}</span>
-                        <button onClick={e => { e.stopPropagation(); removeDiscount(); setDiscountExpanded(false); }}
-                          style={{ background:"none", border:"none", color:"#555", cursor:"pointer", fontSize:14, padding:"0 2px", lineHeight:1 }}>✕</button>
+                  )}
+
+                  {/* Header row — chỉ hiện khi chưa đủ 2 mã */}
+                  {appliedDiscounts.length < 2 && (
+                    <div
+                      onClick={() => setDiscountExpanded(p => !p)}
+                      style={{ display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"pointer", userSelect:"none" }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:7 }}>
+                        <span style={{ fontSize:14, opacity:0.5 }}>🎟</span>
+                        <span style={{ color:"#888", fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>
+                          {appliedDiscounts.length === 0 ? "MÃ GIẢM GIÁ" :
+                            !appliedRental ? "Thêm mã giảm tiền thuê 🎞️" : "Thêm mã giảm ship 🚗"}
+                        </span>
                       </div>
-                    ) : (
                       <span style={{ color:"#444", fontSize:16, lineHeight:1, transition:"transform .3s", display:"inline-block", transform: discountExpanded ? "rotate(180deg)" : "rotate(0deg)" }}>⌄</span>
-                    )}
-                  </div>
+                    </div>
+                  )}
+                  {appliedDiscounts.length >= 2 && (
+                    <div style={{ color:"#22c55e", fontSize:10, fontFamily:"system-ui,sans-serif", fontWeight:700, textAlign:"center", letterSpacing:0.5 }}>✅ Đã đủ 2 mã giảm giá</div>
+                  )}
 
                   {/* Expand body */}
-                  <div className={`bk-disc-body ${discountExpanded && !appliedDiscount ? "open" : "closed"}`}>
+                  <div className={`bk-disc-body ${discountExpanded && appliedDiscounts.length < 2 ? "open" : "closed"}`}>
                     <div style={{ paddingTop:12, display:"flex", gap:8 }}>
                       <input
                         className="bk-inp"
@@ -5023,7 +5149,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                     )}
                   </div>
                   <div style={{ textAlign:"right" }}>
-                    {appliedDiscount && (
+                    {discountAmt > 0 && (
                       <span style={{ color:"#22c55e", fontSize:11, fontFamily:"system-ui,sans-serif", marginRight:8 }}>-{fmtVND(discountAmt)}</span>
                     )}
                     <span style={{ color:G, fontWeight:900, fontSize:20, fontFamily:"system-ui,sans-serif" }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</span>
@@ -5149,11 +5275,13 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                 <div style={{ color:TXT, fontSize:28, fontWeight:900, fontFamily:"monospace", letterSpacing:6 }}>{orderId}</div>
               </div>
 
-              {/* Tổng tiền */}
+                {/* Tổng tiền */}
               <div style={{ marginBottom:20, zIndex:1, position:"relative" }}>
-                {appliedDiscount && (
+                {appliedDiscounts.length > 0 && (
                   <div style={{ color:"#22c55e", fontSize:12, fontFamily:"system-ui,sans-serif", marginBottom:4 }}>
-                    🏷️ Mã {appliedDiscount.code} — Đã giảm {fmtVND(discountAmt)}
+                    {appliedDiscounts.map(ad => (
+                      <div key={ad.code}>{ad.scope === "delivery" ? "🚗" : "🎞️"} Mã {ad.code} — Đã giảm {fmtVND(ad.scope === "delivery" ? deliveryDiscountAmt : rentalDiscountAmt)}</div>
+                    ))}
                   </div>
                 )}
                 <span style={{ color:MUT, fontSize:14, fontFamily:"system-ui,sans-serif" }}>Tổng: </span>
@@ -8226,7 +8354,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   const [resetPwMsg, setResetPwMsg] = useState(null); // { type, text }
 
   // ── Discount management state ──
-  const [discForm, setDiscForm] = useState({ code: "", type: "percent", value: "", minOrder: "", maxUse: "", active: true, requiredBadge: "none" });
+  const [discForm, setDiscForm] = useState({ code: "", type: "percent", value: "", minOrder: "", maxUse: "", active: true, requiredBadge: "none", voucherScope: "rental" });
   const [discMsg, setDiscMsg] = useState(null);
   const [editDiscId, setEditDiscId] = useState(null);
   // Lưu hash SHA-256, không lưu plaintext
@@ -8282,7 +8410,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
         return d.getFullYear() === y && d.getMonth() + 1 === m;
       });
       const sheetData = [
-        ["Mã đơn", "Ngày", "Khách", "SĐT", "Zalo", "Địa chỉ", "Máy", "Ca/Ngày", "Phụ kiện", "Mã giảm giá", "Giảm (đ)", "Tổng (đ)", "Trạng thái", "Ghi chú KH", "Ghi chú nội bộ"],
+        ["Mã đơn", "Ngày", "Khách", "SĐT", "Zalo", "Địa chỉ", "Máy", "Ca/Ngày", "Phụ kiện", "Mã giảm giá", "Loại mã", "Giảm thuê (đ)", "Giảm ship (đ)", "Giảm (đ)", "Tổng (đ)", "Trạng thái", "Ghi chú KH", "Ghi chú nội bộ"],
         ...rows.map(o => [
           o.id,
           o.date,
@@ -8293,7 +8421,10 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
           o.cameraName,
           fmtDays(o.days, o.session || o.shift),
           (o.accessories || []).join(", "),
-          o.discountCode || "",
+          o.appliedDiscounts ? o.appliedDiscounts.map(x => x.code).join(" + ") : (o.discountCode || ""),
+          o.appliedDiscounts ? o.appliedDiscounts.map(x => x.scope === "delivery" ? "Ship" : "Thuê").join(" + ") : (o.discountCode ? "Thuê" : ""),
+          o.rentalDiscountAmt || (o.discountCode && !o.deliveryDiscountAmt ? o.discountAmt || 0 : 0),
+          o.deliveryDiscountAmt || 0,
           o.discountAmt || 0,
           o.total,
           o.status,
@@ -8302,8 +8433,8 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
         ])
       ];
       const ws = XLSX.utils.aoa_to_sheet(sheetData);
-      // Độ rộng cột
-      ws["!cols"] = [8,10,16,12,12,20,18,14,24,10,10,12,10,20,20].map(w => ({ wch: w }));
+      // Độ rộng cột (18 cột)
+      ws["!cols"] = [8,10,16,12,12,20,18,14,24,14,10,12,12,10,12,10,20,20].map(w => ({ wch: w }));
       // Highlight header vàng
       const hdrRange = XLSX.utils.decode_range(ws["!ref"]);
       for (let c = hdrRange.s.c; c <= hdrRange.e.c; c++) {
@@ -9864,6 +9995,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
               usedCount: editDiscId ? (discList.find(d => d.id === editDiscId)?.usedCount || 0) : 0,
               active: discForm.active,
               requiredBadge: discForm.requiredBadge || "none",
+              voucherScope: discForm.voucherScope || "rental",
               createdAt: editDiscId ? (discList.find(d => d.id === editDiscId)?.createdAt || todayStr()) : todayStr(),
             };
             if (editDiscId) {
@@ -9871,14 +10003,14 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
             } else {
               setDiscounts(prev => [newDisc, ...prev]);
             }
-            setDiscForm({ code: "", type: "percent", value: "", minOrder: "", maxUse: "", active: true, requiredBadge: "none" });
+            setDiscForm({ code: "", type: "percent", value: "", minOrder: "", maxUse: "", active: true, requiredBadge: "none", voucherScope: "rental" });
             setEditDiscId(null);
             setDiscMsg({ type: "ok", text: editDiscId ? "✓ Đã cập nhật mã giảm giá" : "✓ Đã tạo mã giảm giá mới" });
             setTimeout(() => setDiscMsg(null), 2500);
           };
           const startEdit = (d) => {
             setEditDiscId(d.id);
-            setDiscForm({ code: d.code, type: d.type, value: String(d.value), minOrder: d.minOrder ? String(d.minOrder) : "", maxUse: d.maxUse ? String(d.maxUse) : "", active: d.active, requiredBadge: d.requiredBadge || "none" });
+            setDiscForm({ code: d.code, type: d.type, value: String(d.value), minOrder: d.minOrder ? String(d.minOrder) : "", maxUse: d.maxUse ? String(d.maxUse) : "", active: d.active, requiredBadge: d.requiredBadge || "none", voucherScope: d.voucherScope || "rental" });
             setDiscMsg(null);
           };
           const deleteDisc = (id) => { setDiscounts(prev => prev.filter(d => d.id !== id)); window.__92k_invalidateStaticCache?.(); };
@@ -9907,6 +10039,17 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                       {[["percent", "% Phần trăm"], ["fixed", "đ Tiền mặt"]].map(([v, l]) => (
                         <button key={v} onClick={() => setDiscForm(p => ({ ...p, type: v }))}
                           style={{ flex: 1, padding: "9px 0", background: discForm.type === v ? "#FFF8ED" : CARD, color: discForm.type === v ? G : MUT, border: `1px solid ${discForm.type === v ? G : BR2}`, borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: discForm.type === v ? 700 : 400, fontFamily: "system-ui,sans-serif", transition: "all .15s" }}>
+                          {l}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ color: MUT, fontSize: 10, marginBottom: 6, letterSpacing: 1 }}>🎯 ÁP DỤNG CHO *</div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {[["rental", "🎞️ Giảm tiền thuê"], ["delivery", "🚗 Giảm phí giao nhận"]].map(([v, l]) => (
+                        <button key={v} onClick={() => setDiscForm(p => ({ ...p, voucherScope: v }))}
+                          style={{ flex: 1, padding: "9px 6px", background: discForm.voucherScope === v ? "#FFF8ED" : CARD, color: discForm.voucherScope === v ? G : MUT, border: `1px solid ${discForm.voucherScope === v ? G : BR2}`, borderRadius: 10, cursor: "pointer", fontSize: 11, fontWeight: discForm.voucherScope === v ? 700 : 400, fontFamily: "system-ui,sans-serif", transition: "all .15s", textAlign: "center" }}>
                           {l}
                         </button>
                       ))}
@@ -9963,7 +10106,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button onClick={saveDisc} style={{ ...btn("gold"), flex: 1 }}>{editDiscId ? "💾 Lưu thay đổi" : "➕ Tạo mã"}</button>
-                    {editDiscId && <button onClick={() => { setEditDiscId(null); setDiscForm({ code: "", type: "percent", value: "", minOrder: "", maxUse: "", active: true, requiredBadge: "none" }); setDiscMsg(null); }} style={{ ...btn("ghost") }}>Huỷ</button>}
+                    {editDiscId && <button onClick={() => { setEditDiscId(null); setDiscForm({ code: "", type: "percent", value: "", minOrder: "", maxUse: "", active: true, requiredBadge: "none", voucherScope: "rental" }); setDiscMsg(null); }} style={{ ...btn("ghost") }}>Huỷ</button>}
                   </div>
                 </div>
 
@@ -10006,6 +10149,9 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                         <span style={{ padding: "2px 10px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: d.active ? "#022" : BR2, color: d.active ? "#22c55e" : MUT, border: `1px solid ${d.active ? "#22c55e44" : BR2}` }}>{d.active ? "ĐANG BẬT" : "TẮT"}</span>
                         <span style={{ padding: "2px 10px", borderRadius: 99, fontSize: 10, background: "#FFF8ED", color: G, border: `1px solid ${G}44` }}>
                           {d.type === "percent" ? `Giảm ${d.value}%` : `Giảm ${fmtVND(d.value)}`}
+                        </span>
+                        <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, background: d.voucherScope === "delivery" ? "#0a1a2a" : "#1a1200", color: d.voucherScope === "delivery" ? "#60a5fa" : G, border: `1px solid ${d.voucherScope === "delivery" ? "#60a5fa44" : G + "44"}` }}>
+                          {d.voucherScope === "delivery" ? "🚗 Ship" : "🎞️ Thuê"}
                         </span>
                       </div>
                       <div style={{ color: MUT, fontSize: 11, display: "flex", gap: 12, flexWrap: "wrap" }}>
