@@ -3514,7 +3514,7 @@ function BK_FormRow({ icon, labelTop, labelBottom, children, noBorder }) {
   );
 }
 
-function BookingModal({ cameras, accessories, siteContent, discounts, setDiscounts, onClose, onSubmit, loggedUser, preselectedCamId, orders, preselectedCams, preselectedAccs, preselectedDate, preselectedDays }) {
+function BookingModal({ cameras, accessories, siteContent, discounts, setDiscounts, deliveryFees, onClose, onSubmit, loggedUser, preselectedCamId, orders, preselectedCams, preselectedAccs, preselectedDate, preselectedDays }) {
   // Nếu có preselectedCams (từ QuickSearch) → bắt đầu ở step 3 (thông tin đặt)
   const hasQuickSelect = preselectedCams && Object.keys(preselectedCams).length > 0 && preselectedDate && preselectedDays;
   const [step, setStep] = useState(hasQuickSelect ? 3 : 1);
@@ -3565,6 +3565,18 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
     return {};
   });
   const [info, setInfo] = useState({ name: loggedUser?.displayName || loggedUser?.name || "", phone: loggedUser?.phone || "", zalo: loggedUser?.zalo || loggedUser?.phone || "", address: loggedUser?.address || "", note: "" });
+
+  // ── State giao nhận ──
+  const [deliveryStreet, setDeliveryStreet] = useState(""); // địa chỉ chi tiết
+  const [deliveryWard, setDeliveryWard] = useState("");     // xã/phường
+  const [deliveryDistrict, setDeliveryDistrict] = useState("Núi Thành"); // huyện/tp
+  const [deliveryType, setDeliveryType] = useState("both"); // "deliver" | "pickup" | "both"
+  // Tính phí giao nhận realtime
+  const deliveryFeeData = (deliveryFees || DELIVERY_AREAS_DEFAULT).find(x => x.name === deliveryWard);
+  const deliveryFee2Way = deliveryFeeData ? deliveryFeeData.fee : 0;
+  const deliveryFeeCalc = deliveryWard
+    ? (deliveryType === "both" ? deliveryFee2Way : Math.round(deliveryFee2Way / 2))
+    : 0;
   const [done, setDone] = useState(false);
   const [orderId, setOrderId] = useState("");
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -3671,7 +3683,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
         subtotal
       )
     : 0;
-  const total = Math.max(0, subtotal - discountAmt);
+  const total = Math.max(0, subtotal - discountAmt + deliveryFeeCalc);
 
   const applyDiscount = async () => {
     // BUG-I FIX: chặn concurrent call — nếu đang fetch thì bỏ qua click mới
@@ -3961,7 +3973,13 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
           session: selSession || "full",
           shift: days === 0.5 ? selSession : null,
           createdAt: new Date().toISOString(),
-          ...info, status: "pending", date: pickDate, seen: false,
+          ...info,
+          address: [deliveryStreet, deliveryWard, deliveryDistrict].filter(Boolean).join(", ") || info.address,
+          deliveryWard: deliveryWard || "",
+          deliveryDistrict: deliveryDistrict || "",
+          deliveryType: deliveryWard ? deliveryType : "",
+          deliveryFee: deliveryFeeCalc,
+          status: "pending", date: pickDate, seen: false,
           userPhone: loggedUser?.phone || info.phone, userEmail: loggedUser?.email || ""
         };
 
@@ -4782,6 +4800,9 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                               <div style={{ color:"#22c55e", fontSize:10, fontFamily:"system-ui,sans-serif" }}>-{new Intl.NumberFormat("vi-VN").format(discountAmt)}đ</div>
                             </>
                           )}
+                          {deliveryFeeCalc > 0 && (
+                            <div style={{ color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif" }}>+{new Intl.NumberFormat("vi-VN").format(deliveryFeeCalc)}đ giao nhận</div>
+                          )}
                           <div style={{ color:G, fontWeight:900, fontSize:17, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap" }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</div>
                         </div>
                       </div>
@@ -4912,10 +4933,66 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                     onChange={e => setInfo(p => ({ ...p, zalo: e.target.value }))} placeholder="Số Zalo" />
                 </BK_FormRow>
 
-                {/* Địa chỉ */}
-                <BK_FormRow icon="📍" labelTop="ĐỊA CHỈ" labelBottom="NHẬN / TRẢ MÁY">
-                  <input className="bk-inp" style={BK_flatInp} type="text" value={info.address}
-                    onChange={e => setInfo(p => ({ ...p, address: e.target.value }))} placeholder="Địa chỉ nhận / trả máy" />
+                {/* Địa chỉ chi tiết */}
+                <BK_FormRow icon="📍" labelTop="ĐỊA CHỈ CHI TIẾT" labelBottom="SỐ NHÀ / ĐƯỜNG / THÔN">
+                  <input className="bk-inp" style={BK_flatInp} type="text" value={deliveryStreet}
+                    onChange={e => setDeliveryStreet(e.target.value)} placeholder="Ví dụ: 12 Nguyễn Huệ, Thôn Phú Bình..." />
+                </BK_FormRow>
+
+                {/* Xã / Phường */}
+                <BK_FormRow icon="🏘️" labelTop="XÃ / PHƯỜNG" labelBottom="CHỌN KHU VỰC">
+                  <select className="bk-inp" style={{ ...BK_flatInp, color: deliveryWard ? TXT : "#6a8aaa" }}
+                    value={deliveryWard} onChange={e => setDeliveryWard(e.target.value)}>
+                    <option value="">-- Chọn xã / phường --</option>
+                    {(deliveryFees || DELIVERY_AREAS_DEFAULT).map(a => (
+                      <option key={a.name} value={a.name}>{a.name}</option>
+                    ))}
+                  </select>
+                </BK_FormRow>
+
+                {/* Huyện / TP */}
+                <BK_FormRow icon="🏙️" labelTop="HUYỆN / THÀNH PHỐ" labelBottom="">
+                  <select className="bk-inp" style={{ ...BK_flatInp, color: TXT }}
+                    value={deliveryDistrict} onChange={e => setDeliveryDistrict(e.target.value)}>
+                    <option value="Núi Thành">Núi Thành</option>
+                    <option value="Tam Kỳ">Tam Kỳ</option>
+                  </select>
+                </BK_FormRow>
+
+                {/* Loại giao nhận + hiển thị phí */}
+                <BK_FormRow icon="🚗" labelTop="GIAO NHẬN" labelBottom="THIẾT BỊ" noBorder={!deliveryWard}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 }}>
+                    {[
+                      { val: "deliver", label: "Chỉ giao thiết bị" },
+                      { val: "pickup",  label: "Chỉ nhận lại thiết bị" },
+                      { val: "both",    label: "Giao và nhận lại thiết bị" },
+                    ].map(opt => (
+                      <label key={opt.val} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "6px 10px", borderRadius: 10, background: deliveryType === opt.val ? "rgba(201,168,76,0.13)" : "transparent", border: `1px solid ${deliveryType === opt.val ? "rgba(201,168,76,0.45)" : "transparent"}`, transition: "all .15s" }}>
+                        <input type="radio" name="deliveryType" value={opt.val} checked={deliveryType === opt.val}
+                          onChange={() => setDeliveryType(opt.val)}
+                          style={{ accentColor: G, width: 15, height: 15, flexShrink: 0 }} />
+                        <span style={{ color: TXT, fontSize: 13, fontFamily: "system-ui,sans-serif", flex: 1 }}>{opt.label}</span>
+                        {deliveryWard && (
+                          <span style={{ color: deliveryType === opt.val ? G : MUT, fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: deliveryType === opt.val ? 700 : 400, whiteSpace: "nowrap" }}>
+                            {opt.val === "both"
+                              ? (deliveryFee2Way === 0 ? "Miễn phí" : fmtVND(deliveryFee2Way))
+                              : (deliveryFee2Way === 0 ? "Miễn phí" : fmtVND(Math.round(deliveryFee2Way / 2)))}
+                          </span>
+                        )}
+                      </label>
+                    ))}
+                    {deliveryWard && deliveryFeeCalc > 0 && (
+                      <div style={{ marginTop: 4, padding: "8px 12px", background: "rgba(201,168,76,0.10)", border: "1px solid rgba(201,168,76,0.30)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <span style={{ color: MUT, fontSize: 11, fontFamily: "system-ui,sans-serif" }}>Phí giao nhận</span>
+                        <span style={{ color: G, fontSize: 13, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>{fmtVND(deliveryFeeCalc)}</span>
+                      </div>
+                    )}
+                    {deliveryWard && deliveryFeeCalc === 0 && (
+                      <div style={{ marginTop: 4, padding: "8px 12px", background: "rgba(34,197,94,0.10)", border: "1px solid rgba(34,197,94,0.30)", borderRadius: 10 }}>
+                        <span style={{ color: "#22c55e", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>✓ Miễn phí giao nhận khu vực này</span>
+                      </div>
+                    )}
+                  </div>
                 </BK_FormRow>
 
                 {/* Ghi chú */}
@@ -4937,7 +5014,14 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                 )}
                 {/* Tổng tiền row */}
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10, padding:"0 2px" }}>
-                  <span style={{ color:"#666", fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>TỔNG CỘNG</span>
+                  <div>
+                    <span style={{ color:"#666", fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>TỔNG CỘNG</span>
+                    {deliveryFeeCalc > 0 && (
+                      <div style={{ color:MUT, fontSize:9.5, fontFamily:"system-ui,sans-serif", marginTop:1 }}>
+                        Tiền thuê: {new Intl.NumberFormat("vi-VN").format(subtotal - discountAmt)}đ + Phí giao nhận: {new Intl.NumberFormat("vi-VN").format(deliveryFeeCalc)}đ
+                      </div>
+                    )}
+                  </div>
                   <div style={{ textAlign:"right" }}>
                     {appliedDiscount && (
                       <span style={{ color:"#22c55e", fontSize:11, fontFamily:"system-ui,sans-serif", marginRight:8 }}>-{fmtVND(discountAmt)}</span>
@@ -4986,6 +5070,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
             "\nThiết bị: " + selectedCamList.map(c => c.name + " x" + selCams[c.id]).join(", ") +
             "\nThời gian: " + fmtDays(days, selSession) +
             (appliedDiscount ? "\nMã giảm giá: " + appliedDiscount.code + " (-" + fmtVND(discountAmt) + ")" : "") +
+            (deliveryFeeCalc > 0 ? "\nPhí giao nhận: " + fmtVND(deliveryFeeCalc) : "") +
             "\nTổng tiền: " + fmtVND(total) +
             "\nKhách: " + info.name + " | SĐT: " + info.phone
           );
@@ -5007,11 +5092,13 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               ri2 ? `📦 Giờ nhận : ${ri2.pickTime} · ${ri2.pickDate}` : null,
               ri2 ? `📅 Giờ trả  : ${ri2.dropTime} · ${ri2.dropDate}` : null,
               appliedDiscount ? `🏷️ Mã giảm giá: ${appliedDiscount.code} (-${fmtVND(discountAmt)})` : null,
+              deliveryFeeCalc > 0 ? `🚗 Phí giao nhận: ${fmtVND(deliveryFeeCalc)}` : null,
               `💰 Tổng tiền: ${fmtVND(total)}`,
               "━━━━━━━━━━━━━━━━━━━━━━",
               `👤 Tên   : ${info.name}`,
               `📞 SĐT   : ${info.phone}`,
-              info.address ? `📍 Địa chỉ: ${info.address}` : null,
+              (deliveryStreet || deliveryWard) ? `📍 Địa chỉ: ${[deliveryStreet, deliveryWard, deliveryDistrict].filter(Boolean).join(", ")}` : (info.address ? `📍 Địa chỉ: ${info.address}` : null),
+              deliveryWard && deliveryType ? `🚗 Giao nhận: ${deliveryType === "both" ? "Giao và nhận lại" : deliveryType === "deliver" ? "Chỉ giao" : "Chỉ nhận lại"}` : null,
               info.note ? `💬 Ghi chú: ${info.note}` : null,
               "━━━━━━━━━━━━━━━━━━━━━━",
               "⏳ Trạng thái: Chờ xác nhận",
@@ -8012,7 +8099,114 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
   );
 }
 
-function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orders, setOrders, siteContent, setSiteContent, photos, setPhotos, albums, setAlbums, feedbacks, setFeedbacks, users, setUsers, discounts, setDiscounts, onBack, isMobile }) {
+// ── DELIVERY FEES PANEL (dùng state hợp lệ) ──
+function DeliveryFeesPanel({ fees, setDeliveryFees, isMobile }) {
+  const [localFees, setLocalFees] = useState(() => fees.map(f => ({ ...f })));
+  const [saved, setSavedLocal] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // sync khi fees prop thay đổi từ ngoài (lần đầu load từ Supabase)
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return; }
+    setLocalFees(fees.map(f => ({ ...f })));
+  }, [fees]);
+
+  const handleFeeChange = (idx, val) => {
+    const num = parseInt(val.replace(/\D/g, ""), 10);
+    setLocalFees(prev => prev.map((f, i) => i === idx ? { ...f, fee: isNaN(num) ? 0 : num } : f));
+    setSavedLocal(false);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await setDeliveryFees(localFees);
+      setSavedLocal(true);
+      setTimeout(() => setSavedLocal(false), 2500);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inp2 = { background: "rgba(255,255,255,0.55)", border: `1px solid ${BR}`, borderRadius: 9, padding: "7px 11px", color: TXT, fontSize: 13, fontFamily: "system-ui,sans-serif", width: "100%", boxSizing: "border-box" };
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <div>
+          <h2 style={{ margin: 0, color: TXT, fontWeight: 600, fontSize: 18, fontFamily: "system-ui,sans-serif" }}>🚗 Quản lý phí giao nhận</h2>
+          <div style={{ width: 30, height: 2, background: G, marginTop: 6 }} />
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          style={{ padding: "9px 22px", background: saved ? "#22c55e" : `linear-gradient(135deg,${G},#1a3a5c)`, color: "#fff", border: "none", borderRadius: 12, cursor: saving ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 700, fontFamily: "system-ui,sans-serif", opacity: saving ? 0.7 : 1, transition: "all .2s" }}>
+          {saving ? "⏳ Đang lưu..." : saved ? "✓ Đã lưu!" : "Lưu thay đổi"}
+        </button>
+      </div>
+
+      <div style={{ background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.25)", borderRadius: 12, padding: "12px 16px", marginBottom: 20, fontSize: 12, color: MUT, fontFamily: "system-ui,sans-serif", lineHeight: 1.6 }}>
+        Giá nhập là phí <strong>2 chiều</strong> (giao + nhận lại). Phí 1 chiều = ½ giá 2 chiều. Nhập 0 = miễn phí.
+        Sau khi lưu, khách mở lại trang sẽ thấy giá mới.
+      </div>
+
+      <div style={{ background: "rgba(255,255,255,0.45)", border: `1px solid ${BR}`, borderRadius: 16, overflow: "hidden" }}>
+        {/* Header bảng */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 180px", gap: 0, background: "rgba(8,20,36,0.07)", padding: "10px 16px", borderBottom: `1px solid ${BR}` }}>
+          <span style={{ color: MUT, fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", letterSpacing: 1 }}>KHU VỰC</span>
+          <span style={{ color: MUT, fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", letterSpacing: 1, textAlign: "right" }}>PHÍ 2 CHIỀU (đ)</span>
+        </div>
+
+        {/* Rows */}
+        {localFees.map((area, idx) => (
+          <div key={area.name} style={{ display: "grid", gridTemplateColumns: "1fr 180px", gap: 12, alignItems: "center", padding: "10px 16px", borderBottom: idx < localFees.length - 1 ? `1px solid rgba(139,174,207,0.25)` : "none", background: idx % 2 === 0 ? "transparent" : "rgba(255,255,255,0.18)" }}>
+            <div>
+              <span style={{ color: TXT, fontSize: 13, fontFamily: "system-ui,sans-serif", fontWeight: 500 }}>{area.name}</span>
+              {area.fee === 0 && (
+                <span style={{ marginLeft: 8, fontSize: 10, color: "#22c55e", fontFamily: "system-ui,sans-serif" }}>Miễn phí</span>
+              )}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <input
+                type="text"
+                inputMode="numeric"
+                style={{ ...inp2, textAlign: "right", width: 120 }}
+                value={area.fee === 0 ? "0" : String(area.fee)}
+                onChange={e => handleFeeChange(idx, e.target.value)}
+              />
+              <span style={{ color: MUT, fontSize: 11, fontFamily: "system-ui,sans-serif", flexShrink: 0 }}>đ</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Preview logic */}
+      <div style={{ marginTop: 20, background: "rgba(255,255,255,0.35)", border: `1px solid ${BR}`, borderRadius: 14, padding: "14px 16px" }}>
+        <div style={{ color: MUT, fontSize: 11, fontWeight: 700, letterSpacing: 1, fontFamily: "system-ui,sans-serif", marginBottom: 10 }}>VÍ DỤ TÍNH PHÍ</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {localFees.filter(f => f.fee > 0).slice(0, 4).map(f => (
+            <div key={f.name} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontFamily: "system-ui,sans-serif" }}>
+              <span style={{ color: TXT }}>{f.name}</span>
+              <span style={{ color: MUT }}>
+                1 chiều: <strong style={{ color: G }}>{new Intl.NumberFormat("vi-VN").format(Math.round(f.fee / 2))}đ</strong>
+                {" · "}
+                2 chiều: <strong style={{ color: G }}>{new Intl.NumberFormat("vi-VN").format(f.fee)}đ</strong>
+              </span>
+            </div>
+          ))}
+          {localFees.some(f => f.fee === 0) && (
+            <div style={{ fontSize: 12, color: "#22c55e", fontFamily: "system-ui,sans-serif" }}>
+              ✓ {localFees.filter(f => f.fee === 0).map(f => f.name).join(", ")}: Miễn phí giao nhận
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orders, setOrders, siteContent, setSiteContent, photos, setPhotos, albums, setAlbums, feedbacks, setFeedbacks, users, setUsers, discounts, setDiscounts, deliveryFees, setDeliveryFees, onBack, isMobile }) {
   const [tab, setTab] = useState("overview");
   const [navOpen, setNavOpen] = useState(false);
   const [editCam, setEditCam] = useState(null);
@@ -8404,6 +8598,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
     { k: "accessories", l: "🎒 Phụ kiện" },
     { k: "orders", l: "📋 Đơn thuê", badge: unseenCount },
     { k: "calendar", l: "📅 Lịch thuê" },
+    { k: "delivery", l: "🚗 Phí giao nhận" },
     { k: "media", l: "⭐ Feedback", badge: unseenFeedbackCount },
     { k: "users", l: "👥 Khách hàng" },
     { k: "discounts", l: "🏷️ Mã giảm giá" },
@@ -9638,6 +9833,15 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
           </div>
         )}
 
+        {/* DELIVERY FEES */}
+        {tab === "delivery" && (
+          <DeliveryFeesPanel
+            fees={Array.isArray(deliveryFees) && deliveryFees.length > 0 ? deliveryFees : DELIVERY_AREAS_DEFAULT}
+            setDeliveryFees={setDeliveryFees}
+            isMobile={isMobile}
+          />
+        )}
+
         {/* DISCOUNTS */}
         {tab === "discounts" && (() => {
           const discList = discounts || [];
@@ -9866,7 +10070,40 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
 
 // ── STORAGE HELPERS — Supabase Cloud (sync mọi thiết bị) ──
 // photos KHÔNG có trong STORE_KEYS — Cloudinary quản lý hoàn toàn, Supabase không biết
-const STORE_KEYS = { cameras: "k92_cameras_v2", accessories: "k92_accessories_v2", orders: "k92_orders_v2", site: "k92_site_v2", feedbacks: "k92_feedbacks_v1", users: "k92_users_v1", discounts: "k92_discounts_v1", albums: "k92_albums_v1" };
+const STORE_KEYS = { cameras: "k92_cameras_v2", accessories: "k92_accessories_v2", orders: "k92_orders_v2", site: "k92_site_v2", feedbacks: "k92_feedbacks_v1", users: "k92_users_v1", discounts: "k92_discounts_v1", albums: "k92_albums_v1", deliveryFees: "k92_delivery_fees_v1" };
+
+// ── DANH SÁCH KHU VỰC VÀ PHÍ GIAO NHẬN MẶC ĐỊNH (phí 2 chiều) ──
+const DELIVERY_AREAS_DEFAULT = [
+  { name: "Tam Mỹ Tây",          fee: 0 },
+  { name: "Tam Mỹ Đông",         fee: 20000 },
+  { name: "Tam Xuân 1",          fee: 20000 },
+  { name: "Tam Xuân 2",          fee: 40000 },
+  { name: "Thị trấn Núi Thành",  fee: 40000 },
+  { name: "Tam Hiệp",            fee: 40000 },
+  { name: "Tam Nghĩa",           fee: 40000 },
+  { name: "Tam Anh Bắc",         fee: 40000 },
+  { name: "Tam Anh Nam",         fee: 40000 },
+  { name: "Tam Hải",             fee: 40000 },
+  { name: "Tam Hòa",             fee: 60000 },
+  { name: "Tam Quang",           fee: 60000 },
+  { name: "Tam Giang",           fee: 60000 },
+  { name: "Tam Tiến",            fee: 60000 },
+  { name: "Tam Thạnh",           fee: 60000 },
+  { name: "Tam Ngọc",            fee: 80000 },
+  { name: "Tam Phú",             fee: 80000 },
+  { name: "Tam Thăng",           fee: 80000 },
+  { name: "Tam Sơn",             fee: 100000 },
+  { name: "Tam Thanh",           fee: 100000 },
+  { name: "An Mỹ",               fee: 100000 },
+  { name: "An Phú",              fee: 100000 },
+  { name: "An Sơn",              fee: 100000 },
+  { name: "An Xuân",             fee: 100000 },
+  { name: "Hòa Hương",           fee: 100000 },
+  { name: "Hòa Thuận",           fee: 100000 },
+  { name: "Tân Thạnh",           fee: 100000 },
+  { name: "Trường Xuân",         fee: 100000 },
+  { name: "Tam Trà",             fee: 100000 },
+];
 
 // ── STATIC DATA LOADER ──────────────────────────────────────────────────────
 // Luồng: mở app → fetch /data.json 1 lần từ Vercel CDN (0 request Supabase)
@@ -10404,6 +10641,7 @@ function AppRoot() {
   const [feedbacks, _setFeedbacks] = useState([]);
   const [users, _setUsers] = useState({});
   const [discounts, _setDiscounts] = useState([]);
+  const [deliveryFees, _setDeliveryFees] = useState(DELIVERY_AREAS_DEFAULT);
 
   // ── loggedUser: load từ localStorage khi mở trang, lưu lại mỗi khi thay đổi ──
   // Khách sẽ ở trạng thái đăng nhập cho đến khi tự bấm "Đăng xuất" hoặc xoá bộ nhớ
@@ -10504,6 +10742,14 @@ function AppRoot() {
     });
   }, []);
 
+  const setDeliveryFees = useCallback((updater) => {
+    _setDeliveryFees(prev => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      if (next !== prev) setTimeout(() => storageSet(STORE_KEYS.deliveryFees, next), 0);
+      return next;
+    });
+  }, []);
+
   // ── On mount: load data song song ──
   // Catalog (cameras/accessories/site/discounts): /data.json CDN → 0 Supabase request
   // Orders: Supabase thẳng LUÔN LUÔN → fresh 100%, không lag GitHub Action
@@ -10540,6 +10786,11 @@ function AppRoot() {
         })));
         if (site) _setSiteContent(site);
         if (disc) _setDiscounts(disc);
+
+        // Load delivery fees từ Supabase (không có trong staticData)
+        storageGet(STORE_KEYS.deliveryFees).then(fees => {
+          if (fees && Array.isArray(fees) && fees.length > 0) _setDeliveryFees(fees);
+        }).catch(() => {});
 
         // Lazy sau 4s: feedbacks + photos + albums
         setTimeout(async () => {
@@ -10578,6 +10829,9 @@ function AppRoot() {
         })));
         if (site) _setSiteContent(site);
         if (disc) _setDiscounts(disc);
+        storageGet(STORE_KEYS.deliveryFees).then(fees => {
+          if (fees && Array.isArray(fees) && fees.length > 0) _setDeliveryFees(fees);
+        }).catch(() => {});
         setTimeout(async () => {
           const fbs = await storageGet(STORE_KEYS.feedbacks);
           if (fbs) {
@@ -11034,6 +11288,7 @@ function AppRoot() {
           feedbacks={feedbacks} setFeedbacks={setFeedbacks}
           users={users} setUsers={(u) => setUsers(u)}
           discounts={discounts} setDiscounts={setDiscounts}
+          deliveryFees={deliveryFees} setDeliveryFees={setDeliveryFees}
           onBack={() => setPage("home")}
           isMobile={isMobile}
         />
@@ -11073,6 +11328,7 @@ function AppRoot() {
           siteContent={siteContent}
           discounts={discounts}
           setDiscounts={setDiscounts}
+          deliveryFees={deliveryFees}
           onClose={() => setBooking(false)}
           onSubmit={handleNewOrder}
           loggedUser={loggedUser}
