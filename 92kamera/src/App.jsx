@@ -3714,6 +3714,13 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subtotal, deliveryFeeCalc]);
 
+  // FIX: đóng panel discount khi đã đủ 2 mã, mở lại khi xoá xuống dưới 2
+  useEffect(() => {
+    if (appliedDiscounts.length >= 2) {
+      setDiscountExpanded(false);
+    }
+  }, [appliedDiscounts.length]);
+
   // Tính giảm riêng từng loại
   const rentalDiscountAmt = appliedRental
     ? Math.min(
@@ -3803,7 +3810,8 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 
       // ── Badge check ──
       if (disc.requiredBadge && disc.requiredBadge !== "none") {
-        const userOrders = (Array.isArray(orders) ? orders : []).filter(o =>
+        // Dùng liveOrdersForCheck thay vì orders prop — tránh stale data
+        const userOrders = (Array.isArray(liveOrdersForCheck) ? liveOrdersForCheck : []).filter(o =>
           (loggedUser?.email && o.userEmail === loggedUser.email) ||
           (loggedUser?.phone && o.userPhone === loggedUser.phone) ||
           (info.phone && o.phone === info.phone)
@@ -3828,7 +3836,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 
       const amt = disc.type === "percent" ? Math.round(base * disc.value / 100) : disc.value;
       const scopeLabel = scope === "delivery" ? "🚗 Giảm ship" : "🎞️ Giảm thuê";
-      setAppliedDiscounts(prev => [...prev, { code: disc.code, type: disc.type, value: disc.value, discountAmt: amt, id: disc.id, scope }]);
+      setAppliedDiscounts(prev => [...prev, { code: disc.code.toUpperCase(), type: disc.type, value: disc.value, discountAmt: amt, id: disc.id, scope }]);
       setDiscountCode("");
       setDiscountMsg({ type: "ok", text: `${scopeLabel} áp dụng! Giảm ${disc.type === "percent" ? disc.value + "%" : fmtVND(disc.value)}` });
       return true;
@@ -3950,7 +3958,6 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
     setSubmitting(true);
     setSubmitError(null);
 
-    const reservedDiscountIds_outer = []; // tracked for catch block rollback
     try {
       const sess = selSession || "full";
       const submitDateRange = [];
@@ -6864,7 +6871,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         .qr-corner:hover .qr-wrap{ transform: scale(3.2); }
         .qr-box{
           width:48px; height:48px; padding:4px;
-          background: #fff;
+          background: #000;
           border-radius:6px;
           box-shadow: 0 2px 12px rgba(0,0,0,0.5);
           line-height:0;
@@ -6895,7 +6902,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
           <div className="qr-close" onClick={e => { e.stopPropagation(); setQrHidden(true); }}>✕</div>
           <div className="qr-wrap">
             <div className="qr-box">
-              <img src={siteContent.cornerQR} alt="QR Liên hệ" style={{ width:"100%", height:"100%", display:"block", mixBlendMode:"multiply" }} />
+              <img src={siteContent.cornerQR} alt="QR Liên hệ" style={{ width:"100%", height:"100%", display:"block" }} />
             </div>
             <div className="qr-label">QR LIÊN HỆ</div>
           </div>
@@ -8458,6 +8465,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   const [discForm, setDiscForm] = useState({ code: "", type: "percent", value: "", minOrder: "", maxUse: "", active: true, requiredBadge: "none", voucherScope: "rental" });
   const [discMsg, setDiscMsg] = useState(null);
   const [editDiscId, setEditDiscId] = useState(null);
+  const [pendingDeleteDiscId, setPendingDeleteDiscId] = useState(null);
   // Lưu hash SHA-256, không lưu plaintext
   const [adminPwHash, setAdminPwHash] = useState(ADMIN_PW_DEFAULT_HASH);
   useEffect(() => {
@@ -8673,14 +8681,16 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
     let fallbackPoll = null;
 
     const pollOnce = async () => {
-      const [ords, fbs] = await Promise.all([
+      const [ords, fbs, discs] = await Promise.all([
         storageGet(STORE_KEYS.orders, true),
         storageGet(STORE_KEYS.feedbacks, true),
+        storageGet(STORE_KEYS.discounts, true),
       ]);
       const newCount = mergeData(STORE_KEYS.orders, ords);
       if (newCount > 0) playNotif();
       const newFbCount = mergeData(STORE_KEYS.feedbacks, fbs);
       if (newFbCount > 0) playNotif();
+      if (discs) mergeData(STORE_KEYS.discounts, discs);
     };
 
     const startFallbackPoll = () => {
@@ -9673,8 +9683,32 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                               localOrderChangesRef.current.set(o.id, Date.now());
                               // Bust static cache — khách xem trang thấy status mới ngay lần refresh tiếp
                               window.__92k_invalidateStaticCache?.();
-                              // NOTE: usedCount đã được tăng lúc khách đặt đơn (BookingModal.handleFinish)
-                              // Không tăng lại ở đây tránh double-count
+                              // FIX: rollback usedCount khi admin huỷ đơn có mã giảm giá
+                              // Chỉ rollback khi chuyển từ non-cancelled → cancelled (tránh double-decrement)
+                              if (s === "cancelled" && o.status !== "cancelled") {
+                                const discIds = [];
+                                if (Array.isArray(o.appliedDiscounts) && o.appliedDiscounts.length > 0) {
+                                  // Lấy id từ appliedDiscounts nếu có
+                                  o.appliedDiscounts.forEach(ad => {
+                                    if (ad.code) {
+                                      const found = (discounts || []).find(d => d.code.toUpperCase() === ad.code.toUpperCase());
+                                      if (found?.id) discIds.push(found.id);
+                                    }
+                                  });
+                                } else if (o.discountCode) {
+                                  // Compat: đơn cũ chỉ có discountCode
+                                  const found = (discounts || []).find(d => d.code.toUpperCase() === o.discountCode.toUpperCase());
+                                  if (found?.id) discIds.push(found.id);
+                                }
+                                if (discIds.length > 0) {
+                                  // Cập nhật local state ngay để UI phản ánh
+                                  setDiscounts(prev => (prev || []).map(d =>
+                                    discIds.includes(d.id) ? { ...d, usedCount: Math.max(0, (d.usedCount || 0) - 1) } : d
+                                  ));
+                                  // Rollback CAS lên Supabase (fire-and-forget, không block UI)
+                                  discIds.forEach(id => rollbackDiscountUsage(id).catch(() => {}));
+                                }
+                              }
                             }}
                               style={{ padding: "6px 12px", background: o.status === s ? "#FFF8ED" : CARD, color: o.status === s ? G : MUT, border: `1px solid ${o.status === s ? G + "55" : BR2}`, borderRadius: 99, cursor: "pointer", fontSize: 11, fontWeight: o.status === s ? 700 : 400, fontFamily: "system-ui,sans-serif", transition: "all .15s" }}>
                               {l}
@@ -10149,10 +10183,15 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
               createdAt: editDiscId ? (discList.find(d => d.id === editDiscId)?.createdAt || todayStr()) : todayStr(),
             };
             if (editDiscId) {
-              setDiscounts(prev => prev.map(d => d.id === editDiscId ? newDisc : d));
+              setDiscounts(prev => prev.map(d => {
+                if (d.id !== editDiscId) return d;
+                // Lấy usedCount và createdAt từ live record, tránh dùng snapshot discList cũ
+                return { ...newDisc, usedCount: d.usedCount ?? 0, createdAt: d.createdAt || newDisc.createdAt };
+              }));
             } else {
               setDiscounts(prev => [newDisc, ...prev]);
             }
+            window.__92k_invalidateStaticCache?.();
             setDiscForm({ code: "", type: "percent", value: "", minOrder: "", maxUse: "", active: true, requiredBadge: "none", voucherScope: "rental" });
             setEditDiscId(null);
             setDiscMsg({ type: "ok", text: editDiscId ? "✓ Đã cập nhật mã giảm giá" : "✓ Đã tạo mã giảm giá mới" });
@@ -10163,7 +10202,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
             setDiscForm({ code: d.code, type: d.type, value: String(d.value), minOrder: d.minOrder ? String(d.minOrder) : "", maxUse: d.maxUse ? String(d.maxUse) : "", active: d.active, requiredBadge: d.requiredBadge || "none", voucherScope: d.voucherScope || "rental" });
             setDiscMsg(null);
           };
-          const deleteDisc = (id) => { setDiscounts(prev => prev.filter(d => d.id !== id)); window.__92k_invalidateStaticCache?.(); };
+          const deleteDisc = (id) => { setDiscounts(prev => prev.filter(d => d.id !== id)); window.__92k_invalidateStaticCache?.(); setPendingDeleteDiscId(null); };
           const toggleActive = (id) => { setDiscounts(prev => prev.map(d => d.id === id ? { ...d, active: !d.active } : d)); window.__92k_invalidateStaticCache?.(); };
 
           return (
@@ -10321,7 +10360,15 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                         {d.active ? "Tắt" : "Bật"}
                       </button>
                       <button onClick={() => startEdit(d)} style={{ padding: "6px 12px", background: CARD, color: TXT, border: `1px solid ${BR2}`, borderRadius: 10, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>✏️</button>
-                      <button onClick={() => { if (window.confirm("Xoá mã " + d.code + "?")) deleteDisc(d.id); }} style={{ padding: "6px 12px", background: "#FEF0F0", color: "#ef4444", border: "1px solid #ef444430", borderRadius: 10, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>🗑</button>
+                      {pendingDeleteDiscId === d.id ? (
+                        <div style={{ display:"flex", gap:4, alignItems:"center" }}>
+                          <span style={{ fontSize:10, color:"#ef4444", fontFamily:"system-ui,sans-serif" }}>Xoá?</span>
+                          <button onClick={() => deleteDisc(d.id)} style={{ padding:"6px 10px", background:"#ef4444", color:"#fff", border:"none", borderRadius:10, cursor:"pointer", fontSize:11, fontWeight:700, fontFamily:"system-ui,sans-serif" }}>✓</button>
+                          <button onClick={() => setPendingDeleteDiscId(null)} style={{ padding:"6px 10px", background:CARD, color:MUT, border:`1px solid ${BR2}`, borderRadius:10, cursor:"pointer", fontSize:11, fontFamily:"system-ui,sans-serif" }}>✕</button>
+                        </div>
+                      ) : (
+                        <button onClick={() => setPendingDeleteDiscId(d.id)} style={{ padding: "6px 12px", background: "#FEF0F0", color: "#ef4444", border: "1px solid #ef444430", borderRadius: 10, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>🗑</button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -10454,7 +10501,6 @@ const SB_HEADERS = { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Con
 // orders: KHÔNG cache — WebSocket realtime lo, luôn fetch fresh
 // cameras/accs/site/albums/discounts/feedbacks: 60 phút (ít thay đổi)
 const CACHE_TTL_MS = 60 * 60 * 1000;          // default 60 phút
-const CACHE_TTL_ORDERS_MS = 0;                 // orders: không bao giờ cache
 function cacheKey(key) { return `__ts_${key}`; }
 function isCacheFresh(key) {
   try {
@@ -10509,11 +10555,11 @@ function showWriteErrToast(key) {
   const now = Date.now();
   if (now - _writeErrToastTs < 8000) return; // throttle 8s
   _writeErrToastTs = now;
-  const label = key === "kv_orders" ? "dữ liệu đề h��ng" :
-                key === "kv_cameras" ? "mủy ảnh" :
-                key === "kv_accessories" ? "phụ kiện" :
-                key === "kv_site" ? "nội dung trang" :
-                key === "kv_discounts" ? "mã giảm giá" : "dữ liệu";
+  const label = key === "k92_orders_v2" ? "dữ liệu đơn hàng" :
+                key === "k92_cameras_v2" ? "máy ảnh" :
+                key === "k92_accessories_v2" ? "phụ kiện" :
+                key === "k92_site_v2" ? "nội dung trang" :
+                key === "k92_discounts_v1" ? "mã giảm giá" : "dữ liệu";
   const el = document.createElement("div");
   el.style.cssText = "position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:99999;" +
     "background:#7f1d1d;color:#fecaca;padding:10px 20px;border-radius:10px;font-size:13px;" +
@@ -11155,7 +11201,7 @@ function AppRoot() {
   // new orders (seen:false) and newly added cameras were overwritten by stale storage reads.
 
   const handleNewOrder = useCallback((order) => {
-    // BUG-D FIX: skipStorage=true — BookingModal.handleFinish đã dùng storageSetImmediate
+    // BUG-D FIX: skipStorage=true — BookingModal.handleFinish đã dùng storageCasSet
     // ghi array đầy đủ lên Supabase. Nếu setOrders ghi lại đây sẽ overwrite bằng prev stale.
     setOrders(prev => [{ ...order, seen: false }, ...prev], { skipStorage: true });
   }, [setOrders]);
