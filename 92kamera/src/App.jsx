@@ -4195,27 +4195,28 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               {stepLabel.map((l, i) => {
                 const active = step === i + 1;
                 const done_ = step > i + 1;
+                const GOLD = "#c9a84c";
                 return (
                   <div key={i} style={{ display: "flex", alignItems: "center", flex: 1 }}>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
                       <div style={{
                         width: 32, height: 32, borderRadius: "50%",
-                        background: active ? G : done_ ? G + "33" : "transparent",
-                        border: `2px solid ${active || done_ ? G : "#333"}`,
+                        background: active ? GOLD : done_ ? "rgba(201,168,76,0.25)" : "rgba(255,255,255,0.15)",
+                        border: `2px solid ${active ? GOLD : done_ ? GOLD : "rgba(255,255,255,0.55)"}`,
                         display: "flex", alignItems: "center", justifyContent: "center",
                         transition: "all .3s", flexShrink: 0
                       }}>
                         {done_
-                          ? <span style={{ color: G, fontSize: 13, fontWeight: 900 }}>✓</span>
-                          : <span style={{ color: active ? "#000" : "#555", fontSize: 12, fontWeight: 800, fontFamily: "system-ui,sans-serif" }}>{i + 1}</span>
+                          ? <span style={{ color: GOLD, fontSize: 13, fontWeight: 900 }}>✓</span>
+                          : <span style={{ color: active ? "#0D1B2A" : "rgba(255,255,255,0.9)", fontSize: 12, fontWeight: 900, fontFamily: "system-ui,sans-serif" }}>{i + 1}</span>
                         }
                       </div>
-                      <div style={{ fontSize: 8, color: active ? G : done_ ? G + "88" : "#444", fontFamily: "system-ui,sans-serif", letterSpacing: 0.8, marginTop: 6, textAlign: "center", fontWeight: active ? 700 : 400, lineHeight: 1.3 }}>
+                      <div style={{ fontSize: 8, color: active ? GOLD : done_ ? "rgba(201,168,76,0.7)" : "rgba(255,255,255,0.6)", fontFamily: "system-ui,sans-serif", letterSpacing: 0.8, marginTop: 6, textAlign: "center", fontWeight: active ? 700 : 500, lineHeight: 1.3 }}>
                         {l.toUpperCase()}
                       </div>
                     </div>
                     {i < stepLabel.length - 1 && (
-                      <div style={{ width: 28, flexShrink: 0, height: 1, background: step > i + 1 ? G + "66" : "#222", marginBottom: 22, transition: "all .3s" }} />
+                      <div style={{ width: 28, flexShrink: 0, height: 1, background: step > i + 1 ? "rgba(201,168,76,0.6)" : "rgba(255,255,255,0.3)", marginBottom: 22, transition: "all .3s" }} />
                     )}
                   </div>
                 );
