@@ -3582,14 +3582,26 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   const [deliveryStreet, setDeliveryStreet] = useState(""); // địa chỉ chi tiết
   const [deliveryWard, setDeliveryWard] = useState("");     // xã/phường
   const [deliveryDistrict, setDeliveryDistrict] = useState("Núi Thành"); // huyện/tp
-  const [deliveryType, setDeliveryType] = useState("both"); // "deliver" | "pickup" | "both"
-  const [selfPickup, setSelfPickup] = useState(false); // true = khách tự đến shop nhận, không tính ship
+  // deliveryType giữ lại để tương thích save/load đơn cũ
+  const [deliveryPickup, setDeliveryPickup] = useState("home");  // nhận máy: "shop" | "home"
+  const [deliveryReturn, setDeliveryReturn] = useState("home");  // trả máy: "shop" | "home"
+  const [selfPickup, setSelfPickup] = useState(false); // true = khách tự đến shop (cả 2 chiều), không tính ship
+  // Tính deliveryType từ 2 lựa chọn → tương thích logic cũ khi save đơn
+  const deliveryType = deliveryWard
+    ? (deliveryPickup === "home" && deliveryReturn === "home" ? "both"
+      : deliveryPickup === "home" ? "deliver"
+      : deliveryReturn === "home" ? "pickup"
+      : "") // shop+shop = không ship
+    : "";
   // Tính phí giao nhận realtime — selfPickup luôn = 0
   const deliveryFeeData = (deliveryFees || DELIVERY_AREAS_DEFAULT).find(x => x.name === deliveryWard);
   const deliveryFee2Way = deliveryFeeData ? deliveryFeeData.fee : 0;
   const deliveryFeeCalc = selfPickup
     ? 0
-    : (deliveryWard ? (deliveryType === "both" ? deliveryFee2Way : Math.round(deliveryFee2Way / 2)) : 0);
+    : (!deliveryWard ? 0
+      : deliveryPickup === "home" && deliveryReturn === "home" ? deliveryFee2Way        // cả 2 chiều
+      : deliveryPickup === "home" || deliveryReturn === "home" ? Math.round(deliveryFee2Way / 2) // 1 chiều
+      : 0); // shop+shop = 0
   const [done, setDone] = useState(false);
   const [orderId, setOrderId] = useState("");
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -5065,7 +5077,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                       />
                       <button onClick={() => { if (!discountLoading) applyDiscount().then(ok => { if (ok) setDiscountExpanded(false); }).catch(() => {}); }}
                         disabled={discountLoading}
-                        style={{ padding:"0 16px", background: discountLoading ? "#555" : `linear-gradient(135deg,${G},#a07830)`, color:"#000", border:"none", borderRadius:16, cursor: discountLoading ? "not-allowed" : "pointer", fontSize:12, fontWeight:800, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap", flexShrink:0, minHeight:44, opacity: discountLoading ? 0.7 : 1, transition:"opacity 0.15s" }}>
+                        style={{ padding:"0 16px", background: discountLoading ? "#aaa" : `linear-gradient(135deg,${G},#a07830)`, color:"#fff", border:"none", borderRadius:16, cursor: discountLoading ? "not-allowed" : "pointer", fontSize:12, fontWeight:800, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap", flexShrink:0, minHeight:44, opacity: discountLoading ? 0.7 : 1, transition:"opacity 0.15s", textShadow:"0 1px 2px rgba(0,0,0,0.35)" }}>
                         {discountLoading ? "..." : "Áp dụng"}
                       </button>
                     </div>
@@ -5129,60 +5141,86 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                 <BK_FormRow icon="🚗" labelTop="GIAO NHẬN" labelBottom="THIẾT BỊ" noBorder={!deliveryWard && !selfPickup}>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 }}>
 
-                    {/* Option tự đến shop nhận */}
-                    <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "6px 10px", borderRadius: 10, background: selfPickup ? "rgba(34,197,94,0.10)" : "transparent", border: `1px solid ${selfPickup ? "rgba(34,197,94,0.45)" : "transparent"}`, transition: "all .15s" }}>
-                      <input type="radio" name="deliveryMode" checked={selfPickup}
-                        onChange={() => { setSelfPickup(true); setDeliveryWard(""); setDeliveryStreet(""); }}
-                        style={{ accentColor: "#22c55e", width: 15, height: 15, flexShrink: 0 }} />
-                      <span style={{ color: TXT, fontSize: 13, fontFamily: "system-ui,sans-serif", flex: 1 }}>🏠 Nhận tại shop · Miễn phí</span>
-                      <span style={{ color: "#22c55e", fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: 700, whiteSpace: "nowrap" }}>0 đ</span>
-                    </label>
 
-                    {/* Thông tin địa chỉ shop khi selfPickup */}
-                    {selfPickup && (
-                      <div style={{ marginLeft: 25, padding: "8px 12px", background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 10 }}>
-                        <div style={{ color: "#22c55e", fontSize: 11, fontFamily: "system-ui,sans-serif", fontWeight: 700, marginBottom: 2 }}>📍 Địa chỉ shop</div>
-                        <div style={{ color: TXT, fontSize: 12, fontFamily: "system-ui,sans-serif", lineHeight: 1.6 }}>
-                          Thôn Thạnh Mỹ, xã Tam Mỹ, thành phố Đà Nẵng
-                        </div>
-                        <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif", marginTop: 4 }}>
-                          Liên hệ Zalo để xác nhận giờ đến nhận máy
-                        </div>
-                      </div>
-                    )}
 
-                    {/* Separator giữa 2 nhóm */}
-                    {!selfPickup && (
-                      <div style={{ borderTop: "1px dashed rgba(0,0,0,0.10)", margin: "2px 0" }} />
-                    )}
+                    {/* ── 2 cặp radio: Nhận máy + Trả máy ── */}
+                    {/* Nhóm NHẬN MÁY */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif", fontWeight: 700, letterSpacing: "0.06em", paddingLeft: 2, marginBottom: 2 }}>📦 NHẬN MÁY</div>
+                      {[
+                        { val: "shop", label: "Tại shop", fee: 0 },
+                        { val: "home", label: "Giao tận nơi", fee: deliveryFee2Way > 0 ? Math.round(deliveryFee2Way / 2) : 0 },
+                      ].map(opt => {
+                        const active = !selfPickup && deliveryPickup === opt.val;
+                        return (
+                          <div key={opt.val}>
+                            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "7px 10px", borderRadius: 10, background: active ? "rgba(201,168,76,0.13)" : "transparent", border: `1px solid ${active ? "rgba(201,168,76,0.45)" : "rgba(0,0,0,0.06)"}`, transition: "all .15s" }}>
+                              <input type="radio" name="deliveryPickup" value={opt.val} checked={active}
+                                onChange={() => { setSelfPickup(false); setDeliveryPickup(opt.val); }}
+                                style={{ accentColor: G, width: 15, height: 15, flexShrink: 0 }} />
+                              <span style={{ color: TXT, fontSize: 13, fontFamily: "system-ui,sans-serif", flex: 1 }}>{opt.label}</span>
+                              {!selfPickup && deliveryWard && (
+                                <span style={{ color: active ? G : MUT, fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: active ? 700 : 400, whiteSpace: "nowrap" }}>
+                                  {opt.val === "shop" ? "0 đ" : (opt.fee === 0 ? "Miễn phí" : fmtVND(opt.fee))}
+                                </span>
+                              )}
+                            </label>
+                            {/* Địa chỉ shop — hiện khi chọn Tại shop */}
+                            {active && opt.val === "shop" && (
+                              <div style={{ marginLeft: 35, marginTop: 3, color: MUT, fontSize: 11, fontFamily: "system-ui,sans-serif" }}>
+                                📍 Thôn Thạnh Mỹ, Xã Tam Mỹ, Thành Phố Đà Nẵng
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
 
-                    {/* 3 option giao nhận có ship — chỉ hiện khi không selfPickup */}
-                    {[
-                      { val: "deliver", label: "Chỉ giao thiết bị" },
-                      { val: "pickup",  label: "Chỉ nhận lại thiết bị" },
-                      { val: "both",    label: "Giao và nhận lại thiết bị" },
-                    ].map(opt => (
-                      <label key={opt.val} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "6px 10px", borderRadius: 10, background: (!selfPickup && deliveryType === opt.val) ? "rgba(201,168,76,0.13)" : "transparent", border: `1px solid ${(!selfPickup && deliveryType === opt.val) ? "rgba(201,168,76,0.45)" : "transparent"}`, transition: "all .15s" }}>
-                        <input type="radio" name="deliveryMode" value={opt.val} checked={!selfPickup && deliveryType === opt.val}
-                          onChange={() => { setSelfPickup(false); setDeliveryType(opt.val); }}
-                          style={{ accentColor: G, width: 15, height: 15, flexShrink: 0 }} />
-                        <span style={{ color: TXT, fontSize: 13, fontFamily: "system-ui,sans-serif", flex: 1 }}>{opt.label}</span>
-                        {!selfPickup && deliveryWard && (
-                          <span style={{ color: deliveryType === opt.val ? G : MUT, fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: deliveryType === opt.val ? 700 : 400, whiteSpace: "nowrap" }}>
-                            {opt.val === "both"
-                              ? (deliveryFee2Way === 0 ? "Miễn phí" : fmtVND(deliveryFee2Way))
-                              : (deliveryFee2Way === 0 ? "Miễn phí" : fmtVND(Math.round(deliveryFee2Way / 2)))}
-                          </span>
-                        )}
-                      </label>
-                    ))}
+                    {/* Nhóm TRẢ MÁY */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif", fontWeight: 700, letterSpacing: "0.06em", paddingLeft: 2, marginBottom: 2 }}>🔄 TRẢ MÁY</div>
+                      {[
+                        { val: "shop", label: "Tại shop", fee: 0 },
+                        { val: "home", label: "Nhận tận nơi", fee: deliveryFee2Way > 0 ? Math.round(deliveryFee2Way / 2) : 0 },
+                      ].map(opt => {
+                        const active = !selfPickup && deliveryReturn === opt.val;
+                        return (
+                          <div key={opt.val}>
+                            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "7px 10px", borderRadius: 10, background: active ? "rgba(201,168,76,0.13)" : "transparent", border: `1px solid ${active ? "rgba(201,168,76,0.45)" : "rgba(0,0,0,0.06)"}`, transition: "all .15s" }}>
+                              <input type="radio" name="deliveryReturn" value={opt.val} checked={active}
+                                onChange={() => { setSelfPickup(false); setDeliveryReturn(opt.val); }}
+                                style={{ accentColor: G, width: 15, height: 15, flexShrink: 0 }} />
+                              <span style={{ color: TXT, fontSize: 13, fontFamily: "system-ui,sans-serif", flex: 1 }}>{opt.label}</span>
+                              {!selfPickup && deliveryWard && (
+                                <span style={{ color: active ? G : MUT, fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: active ? 700 : 400, whiteSpace: "nowrap" }}>
+                                  {opt.val === "shop" ? "0 đ" : (opt.fee === 0 ? "Miễn phí" : fmtVND(opt.fee))}
+                                </span>
+                              )}
+                            </label>
+                            {/* Địa chỉ shop — hiện khi chọn Tại shop */}
+                            {active && opt.val === "shop" && (
+                              <div style={{ marginLeft: 35, marginTop: 3, color: MUT, fontSize: 11, fontFamily: "system-ui,sans-serif" }}>
+                                📍 Thôn Thạnh Mỹ, Xã Tam Mỹ, Thành Phố Đà Nẵng
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Tổng phí giao nhận */}
                     {!selfPickup && deliveryWard && deliveryFeeCalc > 0 && (
                       <div style={{ marginTop: 4, padding: "8px 12px", background: "rgba(201,168,76,0.10)", border: "1px solid rgba(201,168,76,0.30)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <span style={{ color: MUT, fontSize: 11, fontFamily: "system-ui,sans-serif" }}>Phí giao nhận</span>
                         <span style={{ color: G, fontSize: 13, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>{fmtVND(deliveryFeeCalc)}</span>
                       </div>
                     )}
-                    {!selfPickup && deliveryWard && deliveryFeeCalc === 0 && (
+                    {!selfPickup && deliveryWard && deliveryFeeCalc === 0 && deliveryPickup === "shop" && deliveryReturn === "shop" && (
+                      <div style={{ marginTop: 4, padding: "8px 12px", background: "rgba(34,197,94,0.10)", border: "1px solid rgba(34,197,94,0.30)", borderRadius: 10 }}>
+                        <span style={{ color: "#22c55e", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>✓ Tự đến shop — miễn phí giao nhận</span>
+                      </div>
+                    )}
+                    {!selfPickup && deliveryWard && deliveryFeeCalc === 0 && !(deliveryPickup === "shop" && deliveryReturn === "shop") && (
                       <div style={{ marginTop: 4, padding: "8px 12px", background: "rgba(34,197,94,0.10)", border: "1px solid rgba(34,197,94,0.30)", borderRadius: 10 }}>
                         <span style={{ color: "#22c55e", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>✓ Miễn phí giao nhận khu vực này</span>
                       </div>
@@ -5312,7 +5350,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               `📞 SĐT   : ${info.phone}`,
               (deliveryStreet || deliveryWard) && !selfPickup ? `📍 Địa chỉ: ${[deliveryStreet, deliveryWard, deliveryDistrict].filter(Boolean).join(", ")}` : (selfPickup ? null : (info.address ? `📍 Địa chỉ: ${info.address}` : null)),
               selfPickup ? `🏠 Nhận tại shop: Thôn Thạnh Mỹ, xã Tam Mỹ, TP Đà Nẵng` : null,
-              !selfPickup && deliveryWard && deliveryType ? `🚗 Giao nhận: ${deliveryType === "both" ? "Giao và nhận lại" : deliveryType === "deliver" ? "Chỉ giao" : "Chỉ nhận lại"}` : null,
+              !selfPickup && deliveryWard ? `🚗 Nhận máy: ${deliveryPickup === "home" ? "Giao tận nơi" : "Tại shop"} · Trả máy: ${deliveryReturn === "home" ? "Nhận tận nơi" : "Tại shop"}` : null,
               info.note ? `💬 Ghi chú: ${info.note}` : null,
               "━━━━━━━━━━━━━━━━━━━━━━",
               "⏳ Trạng thái: Chờ xác nhận",
