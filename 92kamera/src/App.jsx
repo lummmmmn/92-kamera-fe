@@ -2992,7 +2992,11 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                             `⏱ Thời gian: ${fmtDays(o.days, o.session || o.shift)}`,
                             pickDate ? `Giờ nhận : ${pickTime} · ${pickDate}` : null,
                             dropDate ? `Giờ trả  : ${dropTime} · ${dropDate}` : null,
-                            o.discountCode ? `🏷️ Mã giảm giá: ${o.discountCode} (-${fmtVND(o.discountAmt || 0)})` : null,
+                            ...(o.appliedDiscounts && o.appliedDiscounts.length > 0
+                              ? o.appliedDiscounts.map(ad => ad.scope === "delivery"
+                                  ? `🚗 Mã ship: ${ad.code} (-${fmtVND(ad.amt || 0)})`
+                                  : `🎞️ Mã thuê: ${ad.code} (-${fmtVND(ad.amt || 0)})`)
+                              : o.discountCode ? [`🏷️ Mã giảm giá: ${o.discountCode} (-${fmtVND(o.discountAmt || 0)})`] : []),
                             `💰 Tổng tiền: ${fmtVND(o.total)}`,
                             "━━━━━━━━━━━━━━━━━━━━━━",
                             `👤 Tên   : ${o.name}`,
@@ -3580,12 +3584,13 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   const [deliveryWard, setDeliveryWard] = useState("");     // xã/phường
   const [deliveryDistrict, setDeliveryDistrict] = useState("Núi Thành"); // huyện/tp
   const [deliveryType, setDeliveryType] = useState("both"); // "deliver" | "pickup" | "both"
-  // Tính phí giao nhận realtime
+  const [selfPickup, setSelfPickup] = useState(false); // true = khách tự đến shop nhận, không tính ship
+  // Tính phí giao nhận realtime — selfPickup luôn = 0
   const deliveryFeeData = (deliveryFees || DELIVERY_AREAS_DEFAULT).find(x => x.name === deliveryWard);
   const deliveryFee2Way = deliveryFeeData ? deliveryFeeData.fee : 0;
-  const deliveryFeeCalc = deliveryWard
-    ? (deliveryType === "both" ? deliveryFee2Way : Math.round(deliveryFee2Way / 2))
-    : 0;
+  const deliveryFeeCalc = selfPickup
+    ? 0
+    : (deliveryWard ? (deliveryType === "both" ? deliveryFee2Way : Math.round(deliveryFee2Way / 2)) : 0);
   const [done, setDone] = useState(false);
   const [orderId, setOrderId] = useState("");
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -3680,17 +3685,25 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   }, 0);
   const subtotal = camCost + accCost;
 
-  // Re-check minOrder mỗi khi subtotal/deliveryFeeCalc thay đổi
+  // Re-check mỗi khi subtotal/deliveryFeeCalc thay đổi:
+  // 1) Huỷ mã delivery nếu deliveryFeeCalc về 0 (selfPickup hoặc bỏ chọn khu vực)
+  // 2) Huỷ mã bất kỳ nếu subtotal xuống dưới minOrder
   useEffect(() => {
     if (appliedDiscounts.length === 0) return;
     const allDiscs = Array.isArray(discounts) ? discounts : [];
     setAppliedDiscounts(prev => {
       let changed = false;
       const next = prev.filter(ad => {
+        // Huỷ mã delivery khi không còn ship
+        if (ad.scope === "delivery" && deliveryFeeCalc === 0) {
+          setDiscountMsg({ type: "err", text: `Không có phí giao nhận — mã ${ad.code} đã bị huỷ` });
+          changed = true;
+          return false;
+        }
         const disc = allDiscs.find(d => d.id === ad.id);
         if (!disc) return true; // không tìm thấy → giữ nguyên, submit sẽ reject
-        const base = ad.scope === "delivery" ? deliveryFeeCalc : subtotal;
-        if (disc.minOrder && base < disc.minOrder) {
+        // minOrder luôn check theo subtotal (tổng đơn) cho cả 2 loại mã
+        if (disc.minOrder && subtotal < disc.minOrder) {
           setDiscountMsg({ type: "err", text: `Đơn giảm xuống dưới ${fmtVND(disc.minOrder)} — mã ${ad.code} đã bị huỷ` });
           changed = true;
           return false;
@@ -3772,12 +3785,14 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
       }
 
       // ── Tính base theo scope ──
+      // base để tính số tiền giảm thực tế (rental → subtotal, delivery → deliveryFeeCalc)
       const base = scope === "delivery" ? deliveryFeeCalc : subtotal;
+      // minOrder luôn check theo tổng đơn hàng (subtotal) cho cả 2 loại mã
+      const minOrderBase = subtotal;
 
       if (disc.maxUse && disc.usedCount >= disc.maxUse) { setDiscountMsg({ type: "err", text: "Mã này đã dùng hết số lượt" }); return false; }
-      if (disc.minOrder && base < disc.minOrder) {
-        const baseLabel = scope === "delivery" ? "Phí giao nhận" : "Đơn hàng";
-        setDiscountMsg({ type: "err", text: `${baseLabel} tối thiểu ${fmtVND(disc.minOrder)} mới được áp dụng mã này` });
+      if (disc.minOrder && minOrderBase < disc.minOrder) {
+        setDiscountMsg({ type: "err", text: `Đơn hàng tối thiểu ${fmtVND(disc.minOrder)} mới được áp dụng mã này` });
         return false;
       }
 
@@ -3994,7 +4009,8 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
             return;
           }
           const base = ad.scope === "delivery" ? deliveryFeeCalc : subtotal;
-          if (freshDisc.minOrder && base < freshDisc.minOrder) {
+          // minOrder luôn check theo subtotal (tổng đơn) cho cả 2 loại mã
+          if (freshDisc.minOrder && subtotal < freshDisc.minOrder) {
             for (const rid of reservedDiscountIds) await rollbackDiscountUsage(rid);
             setDiscounts(prev => (prev || []).map(d => reservedDiscountIds.includes(d.id) ? { ...d, usedCount: Math.max(0, (d.usedCount || 0) - 1) } : d));
             setSubmitError(`❌ Đơn tối thiểu ${fmtVND(freshDisc.minOrder)} mới được áp dụng mã "${ad.code}".`);
@@ -4083,10 +4099,12 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
           shift: days === 0.5 ? selSession : null,
           createdAt: new Date().toISOString(),
           ...info,
-          address: [deliveryStreet, deliveryWard, deliveryDistrict].filter(Boolean).join(", ") || info.address,
-          deliveryWard: deliveryWard || "",
-          deliveryDistrict: deliveryDistrict || "",
-          deliveryType: deliveryWard ? deliveryType : "",
+          address: selfPickup
+            ? "Thôn Thạnh Mỹ, xã Tam Mỹ, thành phố Đà Nẵng (tự đến shop nhận)"
+            : ([deliveryStreet, deliveryWard, deliveryDistrict].filter(Boolean).join(", ") || info.address),
+          deliveryWard: selfPickup ? "" : (deliveryWard || ""),
+          deliveryDistrict: selfPickup ? "" : (deliveryDistrict || ""),
+          deliveryType: selfPickup ? "selfPickup" : (deliveryWard ? deliveryType : ""),
           deliveryFee: deliveryFeeCalc,
           status: "pending", date: pickDate, seen: false,
           userPhone: loggedUser?.phone || info.phone, userEmail: loggedUser?.email || ""
@@ -4908,19 +4926,28 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                         </div>
                       )}
                       {/* Tổng tiền */}
-                      <div style={{ paddingTop:12, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                        <span style={{ color:"#556", fontSize:9, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>TỔNG CỘNG</span>
-                        <div style={{ textAlign:"right" }}>
-                          {appliedRental && (
+                      <div style={{ paddingTop:12, display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
+                        <span style={{ color:"#556", fontSize:9, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700, paddingTop:2 }}>TỔNG CỘNG</span>
+                        <div style={{ textAlign:"right", display:"flex", flexDirection:"column", gap:2 }}>
+                          {/* Tiền thuê gốc nếu có giảm */}
+                          {rentalDiscountAmt > 0 && (
+                            <div style={{ color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif" }}>
+                              📷 {new Intl.NumberFormat("vi-VN").format(subtotal)}đ thuê
+                            </div>
+                          )}
+                          {/* Giảm tiền thuê */}
+                          {rentalDiscountAmt > 0 && (
                             <div style={{ color:"#22c55e", fontSize:10, fontFamily:"system-ui,sans-serif" }}>🎞️ -{new Intl.NumberFormat("vi-VN").format(rentalDiscountAmt)}đ thuê</div>
                           )}
+                          {/* Phí giao nhận */}
                           {deliveryFeeCalc > 0 && (
-                            <div style={{ color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif" }}>+{new Intl.NumberFormat("vi-VN").format(deliveryFeeCalc)}đ giao nhận{appliedDelivery ? "" : ""}</div>
+                            <div style={{ color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif" }}>+{new Intl.NumberFormat("vi-VN").format(deliveryFeeCalc)}đ giao nhận</div>
                           )}
-                          {appliedDelivery && (
+                          {/* Giảm ship */}
+                          {deliveryDiscountAmt > 0 && (
                             <div style={{ color:"#60a5fa", fontSize:10, fontFamily:"system-ui,sans-serif" }}>🚗 -{new Intl.NumberFormat("vi-VN").format(deliveryDiscountAmt)}đ ship</div>
                           )}
-                          <div style={{ color:G, fontWeight:900, fontSize:17, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap" }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</div>
+                          <div style={{ color:G, fontWeight:900, fontSize:17, fontFamily:"system-ui,sans-serif", whiteSpace:"nowrap", borderTop: (rentalDiscountAmt > 0 || deliveryFeeCalc > 0) ? "1px solid rgba(0,0,0,0.08)" : "none", paddingTop: (rentalDiscountAmt > 0 || deliveryFeeCalc > 0) ? 4 : 0, marginTop: (rentalDiscountAmt > 0 || deliveryFeeCalc > 0) ? 2 : 0 }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</div>
                         </div>
                       </div>
                     </div>
@@ -5008,7 +5035,8 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                         <span style={{ fontSize:14, opacity:0.5 }}>🎟</span>
                         <span style={{ color:"#888", fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>
                           {appliedDiscounts.length === 0 ? "MÃ GIẢM GIÁ" :
-                            !appliedRental ? "Thêm mã giảm tiền thuê 🎞️" : "Thêm mã giảm ship 🚗"}
+                            !appliedRental ? "Thêm mã giảm tiền thuê 🎞️" :
+                            deliveryFeeCalc > 0 ? "Thêm mã giảm ship 🚗" : "MÃ GIẢM GIÁ"}
                         </span>
                       </div>
                       <span style={{ color:"#444", fontSize:16, lineHeight:1, transition:"transform .3s", display:"inline-block", transform: discountExpanded ? "rotate(180deg)" : "rotate(0deg)" }}>⌄</span>
@@ -5059,13 +5087,16 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                     onChange={e => setInfo(p => ({ ...p, zalo: e.target.value }))} placeholder="Số Zalo" />
                 </BK_FormRow>
 
-                {/* Địa chỉ chi tiết */}
+                {/* Địa chỉ chi tiết — ẩn khi tự đến shop */}
+                {!selfPickup && (
                 <BK_FormRow icon="📍" labelTop="ĐỊA CHỈ CHI TIẾT" labelBottom="SỐ NHÀ / ĐƯỜNG / THÔN">
                   <input className="bk-inp" style={BK_flatInp} type="text" value={deliveryStreet}
                     onChange={e => setDeliveryStreet(e.target.value)} placeholder="Ví dụ: 12 Nguyễn Huệ, Thôn Phú Bình..." />
                 </BK_FormRow>
+                )}
 
-                {/* Xã / Phường */}
+                {/* Xã / Phường — ẩn khi tự đến shop */}
+                {!selfPickup && (
                 <BK_FormRow icon="🏘️" labelTop="XÃ / PHƯỜNG" labelBottom="CHỌN KHU VỰC">
                   <select className="bk-inp" style={{ ...BK_flatInp, color: deliveryWard ? TXT : "#6a8aaa" }}
                     value={deliveryWard} onChange={e => setDeliveryWard(e.target.value)}>
@@ -5075,8 +5106,10 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                     ))}
                   </select>
                 </BK_FormRow>
+                )}
 
-                {/* Huyện / TP */}
+                {/* Huyện / TP — ẩn khi tự đến shop */}
+                {!selfPickup && (
                 <BK_FormRow icon="🏙️" labelTop="HUYỆN / THÀNH PHỐ" labelBottom="">
                   <select className="bk-inp" style={{ ...BK_flatInp, color: TXT }}
                     value={deliveryDistrict} onChange={e => setDeliveryDistrict(e.target.value)}>
@@ -5084,21 +5117,51 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                     <option value="Tam Kỳ">Tam Kỳ</option>
                   </select>
                 </BK_FormRow>
+                )}
 
                 {/* Loại giao nhận + hiển thị phí */}
-                <BK_FormRow icon="🚗" labelTop="GIAO NHẬN" labelBottom="THIẾT BỊ" noBorder={!deliveryWard}>
+                <BK_FormRow icon="🚗" labelTop="GIAO NHẬN" labelBottom="THIẾT BỊ" noBorder={!deliveryWard && !selfPickup}>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 }}>
+
+                    {/* Option tự đến shop nhận */}
+                    <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "6px 10px", borderRadius: 10, background: selfPickup ? "rgba(34,197,94,0.10)" : "transparent", border: `1px solid ${selfPickup ? "rgba(34,197,94,0.45)" : "transparent"}`, transition: "all .15s" }}>
+                      <input type="radio" name="deliveryMode" checked={selfPickup}
+                        onChange={() => { setSelfPickup(true); setDeliveryWard(""); setDeliveryStreet(""); }}
+                        style={{ accentColor: "#22c55e", width: 15, height: 15, flexShrink: 0 }} />
+                      <span style={{ color: TXT, fontSize: 13, fontFamily: "system-ui,sans-serif", flex: 1 }}>🏠 Nhận tại shop · Miễn phí</span>
+                      <span style={{ color: "#22c55e", fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: 700, whiteSpace: "nowrap" }}>0 đ</span>
+                    </label>
+
+                    {/* Thông tin địa chỉ shop khi selfPickup */}
+                    {selfPickup && (
+                      <div style={{ marginLeft: 25, padding: "8px 12px", background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 10 }}>
+                        <div style={{ color: "#22c55e", fontSize: 11, fontFamily: "system-ui,sans-serif", fontWeight: 700, marginBottom: 2 }}>📍 Địa chỉ shop</div>
+                        <div style={{ color: TXT, fontSize: 12, fontFamily: "system-ui,sans-serif", lineHeight: 1.6 }}>
+                          Thôn Thạnh Mỹ, xã Tam Mỹ, thành phố Đà Nẵng
+                        </div>
+                        <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif", marginTop: 4 }}>
+                          Liên hệ Zalo để xác nhận giờ đến nhận máy
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Separator giữa 2 nhóm */}
+                    {!selfPickup && (
+                      <div style={{ borderTop: "1px dashed rgba(0,0,0,0.10)", margin: "2px 0" }} />
+                    )}
+
+                    {/* 3 option giao nhận có ship — chỉ hiện khi không selfPickup */}
                     {[
                       { val: "deliver", label: "Chỉ giao thiết bị" },
                       { val: "pickup",  label: "Chỉ nhận lại thiết bị" },
                       { val: "both",    label: "Giao và nhận lại thiết bị" },
                     ].map(opt => (
-                      <label key={opt.val} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "6px 10px", borderRadius: 10, background: deliveryType === opt.val ? "rgba(201,168,76,0.13)" : "transparent", border: `1px solid ${deliveryType === opt.val ? "rgba(201,168,76,0.45)" : "transparent"}`, transition: "all .15s" }}>
-                        <input type="radio" name="deliveryType" value={opt.val} checked={deliveryType === opt.val}
-                          onChange={() => setDeliveryType(opt.val)}
+                      <label key={opt.val} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "6px 10px", borderRadius: 10, background: (!selfPickup && deliveryType === opt.val) ? "rgba(201,168,76,0.13)" : "transparent", border: `1px solid ${(!selfPickup && deliveryType === opt.val) ? "rgba(201,168,76,0.45)" : "transparent"}`, transition: "all .15s" }}>
+                        <input type="radio" name="deliveryMode" value={opt.val} checked={!selfPickup && deliveryType === opt.val}
+                          onChange={() => { setSelfPickup(false); setDeliveryType(opt.val); }}
                           style={{ accentColor: G, width: 15, height: 15, flexShrink: 0 }} />
                         <span style={{ color: TXT, fontSize: 13, fontFamily: "system-ui,sans-serif", flex: 1 }}>{opt.label}</span>
-                        {deliveryWard && (
+                        {!selfPickup && deliveryWard && (
                           <span style={{ color: deliveryType === opt.val ? G : MUT, fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: deliveryType === opt.val ? 700 : 400, whiteSpace: "nowrap" }}>
                             {opt.val === "both"
                               ? (deliveryFee2Way === 0 ? "Miễn phí" : fmtVND(deliveryFee2Way))
@@ -5107,13 +5170,13 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                         )}
                       </label>
                     ))}
-                    {deliveryWard && deliveryFeeCalc > 0 && (
+                    {!selfPickup && deliveryWard && deliveryFeeCalc > 0 && (
                       <div style={{ marginTop: 4, padding: "8px 12px", background: "rgba(201,168,76,0.10)", border: "1px solid rgba(201,168,76,0.30)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <span style={{ color: MUT, fontSize: 11, fontFamily: "system-ui,sans-serif" }}>Phí giao nhận</span>
                         <span style={{ color: G, fontSize: 13, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>{fmtVND(deliveryFeeCalc)}</span>
                       </div>
                     )}
-                    {deliveryWard && deliveryFeeCalc === 0 && (
+                    {!selfPickup && deliveryWard && deliveryFeeCalc === 0 && (
                       <div style={{ marginTop: 4, padding: "8px 12px", background: "rgba(34,197,94,0.10)", border: "1px solid rgba(34,197,94,0.30)", borderRadius: 10 }}>
                         <span style={{ color: "#22c55e", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>✓ Miễn phí giao nhận khu vực này</span>
                       </div>
@@ -5139,20 +5202,32 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                   </div>
                 )}
                 {/* Tổng tiền row */}
-                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10, padding:"0 2px" }}>
+                <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:10, padding:"0 2px" }}>
                   <div>
                     <span style={{ color:"#666", fontSize:10, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>TỔNG CỘNG</span>
-                    {deliveryFeeCalc > 0 && (
-                      <div style={{ color:MUT, fontSize:9.5, fontFamily:"system-ui,sans-serif", marginTop:1 }}>
-                        Tiền thuê: {new Intl.NumberFormat("vi-VN").format(subtotal - discountAmt)}đ + Phí giao nhận: {new Intl.NumberFormat("vi-VN").format(deliveryFeeCalc)}đ
-                      </div>
-                    )}
                   </div>
-                  <div style={{ textAlign:"right" }}>
-                    {discountAmt > 0 && (
-                      <span style={{ color:"#22c55e", fontSize:11, fontFamily:"system-ui,sans-serif", marginRight:8 }}>-{fmtVND(discountAmt)}</span>
+                  <div style={{ textAlign:"right", display:"flex", flexDirection:"column", gap:2 }}>
+                    {/* Tiền thuê — hiển thị gốc nếu có giảm */}
+                    {rentalDiscountAmt > 0 && (
+                      <span style={{ color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif" }}>
+                        📷 {new Intl.NumberFormat("vi-VN").format(subtotal)}đ thuê
+                      </span>
                     )}
-                    <span style={{ color:G, fontWeight:900, fontSize:20, fontFamily:"system-ui,sans-serif" }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</span>
+                    {/* Giảm thuê */}
+                    {rentalDiscountAmt > 0 && (
+                      <span style={{ color:"#22c55e", fontSize:11, fontFamily:"system-ui,sans-serif" }}>🎞️ -{new Intl.NumberFormat("vi-VN").format(rentalDiscountAmt)}đ giảm thuê</span>
+                    )}
+                    {/* Phí giao nhận gốc */}
+                    {deliveryFeeCalc > 0 && (
+                      <span style={{ color:MUT, fontSize:10, fontFamily:"system-ui,sans-serif" }}>
+                        🚚 +{new Intl.NumberFormat("vi-VN").format(deliveryFeeCalc)}đ giao nhận
+                      </span>
+                    )}
+                    {/* Giảm ship */}
+                    {deliveryDiscountAmt > 0 && (
+                      <span style={{ color:"#60a5fa", fontSize:11, fontFamily:"system-ui,sans-serif" }}>🚗 -{new Intl.NumberFormat("vi-VN").format(deliveryDiscountAmt)}đ giảm ship</span>
+                    )}
+                    <span style={{ color:G, fontWeight:900, fontSize:20, fontFamily:"system-ui,sans-serif", borderTop: (rentalDiscountAmt > 0 || deliveryFeeCalc > 0) ? "1px solid rgba(0,0,0,0.10)" : "none", paddingTop: (rentalDiscountAmt > 0 || deliveryFeeCalc > 0) ? 4 : 0, marginTop: (rentalDiscountAmt > 0 || deliveryFeeCalc > 0) ? 2 : 0 }}>{new Intl.NumberFormat("vi-VN").format(total)} đ</span>
                   </div>
                 </div>
                 {/* CTA full width */}
@@ -5195,7 +5270,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
             "Xin chào 92 KA MÊ RA! 📸\nMã đơn: " + orderId +
             "\nThiết bị: " + selectedCamList.map(c => c.name + " x" + selCams[c.id]).join(", ") +
             "\nThời gian: " + fmtDays(days, selSession) +
-            (appliedDiscount ? "\nMã giảm giá: " + appliedDiscount.code + " (-" + fmtVND(discountAmt) + ")" : "") +
+            (appliedDiscounts.length > 0 ? "\nMã giảm giá: " + appliedDiscounts.map(ad => ad.code).join(" + ") + " (-" + fmtVND(discountAmt) + ")" : "") +
             (deliveryFeeCalc > 0 ? "\nPhí giao nhận: " + fmtVND(deliveryFeeCalc) : "") +
             "\nTổng tiền: " + fmtVND(total) +
             "\nKhách: " + info.name + " | SĐT: " + info.phone
@@ -5217,14 +5292,21 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               `⏱ Thời gian: ${fmtDays(days, selSession)}`,
               ri2 ? `📦 Giờ nhận : ${ri2.pickTime} · ${ri2.pickDate}` : null,
               ri2 ? `📅 Giờ trả  : ${ri2.dropTime} · ${ri2.dropDate}` : null,
-              appliedDiscount ? `🏷️ Mã giảm giá: ${appliedDiscount.code} (-${fmtVND(discountAmt)})` : null,
+              ...(appliedDiscounts.length > 0
+                ? appliedDiscounts.map(ad =>
+                    ad.scope === "delivery"
+                      ? `🚗 Mã ship: ${ad.code} (-${fmtVND(deliveryDiscountAmt)})`
+                      : `🎞️ Mã thuê: ${ad.code} (-${fmtVND(rentalDiscountAmt)})`
+                  )
+                : []),
               deliveryFeeCalc > 0 ? `🚗 Phí giao nhận: ${fmtVND(deliveryFeeCalc)}` : null,
               `💰 Tổng tiền: ${fmtVND(total)}`,
               "━━━━━━━━━━━━━━━━━━━━━━",
               `👤 Tên   : ${info.name}`,
               `📞 SĐT   : ${info.phone}`,
-              (deliveryStreet || deliveryWard) ? `📍 Địa chỉ: ${[deliveryStreet, deliveryWard, deliveryDistrict].filter(Boolean).join(", ")}` : (info.address ? `📍 Địa chỉ: ${info.address}` : null),
-              deliveryWard && deliveryType ? `🚗 Giao nhận: ${deliveryType === "both" ? "Giao và nhận lại" : deliveryType === "deliver" ? "Chỉ giao" : "Chỉ nhận lại"}` : null,
+              (deliveryStreet || deliveryWard) && !selfPickup ? `📍 Địa chỉ: ${[deliveryStreet, deliveryWard, deliveryDistrict].filter(Boolean).join(", ")}` : (selfPickup ? null : (info.address ? `📍 Địa chỉ: ${info.address}` : null)),
+              selfPickup ? `🏠 Nhận tại shop: Thôn Thạnh Mỹ, xã Tam Mỹ, TP Đà Nẵng` : null,
+              !selfPickup && deliveryWard && deliveryType ? `🚗 Giao nhận: ${deliveryType === "both" ? "Giao và nhận lại" : deliveryType === "deliver" ? "Chỉ giao" : "Chỉ nhận lại"}` : null,
               info.note ? `💬 Ghi chú: ${info.note}` : null,
               "━━━━━━━━━━━━━━━━━━━━━━",
               "⏳ Trạng thái: Chờ xác nhận",
@@ -7297,7 +7379,11 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
                               `⏱ Thời gian: ${fmtDays(o.days, o.session || o.shift)}`,
                               pickDate ? `Giờ nhận : ${pickTime} · ${pickDate}` : null,
                               dropDate ? `Giờ trả  : ${dropTime} · ${dropDate}` : null,
-                              o.discountCode ? `🏷️ Mã giảm giá: ${o.discountCode} (-${fmtVND(o.discountAmt || 0)})` : null,
+                              ...(o.appliedDiscounts && o.appliedDiscounts.length > 0
+                                ? o.appliedDiscounts.map(ad => ad.scope === "delivery"
+                                    ? `🚗 Mã ship: ${ad.code} (-${fmtVND(ad.amt || 0)})`
+                                    : `🎞️ Mã thuê: ${ad.code} (-${fmtVND(ad.amt || 0)})`)
+                                : o.discountCode ? [`🏷️ Mã giảm giá: ${o.discountCode} (-${fmtVND(o.discountAmt || 0)})`] : []),
                               `💰 Tổng tiền: ${fmtVND(o.total)}`,
                               "━━━━━━━━━━━━━━━━━━━━━━",
                               `👤 Tên   : ${o.name}`,
@@ -9449,7 +9535,11 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                             `⏱ Thời gian: ${fmtDays(o.days, o.session || o.shift)}`,
                             pickDate ? `📦 Giờ nhận : ${pickTime} · ${pickDate}` : null,
                             dropDate ? `📅 Giờ trả  : ${dropTime} · ${dropDate}` : null,
-                            o.discountCode ? `🏷️ Mã giảm giá: ${o.discountCode} (-${fmtVND(o.discountAmt || 0)})` : null,
+                            ...(o.appliedDiscounts && o.appliedDiscounts.length > 0
+                              ? o.appliedDiscounts.map(ad => ad.scope === "delivery"
+                                  ? `🚗 Mã ship: ${ad.code} (-${fmtVND(ad.amt || 0)})`
+                                  : `🎞️ Mã thuê: ${ad.code} (-${fmtVND(ad.amt || 0)})`)
+                              : o.discountCode ? [`🏷️ Mã giảm giá: ${o.discountCode} (-${fmtVND(o.discountAmt || 0)})`] : []),
                             `💰 Tổng tiền: ${fmtVND(o.total)}`,
                             "━━━━━━━━━━━━━━━━━━━━━━",
                             `👤 Tên   : ${o.name}`,
@@ -9465,9 +9555,17 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
 
                       {/* ── GHI CHÚ NỘI BỘ (chỉ admin thấy) ── */}
                       <AdminNoteEditor order={o} setOrders={setOrders} />
-                      {o.discountCode && (
-                        <div style={{ color: "#22c55e", fontSize: 11, marginBottom: 8, background: "#EEF9F4", border: "1px solid #22c55e22", borderRadius: 10, padding: "6px 12px" }}>
-                          🏷️ Mã giảm giá: <strong>{o.discountCode}</strong> — Giảm {fmtVND(o.discountAmt || 0)} · Tổng gốc: {fmtVND(o.subtotal || o.total)}
+                      {(o.appliedDiscounts?.length > 0 || o.discountCode) && (
+                        <div style={{ fontSize: 11, marginBottom: 8, background: "#EEF9F4", border: "1px solid #22c55e22", borderRadius: 10, padding: "6px 12px" }}>
+                          {o.appliedDiscounts && o.appliedDiscounts.length > 0
+                            ? o.appliedDiscounts.map(ad => (
+                                <div key={ad.code} style={{ color: ad.scope === "delivery" ? "#60a5fa" : "#22c55e" }}>
+                                  {ad.scope === "delivery" ? "🚗 Mã ship" : "🎞️ Mã thuê"}: <strong>{ad.code}</strong> — Giảm {fmtVND(ad.amt || 0)}
+                                </div>
+                              ))
+                            : <div style={{ color: "#22c55e" }}>🏷️ Mã giảm giá: <strong>{o.discountCode}</strong> — Giảm {fmtVND(o.discountAmt || 0)}</div>
+                          }
+                          <div style={{ color: "#888", fontSize: 10, marginTop: 3 }}>Tổng gốc: {fmtVND(o.subtotal || o.total)}</div>
                         </div>
                       )}
 
