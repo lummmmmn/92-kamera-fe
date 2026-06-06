@@ -6895,7 +6895,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
           <div className="qr-close" onClick={e => { e.stopPropagation(); setQrHidden(true); }}>✕</div>
           <div className="qr-wrap">
             <div className="qr-box">
-              <img src={siteContent.cornerQR} alt="QR Liên hệ" style={{ width:"100%", height:"100%", display:"block", imageRendering:"pixelated" }} />
+              <img src={siteContent.cornerQR} alt="QR Liên hệ" style={{ width:"100%", height:"100%", display:"block", mixBlendMode:"multiply" }} />
             </div>
             <div className="qr-label">QR LIÊN HỆ</div>
           </div>
