@@ -3526,7 +3526,7 @@ function BK_FormRow({ icon, labelTop, labelBottom, children, noBorder }) {
   );
 }
 
-function BookingModal({ cameras, accessories, siteContent, discounts, setDiscounts, deliveryFees, onClose, onSubmit, loggedUser, preselectedCamId, orders, preselectedCams, preselectedAccs, preselectedDate, preselectedDays }) {
+function BookingModal({ cameras, accessories, siteContent, discounts, setDiscounts, deliveryFees, onClose, onSubmit, loggedUser, preselectedCamId, orders, preselectedCams, preselectedAccs, preselectedDate, preselectedDays, isMobile }) {
   // Nếu có preselectedCams (từ QuickSearch) → bắt đầu ở step 3 (thông tin đặt)
   const hasQuickSelect = preselectedCams && Object.keys(preselectedCams).length > 0 && preselectedDate && preselectedDays;
   const [step, setStep] = useState(hasQuickSelect ? 3 : 1);
@@ -4174,7 +4174,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   const stepLabel = ["Chọn thiết bị", "Thời gian & phụ kiện", "Thông tin đặt"];
 
   return (
-    <div style={overlay} onClick={e => e.target === e.currentTarget && !done && onClose()}>
+    <div style={overlay} className={isMobile ? "bk-modal-mobile" : ""} onClick={e => e.target === e.currentTarget && !done && onClose()}>
       {/* Depth layers — khớp D vintage grain */}
       <div style={{ position: "fixed", inset: 0, background: "linear-gradient(to right, rgba(236,243,248,0.58) 0%, transparent 40%, rgba(220,235,244,0.27) 100%)", pointerEvents: "none" }} />
       <div style={{ position: "fixed", inset: 0, background: "linear-gradient(to top, rgba(186,206,220,0.30) 0%, transparent 50%)", pointerEvents: "none" }} />
@@ -5073,7 +5073,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                         style={{ ...BK_flatInp, fontFamily:"monospace", letterSpacing:2, fontSize:13, flex:1 }}
                         value={discountCode}
                         onChange={e => { setDiscountCode(e.target.value.toUpperCase()); setDiscountMsg(null); }}
-                        onKeyDown={e => e.key === "Enter" && !discountLoading && applyDiscount()}
+                        onKeyDown={e => e.key === "Enter" && !discountLoading && applyDiscount().then(ok => { if (ok) setDiscountExpanded(false); }).catch(() => {})}
                         placeholder="Nhập mã..."
                       />
                       <button onClick={() => { if (!discountLoading) applyDiscount().then(ok => { if (ok) setDiscountExpanded(false); }).catch(() => {}); }}
@@ -5942,14 +5942,6 @@ function MobileFAB({ mobileMenuOpen, setMobileMenuOpen, siteContent, onBook, log
             style={{ width: "calc(100% - 28px)", margin: "6px 14px 4px", background: "rgba(13,27,42,0.08)", border: `1px solid rgba(13,27,42,0.18)`, color: TXT, fontSize: 9, letterSpacing: 2.5, padding: "10px 14px", cursor: "pointer", fontFamily: "system-ui,sans-serif", fontWeight: 700, textAlign: "center", borderRadius: 12, touchAction: "manipulation", WebkitTapHighlightColor: "transparent", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             TRA CỨU ĐƠN
-          </button>
-
-          {/* Kiểm tra máy theo ngày */}
-          <button
-            onClick={() => { setOpen(false); setTimeout(() => { const el = document.querySelector("[data-quicksearch]"); el?.click(); }, 100); }}
-            style={{ width: "calc(100% - 28px)", margin: "4px 14px 8px", background: "rgba(13,27,42,0.08)", border: `1px solid rgba(13,27,42,0.18)`, color: TXT, fontSize: 9, letterSpacing: 2.5, padding: "10px 14px", cursor: "pointer", fontFamily: "system-ui,sans-serif", fontWeight: 700, textAlign: "center", borderRadius: 12, touchAction: "manipulation", WebkitTapHighlightColor: "transparent", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            KIỂM TRA MÁY THEO NGÀY
           </button>
 
           <div style={{ height: 1, background: "rgba(13,27,42,0.12)", margin: "4px 14px 8px" }} />
@@ -11338,6 +11330,11 @@ function AppRoot() {
           animation-play-state: paused !important;
         }
         body.is-scrolling .lens-float-wrap { animation-play-state: running !important; }
+        /* Tắt backdrop-filter trong BookingModal trên mobile — giảm tải GPU */
+        .bk-modal-mobile * {
+          -webkit-backdrop-filter: none !important;
+          backdrop-filter: none !important;
+        }
         @keyframes navCollapseIn{0%{opacity:0;transform:scale(0.85) translateY(-8px)}100%{opacity:1;transform:scale(1) translateY(0)}}
         @keyframes navExpandIn{0%{opacity:0;transform:scaleY(0.7) translateY(-10px)}100%{opacity:1;transform:scaleY(1) translateY(0)}}
         @keyframes floatY{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-9px)}}
@@ -11719,6 +11716,7 @@ function AppRoot() {
           preselectedDate={booking && typeof booking === "object" ? booking.date : null}
           preselectedDays={booking && typeof booking === "object" ? booking.days : null}
           orders={orders}
+          isMobile={isMobile}
         />
       )}
     </div>
