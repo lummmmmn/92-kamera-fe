@@ -1825,7 +1825,7 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
     <div id="feedback" className="home-section" style={{ padding: "72px 16px 64px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28,
       border: "none",
       boxShadow: "0 1px 0 rgba(255,255,255,0.55) inset, 0 -1px 0 rgba(13,27,42,0.08) inset, 0 4px 6px rgba(13,27,42,0.06) inset, 0 16px 64px rgba(5,17,31,0.20), 0 4px 18px rgba(5,17,31,0.12), 0 0 0 1px rgba(13,27,42,0.07)",
-      background: isMobile ? "rgba(143,200,212,0.52)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", textAlign: "center" }}>
+      background: isMobile ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", textAlign: "center" }}>
       <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight: 700, letterSpacing: 1, margin: "0 0 14px", color: G, fontFamily: "var(--font-display)", textShadow: "0 1px 3px rgba(13,27,42,0.10)" }}>Feedback khách hàng</h2>
       <div style={{ width: 36, height: 1, background: G, margin: "0 auto 20px" }} />
       <div style={{ color: TXT, fontSize: 13, fontFamily: "var(--font-ui)", fontWeight: 500 }}>Chưa có feedback nào được duyệt</div>
@@ -5536,7 +5536,7 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
       <div id={id} className="home-section" style={{ padding: "72px 0 56px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28,
         border: "none",
         boxShadow: "0 1px 0 rgba(255,255,255,0.55) inset, 0 -1px 0 rgba(13,27,42,0.08) inset, 0 4px 6px rgba(13,27,42,0.06) inset, 0 16px 64px rgba(5,17,31,0.20), 0 4px 18px rgba(5,17,31,0.12), 0 0 0 1px rgba(13,27,42,0.07)",
-        background: isMobile ? "rgba(143,200,212,0.52)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden" }}>
+        background: isMobile ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden" }}>
         <style>{`.cam-scroll::-webkit-scrollbar{display:none}.cam-scroll{-ms-overflow-style:none;scrollbar-width:none;}`}</style>
         <div style={{ padding: "0 16px 40px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
           <div>
@@ -5631,7 +5631,7 @@ function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
     <div id={id} className="home-section" style={{ padding: "96px 0 80px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28,
       border: "none",
       boxShadow: "0 1px 0 rgba(255,255,255,0.55) inset, 0 -1px 0 rgba(13,27,42,0.08) inset, 0 4px 6px rgba(13,27,42,0.06) inset, 0 16px 64px rgba(5,17,31,0.20), 0 4px 18px rgba(5,17,31,0.12), 0 0 0 1px rgba(13,27,42,0.07)",
-      background: isMobile ? "rgba(143,200,212,0.52)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden", position: "relative" }}>
+      background: isMobile ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", overflow: "hidden", position: "relative" }}>
       <style>{`@keyframes scrollCam{0%{transform:translateX(-50%)}100%{transform:translateX(0)}}`}</style>
       <div style={{ position:"absolute", top:"50%", left:"50%", transform:"translate(-50%,-50%)", width:600, height:300, background:`radial-gradient(ellipse,${G}06,transparent 70%)`, pointerEvents:"none" }} />
 
@@ -6831,7 +6831,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
         }
         @media (max-width: 768px) {
           .acc-section::before {
-            background: rgba(143,200,212,0.52);
+            background: rgba(255,255,255,0.18);
             backdrop-filter: none;
             -webkit-backdrop-filter: none;
           }
@@ -6947,8 +6947,9 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
           <div style={{ fontSize: isMobile ? 15 : 18, fontWeight: 700, color: MUT, fontFamily: "var(--font-display)", letterSpacing: 3, marginBottom: 16 }}>
             92 KA MÊ RA
           </div>
-          <p style={{ color: TXT, fontSize: isMobile ? 13 : 14, fontWeight: 500, lineHeight: 1.85, maxWidth: isMobile ? 300 : 560, margin: "0 auto", fontFamily: "var(--font-ui)", opacity: 0.75, textAlign: "center" }}>
-            Hành trình xây dựng nền tảng thuê máy ảnh hiện đại, minh bạch và kết nối cộng đồng sáng tạo tại <span style={{ color: MUT, fontWeight: 700 }}>Đà Nẵng</span>.
+          <p style={{ color: TXT, fontSize: isMobile ? 13 : 14, fontWeight: 500, lineHeight: 1.85, maxWidth: 560, margin: "0 auto", fontFamily: "var(--font-ui)", opacity: 0.75 }}>
+            Hành trình xây dựng nền tảng thuê máy ảnh hiện đại,<br />
+            minh bạch và kết nối cộng đồng sáng tạo tại <span style={{ color: MUT, fontWeight: 700 }}>Đà Nẵng</span>.
           </p>
         </div>
 
@@ -6993,7 +6994,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       </div>
 
       {/* FOOTER */}
-      <footer style={{ padding: isMobile ? "20px 16px" : "28px 60px", display: "flex", flexWrap: "wrap", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "center" : "center", gap: isMobile ? 10 : 16, background: isMobile ? "rgba(107,184,212,0.60)" : "linear-gradient(135deg, rgba(107,184,212,0.55) 0%, rgba(107,184,212,0.45) 100%)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", borderTop: "1px solid rgba(107,184,212,0.35)" }}>
+      <footer style={{ padding: isMobile ? "20px 16px" : "28px 60px", display: "flex", flexWrap: "wrap", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "center" : "center", gap: isMobile ? 10 : 16, background: isMobile ? "linear-gradient(135deg, rgba(107,184,212,0.55) 0%, rgba(107,184,212,0.45) 100%)" : "linear-gradient(135deg, rgba(107,184,212,0.55) 0%, rgba(107,184,212,0.45) 100%)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", borderTop: "1px solid rgba(107,184,212,0.35)" }}>
         <Logo size={0.7} />
         <div style={{ color: "rgba(10,10,20,0.75)", fontSize: 12, fontFamily: "var(--font-ui)", fontWeight: 500, letterSpacing: 0.5, display: "grid", gridTemplateColumns: "auto auto 1fr", gap: "2px 4px" }}>
           <span>Hotline</span><span>:</span><span>{siteContent.zalo}</span>
@@ -11403,7 +11404,7 @@ function AppRoot() {
           /* Mobile: tắt backdrop-filter, dùng màu xanh solid đồng bộ với desktop */
           #cameras, #accessories, #about, #feedback, #quy-trinh,
           .acc-section, .section-main, .home-section {
-            background: rgba(143,200,212,0.52) !important;
+            background: rgba(255,255,255,0.18) !important;
             -webkit-backdrop-filter: none !important;
             backdrop-filter: none !important;
             border: none !important;
@@ -11416,12 +11417,12 @@ function AppRoot() {
               0 0 0 1px rgba(13,27,42,0.05) !important;
           }
           .acc-section::before {
-            background: rgba(143,200,212,0.52) !important;
+            background: rgba(255,255,255,0.18) !important;
             -webkit-backdrop-filter: none !important;
             backdrop-filter: none !important;
           }
           footer {
-            background: rgba(107,184,212,0.60) !important;
+            background: rgba(255,255,255,0.15) !important;
             -webkit-backdrop-filter: none !important;
             backdrop-filter: none !important;
           }
