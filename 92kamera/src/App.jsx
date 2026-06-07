@@ -6365,7 +6365,7 @@ function RoadmapCards({ isMobile }) {
       onMouseLeave={mobile ? undefined : e => { e.currentTarget.style.transform="translateY(0)"; e.currentTarget.style.boxShadow="0 1px 0 rgba(255,255,255,0.55) inset, 0 -1px 0 rgba(13,27,42,0.10) inset, 0 12px 40px rgba(13,27,42,0.16), 0 4px 12px rgba(13,27,42,0.10), 0 0 0 1px rgba(13,27,42,0.06)"; e.currentTarget.style.background="rgba(255,255,255,0.18)"; }}
     >
       <div style={{ position:"absolute", top:0, left:"10%", right:"10%", height:1, background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.80) 50%,transparent)", pointerEvents:"none" }} />
-      <div style={{ fontSize: mobile ? 28 : 36, fontWeight:900, color:G, fontFamily:"var(--font-display)", opacity:0.10, position:"absolute", top: mobile?10:14, right: mobile?14:16, lineHeight:1, letterSpacing:-2, userSelect:"none" }}>{p.num}</div>
+      <div style={{ fontSize: mobile ? 28 : 36, fontWeight:900, color:G, fontFamily:"var(--font-display)", opacity:0.35, position:"absolute", top: mobile?10:14, right: mobile?14:16, lineHeight:1, letterSpacing:-2, userSelect:"none" }}>{p.num}</div>
       <div style={{ width: mobile?40:44, height: mobile?40:44, borderRadius:"50%", background:"rgba(255,255,255,0.80)", border:"none", boxShadow:"0 1px 0 rgba(255,255,255,0.90) inset, 0 -1px 0 rgba(13,27,42,0.08) inset, 0 4px 14px rgba(13,27,42,0.12), 0 0 0 1px rgba(13,27,42,0.06)", display:"flex", alignItems:"center", justifyContent:"center", marginBottom: mobile?12:14, fontSize: mobile?18:20 }}>
         {p.icon}
       </div>
@@ -6947,9 +6947,8 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
           <div style={{ fontSize: isMobile ? 15 : 18, fontWeight: 700, color: MUT, fontFamily: "var(--font-display)", letterSpacing: 3, marginBottom: 16 }}>
             92 KA MÊ RA
           </div>
-          <p style={{ color: TXT, fontSize: isMobile ? 13 : 14, fontWeight: 500, lineHeight: 1.85, maxWidth: 560, margin: "0 auto", fontFamily: "var(--font-ui)", opacity: 0.75 }}>
-            Hành trình xây dựng nền tảng thuê máy ảnh hiện đại,<br />
-            minh bạch và kết nối cộng đồng sáng tạo tại <span style={{ color: MUT, fontWeight: 700 }}>Đà Nẵng</span>.
+          <p style={{ color: TXT, fontSize: isMobile ? 13 : 14, fontWeight: 500, lineHeight: 1.85, maxWidth: isMobile ? 300 : 560, margin: "0 auto", fontFamily: "var(--font-ui)", opacity: 0.75, textAlign: "center" }}>
+            Hành trình xây dựng nền tảng thuê máy ảnh hiện đại, minh bạch và kết nối cộng đồng sáng tạo tại <span style={{ color: MUT, fontWeight: 700 }}>Đà Nẵng</span>.
           </p>
         </div>
 
