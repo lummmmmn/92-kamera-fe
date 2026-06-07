@@ -6947,9 +6947,8 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
           <div style={{ fontSize: isMobile ? 15 : 18, fontWeight: 700, color: MUT, fontFamily: "var(--font-display)", letterSpacing: 3, marginBottom: 16 }}>
             92 KA MÊ RA
           </div>
-          <p style={{ color: TXT, fontSize: isMobile ? 13 : 14, fontWeight: 500, lineHeight: 1.85, maxWidth: 560, margin: "0 auto", fontFamily: "var(--font-ui)", opacity: 0.75 }}>
-            Hành trình xây dựng nền tảng thuê máy ảnh hiện đại,<br />
-            minh bạch và kết nối cộng đồng sáng tạo tại <span style={{ color: MUT, fontWeight: 700 }}>Đà Nẵng</span>.
+          <p style={{ color: TXT, fontSize: isMobile ? 13 : 14, fontWeight: 500, lineHeight: 1.85, maxWidth: isMobile ? 300 : 560, margin: "0 auto", fontFamily: "var(--font-ui)", opacity: 0.75, textAlign: "center" }}>
+            Hành trình xây dựng nền tảng thuê máy ảnh hiện đại, minh bạch và kết nối cộng đồng sáng tạo tại <span style={{ color: MUT, fontWeight: 700 }}>Đà Nẵng</span>.
           </p>
         </div>
 
