@@ -7005,12 +7005,13 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
   };
 
   // Kiểm tra trạng thái lock khi component mount
+  // getBfState đã có try/catch → an toàn trên Safari private mode
   const [lockUntil, setLockUntil] = useState(() => {
-    const s = JSON.parse(localStorage.getItem("k92_bf") || "{}");
+    const s = getBfState();
     return s.lockUntil || 0;
   });
   const [failCount, setFailCount] = useState(() => {
-    const s = JSON.parse(localStorage.getItem("k92_bf") || "{}");
+    const s = getBfState();
     // Reset fail count nếu đã hết lock
     if (s.lockUntil && Date.now() > s.lockUntil) return 0;
     return s.fails || 0;
