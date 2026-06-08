@@ -924,36 +924,40 @@ function QuickSearchFloat({ cameras, accessories, orders, onBook, openTrigger = 
                 </>
               )}
 
-              {/* ── Nút tiếp tục khi đã chọn máy ── */}
-              {totalSelCams > 0 && (
-                <div style={{ padding:"12px 0 14px", borderTop:"1px solid rgba(0,0,0,0.10)", marginTop:8 }}>
-                  {/* Tóm tắt đã chọn */}
-                  <div style={{ color:"#2a4a6a", fontSize:11, fontFamily:"system-ui,sans-serif", marginBottom:10, lineHeight:1.7 }}>
-                    <span style={{ color:"#1a4a8a", fontWeight:700 }}>✓ Đã chọn:</span>{" "}
-                    {Object.entries(selCams).map(([id, qty]) => {
-                      const c = results.cameras.find(r => String(r.id) === String(id));
-                      return c ? `${c.name}${qty > 1 ? ` ×${qty}` : ""}` : "";
-                    }).filter(Boolean).join(", ")}
-                    {Object.keys(selAccs).length > 0 && (
-                      <><br/><span style={{ color:"#c9a84c" }}>🎒</span> {Object.entries(selAccs).map(([name, qty]) => qty > 1 ? `${name} ×${qty}` : name).join(", ")}</>
-                    )}
+              {/* ── Nút tiếp tục — chỉ cần có máy HOẶC phụ kiện ── */}
+              {(() => {
+                const hasAnySel = totalSelCams > 0 || Object.values(selAccs).some(q => q > 0);
+                const accCount = Object.values(selAccs).reduce((s, q) => s + (q || 0), 0);
+                const label = totalSelCams > 0
+                  ? `📋 TIẾP TỤC ĐẶT (${totalSelCams} MÁY${accCount > 0 ? ` + ${accCount} PK` : ""}) →`
+                  : `📋 TIẾP TỤC ĐẶT (${accCount} PHỤ KIỆN) →`;
+                return hasAnySel ? (
+                  <div style={{ padding:"12px 0 14px", borderTop:"1px solid rgba(0,0,0,0.10)", marginTop:8 }}>
+                    <div style={{ color:"#2a4a6a", fontSize:11, fontFamily:"system-ui,sans-serif", marginBottom:10, lineHeight:1.7 }}>
+                      <span style={{ color:"#1a4a8a", fontWeight:700 }}>✓ Đã chọn:</span>{" "}
+                      {totalSelCams > 0 && Object.entries(selCams).map(([id, qty]) => {
+                        const c = results.cameras.find(r => String(r.id) === String(id));
+                        return c ? `${c.name}${qty > 1 ? ` ×${qty}` : ""}` : "";
+                      }).filter(Boolean).join(", ")}
+                      {Object.keys(selAccs).length > 0 && (
+                        <><br/><span style={{ color:"#c9a84c" }}>🎒</span> {Object.entries(selAccs).map(([name, qty]) => qty > 1 ? `${name} ×${qty}` : name).join(", ")}</>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => {
+                        const ed = results.endDate >= results.startDate ? results.endDate : results.startDate;
+                        const days = calcDays(results.startDate, ed);
+                        close();
+                        onBook?.({ preselectedCams: selCams, preselectedAccs: selAccs, date: results.startDate, days });
+                      }}
+                      style={{ width:"100%", padding:"14px", background:"linear-gradient(135deg, rgba(139,174,207,0.90) 0%, rgba(101,145,188,0.85) 100%)", color:"#fff", border:"1px solid rgba(255,255,255,0.55)", borderRadius:11, fontWeight:800, fontSize:13, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8, boxShadow:"0 1px 0 rgba(255,255,255,0.60) inset, 0 4px 20px rgba(8,20,60,0.18)", backdropFilter:"blur(16px) saturate(160%)", WebkitBackdropFilter:"blur(16px) saturate(160%)" }}
+                      onMouseEnter={e=>e.currentTarget.style.filter="brightness(1.12)"}
+                      onMouseLeave={e=>e.currentTarget.style.filter="brightness(1)"}>
+                      {label}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => {
-                      const ed = results.endDate >= results.startDate ? results.endDate : results.startDate;
-                      const days = calcDays(results.startDate, ed);
-                      close();
-                      onBook?.({ preselectedCams: selCams, preselectedAccs: selAccs, date: results.startDate, days });
-                    }}
-                    style={{ width:"100%", padding:"14px", background:"linear-gradient(135deg, rgba(139,174,207,0.90) 0%, rgba(101,145,188,0.85) 100%)", color:"#fff", border:"1px solid rgba(255,255,255,0.55)", borderRadius:11, fontWeight:800, fontSize:13, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8, boxShadow:"0 1px 0 rgba(255,255,255,0.60) inset, 0 4px 20px rgba(8,20,60,0.18)", backdropFilter:"blur(16px) saturate(160%)", WebkitBackdropFilter:"blur(16px) saturate(160%)" }}
-                    onMouseEnter={e=>e.currentTarget.style.filter="brightness(1.12)"}
-                    onMouseLeave={e=>e.currentTarget.style.filter="brightness(1)"}>
-                    📋 TIẾP TỤC ĐẶT ({totalSelCams} MÁY) →
-                  </button>
-                </div>
-              )}
-              {/* Padding bottom khi chưa chọn */}
-              {totalSelCams === 0 && <div style={{ height:14 }} />}
+                ) : <div style={{ height:14 }} />;
+              })()}
             </div>
           )}
         </div>
@@ -2406,7 +2410,8 @@ function QuyTrinh6Buoc({ isMobile }) {
           display:"flex", gap:16, overflowX:"auto",
           scrollSnapType:"x mandatory",
           // padding đều 2 bên để card đầu/cuối cũng center được
-          padding: isMobile ? "4px 20px 20px" : "4px 40px 20px",
+          padding: isMobile ? "4px 16px 20px" : "4px 48px 20px",
+          scrollPaddingLeft: isMobile ? 16 : 48,
           scrollbarWidth:"none", msOverflowStyle:"none",
         }}
       >
@@ -3526,10 +3531,17 @@ function BK_FormRow({ icon, labelTop, labelBottom, children, noBorder }) {
   );
 }
 
-function BookingModal({ cameras, accessories, siteContent, discounts, setDiscounts, deliveryFees, onClose, onSubmit, loggedUser, preselectedCamId, orders, preselectedCams, preselectedAccs, preselectedDate, preselectedDays, isMobile }) {
-  // Nếu có preselectedCams (từ QuickSearch) → bắt đầu ở step 3 (thông tin đặt)
-  const hasQuickSelect = preselectedCams && Object.keys(preselectedCams).length > 0 && preselectedDate && preselectedDays;
-  const [step, setStep] = useState(hasQuickSelect ? 3 : 1);
+function BookingModal({ cameras, accessories, siteContent, discounts, setDiscounts, deliveryFees, onClose, onSubmit, loggedUser, preselectedCamId, orders, preselectedCams, preselectedAccs, preselectedDate, preselectedDays, noDate, isMobile }) {
+  // hasQuickSelect: có máy hoặc phụ kiện từ QuickSearch → bắt đầu ở step 3
+  const hasQuickSelect = preselectedDate && preselectedDays && (
+    (preselectedCams && Object.keys(preselectedCams).length > 0) ||
+    (preselectedAccs && Object.keys(preselectedAccs).length > 0)
+  );
+  // noDate=true (card PK trang chủ) → step 2 (chọn ngày)
+  // có máy từ QuickSearch → step 3 (thông tin)
+  // chưa có gì → step 1
+  const initialStep = noDate ? 2 : !hasQuickSelect ? 1 : 3;
+  const [step, setStep] = useState(initialStep);
   // BUG-C FIX: liveOrdersForCheck — orders fresh từ Supabase, fetch khi vào step 2.
   // Tránh blockingItems và auto-clamp dùng local state stale → UI báo "còn hàng" nhưng thực ra hết.
   const [liveOrdersForCheck, setLiveOrdersForCheck] = useState(orders);
@@ -3934,8 +3946,10 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   // Fix BUG1 (trùng ID), BUG2 (overbooking), BUG3 (mất đơn), BUG4 (double-click), BUG5 (discount bypass)
   const handleFinish = async () => {
     if (submitting) return; // BUG4: guard double-click trước khi re-render
-    if (selectedCamList.length === 0) {
-      setSubmitError("❌ Vui lòng quay lại bước 1 để chọn ít nhất 1 máy ảnh.");
+    // Cho phép thuê mỗi lens/phụ kiện mà không cần máy — chỉ cần có ít nhất 1 item
+    const hasAcc = Object.values(selAcc).some(q => (q || 0) > 0);
+    if (selectedCamList.length === 0 && !hasAcc) {
+      setSubmitError("❌ Vui lòng chọn ít nhất 1 máy ảnh hoặc phụ kiện trước khi đặt.");
       return;
     }
     // BUG-NO-DATE FIX: pickDate = "" khi user bấm deselect ngày ở calendar
@@ -4267,8 +4281,8 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                       ✓ {totalCamSelected} máy
                     </span>
                   )}
-                  <button onClick={() => selectedCamList.length > 0 && setStep(2)}
-                    style={{ padding: "7px 12px", background: "rgba(255,255,255,0.45)", border: "1px solid rgba(255,255,255,0.65)", borderRadius: 12, color: selectedCamList.length > 0 ? MUT : "#444", fontSize: 11, cursor: selectedCamList.length > 0 ? "pointer" : "not-allowed", fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
+                  <button onClick={() => setStep(2)}
+                    style={{ padding: "7px 12px", background: "rgba(255,255,255,0.45)", border: "1px solid rgba(255,255,255,0.65)", borderRadius: 12, color: MUT, fontSize: 11, cursor: "pointer", fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
                     ⊞ Xem tất cả phụ kiện
                   </button>
                 </div>
@@ -4368,7 +4382,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               {/* Step 1 không check availability theo ngày/ca vì khách chưa chọn.
                   Việc check tồn kho thực tế là của Step 2 (blockingItems + calendar). */}
               {(() => {
-                const canNext = selectedCamList.length > 0;
+                // Không bắt buộc chọn máy — khách có thể chỉ thuê lens/phụ kiện
                 // Chỉ hiện hint nếu số lượng chọn vượt tổng kho admin (không liên quan ngày)
                 const overQty = selectedCamList.filter(c => (selCams[c.id] || 1) > (c.qty || 1));
                 return (
@@ -4378,11 +4392,11 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                         ⚠️ {overQty.map(c => `${c.name} (kho chỉ có ${c.qty || 1})`).join(", ")} — vui lòng giảm số lượng.
                       </div>
                     )}
-                    <button onClick={() => canNext && setStep(2)} disabled={!canNext}
+                    <button onClick={() => setStep(2)}
                       className="bk-next"
-                      style={{ width:"100%", padding:15, background: canNext ? "linear-gradient(135deg, rgba(139,174,207,0.90) 0%, rgba(101,145,188,0.85) 100%)" : "rgba(180,180,190,0.40)", color: canNext ? "#fff" : MUT, border: canNext ? "1px solid rgba(255,255,255,0.55)" : "1px solid transparent", borderRadius:14, cursor: canNext ? "pointer" : "not-allowed", fontWeight:800, fontSize:15, fontFamily:"system-ui,sans-serif", letterSpacing:0.5, backdropFilter: canNext ? "blur(16px) saturate(160%)" : "none", WebkitBackdropFilter: canNext ? "blur(16px) saturate(160%)" : "none", boxShadow: canNext ? "0 1px 0 rgba(255,255,255,0.60) inset, 0 4px 20px rgba(8,20,60,0.18)" : "none" }}>
+                      style={{ width:"100%", padding:15, background: "linear-gradient(135deg, rgba(139,174,207,0.90) 0%, rgba(101,145,188,0.85) 100%)", color: "#fff", border: "1px solid rgba(255,255,255,0.55)", borderRadius:14, cursor: "pointer", fontWeight:800, fontSize:15, fontFamily:"system-ui,sans-serif", letterSpacing:0.5, backdropFilter: "blur(16px) saturate(160%)", WebkitBackdropFilter: "blur(16px) saturate(160%)", boxShadow: "0 1px 0 rgba(255,255,255,0.60) inset, 0 4px 20px rgba(8,20,60,0.18)" }}>
                       <span style={{position:"relative",zIndex:1}}>
-                        {`Tiếp theo →${selectedCamList.length > 0 ? ` (${totalCamSelected} máy)` : ""}`}
+                        {selectedCamList.length > 0 ? `Tiếp theo → (${totalCamSelected} máy)` : "Tiếp theo → chọn phụ kiện / thời gian"}
                       </span>
                     </button>
                   </>
@@ -4479,12 +4493,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                   <span style={{ color:TXT, fontWeight:700, fontSize:15, fontFamily:"system-ui,sans-serif" }}>Phụ kiện đi kèm</span>
                   {days > 0 && accCost > 0 && <span style={{ color:G, fontSize:12, fontWeight:700, fontFamily:"system-ui,sans-serif" }}>+{fmtVND(accCost)}</span>}
                 </div>
-                {/* Rule: phải có máy mới chọn phụ kiện */}
-                {totalCamSelected === 0 && (
-                  <div style={{ background:"#FFF8ED", border:"1px solid #f59e0b44", borderRadius:12, padding:"8px 12px", marginBottom:10, color:"#f59e0b", fontSize:11, fontFamily:"system-ui,sans-serif" }}>
-                    ⚠️ Chọn ít nhất 1 máy ảnh để thêm phụ kiện
-                  </div>
-                )}
+
                 <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
                   {(() => {
                     // Hoist ra ngoài map — tính 1 lần dùng chung cho toàn bộ phụ kiện
@@ -4513,15 +4522,15 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                       : (a.qty || 0);
                     const isOutOfStock = availStock <= 0;
                     const isLowStock = !isOutOfStock && availStock <= 1 && (a.qty || 0) > 1;
-                    // maxQty: không vượt tồn kho thực tế và không vượt số máy available ngày đó
-                    const maxQty = Math.min(availStock, camAvailForDate || 0);
-                    // canAdd: phải có máy available ngày đó (không phải chỉ trong giỏ)
-                    const canAdd = camAvailForDate > 0 && !isOutOfStock;
+                    // maxQty: giới hạn theo tồn kho thực tế — không cần máy mới thuê phụ kiện
+                    const maxQty = availStock;
+                    // canAdd: chỉ cần còn hàng là chọn được — không bắt buộc phải có máy
+                    const canAdd = !isOutOfStock;
                     const unitPrice = days === 0.5 ? (a.priceShift != null ? a.priceShift : Math.round(a.price / 2)) : a.price;
                     const multiplier = days === 0.5 ? 1 : days;
                     const lineTotal = days > 0 ? unitPrice * qty * multiplier : 0;
                     return (
-                      <div key={a.id} style={{ border:`${isSel ? "2px" : "1px"} solid ${isOutOfStock ? "#cc333344" : isSel ? "#2979CF" : "rgba(255,255,255,0.60)"}`, borderRadius:14, padding:"10px 13px", background: isOutOfStock ? "rgba(255,230,230,0.55)" : isSel ? "rgba(197,228,248,0.75)" : "rgba(255,255,255,0.38)", transition:"all .2s", opacity: camAvailForDate > 0 ? 1 : 0.45, boxShadow: isSel ? "0 0 0 2px rgba(41,121,207,0.2), 0 4px 16px rgba(41,121,207,0.15)" : "none", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)" }}>
+                      <div key={a.id} style={{ border:`${isSel ? "2px" : "1px"} solid ${isOutOfStock ? "#cc333344" : isSel ? "#2979CF" : "rgba(255,255,255,0.60)"}`, borderRadius:14, padding:"10px 13px", background: isOutOfStock ? "rgba(255,230,230,0.55)" : isSel ? "rgba(197,228,248,0.75)" : "rgba(255,255,255,0.38)", transition:"all .2s", opacity: 1, boxShadow: isSel ? "0 0 0 2px rgba(41,121,207,0.2), 0 4px 16px rgba(41,121,207,0.15)" : "none", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)" }}>
                         <div style={{ display:"flex", alignItems:"center", gap:10, cursor: canAdd ? "pointer" : "not-allowed" }} onClick={() => canAdd && toggleAcc(a.name)}>
                           <div style={{ width:18, height:18, borderRadius:4, border:`2px solid ${isOutOfStock ? "#cc3333" : isSel ? "#2979CF" : BR}`, background: isOutOfStock ? "#cc333322" : isSel ? "#2979CF" : "transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all .2s", boxShadow: isSel ? "0 0 6px rgba(41,121,207,0.5)" : "none" }}>
                             {isOutOfStock
@@ -4800,10 +4809,12 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                   });
                 }
 
-                // BUG2 FIX: thêm selectedCamList.length > 0 — nếu không có máy (do Bug1 xóa)
-                // blockingItems rỗng → canGo = true → cho submit đơn rỗng (sai)
+                // BUG2 FIX gốc: không cho submit đơn rỗng
+                // Update: cho phép thuê mỗi lens/phụ kiện — chỉ cần có ít nhất 1 item
                 const daysOk = !!selDur || (days >= 1 && Math.abs(days * 2 - Math.round(days * 2)) <= 0.0001);
-                const baseOk = days > 0 && daysOk && !!selSession && !!pickDate && selectedCamList.length > 0;
+                const hasAccSelected = Object.values(selAcc).some(q => (q || 0) > 0);
+                const hasAnyItem = selectedCamList.length > 0 || hasAccSelected;
+                const baseOk = days > 0 && daysOk && !!selSession && !!pickDate && hasAnyItem;
                 const canGo = baseOk && blockingItems.length === 0;
 
                 return (
@@ -4823,8 +4834,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                       className="bk-next"
                       style={{ width:"100%", padding:15, background: canGo ? "linear-gradient(135deg, rgba(139,174,207,0.90) 0%, rgba(101,145,188,0.85) 100%)" : "rgba(180,180,190,0.40)", color: canGo ? "#fff" : MUT, border: canGo ? "1px solid rgba(255,255,255,0.55)" : "1px solid transparent", borderRadius:14, cursor: canGo ? "pointer" : "not-allowed", fontWeight:800, fontSize:15, fontFamily:"system-ui,sans-serif", letterSpacing:0.5, backdropFilter: canGo ? "blur(16px) saturate(160%)" : "none", WebkitBackdropFilter: canGo ? "blur(16px) saturate(160%)" : "none", boxShadow: canGo ? "0 1px 0 rgba(255,255,255,0.60) inset, 0 4px 20px rgba(8,20,60,0.18)" : "none" }}>
                       <span style={{position:"relative",zIndex:1}}>
-                        {/* BUG3 FIX: thêm case selectedCamList rỗng — trước đó hiện "Tiếp tục →" dù không có máy */}
-                        {!days ? "Chọn thời gian thuê" : !daysOk ? "Số ngày phải là bội số 0.5" : !selSession ? "Chọn ca thuê" : !pickDate ? "Chọn ngày bắt đầu" : selectedCamList.length === 0 ? "← Quay lại chọn máy ảnh" : blockingItems.length > 0 ? "⛔ Hết hàng — chọn lại ngày / số lượng" : "Tiếp tục →"}
+                        {!days ? "Chọn thời gian thuê" : !daysOk ? "Số ngày phải là bội số 0.5" : !selSession ? "Chọn ca thuê" : !pickDate ? "Chọn ngày bắt đầu" : !hasAnyItem ? "← Chọn máy ảnh hoặc phụ kiện" : blockingItems.length > 0 ? "⛔ Hết hàng — chọn lại ngày / số lượng" : "Tiếp tục →"}
                       </span>
                     </button>
                   </>
@@ -4859,18 +4869,19 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
               {/* ── SUMMARY CARD ── */}
               <div style={{ border:"1px solid rgba(255,255,255,0.60)", borderRadius:20, overflow:"hidden", marginBottom:14, background:"rgba(255,255,255,0.38)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", boxShadow:"0 1px 0 rgba(255,255,255,0.70) inset, 0 4px 24px rgba(0,0,0,0.10)" }}>
                 <div style={{ display:"flex", alignItems:"stretch", minHeight:160 }}>
-                  {/* ── CỘT TRÁI: danh sách máy ── */}
+                  {/* ── CỘT TRÁI: danh sách thiết bị ── */}
                   <div style={{ flex:1, minWidth:0, borderRight:`1px solid rgba(0,0,0,0.08)` }}>
                     {/* Header */}
                     <div style={{ display:"flex", alignItems:"center", gap:8, padding:"13px 16px", borderBottom:`1px solid rgba(0,0,0,0.08)` }}>
                       <span style={{ fontSize:15 }}>📦</span>
                       <span style={{ color:G, fontSize:9, letterSpacing:1.5, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>
-                        THIẾT BỊ ({selectedCamList.length})
+                        THIẾT BỊ ({selectedCamList.length + Object.values(selAcc).filter(q=>q>0).length})
                       </span>
                     </div>
-                    {/* Danh sách */}
+
+                    {/* Danh sách máy ảnh */}
                     {selectedCamList.map((c, idx) => (
-                      <div key={c.id} style={{ display:"flex", alignItems:"center", gap:14, padding:"14px 16px", borderBottom: idx < selectedCamList.length - 1 ? `1px solid rgba(0,0,0,0.07)` : "none" }}>
+                      <div key={c.id} style={{ display:"flex", alignItems:"center", gap:14, padding:"14px 16px", borderBottom: `1px solid rgba(0,0,0,0.07)` }}>
                         <div style={{ width:82, height:82, borderRadius:14, overflow:"hidden", flexShrink:0, background:"rgba(0,0,0,0.12)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:26, border:"1px solid rgba(255,255,255,0.40)" }}>
                           {c.images?.length > 0
                             ? <img src={cdnUrl(c.images[0], "thumb")} alt={c.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
@@ -4882,21 +4893,48 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                         </div>
                       </div>
                     ))}
-                    {/* Phụ kiện nếu có */}
-                    {Object.entries(selAcc).length > 0 && (
-                      <div style={{ borderTop:`1px solid rgba(0,0,0,0.07)`, padding:"10px 14px", display:"flex", flexWrap:"wrap", gap:6 }}>
-                        {Object.entries(selAcc).map(([name, qty]) => {
-                          const accObj = accessories.find(x => x.name === name);
-                          return (
-                            <span key={name} style={{ background:"rgba(255,255,255,0.50)", border:"1px solid rgba(255,255,255,0.68)", color:MUT, fontSize:10, borderRadius:8, padding:"3px 8px", fontFamily:"system-ui,sans-serif", display:"inline-flex", alignItems:"center", gap:5 }}>
+
+                    {/* Phụ kiện — render to khi không có máy, nhỏ khi đi kèm máy */}
+                    {Object.entries(selAcc).filter(([,q])=>q>0).map(([name, qty], idx, arr) => {
+                      const accObj = accessories.find(x => x.name === name);
+                      const unitPrice = days === 0.5 ? (accObj?.priceShift != null ? accObj.priceShift : Math.round((accObj?.price||0)/2)) : (accObj?.price||0);
+                      const lineTotal = days > 0 ? unitPrice * qty * (days===0.5?1:days) : 0;
+                      if (selectedCamList.length === 0) {
+                        // Render to — giống card máy ảnh
+                        return (
+                          <div key={name} style={{ display:"flex", alignItems:"center", gap:14, padding:"14px 16px", borderBottom: idx < arr.length-1 ? `1px solid rgba(0,0,0,0.07)` : "none" }}>
+                            <div style={{ width:56, height:56, borderRadius:12, overflow:"hidden", flexShrink:0, background:"rgba(201,168,76,0.12)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, border:"1px solid rgba(201,168,76,0.30)" }}>
                               {accObj?.image
-                                ? <img src={accObj.image} alt={name} style={{ width:16, height:16, objectFit:"cover", borderRadius:4, flexShrink:0 }} />
-                                : <span>🎒</span>
-                              }
-                              {name}{qty > 1 ? ` ×${qty}` : ""}
-                            </span>
-                          );
-                        })}
+                                ? <img src={accObj.image} alt={name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                                : "🎒"}
+                            </div>
+                            <div style={{ minWidth:0, flex:1 }}>
+                              <div style={{ color:TXT, fontWeight:700, fontSize:14, fontFamily:"system-ui,sans-serif", marginBottom:4, lineHeight:1.3 }}>{name}</div>
+                              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                                <span style={{ background:"rgba(255,255,255,0.55)", border:"1px solid rgba(255,255,255,0.70)", color:MUT, fontSize:11, borderRadius:8, padding:"2px 10px", fontFamily:"system-ui,sans-serif", fontWeight:600 }}>x{qty}</span>
+                                {lineTotal > 0 && <span style={{ color:G, fontSize:11, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>{fmtVND(lineTotal)}</span>}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      } else {
+                        // Render nhỏ — badge đi kèm
+                        return (
+                          <span key={name} style={{ display:"inline-flex", alignItems:"center", gap:5, background:"rgba(255,255,255,0.50)", border:"1px solid rgba(255,255,255,0.68)", color:MUT, fontSize:10, borderRadius:8, padding:"3px 8px", fontFamily:"system-ui,sans-serif", margin:"4px 0 0 14px" }}>
+                            {accObj?.image ? <img src={accObj.image} alt={name} style={{ width:16, height:16, objectFit:"cover", borderRadius:4, flexShrink:0 }} /> : <span>🎒</span>}
+                            {name}{qty > 1 ? ` ×${qty}` : ""}
+                          </span>
+                        );
+                      }
+                    })}
+
+                    {/* Gợi ý thêm máy khi chỉ có phụ kiện */}
+                    {selectedCamList.length === 0 && Object.values(selAcc).some(q=>q>0) && (
+                      <div style={{ margin:"10px 14px 12px", padding:"9px 12px", background:"rgba(255,248,220,0.75)", border:"1px solid rgba(245,158,11,0.35)", borderRadius:10, display:"flex", alignItems:"flex-start", gap:8 }}>
+                        <span style={{ fontSize:14, flexShrink:0 }}>💡</span>
+                        <span style={{ color:"#92600a", fontSize:11, fontFamily:"system-ui,sans-serif", lineHeight:1.6 }}>
+                          Bạn chưa chọn máy ảnh. Nếu cần thuê thêm body máy đi kèm, hãy <button onClick={() => setStep(1)} style={{ background:"none", border:"none", color:"#b5830a", cursor:"pointer", fontSize:11, padding:0, textDecoration:"underline", fontFamily:"system-ui,sans-serif", fontWeight:700 }}>quay lại chọn máy</button>.
+                        </span>
                       </div>
                     )}
                   </div>
@@ -6907,7 +6945,10 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
             {accessories.map((a,i) => {
               const icons = ["🎙️","🔦","⚡","📡","🎞️","🔋","🌿","🎛️","📷","🔌"];
               return (
-                <div key={a.id} className="acc-card">
+                <div key={a.id} className="acc-card" style={{ cursor:"pointer" }}
+                  onClick={() => onBook?.({ preselectedCams: {}, preselectedAccs: { [a.name]: 1 }, date: todayStr(), days: 1, noDate: true })}
+                  onMouseEnter={e => e.currentTarget.style.transform="translateY(-3px)"}
+                  onMouseLeave={e => e.currentTarget.style.transform="translateY(0)"}>
                   <div className="acc-icon-wrap">
                     {a.image
                       ? <img src={a.image} alt={a.name} style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 8 }} />
@@ -6921,7 +6962,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
             })}
           </div>
           <div style={{ textAlign:"center", marginTop: isMobile ? 28 : 42 }}>
-            <span style={{ fontSize:10, letterSpacing:2.5, color:G, opacity:0.30, fontFamily:"var(--font-ui)", fontWeight:600 }}>PHỤ KIỆN ĐƯỢC CHỌN TRỰC TIẾP TRONG QUÁ TRÌNH ĐẶT THUÊ</span>
+            <span style={{ fontSize:10, letterSpacing:2.5, color:G, opacity:0.30, fontFamily:"var(--font-ui)", fontWeight:600 }}>👆 NHẤN VÀO PHỤ KIỆN ĐỂ ĐẶT THUÊ NGAY</span>
           </div>
         </div>
       </div>
@@ -11844,6 +11885,7 @@ function AppRoot() {
           preselectedAccs={booking && typeof booking === "object" && booking.preselectedAccs ? booking.preselectedAccs : null}
           preselectedDate={booking && typeof booking === "object" ? booking.date : null}
           preselectedDays={booking && typeof booking === "object" ? booking.days : null}
+          noDate={booking && typeof booking === "object" ? !!booking.noDate : false}
           orders={orders}
           isMobile={isMobile}
         />
