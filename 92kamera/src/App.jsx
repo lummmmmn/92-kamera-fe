@@ -6757,10 +6757,10 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
             {/* ── SUBTITLE — 1 dòng desktop ── */}
             <div style={{
               marginTop: isMobile?16:15,
-              fontSize: isMobile?10:9.6, letterSpacing: isMobile?2.5:2.5,
+              fontSize: isMobile?7.8:9.6, letterSpacing: isMobile?1.6:2.5,
               fontFamily:"var(--font-ui)", color:"#2a2825", fontWeight:700,
-              whiteSpace: isMobile?"normal":"nowrap", lineHeight: isMobile?2:1,
-              minHeight: isMobile?"auto":16,
+              whiteSpace:"nowrap", lineHeight:1,
+              minHeight:16,
             }}>
               <span>{tw1.displayed}<span style={{ opacity: tw1.done ? 0 : 1, transition:"opacity .3s" }}>▌</span></span>
             </div>
