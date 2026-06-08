@@ -2154,6 +2154,30 @@ function CustomerFeed({ photos }) {
 }
 
 
+// ── CONFIRM DIALOG — thay thế window.confirm (bị block trong Zalo/Facebook WebView) ──
+function ConfirmDialog({ message, onOk, onCancel }) {
+  if (!message) return null;
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:99999, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(0,0,0,0.45)", backdropFilter:"blur(4px)", WebkitBackdropFilter:"blur(4px)" }}
+      onClick={onCancel}>
+      <div style={{ background:"#f0f4f8", borderRadius:16, padding:"24px 24px 20px", maxWidth:320, width:"calc(100% - 48px)", boxShadow:"0 8px 40px rgba(0,0,0,0.28), 0 1px 0 rgba(255,255,255,0.7) inset", boxSizing:"border-box" }}
+        onClick={e => e.stopPropagation()}>
+        <div style={{ color:"#0d1b2a", fontSize:14, fontFamily:"system-ui,sans-serif", lineHeight:1.6, marginBottom:20, whiteSpace:"pre-line" }}>{message}</div>
+        <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
+          <button onClick={onCancel}
+            style={{ padding:"8px 18px", background:"transparent", border:"1px solid #c0ccd8", color:"#4a6a8a", borderRadius:10, cursor:"pointer", fontSize:12, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>
+            Không
+          </button>
+          <button onClick={onOk}
+            style={{ padding:"8px 18px", background:"#ef4444", border:"none", color:"#fff", borderRadius:10, cursor:"pointer", fontSize:12, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>
+            Xác nhận
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── FEEDBACK MODAL (post-order rating — only for completed orders) ──
 function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) {
   // Tìm feedback đã gửi cho đơn này — match bằng email (Google) hoặc phone
@@ -2505,6 +2529,7 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
   const [refreshing, setRefreshing] = useState(false);
   const isMobile = useMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [confirmCfg, setConfirmCfg] = useState(null); // thay window.confirm
 
   // ── Tự động refresh orders mỗi 30s khi đang xem tab đơn hàng ──
   const _refreshingRef = useRef(false);
@@ -3040,9 +3065,14 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                         {/* Chỉ khách đăng nhập mới được huỷ, và chỉ khi đơn còn ở pending (chưa xác nhận) */}
                         {loggedUser && o.status === "pending" && (
                           <button onClick={() => {
-                            if (!window.confirm(`Bạn có chắc muốn huỷ đơn ${o.id}?\n\nĐơn sẽ chuyển sang trạng thái "Đã huỷ" và không thể khôi phục.`)) return;
-                            setOrders(p => p.map(x => x.id === o.id ? { ...x, status: "cancelled", cancelledBy: "customer", cancelledAt: new Date().toISOString() } : x));
-                            window.__92k_invalidateStaticCache?.();
+                            setConfirmCfg({
+                              message: `Bạn có chắc muốn huỷ đơn ${o.id}?\n\nĐơn sẽ chuyển sang trạng thái "Đã huỷ" và không thể khôi phục.`,
+                              onOk: () => {
+                                setOrders(p => p.map(x => x.id === o.id ? { ...x, status: "cancelled", cancelledBy: "customer", cancelledAt: new Date().toISOString() } : x));
+                                window.__92k_invalidateStaticCache?.();
+                                setConfirmCfg(null);
+                              }
+                            });
                           }}
                           style={{ padding: "7px 16px", background: "#FEF0F0", border: "1px solid #ef444433", color: "#ef4444", borderRadius: 10, cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", marginLeft: "auto" }}>
                             ✕ Huỷ đơn
@@ -3311,6 +3341,11 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
           onClose={() => setFbOrder(null)}
         />
       )}
+      <ConfirmDialog
+        message={confirmCfg?.message}
+        onOk={confirmCfg?.onOk}
+        onCancel={() => setConfirmCfg(null)}
+      />
     </div>
   );
 }
@@ -7235,7 +7270,12 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
     }
     if (window.google?.accounts?.id) { setGsiReady(true); return; }
     const existing = document.getElementById("gsi-script-92k");
-    if (existing) { existing.addEventListener("load", () => setGsiReady(true)); return; }
+    if (existing) {
+      // Script đang load dở — gắn listener có cleanup
+      const handler = () => setGsiReady(true);
+      existing.addEventListener("load", handler);
+      return () => existing.removeEventListener("load", handler);
+    }
     const script = document.createElement("script");
     script.id = "gsi-script-92k";
     script.src = "https://accounts.google.com/gsi/client";
@@ -8107,9 +8147,14 @@ function AlbumManager({ photos, albums, setAlbums, isMobile }) {
   };
 
   const handleDelete = (alb) => {
-    if (!window.confirm(`Xóa album "${alb.name}"?\n\nẢnh gốc không bị xóa.`)) return;
-    setAlbums(prev => prev.filter(a => a.id !== alb.id));
-    showMsg("ok", "✓ Đã xóa album");
+    setConfirmCfg({
+      message: `Xóa album "${alb.name}"?\n\nẢnh gốc không bị xóa.`,
+      onOk: () => {
+        setAlbums(prev => prev.filter(a => a.id !== alb.id));
+        showMsg("ok", "✓ Đã xóa album");
+        setConfirmCfg(null);
+      }
+    });
   };
 
   return (
@@ -8378,6 +8423,7 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
   const [uploadMsg, setUploadMsg] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [previewIdx, setPreviewIdx] = useState(null); // lightbox admin
+  const [confirmCfg, setConfirmCfg] = useState(null); // thay window.confirm
 
   // Refresh từ Supabase (nguồn sự thật)
   const handleRefresh = async () => {
@@ -8425,19 +8471,24 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
 
   // Xóa thật khỏi Cloudinary + Supabase qua Edge Function
   const handleDelete = async (photo) => {
-    if (!window.confirm("Xóa ảnh này vĩnh viễn?\n\nHành động không thể hoàn tác.")) return;
-    setDeletingId(photo.public_id);
-    try {
-      await cloudinaryDeletePhoto(photo.public_id);
-      setPhotos(prev => (prev || []).filter(p => p.public_id !== photo.public_id));
-      setUploadMsg({ type: "ok", text: "✓ Đã xóa ảnh khỏi Cloudinary + database" });
-      setTimeout(() => setUploadMsg(null), 3000);
-    } catch (e) {
-      console.error("[92K] delete failed:", e);
-      setUploadMsg({ type: "err", text: `❌ Xóa thất bại: ${e.message}` });
-      setTimeout(() => setUploadMsg(null), 5000);
-    }
-    setDeletingId(null);
+    setConfirmCfg({
+      message: "Xóa ảnh này vĩnh viễn?\n\nHành động không thể hoàn tác.",
+      onOk: async () => {
+        setConfirmCfg(null);
+        setDeletingId(photo.public_id);
+        try {
+          await cloudinaryDeletePhoto(photo.public_id);
+          setPhotos(prev => (prev || []).filter(p => p.public_id !== photo.public_id));
+          setUploadMsg({ type: "ok", text: "✓ Đã xóa ảnh khỏi Cloudinary + database" });
+          setTimeout(() => setUploadMsg(null), 3000);
+        } catch (e) {
+          console.error("[92K] delete failed:", e);
+          setUploadMsg({ type: "err", text: `❌ Xóa thất bại: ${e.message}` });
+          setTimeout(() => setUploadMsg(null), 5000);
+        }
+        setDeletingId(null);
+      }
+    });
   };
 
   const pct = uploadProgress.total > 0 ? Math.round((uploadProgress.done / uploadProgress.total) * 100) : 0;
@@ -8532,6 +8583,11 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
 
       {/* ── ALBUM MANAGER ── */}
       <AlbumManager photos={photos} albums={albums} setAlbums={setAlbums} isMobile={isMobile} />
+      <ConfirmDialog
+        message={confirmCfg?.message}
+        onOk={confirmCfg?.onOk}
+        onCancel={() => setConfirmCfg(null)}
+      />
     </>
   );
 }
