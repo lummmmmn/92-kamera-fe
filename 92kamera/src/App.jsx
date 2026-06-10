@@ -4362,9 +4362,9 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                               {imgs.length > 1 && (
                                 <>
                                   {/* Nút prev */}
-                                  <button onClick={goPrev} style={{ position: "absolute", left: 5, top: "50%", transform: "translateY(-50%)", zIndex: 4, background: "rgba(0,0,0,0.42)", border: "none", borderRadius: "50%", width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, color: "#fff", fontSize: 11, lineHeight: 1 }}>‹</button>
+                                  <button onClick={goPrev} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", zIndex: 4, background: "rgba(0,0,0,0.50)", border: "1px solid rgba(255,255,255,0.20)", borderRadius: "50%", width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, color: "#fff", fontSize: 14, lineHeight: 1 }}>‹</button>
                                   {/* Nút next */}
-                                  <button onClick={goNext} style={{ position: "absolute", right: 32, top: "50%", transform: "translateY(-50%)", zIndex: 4, background: "rgba(0,0,0,0.42)", border: "none", borderRadius: "50%", width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, color: "#fff", fontSize: 11, lineHeight: 1 }}>›</button>
+                                  <button onClick={goNext} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", zIndex: 4, background: "rgba(0,0,0,0.50)", border: "1px solid rgba(255,255,255,0.20)", borderRadius: "50%", width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, color: "#fff", fontSize: 14, lineHeight: 1 }}>›</button>
                                   {/* Dots */}
                                   <div style={{ position: "absolute", bottom: 6, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 4, zIndex: 4 }}>
                                     {imgs.map((_, di) => (
