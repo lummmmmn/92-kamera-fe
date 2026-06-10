@@ -3592,6 +3592,8 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
     return () => clearInterval(iv);
   }, [step]);
   const [expandedCam, setExpandedCam] = useState(null);
+  // camImgIdx: { [camId]: currentSlideIndex } — track ảnh đang hiện cho từng card
+  const [camImgIdx, setCamImgIdx] = useState({});
   // BUG-PRESELECT FIX: chỉ preselect nếu máy thực sự available
   // Nếu status !== "available", máy không có trong availCams → ghost entry trong selCams
   const [selCams, setSelCams] = useState(() => {
@@ -4347,9 +4349,34 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                         <div onClick={() => toggleCam(c)} style={{ position: "absolute", top: 7, right: 7, zIndex: 3, width: 24, height: 24, borderRadius: 10, border: `2px solid ${isSelected ? "#2979CF" : "rgba(255,255,255,0.6)"}`, background: isSelected ? "#2979CF" : "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all .2s", boxShadow: isSelected ? "0 0 8px rgba(41,121,207,0.6)" : "none" }}>
                           {isSelected && <span style={{ color: "#fff", fontSize: 13, fontWeight: 900, lineHeight: 1 }}>✓</span>}
                         </div>
-                        {/* Ảnh */}
-                        {c.images?.length > 0
-                          ? <img src={cdnUrl(c.images[0], "thumb")} alt={c.name} onClick={() => toggleCam(c)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }} />
+                        {/* Ảnh — slider nếu có nhiều ảnh */}
+                        {c.images?.length > 0 ? (() => {
+                          const imgs = c.images.slice(0, 6);
+                          const idx = camImgIdx[c.id] || 0;
+                          const safeIdx = Math.min(idx, imgs.length - 1);
+                          const goPrev = (e) => { e.stopPropagation(); setCamImgIdx(p => ({ ...p, [c.id]: safeIdx > 0 ? safeIdx - 1 : imgs.length - 1 })); };
+                          const goNext = (e) => { e.stopPropagation(); setCamImgIdx(p => ({ ...p, [c.id]: safeIdx < imgs.length - 1 ? safeIdx + 1 : 0 })); };
+                          return (
+                            <>
+                              <img src={cdnUrl(imgs[safeIdx], "thumb")} alt={c.name} onClick={() => toggleCam(c)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }} />
+                              {imgs.length > 1 && (
+                                <>
+                                  {/* Nút prev */}
+                                  <button onClick={goPrev} style={{ position: "absolute", left: 5, top: "50%", transform: "translateY(-50%)", zIndex: 4, background: "rgba(0,0,0,0.42)", border: "none", borderRadius: "50%", width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, color: "#fff", fontSize: 11, lineHeight: 1 }}>‹</button>
+                                  {/* Nút next */}
+                                  <button onClick={goNext} style={{ position: "absolute", right: 32, top: "50%", transform: "translateY(-50%)", zIndex: 4, background: "rgba(0,0,0,0.42)", border: "none", borderRadius: "50%", width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, color: "#fff", fontSize: 11, lineHeight: 1 }}>›</button>
+                                  {/* Dots */}
+                                  <div style={{ position: "absolute", bottom: 6, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 4, zIndex: 4 }}>
+                                    {imgs.map((_, di) => (
+                                      <div key={di} onClick={e => { e.stopPropagation(); setCamImgIdx(p => ({ ...p, [c.id]: di })); }}
+                                        style={{ width: di === safeIdx ? 14 : 5, height: 5, borderRadius: 3, background: di === safeIdx ? "#fff" : "rgba(255,255,255,0.45)", cursor: "pointer", transition: "all .2s" }} />
+                                    ))}
+                                  </div>
+                                </>
+                              )}
+                            </>
+                          );
+                        })()
                           : <span onClick={() => toggleCam(c)} style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, cursor: "pointer" }}>{c.icon}</span>}
 
                         {/* Info overlay — dưới cùng, mặc định trong suốt */}
