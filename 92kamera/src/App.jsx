@@ -4356,9 +4356,19 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                           const safeIdx = Math.min(idx, imgs.length - 1);
                           const goPrev = (e) => { e.stopPropagation(); setCamImgIdx(p => ({ ...p, [c.id]: safeIdx > 0 ? safeIdx - 1 : imgs.length - 1 })); };
                           const goNext = (e) => { e.stopPropagation(); setCamImgIdx(p => ({ ...p, [c.id]: safeIdx < imgs.length - 1 ? safeIdx + 1 : 0 })); };
+                          let _tx = null;
+                          const onTouchStart = (e) => { _tx = e.touches[0].clientX; };
+                          const onTouchEnd = (e) => {
+                            if (_tx === null || imgs.length <= 1) return;
+                            const dx = e.changedTouches[0].clientX - _tx;
+                            if (Math.abs(dx) < 30) return;
+                            if (dx < 0) setCamImgIdx(p => ({ ...p, [c.id]: safeIdx < imgs.length - 1 ? safeIdx + 1 : 0 }));
+                            else setCamImgIdx(p => ({ ...p, [c.id]: safeIdx > 0 ? safeIdx - 1 : imgs.length - 1 }));
+                            _tx = null;
+                          };
                           return (
                             <>
-                              <img src={cdnUrl(imgs[safeIdx], "thumb")} alt={c.name} onClick={() => toggleCam(c)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }} />
+                              <img src={cdnUrl(imgs[safeIdx], "thumb")} alt={c.name} onClick={() => toggleCam(c)} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }} />
                               {imgs.length > 1 && (
                                 <>
                                   {/* Nút prev */}
@@ -8325,7 +8335,7 @@ function cdnUrl(url, mode = "thumb") {
   if (!url || !url.includes("res.cloudinary.com")) return url;
   const t = mode === "full"
     ? "w_2000,q_auto:best,f_auto"
-    : "w_800,q_auto:best,f_auto";
+    : "w_800,q_100,e_sharpen:60,f_auto";
   // Chèn transformation sau /upload/
   return url.replace("/upload/", `/upload/${t}/`);
 }
