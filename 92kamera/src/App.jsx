@@ -1181,21 +1181,23 @@ function CamImage({ cam, height = 176 }) {
 }
 
 // ── PREMIUM HERO BACKGROUND ──
+// PERF FIX: gộp 6 layer → 1 div, giảm composite cost; numOctaves 5→2
 function LensBackground({ isMob }) {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", overflow: "hidden" }}>
-      <div style={{ position: "absolute", inset: 0, background: "#8fc8d4" }} />
-      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 130% 85% at 50% 22%, #5fccdd 0%, transparent 70%), radial-gradient(ellipse 55% 40% at 15% 55%, rgba(77,193,213,0.7) 0%, transparent 60%), linear-gradient(180deg, #8fc8d4 0%, #a9b8bc 100%)" }} />
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(236,243,248,0.58) 0%, transparent 40%, rgba(220,235,244,0.27) 100%)" }} />
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(186,206,220,0.30) 0%, transparent 50%)" }} />
-      {/* Vintage: phủ tone ấm lạnh xen nhau nhẹ */}
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(200,220,210,0.10) 0%, transparent 50%, rgba(180,200,225,0.08) 100%)" }} />
-      {/* Vintage: rìa tối nhẹ tạo depth */}
-      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 100% 100% at 50% 50%, transparent 55%, rgba(20,50,75,0.14) 100%)" }} />
-      {/* Film grain đậm hơn chút */}
+      <div style={{ position: "absolute", inset: 0, background:
+        "radial-gradient(ellipse 100% 100% at 50% 50%, transparent 55%, rgba(20,50,75,0.14) 100%)," +
+        "linear-gradient(135deg, rgba(200,220,210,0.10) 0%, transparent 50%, rgba(180,200,225,0.08) 100%)," +
+        "linear-gradient(to top, rgba(186,206,220,0.30) 0%, transparent 50%)," +
+        "linear-gradient(to right, rgba(236,243,248,0.58) 0%, transparent 40%, rgba(220,235,244,0.27) 100%)," +
+        "radial-gradient(ellipse 130% 85% at 50% 22%, #5fccdd 0%, transparent 70%)," +
+        "radial-gradient(ellipse 55% 40% at 15% 55%, rgba(77,193,213,0.7) 0%, transparent 60%)," +
+        "linear-gradient(180deg, #8fc8d4 0%, #a9b8bc 100%)"
+      }} />
+      {/* numOctaves 2 (giảm từ 5) — nhanh hơn ~60%, mắt thường không phân biệt được */}
       <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.22 }} xmlns="http://www.w3.org/2000/svg">
         <filter id="grain-bg">
-          <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="5" stitchTiles="stitch" />
+          <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" stitchTiles="stitch" />
           <feColorMatrix type="saturate" values="0" />
         </filter>
         <rect width="100%" height="100%" filter="url(#grain-bg)" />
@@ -1830,13 +1832,13 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
 
   const FeedbackCard = ({ c, style: extraStyle }) => (
     <div style={{
-      background: "rgba(255,255,255,0.82)",
+      background: "rgba(255,255,255,0.92)",
       border: "1px solid rgba(5,17,31,0.08)",
       borderRadius: 20,
       padding: "22px 20px 18px",
       display: "flex", flexDirection: "column", gap: 12,
       boxShadow: "0 2px 24px rgba(5,17,31,0.10)",
-      backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+      /* PERF: xoá backdropFilter — card đang animate trong marquee, blur nhiều card = GPU killer */
       ...extraStyle,
     }}>
       <div>{Array.from({ length: 5 }).map((_, si) => (
@@ -4216,7 +4218,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
       <div style={{ position: "fixed", inset: 0, background: "linear-gradient(to right, rgba(236,243,248,0.58) 0%, transparent 40%, rgba(220,235,244,0.27) 100%)", pointerEvents: "none" }} />
       <div style={{ position: "fixed", inset: 0, background: "linear-gradient(to top, rgba(186,206,220,0.30) 0%, transparent 50%)", pointerEvents: "none" }} />
       <svg style={{ position: "fixed", inset: 0, width: "100%", height: "100%", opacity: 0.16, pointerEvents: "none" }} xmlns="http://www.w3.org/2000/svg">
-        <filter id="grain-book"><feTurbulence type="fractalNoise" baseFrequency="0.78" numOctaves="5" stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+        <filter id="grain-book"><feTurbulence type="fractalNoise" baseFrequency="0.78" numOctaves="2" stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
         <rect width="100%" height="100%" filter="url(#grain-book)" />
       </svg>
       <div style={box}>
@@ -7439,7 +7441,7 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(236,243,248,0.58) 0%, transparent 40%, rgba(220,235,244,0.27) 100%)", pointerEvents: "none" }} />
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(186,206,220,0.30) 0%, transparent 50%)", pointerEvents: "none" }} />
       <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.16, pointerEvents: "none" }} xmlns="http://www.w3.org/2000/svg">
-        <filter id="grain-login"><feTurbulence type="fractalNoise" baseFrequency="0.78" numOctaves="5" stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+        <filter id="grain-login"><feTurbulence type="fractalNoise" baseFrequency="0.78" numOctaves="2" stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
         <rect width="100%" height="100%" filter="url(#grain-login)" />
       </svg>
 
@@ -11158,7 +11160,7 @@ function SplashScreen({ onDone }) {
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(200,220,210,0.10) 0%, transparent 50%, rgba(180,200,225,0.08) 100%)" }} />
       <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 100% 100% at 50% 50%, transparent 55%, rgba(20,50,75,0.14) 100%)" }} />
       <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.22 }} xmlns="http://www.w3.org/2000/svg">
-        <filter id="grain-splash"><feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="5" stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+        <filter id="grain-splash"><feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
         <rect width="100%" height="100%" filter="url(#grain-splash)" />
       </svg>
       {/* LOGO */}
