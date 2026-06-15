@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, lazy, Suspense, Component } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, memo, lazy, Suspense, Component } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from "recharts";
 
 // ── HELPERS ──
@@ -1207,7 +1207,7 @@ function LensBackground({ isMob }) {
 }
 
 // ── 3D LENS MENU — Premium Cinematic Edition ──
-function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobile }) {
+const CameraLens3D = memo(function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobile }) {
   const [hoveredRing, setHoveredRing] = useState(null);
   const animRef   = useRef(null);
   const isHovRef  = useRef(false);
@@ -5573,7 +5573,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 }
 
 // ── CAMERA FEATURED CAROUSEL ──
-function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
+const CameraFeatured = memo(function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
   const [active, setActive] = useState(0);
   const [hov, setHov] = useState(null);
   const [slideDir, setSlideDir] = useState(1);
@@ -6512,7 +6512,7 @@ function RoadmapCards({ isMobile }) {
   );
 }
 
-function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, isMobile, photos, albums, feedbacks, loggedUser, onOpenLogin, onOpenCustomer }) {
+const HomePage = memo(function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, isMobile, photos, albums, feedbacks, loggedUser, onOpenLogin, onOpenCustomer }) {
   const [scrollY, setScrollY] = useState(0);
   const [scrollDir, setScrollDir] = useState("up");
   const prevScrollY = useRef(0);
@@ -10750,8 +10750,27 @@ let _staticDataCache = null;
 let _staticDataPromise = null;
 
 async function getStaticData(forceRefresh = false) {
-  // data.json không tồn tại — luôn dùng Supabase trực tiếp
-  return null;
+  if (!forceRefresh && _staticDataCache && (Date.now() - _staticDataCache.ts) < STATIC_CACHE_MS) {
+    return _staticDataCache.data;
+  }
+  if (_staticDataPromise) return _staticDataPromise;
+  _staticDataPromise = (async () => {
+    try {
+      // FIX: dùng max-age=90s thay vì no-store — tránh mỗi user tạo 1 request riêng
+      // Browser/CDN cache 90s: đủ fresh, giảm hàng trăm hit Supabase/server khi nhiều người vào cùng lúc
+      const res = await fetch(STATIC_DATA_URL, { cache: "default", headers: { "Cache-Control": "max-age=90" } });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      _staticDataCache = { data, ts: Date.now() };
+      return data;
+    } catch (err) {
+      console.warn("[92K] ⚠️ Static data load failed, fallback Supabase:", err.message);
+      return null;
+    } finally {
+      _staticDataPromise = null;
+    }
+  })();
+  return _staticDataPromise;
 }
 
 // Bust static cache (cameras/accessories/site) khi cần force refresh CDN
@@ -11430,7 +11449,8 @@ function AppRoot() {
         }, 5000);
 
       } else {
-        // ── Catalog: load trực tiếp từ Supabase ──
+        // ── Fallback: data.json lỗi → fetch catalog từ Supabase ──
+        console.warn("[92K] data.json lỗi, fallback Supabase cho catalog");
         const [cams, accs, site, disc] = await Promise.all([
           loadCamerasFromStorage(),
           storageGet(STORE_KEYS.accessories),
@@ -11479,6 +11499,20 @@ function AppRoot() {
     // ghi array đầy đủ lên Supabase. Nếu setOrders ghi lại đây sẽ overwrite bằng prev stale.
     setOrders(prev => [{ ...order, seen: false }, ...prev], { skipStorage: true });
   }, [setOrders]);
+
+  // Stable callbacks cho HomePage — giữ reference ổn định để memo hoạt động
+  const handleBook = useCallback((cam) => {
+    if (cam && typeof cam === "object" && cam.preselectedCams) {
+      setBooking(cam);
+    } else {
+      setBooking(cam?.id ?? true);
+    }
+  }, []);
+  const handleAdmin = useCallback(() => setPage("admin"), []);
+  const handleOpenLogin = useCallback(() => setLoginOpen(true), []);
+  const handleOpenCustomer = useCallback(() => {
+    if (loggedUser) setPage("customer"); else setLoginOpen(true);
+  }, [loggedUser]);
 
   // useCallback giữ reference ổn định → SplashScreen's useEffect([]) không restart
   const handleSplashDone = useCallback(() => setSplashDone(true), []);
@@ -11862,21 +11896,15 @@ function AppRoot() {
           accessories={accessories}
           siteContent={siteContent}
           orders={orders}
-          onBook={(cam) => {
-            if (cam && typeof cam === "object" && cam.preselectedCams) {
-              setBooking(cam); // object từ QuickSearch
-            } else {
-              setBooking(cam?.id ?? true);
-            }
-          }}
-          onAdmin={() => setPage("admin")}
+          onBook={handleBook}
+          onAdmin={handleAdmin}
           isMobile={isMobile}
           photos={photos}
           albums={albums}
           feedbacks={feedbacks}
           loggedUser={loggedUser}
-          onOpenLogin={() => setLoginOpen(true)}
-          onOpenCustomer={() => { if (loggedUser) setPage("customer"); else setLoginOpen(true); }}
+          onOpenLogin={handleOpenLogin}
+          onOpenCustomer={handleOpenCustomer}
         />
       )}
 
