@@ -10750,27 +10750,8 @@ let _staticDataCache = null;
 let _staticDataPromise = null;
 
 async function getStaticData(forceRefresh = false) {
-  if (!forceRefresh && _staticDataCache && (Date.now() - _staticDataCache.ts) < STATIC_CACHE_MS) {
-    return _staticDataCache.data;
-  }
-  if (_staticDataPromise) return _staticDataPromise;
-  _staticDataPromise = (async () => {
-    try {
-      // FIX: dùng max-age=90s thay vì no-store — tránh mỗi user tạo 1 request riêng
-      // Browser/CDN cache 90s: đủ fresh, giảm hàng trăm hit Supabase/server khi nhiều người vào cùng lúc
-      const res = await fetch(STATIC_DATA_URL, { cache: "default", headers: { "Cache-Control": "max-age=90" } });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      _staticDataCache = { data, ts: Date.now() };
-      return data;
-    } catch (err) {
-      console.warn("[92K] ⚠️ Static data load failed, fallback Supabase:", err.message);
-      return null;
-    } finally {
-      _staticDataPromise = null;
-    }
-  })();
-  return _staticDataPromise;
+  // data.json không tồn tại — luôn dùng Supabase trực tiếp
+  return null;
 }
 
 // Bust static cache (cameras/accessories/site) khi cần force refresh CDN
@@ -11298,7 +11279,7 @@ function AppRoot() {
   const [loginOpen, setLoginOpen] = useState(false);
 
   // Smooth scroll chỉ trên home, không khi booking modal / login đang mở
-  useSmoothScroll(page === "home" && !booking && !loginOpen && !isMobile);
+  useSmoothScroll(false);
   // Toggle body.is-scrolling → CSS tắt backdrop-filter + animation khi scroll
   useScrollPerfClass();
 
@@ -11449,8 +11430,7 @@ function AppRoot() {
         }, 5000);
 
       } else {
-        // ── Fallback: data.json lỗi → fetch catalog từ Supabase ──
-        console.warn("[92K] data.json lỗi, fallback Supabase cho catalog");
+        // ── Catalog: load trực tiếp từ Supabase ──
         const [cams, accs, site, disc] = await Promise.all([
           loadCamerasFromStorage(),
           storageGet(STORE_KEYS.accessories),
