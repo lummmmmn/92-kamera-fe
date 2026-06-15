@@ -1223,21 +1223,7 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  useEffect(() => {
-    let oA = 0, mA = 0, iA = 0;
-    const tick = () => {
-      // Pause khi scroll → không cạnh tranh GPU với scroll compositor
-      if (!document.body.classList.contains("is-scrolling")) {
-        const target = isHovRef.current ? 0.28 : 0.032;
-        speedRef.current += (target - speedRef.current) * 0.03;
-        const s = speedRef.current;
-        oA += s; mA -= s * 0.62; iA += s * 0.43;
-      }
-      animRef.current = requestAnimationFrame(tick);
-    };
-    animRef.current = requestAnimationFrame(tick);
-    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
-  }, []);
+  // RAF loop đã được xoá — oA/mA/iA không dùng trong render, lens dùng CSS animation lensFloat
 
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
@@ -8146,6 +8132,7 @@ function AlbumManager({ photos, albums, setAlbums, isMobile }) {
   const [form, setForm] = useState({ name: "", cameraTag: "", coverId: "", photoIds: [] });
   const [openAlbum, setOpenAlbum] = useState(null);
   const [msg, setMsg] = useState(null);
+  const [confirmCfg, setConfirmCfg] = useState(null); // FIX: ConfirmDialog state cho AlbumManager
 
   const showMsg = (type, text) => { setMsg({ type, text }); setTimeout(() => setMsg(null), 3500); };
 
@@ -8317,6 +8304,15 @@ function AlbumManager({ photos, albums, setAlbums, isMobile }) {
 
       {/* Album Lightbox trong admin */}
       {openAlbum && <AlbumLightbox album={openAlbum} onClose={() => setOpenAlbum(null)} />}
+
+      {/* FIX: ConfirmDialog cho xóa album */}
+      {confirmCfg && (
+        <ConfirmDialog
+          message={confirmCfg.message}
+          onOk={confirmCfg.onOk}
+          onCancel={() => setConfirmCfg(null)}
+        />
+      )}
     </div>
   );
 }
@@ -10758,7 +10754,9 @@ async function getStaticData(forceRefresh = false) {
   if (_staticDataPromise) return _staticDataPromise;
   _staticDataPromise = (async () => {
     try {
-      const res = await fetch(`${STATIC_DATA_URL}?_t=${Date.now()}`, { cache: "no-store" });
+      // FIX: dùng max-age=90s thay vì no-store — tránh mỗi user tạo 1 request riêng
+      // Browser/CDN cache 90s: đủ fresh, giảm hàng trăm hit Supabase/server khi nhiều người vào cùng lúc
+      const res = await fetch(STATIC_DATA_URL, { cache: "default", headers: { "Cache-Control": "max-age=90" } });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       _staticDataCache = { data, ts: Date.now() };
@@ -11589,7 +11587,9 @@ function AppRoot() {
         @supports not (backdrop-filter: blur(1px)) {
           [data-l2] { background: rgba(210, 222, 236, 0.82) !important; }
         }
-        body.is-scrolling * {
+        body.is-scrolling .lens-float-wrap,
+        body.is-scrolling .flowbg-canvas,
+        body.is-scrolling [style*="animation"] {
           animation-play-state: paused !important;
         }
         body.is-scrolling .lens-float-wrap { animation-play-state: running !important; }
