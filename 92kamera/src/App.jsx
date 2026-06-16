@@ -6545,11 +6545,11 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
   const [bracketSpread, setBracketSpread] = useState(false);
   const handleBracketClick = () => { setBracketSpread(true); setTimeout(() => setBracketSpread(false), 500); };
   // ── Typewriter cho 2 dòng subtitle + tagline ──
-  // tw2StartDelay dùng ref — chỉ set 1 lần khi tw1 xong, không thay đổi liên tục
+  // tw2Delay ref khai báo TRƯỚC cả 2 hook — đúng Rules of Hooks
+  const tw2Delay = useRef(99999);
   const tw1 = useTypewriter("DỊCH VỤ CHO THUÊ MÁY ẢNH · NÚI THÀNH · TAM KỲ", 38, 600);
-  const tw2Delay = useRef(null);
-  if (tw1.done && tw2Delay.current === null) tw2Delay.current = 100;
-  const tw2 = useTypewriter("Trải nghiệm máy ảnh · Bắt trọn khoảnh khắc", 42, tw2Delay.current ?? 99999);
+  if (tw1.done && tw2Delay.current === 99999) tw2Delay.current = 100;
+  const tw2 = useTypewriter("Trải nghiệm máy ảnh · Bắt trọn khoảnh khắc", 42, tw2Delay.current);
   const handleLogoClick = () => {
     const n = logoClick + 1;
     setLogoClick(n);
