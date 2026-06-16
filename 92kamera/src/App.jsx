@@ -8914,17 +8914,24 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
     // WS sống lại → poll tắt lại
     let fallbackPoll = null;
 
+    const withTimeout = (promise, ms) => Promise.race([
+      promise,
+      new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))
+    ]);
+
     const pollOnce = async () => {
-      const [ords, fbs, discs] = await Promise.all([
-        storageGet(STORE_KEYS.orders, true),
-        storageGet(STORE_KEYS.feedbacks, true),
-        storageGet(STORE_KEYS.discounts, true),
-      ]);
-      const newCount = mergeData(STORE_KEYS.orders, ords);
-      if (newCount > 0) playNotif();
-      const newFbCount = mergeData(STORE_KEYS.feedbacks, fbs);
-      if (newFbCount > 0) playNotif();
-      if (discs) mergeData(STORE_KEYS.discounts, discs);
+      try {
+        const [ords, fbs, discs] = await Promise.all([
+          withTimeout(storageGet(STORE_KEYS.orders, true), 8000),
+          withTimeout(storageGet(STORE_KEYS.feedbacks, true), 8000),
+          withTimeout(storageGet(STORE_KEYS.discounts, true), 8000),
+        ]);
+        const newCount = mergeData(STORE_KEYS.orders, ords);
+        if (newCount > 0) playNotif();
+        const newFbCount = mergeData(STORE_KEYS.feedbacks, fbs);
+        if (newFbCount > 0) playNotif();
+        if (discs) mergeData(STORE_KEYS.discounts, discs);
+      } catch { /* Supabase timeout/lỗi — bỏ qua, không block */ }
     };
 
     const startFallbackPoll = () => {
@@ -8979,7 +8986,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
         if (!dead) {
           startFallbackPoll(); // WS chết → bật poll 30s ngay
           retryT = setTimeout(connectWithPoll, retryDelay);
-          retryDelay = Math.min(retryDelay * 1.5, 30000);
+          retryDelay = Math.min(retryDelay * 1.5, 120000); // tối đa 2 phút, không retry liên tục
         }
       };
       ws.onerror = () => ws.close();
@@ -11346,10 +11353,14 @@ function AppRoot() {
   // Tách riêng vì orders cần chính xác realtime (tránh double booking, khách tra cứu đúng)
   useEffect(() => {
     setReady(true);
+    const withTimeout = (promise, ms) => Promise.race([
+      promise,
+      new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))
+    ]);
     (async () => {
       // ── 1. Orders: fetch Supabase thẳng, không qua CDN ──
       // Chạy song song với CDN fetch bên dưới, không block nhau
-      storageGet(STORE_KEYS.orders, true).then(ords => {
+      withTimeout(storageGet(STORE_KEYS.orders, true), 8000).then(ords => {
         if (!ords || !Array.isArray(ords)) return;
         _setOrders(prev => {
           const storageIds = new Set(ords.map(o => o.id));
@@ -11360,7 +11371,7 @@ function AppRoot() {
       }).catch(() => {});
 
       // ── 2. Catalog: /data.json từ CDN (cameras, accs, site, discounts) ──
-      const staticData = await getStaticData();
+      const staticData = await withTimeout(getStaticData(), 10000).catch(() => null);
 
       if (staticData) {
         const cams = staticData.cameras;
