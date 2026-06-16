@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo, memo, lazy, Suspense, Component } from "react";
+import { useState, useEffect, useRef, useCallback, lazy, Suspense, Component } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from "recharts";
 
 // ── HELPERS ──
@@ -184,65 +184,7 @@ function useMobile() {
 
 // ── SMOOTH SCROLL HOOK — lerp-based inertia, no deps ──
 // Chỉ active trên desktop (touch device dùng native momentum)
-function useSmoothScroll(enabled) {
-  useEffect(() => {
-    if (!enabled) return;
-    if ("ontouchstart" in window) return; // mobile native đã đủ mượt
-
-    let cur = window.scrollY;
-    let tgt = window.scrollY;
-    let raf = null;
-    let weScrolled = false;
-    const EASE = 0.105;
-    const MULT = 1.1;
-
-    const run = () => {
-      const d = tgt - cur;
-      if (Math.abs(d) < 0.35) {
-        cur = tgt;
-        raf = null;
-        weScrolled = false;
-        return;
-      }
-      cur += d * EASE;
-      weScrolled = true;
-      window.scrollTo(0, cur);
-      raf = requestAnimationFrame(run);
-    };
-
-    const onWheel = (e) => {
-      let el = e.target;
-      while (el && el !== document.documentElement) {
-        if (el !== document.body) {
-          const ov = getComputedStyle(el).overflowY;
-          if ((ov === "scroll" || ov === "auto") && el.scrollHeight > el.clientHeight + 1) return;
-        }
-        el = el.parentElement;
-      }
-      e.preventDefault();
-      const maxY = document.documentElement.scrollHeight - window.innerHeight;
-      tgt = Math.max(0, Math.min(tgt + e.deltaY * MULT, maxY));
-      if (!raf) { cur = window.scrollY; raf = requestAnimationFrame(run); }
-    };
-
-    const onScroll = () => {
-      if (!weScrolled) {
-        const y = window.scrollY;
-        cur = y; tgt = y;
-        if (raf) { cancelAnimationFrame(raf); raf = null; }
-      }
-      weScrolled = false;
-    };
-
-    window.addEventListener("wheel", onWheel, { passive: false });
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("wheel", onWheel);
-      window.removeEventListener("scroll", onScroll);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, [enabled]);
-}
+// useSmoothScroll removed — native scroll không block main thread
 
 // ── SCROLL PERF HOOK ──
 // Toggle body.is-scrolling trên MỌI thiết bị (kể cả iPhone touch)
@@ -1207,7 +1149,7 @@ function LensBackground({ isMob }) {
 }
 
 // ── 3D LENS MENU — Premium Cinematic Edition ──
-const CameraLens3D = memo(function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobile }) {
+function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobile }) {
   const [hoveredRing, setHoveredRing] = useState(null);
   const animRef   = useRef(null);
   const isHovRef  = useRef(false);
@@ -5573,7 +5515,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
 }
 
 // ── CAMERA FEATURED CAROUSEL ──
-const CameraFeatured = memo(function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
+function CameraFeatured({ id, cameras, orders = [], onBook, isMobile }) {
   const [active, setActive] = useState(0);
   const [hov, setHov] = useState(null);
   const [slideDir, setSlideDir] = useState(1);
@@ -6512,7 +6454,7 @@ function RoadmapCards({ isMobile }) {
   );
 }
 
-const HomePage = memo(function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, isMobile, photos, albums, feedbacks, loggedUser, onOpenLogin, onOpenCustomer }) {
+function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, isMobile, photos, albums, feedbacks, loggedUser, onOpenLogin, onOpenCustomer }) {
   const [scrollY, setScrollY] = useState(0);
   const [scrollDir, setScrollDir] = useState("up");
   const prevScrollY = useRef(0);
@@ -11031,7 +10973,7 @@ function FlowBg() {
     let raf;
 
     const isMob = window.innerWidth < 900;
-    const FRAME_MS = isMob ? 200 : 100; // mobile 5fps, desktop 10fps
+    const FRAME_MS = 200; // 5fps cho cả mobile lẫn desktop — background blob, không cần mượt
 
     let lastDraw = 0;
 
@@ -11052,10 +10994,20 @@ function FlowBg() {
     const blobs = isMob ? allBlobs.slice(0, 2) : allBlobs;
 
     let t = 0;
+    // Resume RAF sau khi scroll xong
+    let scrollTimer = null;
+    const onScrollResume = () => {
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        if (!raf) raf = requestAnimationFrame(draw);
+      }, 150);
+    };
+    window.addEventListener("scroll", onScrollResume, { passive: true });
+
     const draw = (now) => {
-      // Pause khi đang scroll (class set bởi useScrollPerfClass)
+      // Dừng hẳn RAF khi đang scroll — không loop idle
       if (document.body.classList.contains("is-scrolling")) {
-        raf = requestAnimationFrame(draw); return;
+        raf = null; return;
       }
       if (now - lastDraw < FRAME_MS) { raf = requestAnimationFrame(draw); return; }
       lastDraw = now;
@@ -11098,7 +11050,9 @@ function FlowBg() {
 
     return () => {
       cancelAnimationFrame(raf);
+      clearTimeout(scrollTimer);
       window.removeEventListener("resize", resize);
+      window.removeEventListener("scroll", onScrollResume);
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
@@ -11298,7 +11252,7 @@ function AppRoot() {
   const [loginOpen, setLoginOpen] = useState(false);
 
   // Smooth scroll chỉ trên home, không khi booking modal / login đang mở
-  useSmoothScroll(false);
+  // useSmoothScroll removed
   // Toggle body.is-scrolling → CSS tắt backdrop-filter + animation khi scroll
   useScrollPerfClass();
 
@@ -11500,20 +11454,6 @@ function AppRoot() {
     setOrders(prev => [{ ...order, seen: false }, ...prev], { skipStorage: true });
   }, [setOrders]);
 
-  // Stable callbacks cho HomePage — giữ reference ổn định để memo hoạt động
-  const handleBook = useCallback((cam) => {
-    if (cam && typeof cam === "object" && cam.preselectedCams) {
-      setBooking(cam);
-    } else {
-      setBooking(cam?.id ?? true);
-    }
-  }, []);
-  const handleAdmin = useCallback(() => setPage("admin"), []);
-  const handleOpenLogin = useCallback(() => setLoginOpen(true), []);
-  const handleOpenCustomer = useCallback(() => {
-    if (loggedUser) setPage("customer"); else setLoginOpen(true);
-  }, [loggedUser]);
-
   // useCallback giữ reference ổn định → SplashScreen's useEffect([]) không restart
   const handleSplashDone = useCallback(() => setSplashDone(true), []);
   if (!splashDone) return <SplashScreen onDone={handleSplashDone} />;
@@ -11545,7 +11485,7 @@ function AppRoot() {
         .nav92, .nav-inner, .btn-3d { will-change: transform; }
         .lens-float-wrap { will-change: transform; transform: translateZ(0); }
         /* Mobile scroll performance */
-        html { -webkit-overflow-scrolling: touch; }
+        html { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
         .cv-section { content-visibility: auto; contain-intrinsic-size: 0 600px; }
         @media (max-width: 900px) {
           /* Mobile: tắt backdrop-filter, dùng màu xanh solid đồng bộ với desktop */
@@ -11608,7 +11548,7 @@ function AppRoot() {
         body.is-scrolling [style*="animation"] {
           animation-play-state: paused !important;
         }
-        body.is-scrolling .lens-float-wrap { animation-play-state: running !important; }
+        body.is-scrolling .lens-float-wrap { animation-play-state: paused !important; }
         /* Tắt backdrop-filter trong BookingModal trên mobile — giảm tải GPU */
         .bk-modal-mobile * {
           -webkit-backdrop-filter: none !important;
@@ -11896,15 +11836,21 @@ function AppRoot() {
           accessories={accessories}
           siteContent={siteContent}
           orders={orders}
-          onBook={handleBook}
-          onAdmin={handleAdmin}
+          onBook={(cam) => {
+            if (cam && typeof cam === "object" && cam.preselectedCams) {
+              setBooking(cam); // object từ QuickSearch
+            } else {
+              setBooking(cam?.id ?? true);
+            }
+          }}
+          onAdmin={() => setPage("admin")}
           isMobile={isMobile}
           photos={photos}
           albums={albums}
           feedbacks={feedbacks}
           loggedUser={loggedUser}
-          onOpenLogin={handleOpenLogin}
-          onOpenCustomer={handleOpenCustomer}
+          onOpenLogin={() => setLoginOpen(true)}
+          onOpenCustomer={() => { if (loggedUser) setPage("customer"); else setLoginOpen(true); }}
         />
       )}
 
