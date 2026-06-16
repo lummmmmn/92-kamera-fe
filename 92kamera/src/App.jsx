@@ -58,15 +58,16 @@ function useTypewriter(text, speed = 55, startDelay = 400) {
     setDisplayed("");
     setDone(false);
     let i = 0;
+    let iv = null;
     const t0 = setTimeout(() => {
-      const iv = setInterval(() => {
+      iv = setInterval(() => {
         i++;
         setDisplayed(text.slice(0, i));
-        if (i >= text.length) { clearInterval(iv); setDone(true); }
+        if (i >= text.length) { clearInterval(iv); iv = null; setDone(true); }
       }, speed);
-      return () => clearInterval(iv);
     }, startDelay);
-    return () => clearTimeout(t0);
+    // Cleanup cả t0 lẫn iv — tránh zombie interval khi deps thay đổi
+    return () => { clearTimeout(t0); if (iv) { clearInterval(iv); iv = null; } };
   }, [text, speed, startDelay]);
   return { displayed, done };
 }
@@ -6538,15 +6539,17 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
   const prevScrollY = useRef(0);
   const scrollRaf = useRef(null);
   const [hov, setHov] = useState(null);
-  const [ticker, setTicker] = useState(0);
   const [qrHidden, setQrHidden] = useState(false);
   const [logoClick, setLogoClick] = useState(0);
   const [logoRipple, setLogoRipple] = useState(false);
   const [bracketSpread, setBracketSpread] = useState(false);
   const handleBracketClick = () => { setBracketSpread(true); setTimeout(() => setBracketSpread(false), 500); };
   // ── Typewriter cho 2 dòng subtitle + tagline ──
+  // tw2StartDelay dùng ref — chỉ set 1 lần khi tw1 xong, không thay đổi liên tục
   const tw1 = useTypewriter("DỊCH VỤ CHO THUÊ MÁY ẢNH · NÚI THÀNH · TAM KỲ", 38, 600);
-  const tw2 = useTypewriter("Trải nghiệm máy ảnh · Bắt trọn khoảnh khắc", 42, tw1.done ? 100 : 99999);
+  const tw2Delay = useRef(null);
+  if (tw1.done && tw2Delay.current === null) tw2Delay.current = 100;
+  const tw2 = useTypewriter("Trải nghiệm máy ảnh · Bắt trọn khoảnh khắc", 42, tw2Delay.current ?? 99999);
   const handleLogoClick = () => {
     const n = logoClick + 1;
     setLogoClick(n);
@@ -6568,9 +6571,8 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       });
     };
     window.addEventListener("scroll", h, { passive: true });
-    const t = setInterval(() => setTicker(p => (p + 1) % cameras.length), 3000);
-    return () => { window.removeEventListener("scroll", h); clearInterval(t); if (scrollRaf.current) { cancelAnimationFrame(scrollRaf.current); scrollRaf.current = null; } };
-  }, [cameras.length]);
+    return () => { window.removeEventListener("scroll", h); if (scrollRaf.current) { cancelAnimationFrame(scrollRaf.current); scrollRaf.current = null; } };
+  }, []);
   // navState: "top" | "visible" | "compact"
   const navState = scrollY < 60 ? "top" : (scrollDir === "up" ? "visible" : "compact");
   const marquee = cameras.map(c => `${c.icon || "📷"} ${c.name}`);
