@@ -11349,7 +11349,13 @@ function AppRoot() {
   const setAlbums = useCallback((updater) => {
     _setAlbums(prev => {
       const next = typeof updater === "function" ? updater(prev) : updater;
-      if (next !== prev) setTimeout(() => storageSet(STORE_KEYS.albums, next), 0);
+      if (next !== prev) setTimeout(() => {
+        // Strip photos array trước khi ghi Supabase — ảnh do Cloudinary quản lý,
+        // chỉ cần lưu metadata (id, name, cameraTag, coverUrl, coverId, timestamps)
+        // tránh row size vượt limit Supabase gây crash toàn app
+        const slim = (next || []).map(({ photos: _photos, ...meta }) => meta);
+        storageSet(STORE_KEYS.albums, slim);
+      }, 0);
       return next;
     });
   }, []);
