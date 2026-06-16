@@ -184,7 +184,65 @@ function useMobile() {
 
 // ── SMOOTH SCROLL HOOK — lerp-based inertia, no deps ──
 // Chỉ active trên desktop (touch device dùng native momentum)
-// useSmoothScroll removed — native scroll không block main thread
+function useSmoothScroll(enabled) {
+  useEffect(() => {
+    if (!enabled) return;
+    if ("ontouchstart" in window) return; // mobile native đã đủ mượt
+
+    let cur = window.scrollY;
+    let tgt = window.scrollY;
+    let raf = null;
+    let weScrolled = false;
+    const EASE = 0.105;
+    const MULT = 1.1;
+
+    const run = () => {
+      const d = tgt - cur;
+      if (Math.abs(d) < 0.35) {
+        cur = tgt;
+        raf = null;
+        weScrolled = false;
+        return;
+      }
+      cur += d * EASE;
+      weScrolled = true;
+      window.scrollTo(0, cur);
+      raf = requestAnimationFrame(run);
+    };
+
+    const onWheel = (e) => {
+      let el = e.target;
+      while (el && el !== document.documentElement) {
+        if (el !== document.body) {
+          const ov = getComputedStyle(el).overflowY;
+          if ((ov === "scroll" || ov === "auto") && el.scrollHeight > el.clientHeight + 1) return;
+        }
+        el = el.parentElement;
+      }
+      e.preventDefault();
+      const maxY = document.documentElement.scrollHeight - window.innerHeight;
+      tgt = Math.max(0, Math.min(tgt + e.deltaY * MULT, maxY));
+      if (!raf) { cur = window.scrollY; raf = requestAnimationFrame(run); }
+    };
+
+    const onScroll = () => {
+      if (!weScrolled) {
+        const y = window.scrollY;
+        cur = y; tgt = y;
+        if (raf) { cancelAnimationFrame(raf); raf = null; }
+      }
+      weScrolled = false;
+    };
+
+    window.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [enabled]);
+}
 
 // ── SCROLL PERF HOOK ──
 // Toggle body.is-scrolling trên MỌI thiết bị (kể cả iPhone touch)
@@ -1123,23 +1181,21 @@ function CamImage({ cam, height = 176 }) {
 }
 
 // ── PREMIUM HERO BACKGROUND ──
-// PERF FIX: gộp 6 layer → 1 div, giảm composite cost; numOctaves 5→2
 function LensBackground({ isMob }) {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", overflow: "hidden" }}>
-      <div style={{ position: "absolute", inset: 0, background:
-        "radial-gradient(ellipse 100% 100% at 50% 50%, transparent 55%, rgba(20,50,75,0.14) 100%)," +
-        "linear-gradient(135deg, rgba(200,220,210,0.10) 0%, transparent 50%, rgba(180,200,225,0.08) 100%)," +
-        "linear-gradient(to top, rgba(186,206,220,0.30) 0%, transparent 50%)," +
-        "linear-gradient(to right, rgba(236,243,248,0.58) 0%, transparent 40%, rgba(220,235,244,0.27) 100%)," +
-        "radial-gradient(ellipse 130% 85% at 50% 22%, #5fccdd 0%, transparent 70%)," +
-        "radial-gradient(ellipse 55% 40% at 15% 55%, rgba(77,193,213,0.7) 0%, transparent 60%)," +
-        "linear-gradient(180deg, #8fc8d4 0%, #a9b8bc 100%)"
-      }} />
-      {/* numOctaves 2 (giảm từ 5) — nhanh hơn ~60%, mắt thường không phân biệt được */}
+      <div style={{ position: "absolute", inset: 0, background: "#8fc8d4" }} />
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 130% 85% at 50% 22%, #5fccdd 0%, transparent 70%), radial-gradient(ellipse 55% 40% at 15% 55%, rgba(77,193,213,0.7) 0%, transparent 60%), linear-gradient(180deg, #8fc8d4 0%, #a9b8bc 100%)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(236,243,248,0.58) 0%, transparent 40%, rgba(220,235,244,0.27) 100%)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(186,206,220,0.30) 0%, transparent 50%)" }} />
+      {/* Vintage: phủ tone ấm lạnh xen nhau nhẹ */}
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(200,220,210,0.10) 0%, transparent 50%, rgba(180,200,225,0.08) 100%)" }} />
+      {/* Vintage: rìa tối nhẹ tạo depth */}
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 100% 100% at 50% 50%, transparent 55%, rgba(20,50,75,0.14) 100%)" }} />
+      {/* Film grain đậm hơn chút */}
       <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.22 }} xmlns="http://www.w3.org/2000/svg">
         <filter id="grain-bg">
-          <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" stitchTiles="stitch" />
+          <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="5" stitchTiles="stitch" />
           <feColorMatrix type="saturate" values="0" />
         </filter>
         <rect width="100%" height="100%" filter="url(#grain-bg)" />
@@ -1167,7 +1223,21 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // RAF loop đã được xoá — oA/mA/iA không dùng trong render, lens dùng CSS animation lensFloat
+  useEffect(() => {
+    let oA = 0, mA = 0, iA = 0;
+    const tick = () => {
+      // Pause khi scroll → không cạnh tranh GPU với scroll compositor
+      if (!document.body.classList.contains("is-scrolling")) {
+        const target = isHovRef.current ? 0.28 : 0.032;
+        speedRef.current += (target - speedRef.current) * 0.03;
+        const s = speedRef.current;
+        oA += s; mA -= s * 0.62; iA += s * 0.43;
+      }
+      animRef.current = requestAnimationFrame(tick);
+    };
+    animRef.current = requestAnimationFrame(tick);
+    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
+  }, []);
 
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
@@ -1774,13 +1844,13 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
 
   const FeedbackCard = ({ c, style: extraStyle }) => (
     <div style={{
-      background: "rgba(255,255,255,0.92)",
+      background: "rgba(255,255,255,0.82)",
       border: "1px solid rgba(5,17,31,0.08)",
       borderRadius: 20,
       padding: "22px 20px 18px",
       display: "flex", flexDirection: "column", gap: 12,
       boxShadow: "0 2px 24px rgba(5,17,31,0.10)",
-      /* PERF: xoá backdropFilter — card đang animate trong marquee, blur nhiều card = GPU killer */
+      backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
       ...extraStyle,
     }}>
       <div>{Array.from({ length: 5 }).map((_, si) => (
@@ -4160,7 +4230,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
       <div style={{ position: "fixed", inset: 0, background: "linear-gradient(to right, rgba(236,243,248,0.58) 0%, transparent 40%, rgba(220,235,244,0.27) 100%)", pointerEvents: "none" }} />
       <div style={{ position: "fixed", inset: 0, background: "linear-gradient(to top, rgba(186,206,220,0.30) 0%, transparent 50%)", pointerEvents: "none" }} />
       <svg style={{ position: "fixed", inset: 0, width: "100%", height: "100%", opacity: 0.16, pointerEvents: "none" }} xmlns="http://www.w3.org/2000/svg">
-        <filter id="grain-book"><feTurbulence type="fractalNoise" baseFrequency="0.78" numOctaves="2" stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+        <filter id="grain-book"><feTurbulence type="fractalNoise" baseFrequency="0.78" numOctaves="5" stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
         <rect width="100%" height="100%" filter="url(#grain-book)" />
       </svg>
       <div style={box}>
@@ -7383,7 +7453,7 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(236,243,248,0.58) 0%, transparent 40%, rgba(220,235,244,0.27) 100%)", pointerEvents: "none" }} />
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(186,206,220,0.30) 0%, transparent 50%)", pointerEvents: "none" }} />
       <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.16, pointerEvents: "none" }} xmlns="http://www.w3.org/2000/svg">
-        <filter id="grain-login"><feTurbulence type="fractalNoise" baseFrequency="0.78" numOctaves="2" stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+        <filter id="grain-login"><feTurbulence type="fractalNoise" baseFrequency="0.78" numOctaves="5" stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
         <rect width="100%" height="100%" filter="url(#grain-login)" />
       </svg>
 
@@ -8076,7 +8146,6 @@ function AlbumManager({ photos, albums, setAlbums, isMobile }) {
   const [form, setForm] = useState({ name: "", cameraTag: "", coverId: "", photoIds: [] });
   const [openAlbum, setOpenAlbum] = useState(null);
   const [msg, setMsg] = useState(null);
-  const [confirmCfg, setConfirmCfg] = useState(null); // FIX: ConfirmDialog state cho AlbumManager
 
   const showMsg = (type, text) => { setMsg({ type, text }); setTimeout(() => setMsg(null), 3500); };
 
@@ -8248,15 +8317,6 @@ function AlbumManager({ photos, albums, setAlbums, isMobile }) {
 
       {/* Album Lightbox trong admin */}
       {openAlbum && <AlbumLightbox album={openAlbum} onClose={() => setOpenAlbum(null)} />}
-
-      {/* FIX: ConfirmDialog cho xóa album */}
-      {confirmCfg && (
-        <ConfirmDialog
-          message={confirmCfg.message}
-          onOk={confirmCfg.onOk}
-          onCancel={() => setConfirmCfg(null)}
-        />
-      )}
     </div>
   );
 }
@@ -8914,24 +8974,17 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
     // WS sống lại → poll tắt lại
     let fallbackPoll = null;
 
-    const withTimeout = (promise, ms) => Promise.race([
-      promise,
-      new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))
-    ]);
-
     const pollOnce = async () => {
-      try {
-        const [ords, fbs, discs] = await Promise.all([
-          withTimeout(storageGet(STORE_KEYS.orders, true), 8000),
-          withTimeout(storageGet(STORE_KEYS.feedbacks, true), 8000),
-          withTimeout(storageGet(STORE_KEYS.discounts, true), 8000),
-        ]);
-        const newCount = mergeData(STORE_KEYS.orders, ords);
-        if (newCount > 0) playNotif();
-        const newFbCount = mergeData(STORE_KEYS.feedbacks, fbs);
-        if (newFbCount > 0) playNotif();
-        if (discs) mergeData(STORE_KEYS.discounts, discs);
-      } catch { /* Supabase timeout/lỗi — bỏ qua, không block */ }
+      const [ords, fbs, discs] = await Promise.all([
+        storageGet(STORE_KEYS.orders, true),
+        storageGet(STORE_KEYS.feedbacks, true),
+        storageGet(STORE_KEYS.discounts, true),
+      ]);
+      const newCount = mergeData(STORE_KEYS.orders, ords);
+      if (newCount > 0) playNotif();
+      const newFbCount = mergeData(STORE_KEYS.feedbacks, fbs);
+      if (newFbCount > 0) playNotif();
+      if (discs) mergeData(STORE_KEYS.discounts, discs);
     };
 
     const startFallbackPoll = () => {
@@ -8986,7 +9039,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
         if (!dead) {
           startFallbackPoll(); // WS chết → bật poll 30s ngay
           retryT = setTimeout(connectWithPoll, retryDelay);
-          retryDelay = Math.min(retryDelay * 1.5, 120000); // tối đa 2 phút, không retry liên tục
+          retryDelay = Math.min(retryDelay * 1.5, 30000);
         }
       };
       ws.onerror = () => ws.close();
@@ -10705,9 +10758,7 @@ async function getStaticData(forceRefresh = false) {
   if (_staticDataPromise) return _staticDataPromise;
   _staticDataPromise = (async () => {
     try {
-      // FIX: dùng max-age=90s thay vì no-store — tránh mỗi user tạo 1 request riêng
-      // Browser/CDN cache 90s: đủ fresh, giảm hàng trăm hit Supabase/server khi nhiều người vào cùng lúc
-      const res = await fetch(STATIC_DATA_URL, { cache: "default", headers: { "Cache-Control": "max-age=90" } });
+      const res = await fetch(`${STATIC_DATA_URL}?_t=${Date.now()}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       _staticDataCache = { data, ts: Date.now() };
@@ -10980,7 +11031,7 @@ function FlowBg() {
     let raf;
 
     const isMob = window.innerWidth < 900;
-    const FRAME_MS = 200; // 5fps cho cả mobile lẫn desktop — background blob, không cần mượt
+    const FRAME_MS = isMob ? 200 : 100; // mobile 5fps, desktop 10fps
 
     let lastDraw = 0;
 
@@ -11001,20 +11052,10 @@ function FlowBg() {
     const blobs = isMob ? allBlobs.slice(0, 2) : allBlobs;
 
     let t = 0;
-    // Resume RAF sau khi scroll xong
-    let scrollTimer = null;
-    const onScrollResume = () => {
-      clearTimeout(scrollTimer);
-      scrollTimer = setTimeout(() => {
-        if (!raf) raf = requestAnimationFrame(draw);
-      }, 150);
-    };
-    window.addEventListener("scroll", onScrollResume, { passive: true });
-
     const draw = (now) => {
-      // Dừng hẳn RAF khi đang scroll — không loop idle
+      // Pause khi đang scroll (class set bởi useScrollPerfClass)
       if (document.body.classList.contains("is-scrolling")) {
-        raf = null; return;
+        raf = requestAnimationFrame(draw); return;
       }
       if (now - lastDraw < FRAME_MS) { raf = requestAnimationFrame(draw); return; }
       lastDraw = now;
@@ -11057,9 +11098,7 @@ function FlowBg() {
 
     return () => {
       cancelAnimationFrame(raf);
-      clearTimeout(scrollTimer);
       window.removeEventListener("resize", resize);
-      window.removeEventListener("scroll", onScrollResume);
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
@@ -11121,7 +11160,7 @@ function SplashScreen({ onDone }) {
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(200,220,210,0.10) 0%, transparent 50%, rgba(180,200,225,0.08) 100%)" }} />
       <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 100% 100% at 50% 50%, transparent 55%, rgba(20,50,75,0.14) 100%)" }} />
       <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.22 }} xmlns="http://www.w3.org/2000/svg">
-        <filter id="grain-splash"><feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+        <filter id="grain-splash"><feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="5" stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
         <rect width="100%" height="100%" filter="url(#grain-splash)" />
       </svg>
       {/* LOGO */}
@@ -11259,7 +11298,7 @@ function AppRoot() {
   const [loginOpen, setLoginOpen] = useState(false);
 
   // Smooth scroll chỉ trên home, không khi booking modal / login đang mở
-  // useSmoothScroll removed
+  useSmoothScroll(page === "home" && !booking && !loginOpen && !isMobile);
   // Toggle body.is-scrolling → CSS tắt backdrop-filter + animation khi scroll
   useScrollPerfClass();
 
@@ -11353,14 +11392,10 @@ function AppRoot() {
   // Tách riêng vì orders cần chính xác realtime (tránh double booking, khách tra cứu đúng)
   useEffect(() => {
     setReady(true);
-    const withTimeout = (promise, ms) => Promise.race([
-      promise,
-      new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))
-    ]);
     (async () => {
       // ── 1. Orders: fetch Supabase thẳng, không qua CDN ──
       // Chạy song song với CDN fetch bên dưới, không block nhau
-      withTimeout(storageGet(STORE_KEYS.orders, true), 8000).then(ords => {
+      storageGet(STORE_KEYS.orders, true).then(ords => {
         if (!ords || !Array.isArray(ords)) return;
         _setOrders(prev => {
           const storageIds = new Set(ords.map(o => o.id));
@@ -11371,7 +11406,7 @@ function AppRoot() {
       }).catch(() => {});
 
       // ── 2. Catalog: /data.json từ CDN (cameras, accs, site, discounts) ──
-      const staticData = await withTimeout(getStaticData(), 10000).catch(() => null);
+      const staticData = await getStaticData();
 
       if (staticData) {
         const cams = staticData.cameras;
@@ -11496,7 +11531,7 @@ function AppRoot() {
         .nav92, .nav-inner, .btn-3d { will-change: transform; }
         .lens-float-wrap { will-change: transform; transform: translateZ(0); }
         /* Mobile scroll performance */
-        html { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
+        html { -webkit-overflow-scrolling: touch; }
         .cv-section { content-visibility: auto; contain-intrinsic-size: 0 600px; }
         @media (max-width: 900px) {
           /* Mobile: tắt backdrop-filter, dùng màu xanh solid đồng bộ với desktop */
@@ -11554,12 +11589,10 @@ function AppRoot() {
         @supports not (backdrop-filter: blur(1px)) {
           [data-l2] { background: rgba(210, 222, 236, 0.82) !important; }
         }
-        body.is-scrolling .lens-float-wrap,
-        body.is-scrolling .flowbg-canvas,
-        body.is-scrolling [style*="animation"] {
+        body.is-scrolling * {
           animation-play-state: paused !important;
         }
-        body.is-scrolling .lens-float-wrap { animation-play-state: paused !important; }
+        body.is-scrolling .lens-float-wrap { animation-play-state: running !important; }
         /* Tắt backdrop-filter trong BookingModal trên mobile — giảm tải GPU */
         .bk-modal-mobile * {
           -webkit-backdrop-filter: none !important;
