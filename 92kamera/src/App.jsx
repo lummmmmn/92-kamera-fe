@@ -1225,7 +1225,15 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
 
   useEffect(() => {
     let oA = 0, mA = 0, iA = 0;
-    const tick = () => {
+    let lastTs = 0;
+    const FPS = 30;
+    const INTERVAL = 1000 / FPS;
+    const tick = (ts) => {
+      // Dừng khi tab ẩn — tránh ngốn CPU vô ích
+      if (document.hidden) { animRef.current = requestAnimationFrame(tick); return; }
+      // Throttle 30fps — tránh CPU spike trên thiết bị yếu
+      if (ts - lastTs < INTERVAL) { animRef.current = requestAnimationFrame(tick); return; }
+      lastTs = ts;
       // Pause khi scroll → không cạnh tranh GPU với scroll compositor
       if (!document.body.classList.contains("is-scrolling")) {
         const target = isHovRef.current ? 0.28 : 0.032;
