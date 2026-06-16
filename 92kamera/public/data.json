@@ -1,0 +1,33 @@
+{
+  "cameras": [
+    { "id": 1, "name": "Fujifilm X-T20", "price": 200000, "status": "available", "desc": "Màu sắc tự nhiên, phong cách retro cổ điển", "qty": 2, "icon": "📷", "images": [] },
+    { "id": 2, "name": "Sony ZV-E10", "price": 180000, "status": "available", "desc": "Màn lật 180°, quay vlog chuyên nghiệp", "qty": 1, "icon": "🎥", "images": [] },
+    { "id": 3, "name": "DJI Pocket 3", "price": 300000, "status": "rented", "desc": "Gimbal tích hợp, chống rung xuất sắc", "qty": 1, "icon": "🎬", "images": [] },
+    { "id": 4, "name": "Canon EOS M50 II", "price": 220000, "status": "available", "desc": "Eye-AF tốc độ cao, video 4K", "qty": 2, "icon": "📸", "images": [] },
+    { "id": 5, "name": "GoPro Hero 12", "price": 250000, "status": "available", "desc": "Chống nước 10m, quay 5.3K siêu nét", "qty": 3, "icon": "🏄", "images": [] },
+    { "id": 6, "name": "Nikon Z30", "price": 230000, "status": "available", "desc": "Không gương lật, video 4K 60fps", "qty": 1, "icon": "🌅", "images": [] }
+  ],
+  "accessories": [
+    { "id": 1, "name": "Tripod 3 chân",   "price": 50000,  "priceShift": 35000, "qty": 2, "active": true, "desc": "Dùng được cho mọi loại máy ảnh", "image": "" },
+    { "id": 2, "name": "Mic thu âm",      "price": 80000,  "priceShift": 50000, "qty": 2, "active": true, "desc": "Cổng 3.5mm, thu âm rõ nét", "image": "" },
+    { "id": 3, "name": "Pin dự phòng",    "price": 30000,  "priceShift": 20000, "qty": 4, "active": true, "desc": "Pin lithium, dùng được hầu hết máy", "image": "" },
+    { "id": 4, "name": "Lens 50mm f/1.8", "price": 150000, "priceShift": null,  "qty": 1, "active": true, "desc": "Phù hợp Canon M-mount", "image": "" },
+    { "id": 5, "name": "ND Filter set",   "price": 40000,  "priceShift": 25000, "qty": 2, "active": true, "desc": "Bộ 3 filter: ND4, ND8, ND16", "image": "" },
+    { "id": 6, "name": "Túi đựng máy",    "price": 30000,  "priceShift": 20000, "qty": 3, "active": true, "desc": "Có lớp đệm bảo vệ, đeo vai", "image": "" },
+    { "id": 7, "name": "Thẻ nhớ 128GB",   "price": 20000,  "priceShift": 15000, "qty": 5, "active": true, "desc": "Class 10, tốc độ ghi 100MB/s", "image": "" }
+  ],
+  "siteContent": {
+    "zalo": "0855 471 202",
+    "address": "Thôn Thạnh Mỹ, xã Tam Mỹ, thành phố Đà Nẵng",
+    "tagline": "Trải nghiệm máy ảnh · Bắt giữ khoảnh khắc",
+    "desc": "Chúng tôi cung cấp dịch vụ cho thuê máy ảnh khu vực Núi Thành - Tam Kỳ.",
+    "phone": "0855 471 202",
+    "slogan": "Dịch vụ cho thuê máy ảnh · Núi Thành - Tam Kỳ",
+    "stats": [["📸", "50+", "Lượt thuê / tháng"], ["🎬", "10+", "Loại thiết bị"], ["⭐", "98%", "Khách hài lòng"]],
+    "zaloLink": "",
+    "zaloQR": "",
+    "cornerQR": "",
+    "socialLinks": { "youtube": "", "facebook": "", "tiktok": "", "instagram": "" },
+    "secretText": ""
+  }
+}
