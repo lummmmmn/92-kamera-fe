@@ -10768,7 +10768,9 @@ async function getStaticData(forceRefresh = false) {
   if (_staticDataPromise) return _staticDataPromise;
   _staticDataPromise = (async () => {
     try {
-      const res = await fetch(`${STATIC_DATA_URL}?_t=${Date.now()}`, { cache: "no-store" });
+      // Không dùng cache:"no-store" hay ?_t= — để Vercel Edge Cache serve file tĩnh nhanh nhất
+      // Vercel tự invalidate khi deploy mới. forceRefresh chỉ bypass in-memory cache (90s).
+      const res = await fetch(STATIC_DATA_URL);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       _staticDataCache = { data, ts: Date.now() };
@@ -11360,10 +11362,12 @@ function AppRoot() {
     _setAlbums(prev => {
       const next = typeof updater === "function" ? updater(prev) : updater;
       if (next !== prev) setTimeout(() => {
-        // Strip photos array trước khi ghi Supabase — ảnh do Cloudinary quản lý,
-        // chỉ cần lưu metadata (id, name, cameraTag, coverUrl, coverId, timestamps)
-        // tránh row size vượt limit Supabase gây crash toàn app
-        const slim = (next || []).map(({ photos: _photos, ...meta }) => meta);
+        // Strip photos array trước khi ghi Supabase — ảnh do Cloudinary quản lý
+        // Lưu photoIds để rehydrate lại sau khi load
+        const slim = (next || []).map(({ photos: _photos, ...meta }) => ({
+          ...meta,
+          photoIds: (_photos || []).map(p => p.id),
+        }));
         storageSet(STORE_KEYS.albums, slim);
       }, 0);
       return next;
@@ -11453,9 +11457,17 @@ function AppRoot() {
               return [...fresh, ...staticData.feedbacks];
             });
           }
-          if (staticData.albums) _setAlbums(staticData.albums);
           const pts = await galleryFetchPhotos();
           if (pts.length > 0) _setPhotos(pts);
+          // Rehydrate albums: gắn lại photos từ photoIds sau khi đã có danh sách photos
+          if (staticData.albums) {
+            const photoMap = Object.fromEntries((pts || []).map(p => [p.id, p]));
+            const rehydrated = staticData.albums.map(alb => ({
+              ...alb,
+              photos: (alb.photoIds || []).map(id => photoMap[id]).filter(Boolean),
+            }));
+            _setAlbums(rehydrated);
+          }
         }, 4000);
 
         // Users từ Supabase — PII, không export ra file tĩnh
@@ -11496,7 +11508,15 @@ function AppRoot() {
           const pts = await galleryFetchPhotos();
           if (pts.length > 0) _setPhotos(pts);
           const albs = await storageGet(STORE_KEYS.albums);
-          if (albs) _setAlbums(albs);
+          // Rehydrate albums: gắn lại photos từ photoIds sau khi đã có danh sách photos
+          if (albs) {
+            const photoMap = Object.fromEntries((pts || []).map(p => [p.id, p]));
+            const rehydrated = albs.map(alb => ({
+              ...alb,
+              photos: (alb.photoIds || []).map(id => photoMap[id]).filter(Boolean),
+            }));
+            _setAlbums(rehydrated);
+          }
         }, 4000);
         setTimeout(async () => {
           const usrs = await storageGet(STORE_KEYS.users);
