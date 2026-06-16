@@ -246,8 +246,9 @@ function useSmoothScroll(enabled) {
 }
 
 // ── SCROLL PERF HOOK ──
-// Toggle body.is-scrolling trên MỌI thiết bị (kể cả iPhone touch)
-// → CSS dùng class này để tắt backdrop-filter + pause animation khi scroll
+// Toggle body.is-scrolling + body.tab-hidden
+// is-scrolling: tắt backdrop-filter + pause animation khi scroll
+// tab-hidden: pause toàn bộ CSS animation khi tab bị ẩn
 function useScrollPerfClass() {
   useEffect(() => {
     let timer = null;
@@ -257,7 +258,6 @@ function useScrollPerfClass() {
       timer = setTimeout(() => document.body.classList.remove("is-scrolling"), 120);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
-    // Touch events: bắt đầu touch → thêm class ngay, không chờ scroll event
     const onTouchStart = () => document.body.classList.add("is-scrolling");
     const onTouchEnd   = () => {
       clearTimeout(timer);
@@ -265,12 +265,19 @@ function useScrollPerfClass() {
     };
     window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchend",   onTouchEnd,   { passive: true });
+    // Pause tất cả CSS animation khi tab ẩn → tránh Chrome suspend/throttle tab
+    const onVisibility = () => {
+      if (document.hidden) document.body.classList.add("tab-hidden");
+      else document.body.classList.remove("tab-hidden");
+    };
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
       window.removeEventListener("scroll",     onScroll);
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchend",   onTouchEnd);
+      document.removeEventListener("visibilitychange", onVisibility);
       clearTimeout(timer);
-      document.body.classList.remove("is-scrolling");
+      document.body.classList.remove("is-scrolling", "tab-hidden");
     };
   }, []);
 }
@@ -1230,12 +1237,8 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
     const FPS = 30;
     const INTERVAL = 1000 / FPS;
     const tick = (ts) => {
-      // Dừng khi tab ẩn — tránh ngốn CPU vô ích
-      if (document.hidden) { animRef.current = requestAnimationFrame(tick); return; }
-      // Throttle 30fps — tránh CPU spike trên thiết bị yếu
       if (ts - lastTs < INTERVAL) { animRef.current = requestAnimationFrame(tick); return; }
       lastTs = ts;
-      // Pause khi scroll → không cạnh tranh GPU với scroll compositor
       if (!document.body.classList.contains("is-scrolling")) {
         const target = isHovRef.current ? 0.28 : 0.032;
         speedRef.current += (target - speedRef.current) * 0.03;
@@ -1244,8 +1247,20 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
       }
       animRef.current = requestAnimationFrame(tick);
     };
+    // Dừng hoàn toàn khi tab ẩn, resume khi quay lại
+    const onVisibility = () => {
+      if (document.hidden) {
+        if (animRef.current) { cancelAnimationFrame(animRef.current); animRef.current = null; }
+      } else {
+        if (!animRef.current) animRef.current = requestAnimationFrame(tick);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
     animRef.current = requestAnimationFrame(tick);
-    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
+    return () => {
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
 
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -11103,8 +11118,11 @@ function FlowBg() {
     raf = requestAnimationFrame(draw);
 
     const onVisibility = () => {
-      if (document.hidden) cancelAnimationFrame(raf);
-      else { raf = requestAnimationFrame(draw); }
+      if (document.hidden) {
+        cancelAnimationFrame(raf); raf = null;
+      } else {
+        if (!raf) raf = requestAnimationFrame(draw);
+      }
     };
     document.addEventListener("visibilitychange", onVisibility);
 
@@ -11566,6 +11584,8 @@ function AppRoot() {
         /* GPU compositing layers cho các element animate nhiều */
         .nav92, .nav-inner, .btn-3d { will-change: transform; }
         .lens-float-wrap { will-change: transform; transform: translateZ(0); }
+        /* Pause toàn bộ CSS animation khi tab bị ẩn — tránh Chrome throttle/suspend */
+        .tab-hidden * { animation-play-state: paused !important; }
         /* Mobile scroll performance */
         html { -webkit-overflow-scrolling: touch; }
         .cv-section { content-visibility: auto; contain-intrinsic-size: 0 600px; }
