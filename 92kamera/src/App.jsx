@@ -7241,9 +7241,10 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
         }, { skipStorage: true });
       } catch {}
     };
-    fetchFresh(); // fetch ngay khi mount
-    const poll = setInterval(fetchFresh, 30000); // poll mỗi 30s khi đang ở AdminLogin
-    return () => { cancelled = true; clearInterval(poll); };
+    fetchFresh(); // fetch ngay khi mount (debug: từ localStorage)
+    // DEBUG: tắt poll AdminLogin
+    // const poll = setInterval(fetchFresh, 30000);
+    return () => { cancelled = true; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Tab Quản trị ──
@@ -8378,7 +8379,7 @@ async function galleryFetchPhotos(forceRefresh = false) {
   try {
     const res = await fetch(
       `${SB_URL}/rest/v1/gallery_photos?select=*&order=uploaded_at.desc`,
-      { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }, cache: "default" }
+      { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }, cache: "default" } // DEBUG: gallery fetch vẫn giữ nhưng sẽ fail gracefully
     );
     if (!res.ok) return _photosCache || [];
     const rows = await res.json();
@@ -9076,13 +9077,10 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
       ws.onerror = () => ws.close();
     };
 
-    connectWithPoll();
+    // ── DEBUG: connectWithPoll TẮT — không WS, không poll ──
+    // connectWithPoll();
 
-    return () => {
-      dead = true;
-      clearInterval(hb); stopFallbackPoll(); clearTimeout(retryT);
-      if (ws) ws.close();
-    };
+    return () => {};
   }, [setOrders, setFeedbacks]);
 
   // Mark orders as seen when entering orders tab
@@ -10845,34 +10843,9 @@ function invalidateCache(key) {
   try { localStorage.removeItem(cacheKey(key)); } catch {}
 }
 
-// GET từ Supabase — dùng localStorage cache nếu còn mới, tránh fetch thừa
+// ── DEBUG: storageGet — TẮT SUPABASE, chỉ dùng localStorage ──
 async function storageGet(key, forceRefresh = false) {
-  // 1. Nếu cache còn mới và không force, trả localStorage luôn
-  if (!forceRefresh && isCacheFresh(key)) {
-    try {
-      const r = localStorage.getItem(key);
-      if (r) return JSON.parse(r);
-    } catch {}
-  }
-  // 2. Fetch từ Supabase
-  try {
-    const res = await fetch(`${SB_URL}/rest/v1/${SB_TABLE}?key=eq.${encodeURIComponent(key)}&select=value`, {
-      headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` }
-    });
-    if (res.ok) {
-      const rows = await res.json();
-      if (rows.length > 0) {
-        try { localStorage.setItem(key, rows[0].value); } catch {}
-        markCacheFresh(key);
-        return JSON.parse(rows[0].value);
-      }
-    }
-  } catch {}
-  // 3. Fallback: localStorage (offline / lỗi mạng)
-  try {
-    const r = localStorage.getItem(key);
-    return r ? JSON.parse(r) : null;
-  } catch { return null; }
+  try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : null; } catch { return null; }
 }
 
 // ── WRITE ERROR TOAST — hiện thông báo khi Supabase write thất bại ──
@@ -10900,89 +10873,29 @@ function showWriteErrToast(key) {
   setTimeout(() => el.remove(), 5000);
 }
 
-// ── DEBOUNCE WRITE — mỗi key chỉ fire 1 request sau 2s yên lặng ──
+// ── DEBUG: storageSet — TẮT SUPABASE, chỉ ghi localStorage ──
 const _writeTimers = {};
 function storageSet(key, val) {
-  const value = JSON.stringify(val);
-  // 1. localStorage TRƯỚC — sync, không mất data
-  try { localStorage.setItem(key, value); } catch {}
-  // 2. Mark cache fresh NGAY với data local — tránh fetch Supabase thừa trong window debounce
-  markCacheFresh(key);
-  // 3. Debounce Supabase write — delay 2s cho cameras, 800ms cho orders
-  const debounceMs = key === STORE_KEYS.orders ? 800 : 2000;
-  clearTimeout(_writeTimers[key]);
-  _writeTimers[key] = setTimeout(() => {
-    fetch(`${SB_URL}/rest/v1/${SB_TABLE}`, {
-      method: "POST",
-      headers: SB_HEADERS,
-      body: JSON.stringify({ key, value, updated_at: new Date().toISOString() })
-    }).then(() => {
-      markCacheFresh(key); // Re-mark sau write Supabase thành công
-    }).catch(e => {
-      console.warn("[92K supabase] set failed:", key, e);
-      showWriteErrToast(key); // báo admin/user biết lưu không thành công
-    });
-  }, debounceMs);
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
 }
 
-// ── IMMEDIATE WRITE — dùng khi submit đơn: không debounce, return Promise ──
-// Fix BUG3: tránh last-write-wins khi nhiều tab ghi cùng lúc
+// ── DEBUG: storageSetImmediate — TẮT SUPABASE ──
 async function storageSetImmediate(key, val) {
-  const value = JSON.stringify(val);
-  try { localStorage.setItem(key, value); } catch {}
-  invalidateCache(key);
-  const res = await fetch(`${SB_URL}/rest/v1/${SB_TABLE}`, {
-    method: "POST",
-    headers: SB_HEADERS,
-    body: JSON.stringify({ key, value, updated_at: new Date().toISOString() })
-  });
-  if (!res.ok) throw new Error(`[92K supabase] immediate set failed ${key}: ${res.status}`);
-  if (res.ok) markCacheFresh(key);
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
 }
 
-// GET kèm updated_at để ghi kiểu compare-and-swap, tránh 2 khách ghi đè cùng một key.
+// ── DEBUG: storageGetWithMeta — TẮT SUPABASE ──
 async function storageGetWithMeta(key) {
-  const res = await fetch(`${SB_URL}/rest/v1/${SB_TABLE}?key=eq.${encodeURIComponent(key)}&select=value,updated_at`, {
-    headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` }
-  });
-  if (!res.ok) throw new Error(`[92K supabase] get meta failed ${key}: ${res.status}`);
-  const rows = await res.json();
-  if (!rows.length) return { value: null, updatedAt: null, exists: false };
-  try { localStorage.setItem(key, rows[0].value); } catch {}
-  markCacheFresh(key);
-  return { value: JSON.parse(rows[0].value), updatedAt: rows[0].updated_at || null, exists: true };
+  try {
+    const r = localStorage.getItem(key);
+    const value = r ? JSON.parse(r) : null;
+    return { value, updatedAt: null, exists: !!value };
+  } catch { return { value: null, updatedAt: null, exists: false }; }
 }
 
+// ── DEBUG: storageCasSet — TẮT SUPABASE ──
 async function storageCasSet(key, val, expectedUpdatedAt) {
-  const value = JSON.stringify(val);
-  const nextUpdatedAt = new Date().toISOString();
-
-  if (!expectedUpdatedAt) {
-    const res = await fetch(`${SB_URL}/rest/v1/${SB_TABLE}`, {
-      method: "POST",
-      headers: { ...SB_HEADERS, "Prefer": "return=representation,resolution=merge-duplicates" },
-      body: JSON.stringify({ key, value, updated_at: nextUpdatedAt })
-    });
-    if (!res.ok) throw new Error(`[92K supabase] cas insert failed ${key}: ${res.status}`);
-    try { localStorage.setItem(key, value); } catch {}
-    invalidateCache(key);
-    markCacheFresh(key);
-    return true;
-  }
-
-  const res = await fetch(`${SB_URL}/rest/v1/${SB_TABLE}?key=eq.${encodeURIComponent(key)}&updated_at=eq.${encodeURIComponent(expectedUpdatedAt)}`, {
-    method: "PATCH",
-    headers: { ...SB_HEADERS, "Prefer": "return=representation" },
-    body: JSON.stringify({ value, updated_at: nextUpdatedAt })
-  });
-  if (!res.ok) throw new Error(`[92K supabase] cas patch failed ${key}: ${res.status}`);
-  const txt = await res.text();
-  let rows = [];
-  try { rows = txt ? JSON.parse(txt) : []; } catch { return false; }
-  if (!rows.length) return false;
-  try { localStorage.setItem(key, value); } catch {}
-  invalidateCache(key);
-  markCacheFresh(key);
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
   return true;
 }
 
