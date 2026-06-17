@@ -58,16 +58,15 @@ function useTypewriter(text, speed = 55, startDelay = 400) {
     setDisplayed("");
     setDone(false);
     let i = 0;
-    let iv = null;
     const t0 = setTimeout(() => {
-      iv = setInterval(() => {
+      const iv = setInterval(() => {
         i++;
         setDisplayed(text.slice(0, i));
-        if (i >= text.length) { clearInterval(iv); iv = null; setDone(true); }
+        if (i >= text.length) { clearInterval(iv); setDone(true); }
       }, speed);
+      return () => clearInterval(iv);
     }, startDelay);
-    // Cleanup cả t0 lẫn iv — tránh zombie interval khi deps thay đổi
-    return () => { clearTimeout(t0); if (iv) { clearInterval(iv); iv = null; } };
+    return () => clearTimeout(t0);
   }, [text, speed, startDelay]);
   return { displayed, done };
 }
@@ -246,9 +245,8 @@ function useSmoothScroll(enabled) {
 }
 
 // ── SCROLL PERF HOOK ──
-// Toggle body.is-scrolling + body.tab-hidden
-// is-scrolling: tắt backdrop-filter + pause animation khi scroll
-// tab-hidden: pause toàn bộ CSS animation khi tab bị ẩn
+// Toggle body.is-scrolling trên MỌI thiết bị (kể cả iPhone touch)
+// → CSS dùng class này để tắt backdrop-filter + pause animation khi scroll
 function useScrollPerfClass() {
   useEffect(() => {
     let timer = null;
@@ -258,6 +256,7 @@ function useScrollPerfClass() {
       timer = setTimeout(() => document.body.classList.remove("is-scrolling"), 120);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
+    // Touch events: bắt đầu touch → thêm class ngay, không chờ scroll event
     const onTouchStart = () => document.body.classList.add("is-scrolling");
     const onTouchEnd   = () => {
       clearTimeout(timer);
@@ -265,19 +264,12 @@ function useScrollPerfClass() {
     };
     window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchend",   onTouchEnd,   { passive: true });
-    // Pause tất cả CSS animation khi tab ẩn → tránh Chrome suspend/throttle tab
-    const onVisibility = () => {
-      if (document.hidden) document.body.classList.add("tab-hidden");
-      else document.body.classList.remove("tab-hidden");
-    };
-    document.addEventListener("visibilitychange", onVisibility);
     return () => {
       window.removeEventListener("scroll",     onScroll);
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchend",   onTouchEnd);
-      document.removeEventListener("visibilitychange", onVisibility);
       clearTimeout(timer);
-      document.body.classList.remove("is-scrolling", "tab-hidden");
+      document.body.classList.remove("is-scrolling");
     };
   }, []);
 }
@@ -1233,12 +1225,8 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
 
   useEffect(() => {
     let oA = 0, mA = 0, iA = 0;
-    let lastTs = 0;
-    const FPS = 30;
-    const INTERVAL = 1000 / FPS;
-    const tick = (ts) => {
-      if (ts - lastTs < INTERVAL) { animRef.current = requestAnimationFrame(tick); return; }
-      lastTs = ts;
+    const tick = () => {
+      // Pause khi scroll → không cạnh tranh GPU với scroll compositor
       if (!document.body.classList.contains("is-scrolling")) {
         const target = isHovRef.current ? 0.28 : 0.032;
         speedRef.current += (target - speedRef.current) * 0.03;
@@ -1247,20 +1235,8 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
       }
       animRef.current = requestAnimationFrame(tick);
     };
-    // Dừng hoàn toàn khi tab ẩn, resume khi quay lại
-    const onVisibility = () => {
-      if (document.hidden) {
-        if (animRef.current) { cancelAnimationFrame(animRef.current); animRef.current = null; }
-      } else {
-        if (!animRef.current) animRef.current = requestAnimationFrame(tick);
-      }
-    };
-    document.addEventListener("visibilitychange", onVisibility);
     animRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (animRef.current) cancelAnimationFrame(animRef.current);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
+    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
   }, []);
 
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2178,30 +2154,6 @@ function CustomerFeed({ photos }) {
 }
 
 
-// ── CONFIRM DIALOG — thay thế window.confirm (bị block trong Zalo/Facebook WebView) ──
-function ConfirmDialog({ message, onOk, onCancel }) {
-  if (!message) return null;
-  return (
-    <div style={{ position:"fixed", inset:0, zIndex:99999, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(0,0,0,0.45)", backdropFilter:"blur(4px)", WebkitBackdropFilter:"blur(4px)" }}
-      onClick={onCancel}>
-      <div style={{ background:"#f0f4f8", borderRadius:16, padding:"24px 24px 20px", maxWidth:320, width:"calc(100% - 48px)", boxShadow:"0 8px 40px rgba(0,0,0,0.28), 0 1px 0 rgba(255,255,255,0.7) inset", boxSizing:"border-box" }}
-        onClick={e => e.stopPropagation()}>
-        <div style={{ color:"#0d1b2a", fontSize:14, fontFamily:"system-ui,sans-serif", lineHeight:1.6, marginBottom:20, whiteSpace:"pre-line" }}>{message}</div>
-        <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
-          <button onClick={onCancel}
-            style={{ padding:"8px 18px", background:"transparent", border:"1px solid #c0ccd8", color:"#4a6a8a", borderRadius:10, cursor:"pointer", fontSize:12, fontFamily:"system-ui,sans-serif", fontWeight:600 }}>
-            Không
-          </button>
-          <button onClick={onOk}
-            style={{ padding:"8px 18px", background:"#ef4444", border:"none", color:"#fff", borderRadius:10, cursor:"pointer", fontSize:12, fontFamily:"system-ui,sans-serif", fontWeight:700 }}>
-            Xác nhận
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── FEEDBACK MODAL (post-order rating — only for completed orders) ──
 function FeedbackModal({ order, loggedUser, feedbacks, setFeedbacks, onClose }) {
   // Tìm feedback đã gửi cho đơn này — match bằng email (Google) hoặc phone
@@ -2458,8 +2410,7 @@ function QuyTrinh6Buoc({ isMobile }) {
           display:"flex", gap:16, overflowX:"auto",
           scrollSnapType:"x mandatory",
           // padding đều 2 bên để card đầu/cuối cũng center được
-          padding: isMobile ? "4px 16px 20px" : "4px 48px 20px",
-          scrollPaddingLeft: isMobile ? 16 : 48,
+          padding: isMobile ? "4px 20px 20px" : "4px 40px 20px",
           scrollbarWidth:"none", msOverflowStyle:"none",
         }}
       >
@@ -2553,7 +2504,6 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
   const [refreshing, setRefreshing] = useState(false);
   const isMobile = useMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [confirmCfg, setConfirmCfg] = useState(null); // thay window.confirm
 
   // ── Tự động refresh orders mỗi 30s khi đang xem tab đơn hàng ──
   const _refreshingRef = useRef(false);
@@ -3089,14 +3039,9 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
                         {/* Chỉ khách đăng nhập mới được huỷ, và chỉ khi đơn còn ở pending (chưa xác nhận) */}
                         {loggedUser && o.status === "pending" && (
                           <button onClick={() => {
-                            setConfirmCfg({
-                              message: `Bạn có chắc muốn huỷ đơn ${o.id}?\n\nĐơn sẽ chuyển sang trạng thái "Đã huỷ" và không thể khôi phục.`,
-                              onOk: () => {
-                                setOrders(p => p.map(x => x.id === o.id ? { ...x, status: "cancelled", cancelledBy: "customer", cancelledAt: new Date().toISOString() } : x));
-                                window.__92k_invalidateStaticCache?.();
-                                setConfirmCfg(null);
-                              }
-                            });
+                            if (!window.confirm(`Bạn có chắc muốn huỷ đơn ${o.id}?\n\nĐơn sẽ chuyển sang trạng thái "Đã huỷ" và không thể khôi phục.`)) return;
+                            setOrders(p => p.map(x => x.id === o.id ? { ...x, status: "cancelled", cancelledBy: "customer", cancelledAt: new Date().toISOString() } : x));
+                            window.__92k_invalidateStaticCache?.();
                           }}
                           style={{ padding: "7px 16px", background: "#FEF0F0", border: "1px solid #ef444433", color: "#ef4444", borderRadius: 10, cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", marginLeft: "auto" }}>
                             ✕ Huỷ đơn
@@ -3365,11 +3310,6 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
           onClose={() => setFbOrder(null)}
         />
       )}
-      <ConfirmDialog
-        message={confirmCfg?.message}
-        onOk={confirmCfg?.onOk}
-        onCancel={() => setConfirmCfg(null)}
-      />
     </div>
   );
 }
@@ -3616,8 +3556,6 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
     return () => clearInterval(iv);
   }, [step]);
   const [expandedCam, setExpandedCam] = useState(null);
-  // camImgIdx: { [camId]: currentSlideIndex } — track ảnh đang hiện cho từng card
-  const [camImgIdx, setCamImgIdx] = useState({});
   // BUG-PRESELECT FIX: chỉ preselect nếu máy thực sự available
   // Nếu status !== "available", máy không có trong availCams → ghost entry trong selCams
   const [selCams, setSelCams] = useState(() => {
@@ -4373,44 +4311,9 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                         <div onClick={() => toggleCam(c)} style={{ position: "absolute", top: 7, right: 7, zIndex: 3, width: 24, height: 24, borderRadius: 10, border: `2px solid ${isSelected ? "#2979CF" : "rgba(255,255,255,0.6)"}`, background: isSelected ? "#2979CF" : "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all .2s", boxShadow: isSelected ? "0 0 8px rgba(41,121,207,0.6)" : "none" }}>
                           {isSelected && <span style={{ color: "#fff", fontSize: 13, fontWeight: 900, lineHeight: 1 }}>✓</span>}
                         </div>
-                        {/* Ảnh — slider nếu có nhiều ảnh */}
-                        {c.images?.length > 0 ? (() => {
-                          const imgs = c.images.slice(0, 6);
-                          const idx = camImgIdx[c.id] || 0;
-                          const safeIdx = Math.min(idx, imgs.length - 1);
-                          const goPrev = (e) => { e.stopPropagation(); setCamImgIdx(p => ({ ...p, [c.id]: safeIdx > 0 ? safeIdx - 1 : imgs.length - 1 })); };
-                          const goNext = (e) => { e.stopPropagation(); setCamImgIdx(p => ({ ...p, [c.id]: safeIdx < imgs.length - 1 ? safeIdx + 1 : 0 })); };
-                          let _tx = null;
-                          const onTouchStart = (e) => { _tx = e.touches[0].clientX; };
-                          const onTouchEnd = (e) => {
-                            if (_tx === null || imgs.length <= 1) return;
-                            const dx = e.changedTouches[0].clientX - _tx;
-                            if (Math.abs(dx) < 30) return;
-                            if (dx < 0) setCamImgIdx(p => ({ ...p, [c.id]: safeIdx < imgs.length - 1 ? safeIdx + 1 : 0 }));
-                            else setCamImgIdx(p => ({ ...p, [c.id]: safeIdx > 0 ? safeIdx - 1 : imgs.length - 1 }));
-                            _tx = null;
-                          };
-                          return (
-                            <>
-                              <img src={cdnUrl(imgs[safeIdx], "thumb")} alt={c.name} onClick={() => toggleCam(c)} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }} />
-                              {imgs.length > 1 && (
-                                <>
-                                  {/* Nút prev */}
-                                  <button onClick={goPrev} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", zIndex: 4, background: "rgba(0,0,0,0.50)", border: "1px solid rgba(255,255,255,0.20)", borderRadius: "50%", width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, color: "#fff", fontSize: 14, lineHeight: 1 }}>‹</button>
-                                  {/* Nút next */}
-                                  <button onClick={goNext} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", zIndex: 4, background: "rgba(0,0,0,0.50)", border: "1px solid rgba(255,255,255,0.20)", borderRadius: "50%", width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, color: "#fff", fontSize: 14, lineHeight: 1 }}>›</button>
-                                  {/* Dots */}
-                                  <div style={{ position: "absolute", bottom: 6, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 4, zIndex: 4 }}>
-                                    {imgs.map((_, di) => (
-                                      <div key={di} onClick={e => { e.stopPropagation(); setCamImgIdx(p => ({ ...p, [c.id]: di })); }}
-                                        style={{ width: di === safeIdx ? 14 : 5, height: 5, borderRadius: 3, background: di === safeIdx ? "#fff" : "rgba(255,255,255,0.45)", cursor: "pointer", transition: "all .2s" }} />
-                                    ))}
-                                  </div>
-                                </>
-                              )}
-                            </>
-                          );
-                        })()
+                        {/* Ảnh */}
+                        {c.images?.length > 0
+                          ? <img src={cdnUrl(c.images[0], "thumb")} alt={c.name} onClick={() => toggleCam(c)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }} />
                           : <span onClick={() => toggleCam(c)} style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, cursor: "pointer" }}>{c.icon}</span>}
 
                         {/* Info overlay — dưới cùng, mặc định trong suốt */}
@@ -6554,17 +6457,15 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
   const prevScrollY = useRef(0);
   const scrollRaf = useRef(null);
   const [hov, setHov] = useState(null);
+  const [ticker, setTicker] = useState(0);
   const [qrHidden, setQrHidden] = useState(false);
   const [logoClick, setLogoClick] = useState(0);
   const [logoRipple, setLogoRipple] = useState(false);
   const [bracketSpread, setBracketSpread] = useState(false);
   const handleBracketClick = () => { setBracketSpread(true); setTimeout(() => setBracketSpread(false), 500); };
   // ── Typewriter cho 2 dòng subtitle + tagline ──
-  // tw2Delay ref khai báo TRƯỚC cả 2 hook — đúng Rules of Hooks
-  const tw2Delay = useRef(99999);
   const tw1 = useTypewriter("DỊCH VỤ CHO THUÊ MÁY ẢNH · NÚI THÀNH · TAM KỲ", 38, 600);
-  if (tw1.done && tw2Delay.current === 99999) tw2Delay.current = 100;
-  const tw2 = useTypewriter("Trải nghiệm máy ảnh · Bắt trọn khoảnh khắc", 42, tw2Delay.current);
+  const tw2 = useTypewriter("Trải nghiệm máy ảnh · Bắt trọn khoảnh khắc", 42, tw1.done ? 100 : 99999);
   const handleLogoClick = () => {
     const n = logoClick + 1;
     setLogoClick(n);
@@ -6586,8 +6487,9 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       });
     };
     window.addEventListener("scroll", h, { passive: true });
-    return () => { window.removeEventListener("scroll", h); if (scrollRaf.current) { cancelAnimationFrame(scrollRaf.current); scrollRaf.current = null; } };
-  }, []);
+    const t = setInterval(() => setTicker(p => (p + 1) % cameras.length), 3000);
+    return () => { window.removeEventListener("scroll", h); clearInterval(t); if (scrollRaf.current) { cancelAnimationFrame(scrollRaf.current); scrollRaf.current = null; } };
+  }, [cameras.length]);
   // navState: "top" | "visible" | "compact"
   const navState = scrollY < 60 ? "top" : (scrollDir === "up" ? "visible" : "compact");
   const marquee = cameras.map(c => `${c.icon || "📷"} ${c.name}`);
@@ -6819,10 +6721,10 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
             {/* ── SUBTITLE — 1 dòng desktop ── */}
             <div style={{
               marginTop: isMobile?16:15,
-              fontSize: isMobile?7.8:9.6, letterSpacing: isMobile?1.6:2.5,
+              fontSize: isMobile?10:9.6, letterSpacing: isMobile?2.5:2.5,
               fontFamily:"var(--font-ui)", color:"#2a2825", fontWeight:700,
-              whiteSpace:"nowrap", lineHeight:1,
-              minHeight:16,
+              whiteSpace: isMobile?"normal":"nowrap", lineHeight: isMobile?2:1,
+              minHeight: isMobile?"auto":16,
             }}>
               <span>{tw1.displayed}<span style={{ opacity: tw1.done ? 0 : 1, transition:"opacity .3s" }}>▌</span></span>
             </div>
@@ -7332,12 +7234,7 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
     }
     if (window.google?.accounts?.id) { setGsiReady(true); return; }
     const existing = document.getElementById("gsi-script-92k");
-    if (existing) {
-      // Script đang load dở — gắn listener có cleanup
-      const handler = () => setGsiReady(true);
-      existing.addEventListener("load", handler);
-      return () => existing.removeEventListener("load", handler);
-    }
+    if (existing) { existing.addEventListener("load", () => setGsiReady(true)); return; }
     const script = document.createElement("script");
     script.id = "gsi-script-92k";
     script.src = "https://accounts.google.com/gsi/client";
@@ -8209,14 +8106,9 @@ function AlbumManager({ photos, albums, setAlbums, isMobile }) {
   };
 
   const handleDelete = (alb) => {
-    setConfirmCfg({
-      message: `Xóa album "${alb.name}"?\n\nẢnh gốc không bị xóa.`,
-      onOk: () => {
-        setAlbums(prev => prev.filter(a => a.id !== alb.id));
-        showMsg("ok", "✓ Đã xóa album");
-        setConfirmCfg(null);
-      }
-    });
+    if (!window.confirm(`Xóa album "${alb.name}"?\n\nẢnh gốc không bị xóa.`)) return;
+    setAlbums(prev => prev.filter(a => a.id !== alb.id));
+    showMsg("ok", "✓ Đã xóa album");
   };
 
   return (
@@ -8360,7 +8252,7 @@ function cdnUrl(url, mode = "thumb") {
   if (!url || !url.includes("res.cloudinary.com")) return url;
   const t = mode === "full"
     ? "w_2000,q_auto:best,f_auto"
-    : "w_800,q_100,e_sharpen:60,f_auto";
+    : "w_800,q_auto:best,f_auto";
   // Chèn transformation sau /upload/
   return url.replace("/upload/", `/upload/${t}/`);
 }
@@ -8485,7 +8377,6 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
   const [uploadMsg, setUploadMsg] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [previewIdx, setPreviewIdx] = useState(null); // lightbox admin
-  const [confirmCfg, setConfirmCfg] = useState(null); // thay window.confirm
 
   // Refresh từ Supabase (nguồn sự thật)
   const handleRefresh = async () => {
@@ -8533,24 +8424,19 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
 
   // Xóa thật khỏi Cloudinary + Supabase qua Edge Function
   const handleDelete = async (photo) => {
-    setConfirmCfg({
-      message: "Xóa ảnh này vĩnh viễn?\n\nHành động không thể hoàn tác.",
-      onOk: async () => {
-        setConfirmCfg(null);
-        setDeletingId(photo.public_id);
-        try {
-          await cloudinaryDeletePhoto(photo.public_id);
-          setPhotos(prev => (prev || []).filter(p => p.public_id !== photo.public_id));
-          setUploadMsg({ type: "ok", text: "✓ Đã xóa ảnh khỏi Cloudinary + database" });
-          setTimeout(() => setUploadMsg(null), 3000);
-        } catch (e) {
-          console.error("[92K] delete failed:", e);
-          setUploadMsg({ type: "err", text: `❌ Xóa thất bại: ${e.message}` });
-          setTimeout(() => setUploadMsg(null), 5000);
-        }
-        setDeletingId(null);
-      }
-    });
+    if (!window.confirm("Xóa ảnh này vĩnh viễn?\n\nHành động không thể hoàn tác.")) return;
+    setDeletingId(photo.public_id);
+    try {
+      await cloudinaryDeletePhoto(photo.public_id);
+      setPhotos(prev => (prev || []).filter(p => p.public_id !== photo.public_id));
+      setUploadMsg({ type: "ok", text: "✓ Đã xóa ảnh khỏi Cloudinary + database" });
+      setTimeout(() => setUploadMsg(null), 3000);
+    } catch (e) {
+      console.error("[92K] delete failed:", e);
+      setUploadMsg({ type: "err", text: `❌ Xóa thất bại: ${e.message}` });
+      setTimeout(() => setUploadMsg(null), 5000);
+    }
+    setDeletingId(null);
   };
 
   const pct = uploadProgress.total > 0 ? Math.round((uploadProgress.done / uploadProgress.total) * 100) : 0;
@@ -8645,11 +8531,6 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
 
       {/* ── ALBUM MANAGER ── */}
       <AlbumManager photos={photos} albums={albums} setAlbums={setAlbums} isMobile={isMobile} />
-      <ConfirmDialog
-        message={confirmCfg?.message}
-        onOk={confirmCfg?.onOk}
-        onCancel={() => setConfirmCfg(null)}
-      />
     </>
   );
 }
@@ -10783,9 +10664,7 @@ async function getStaticData(forceRefresh = false) {
   if (_staticDataPromise) return _staticDataPromise;
   _staticDataPromise = (async () => {
     try {
-      // Không dùng cache:"no-store" hay ?_t= — để Vercel Edge Cache serve file tĩnh nhanh nhất
-      // Vercel tự invalidate khi deploy mới. forceRefresh chỉ bypass in-memory cache (90s).
-      const res = await fetch(STATIC_DATA_URL);
+      const res = await fetch(`${STATIC_DATA_URL}?_t=${Date.now()}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       _staticDataCache = { data, ts: Date.now() };
@@ -11118,11 +10997,8 @@ function FlowBg() {
     raf = requestAnimationFrame(draw);
 
     const onVisibility = () => {
-      if (document.hidden) {
-        cancelAnimationFrame(raf); raf = null;
-      } else {
-        if (!raf) raf = requestAnimationFrame(draw);
-      }
+      if (document.hidden) cancelAnimationFrame(raf);
+      else { raf = requestAnimationFrame(draw); }
     };
     document.addEventListener("visibilitychange", onVisibility);
 
@@ -11379,15 +11255,7 @@ function AppRoot() {
   const setAlbums = useCallback((updater) => {
     _setAlbums(prev => {
       const next = typeof updater === "function" ? updater(prev) : updater;
-      if (next !== prev) setTimeout(() => {
-        // Strip photos array trước khi ghi Supabase — ảnh do Cloudinary quản lý
-        // Lưu photoIds để rehydrate lại sau khi load
-        const slim = (next || []).map(({ photos: _photos, ...meta }) => ({
-          ...meta,
-          photoIds: (_photos || []).map(p => p.id),
-        }));
-        storageSet(STORE_KEYS.albums, slim);
-      }, 0);
+      if (next !== prev) setTimeout(() => storageSet(STORE_KEYS.albums, next), 0);
       return next;
     });
   }, []);
@@ -11475,17 +11343,9 @@ function AppRoot() {
               return [...fresh, ...staticData.feedbacks];
             });
           }
+          if (staticData.albums) _setAlbums(staticData.albums);
           const pts = await galleryFetchPhotos();
           if (pts.length > 0) _setPhotos(pts);
-          // Rehydrate albums: gắn lại photos từ photoIds sau khi đã có danh sách photos
-          if (staticData.albums) {
-            const photoMap = Object.fromEntries((pts || []).map(p => [p.id, p]));
-            const rehydrated = staticData.albums.map(alb => ({
-              ...alb,
-              photos: (alb.photoIds || []).map(id => photoMap[id]).filter(Boolean),
-            }));
-            _setAlbums(rehydrated);
-          }
         }, 4000);
 
         // Users từ Supabase — PII, không export ra file tĩnh
@@ -11526,15 +11386,7 @@ function AppRoot() {
           const pts = await galleryFetchPhotos();
           if (pts.length > 0) _setPhotos(pts);
           const albs = await storageGet(STORE_KEYS.albums);
-          // Rehydrate albums: gắn lại photos từ photoIds sau khi đã có danh sách photos
-          if (albs) {
-            const photoMap = Object.fromEntries((pts || []).map(p => [p.id, p]));
-            const rehydrated = albs.map(alb => ({
-              ...alb,
-              photos: (alb.photoIds || []).map(id => photoMap[id]).filter(Boolean),
-            }));
-            _setAlbums(rehydrated);
-          }
+          if (albs) _setAlbums(albs);
         }, 4000);
         setTimeout(async () => {
           const usrs = await storageGet(STORE_KEYS.users);
@@ -11584,8 +11436,6 @@ function AppRoot() {
         /* GPU compositing layers cho các element animate nhiều */
         .nav92, .nav-inner, .btn-3d { will-change: transform; }
         .lens-float-wrap { will-change: transform; transform: translateZ(0); }
-        /* Pause toàn bộ CSS animation khi tab bị ẩn — tránh Chrome throttle/suspend */
-        .tab-hidden * { animation-play-state: paused !important; }
         /* Mobile scroll performance */
         html { -webkit-overflow-scrolling: touch; }
         .cv-section { content-visibility: auto; contain-intrinsic-size: 0 600px; }
