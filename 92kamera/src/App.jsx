@@ -7308,9 +7308,14 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
       existing.addEventListener("load", handler);
       return () => existing.removeEventListener("load", handler);
     }
-    // ── DEBUG: Google GSI TẮT ──
-    // script load bị comment để test không có external script
-    setGsiErr(true); // mark err để UI không chờ
+    const script = document.createElement("script");
+    script.id = "gsi-script-92k";
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = () => setGsiReady(true);
+    script.onerror = () => setGsiErr(true);
+    document.head.appendChild(script);
   }, [loggedUser, isInAppBrowser]);
 
   // Render Google button
