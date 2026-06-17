@@ -477,21 +477,7 @@ function OrderLookupWidget({ orders, compact, forceOpen, onForceClose }) {
     const s = q.trim().toUpperCase();
     if (!s) return;
     let found = orders.find(o => o.id.toUpperCase() === s || o.id.toUpperCase().replace("#","").includes(s.replace("#","")));
-    if (!found) {
-      try {
-        const res = await fetch(
-          `${SB_URL}/rest/v1/${SB_TABLE}?key=eq.${STORE_KEYS.orders}&select=value`,
-          { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
-        );
-        if (res.ok) {
-          const rows = await res.json();
-          if (rows?.[0]?.value) {
-            const freshOrders = JSON.parse(rows[0].value);
-            found = freshOrders.find(o => o.id.toUpperCase() === s || o.id.toUpperCase().replace("#","").includes(s.replace("#","")));
-          }
-        }
-      } catch {}
-    }
+    // DEBUG: tắt fetch Supabase trong OrderLookup
     if (found) { setResult(found); setErr(false); setLastRefresh(new Date()); }
     else { setResult(null); setErr(true); }
   };
@@ -499,20 +485,7 @@ function OrderLookupWidget({ orders, compact, forceOpen, onForceClose }) {
   const refresh = async () => {
     if (!result || refreshing) return;
     setRefreshing(true);
-    try {
-      const res = await fetch(
-        `${SB_URL}/rest/v1/${SB_TABLE}?key=eq.${STORE_KEYS.orders}&select=value`,
-        { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
-      );
-      if (res.ok) {
-        const rows = await res.json();
-        if (rows?.[0]?.value) {
-          const freshOrders = JSON.parse(rows[0].value);
-          const found = freshOrders.find(o => o.id === result.id);
-          if (found) { setResult(found); setLastRefresh(new Date()); }
-        }
-      }
-    } catch {}
+    // DEBUG: tắt fetch Supabase
     setRefreshing(false);
   };
 
@@ -2579,9 +2552,9 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
 
   useEffect(() => {
     if (tab !== "orders") return;
-    refreshOrders(true); // fetch ngay khi vào tab
-    const t = setInterval(() => refreshOrders(true), 30000); // poll 30s — khách cần biết trạng thái đơn kịp thời
-    return () => clearInterval(t);
+    // DEBUG: tắt refreshOrders poll
+    // refreshOrders(true);
+    return () => {};
   }, [tab, refreshOrders]);
 
   // ── Settings state ──
@@ -3608,12 +3581,8 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   // Tránh user ở lâu step 2 → liveOrdersForCheck stale → báo sai tồn kho
   useEffect(() => {
     if (step !== 2) return;
-    const fetchFresh = () => storageGet(STORE_KEYS.orders, true)
-      .then(fresh => { if (fresh && Array.isArray(fresh)) setLiveOrdersForCheck(fresh); })
-      .catch(() => {});
-    fetchFresh();
-    const iv = setInterval(fetchFresh, 30000);
-    return () => clearInterval(iv);
+    // DEBUG: tắt fetchFresh poll step 2
+    return () => {};
   }, [step]);
   const [expandedCam, setExpandedCam] = useState(null);
   // camImgIdx: { [camId]: currentSlideIndex } — track ảnh đang hiện cho từng card
@@ -7339,14 +7308,9 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
       existing.addEventListener("load", handler);
       return () => existing.removeEventListener("load", handler);
     }
-    const script = document.createElement("script");
-    script.id = "gsi-script-92k";
-    script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.defer = true;
-    script.onload = () => setGsiReady(true);
-    script.onerror = () => setGsiErr(true);
-    document.head.appendChild(script);
+    // ── DEBUG: Google GSI TẮT ──
+    // script load bị comment để test không có external script
+    setGsiErr(true); // mark err để UI không chờ
   }, [loggedUser, isInAppBrowser]);
 
   // Render Google button
@@ -8373,13 +8337,15 @@ const PHOTOS_CACHE_MS = 10 * 60 * 1000;
 
 // Fetch từ Supabase gallery_photos (nguồn sự thật, đồng bộ mọi thiết bị)
 async function galleryFetchPhotos(forceRefresh = false) {
+  // DEBUG: fetchPhotos TẮT — trả mảng rỗng
+  if (true) return [];
   if (!forceRefresh && _photosCache && (Date.now() - _photosCacheTs) < PHOTOS_CACHE_MS) {
     return _photosCache;
   }
   try {
     const res = await fetch(
       `${SB_URL}/rest/v1/gallery_photos?select=*&order=uploaded_at.desc`,
-      { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }, cache: "default" } // DEBUG: gallery fetch vẫn giữ nhưng sẽ fail gracefully
+      { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }, cache: "default" }
     );
     if (!res.ok) return _photosCache || [];
     const rows = await res.json();
@@ -10780,29 +10746,8 @@ const STATIC_CACHE_MS = 90 * 1000; // 90 giây — đủ để tránh spam CDN, 
 let _staticDataCache = null;
 let _staticDataPromise = null;
 
-async function getStaticData(forceRefresh = false) {
-  if (!forceRefresh && _staticDataCache && (Date.now() - _staticDataCache.ts) < STATIC_CACHE_MS) {
-    return _staticDataCache.data;
-  }
-  if (_staticDataPromise) return _staticDataPromise;
-  _staticDataPromise = (async () => {
-    try {
-      // Không dùng cache:"no-store" hay ?_t= — để Vercel Edge Cache serve file tĩnh nhanh nhất
-      // Vercel tự invalidate khi deploy mới. forceRefresh chỉ bypass in-memory cache (90s).
-      const res = await fetch(STATIC_DATA_URL);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      _staticDataCache = { data, ts: Date.now() };
-      return data;
-    } catch (err) {
-      console.warn("[92K] ⚠️ Static data load failed, fallback Supabase:", err.message);
-      return null;
-    } finally {
-      _staticDataPromise = null;
-    }
-  })();
-  return _staticDataPromise;
-}
+// ── DEBUG: getStaticData TẮT ──
+async function getStaticData(forceRefresh = false) { return null; }
 
 // Bust static cache (cameras/accessories/site) khi cần force refresh CDN
 // Orders không cần — luôn fetch Supabase thẳng, không qua CDN
