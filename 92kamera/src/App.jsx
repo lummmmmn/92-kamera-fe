@@ -10793,8 +10793,23 @@ function invalidateCache(key) {
   try { localStorage.removeItem(cacheKey(key)); } catch {}
 }
 
-// ── DEBUG: storageGet — TẮT SUPABASE, chỉ dùng localStorage ──
 async function storageGet(key, forceRefresh = false) {
+  if (!forceRefresh && isCacheFresh(key)) {
+    try { const r = localStorage.getItem(key); if (r) return JSON.parse(r); } catch {}
+  }
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/${SB_TABLE}?key=eq.${encodeURIComponent(key)}&select=value`, {
+      headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` }
+    });
+    if (res.ok) {
+      const rows = await res.json();
+      if (rows.length > 0) {
+        try { localStorage.setItem(key, rows[0].value); } catch {}
+        markCacheFresh(key);
+        return JSON.parse(rows[0].value);
+      }
+    }
+  } catch {}
   try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : null; } catch { return null; }
 }
 
