@@ -58,16 +58,15 @@ function useTypewriter(text, speed = 55, startDelay = 400) {
     setDisplayed("");
     setDone(false);
     let i = 0;
-    let iv = null;
     const t0 = setTimeout(() => {
-      iv = setInterval(() => {
+      const iv = setInterval(() => {
         i++;
         setDisplayed(text.slice(0, i));
-        if (i >= text.length) { clearInterval(iv); iv = null; setDone(true); }
+        if (i >= text.length) { clearInterval(iv); setDone(true); }
       }, speed);
+      return () => clearInterval(iv);
     }, startDelay);
-    // Cleanup cả t0 lẫn iv — tránh zombie interval khi deps thay đổi
-    return () => { clearTimeout(t0); if (iv) { clearInterval(iv); iv = null; } };
+    return () => clearTimeout(t0);
   }, [text, speed, startDelay]);
   return { displayed, done };
 }
@@ -246,9 +245,8 @@ function useSmoothScroll(enabled) {
 }
 
 // ── SCROLL PERF HOOK ──
-// Toggle body.is-scrolling + body.tab-hidden
-// is-scrolling: tắt backdrop-filter + pause animation khi scroll
-// tab-hidden: pause toàn bộ CSS animation khi tab bị ẩn
+// Toggle body.is-scrolling trên MỌI thiết bị (kể cả iPhone touch)
+// → CSS dùng class này để tắt backdrop-filter + pause animation khi scroll
 function useScrollPerfClass() {
   useEffect(() => {
     let timer = null;
@@ -258,6 +256,7 @@ function useScrollPerfClass() {
       timer = setTimeout(() => document.body.classList.remove("is-scrolling"), 120);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
+    // Touch events: bắt đầu touch → thêm class ngay, không chờ scroll event
     const onTouchStart = () => document.body.classList.add("is-scrolling");
     const onTouchEnd   = () => {
       clearTimeout(timer);
@@ -265,19 +264,12 @@ function useScrollPerfClass() {
     };
     window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchend",   onTouchEnd,   { passive: true });
-    // Pause tất cả CSS animation khi tab ẩn → tránh Chrome suspend/throttle tab
-    const onVisibility = () => {
-      if (document.hidden) document.body.classList.add("tab-hidden");
-      else document.body.classList.remove("tab-hidden");
-    };
-    document.addEventListener("visibilitychange", onVisibility);
     return () => {
       window.removeEventListener("scroll",     onScroll);
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchend",   onTouchEnd);
-      document.removeEventListener("visibilitychange", onVisibility);
       clearTimeout(timer);
-      document.body.classList.remove("is-scrolling", "tab-hidden");
+      document.body.classList.remove("is-scrolling");
     };
   }, []);
 }
@@ -477,7 +469,14 @@ function OrderLookupWidget({ orders, compact, forceOpen, onForceClose }) {
     const s = q.trim().toUpperCase();
     if (!s) return;
     let found = orders.find(o => o.id.toUpperCase() === s || o.id.toUpperCase().replace("#","").includes(s.replace("#","")));
-    // DEBUG: tắt fetch Supabase trong OrderLookup
+    if (!found) {
+      try {
+        const freshOrders = await storageGet(STORE_KEYS.orders, true);
+        if (Array.isArray(freshOrders)) {
+          found = freshOrders.find(o => o.id.toUpperCase() === s || o.id.toUpperCase().replace("#","").includes(s.replace("#","")));
+        }
+      } catch {}
+    }
     if (found) { setResult(found); setErr(false); setLastRefresh(new Date()); }
     else { setResult(null); setErr(true); }
   };
@@ -485,7 +484,13 @@ function OrderLookupWidget({ orders, compact, forceOpen, onForceClose }) {
   const refresh = async () => {
     if (!result || refreshing) return;
     setRefreshing(true);
-    // DEBUG: tắt fetch Supabase
+    try {
+      const freshOrders = await storageGet(STORE_KEYS.orders, true);
+      if (Array.isArray(freshOrders)) {
+        const found = freshOrders.find(o => o.id === result.id);
+        if (found) { setResult(found); setLastRefresh(new Date()); }
+      }
+    } catch {}
     setRefreshing(false);
   };
 
@@ -1206,12 +1211,8 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
 
   useEffect(() => {
     let oA = 0, mA = 0, iA = 0;
-    let lastTs = 0;
-    const FPS = 30;
-    const INTERVAL = 1000 / FPS;
-    const tick = (ts) => {
-      if (ts - lastTs < INTERVAL) { animRef.current = requestAnimationFrame(tick); return; }
-      lastTs = ts;
+    const tick = () => {
+      // Pause khi scroll → không cạnh tranh GPU với scroll compositor
       if (!document.body.classList.contains("is-scrolling")) {
         const target = isHovRef.current ? 0.28 : 0.032;
         speedRef.current += (target - speedRef.current) * 0.03;
@@ -1220,20 +1221,8 @@ function CameraLens3D({ onBook, loggedUser, onOpenLogin, onOpenCustomer, isMobil
       }
       animRef.current = requestAnimationFrame(tick);
     };
-    // Dừng hoàn toàn khi tab ẩn, resume khi quay lại
-    const onVisibility = () => {
-      if (document.hidden) {
-        if (animRef.current) { cancelAnimationFrame(animRef.current); animRef.current = null; }
-      } else {
-        if (!animRef.current) animRef.current = requestAnimationFrame(tick);
-      }
-    };
-    document.addEventListener("visibilitychange", onVisibility);
     animRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (animRef.current) cancelAnimationFrame(animRef.current);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
+    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
   }, []);
 
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2552,9 +2541,9 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
 
   useEffect(() => {
     if (tab !== "orders") return;
-    // DEBUG: tắt refreshOrders poll
-    // refreshOrders(true);
-    return () => {};
+    refreshOrders(true); // fetch ngay khi vào tab
+    const t = setInterval(() => refreshOrders(true), 30000); // poll 30s — khách cần biết trạng thái đơn kịp thời
+    return () => clearInterval(t);
   }, [tab, refreshOrders]);
 
   // ── Settings state ──
@@ -3581,8 +3570,12 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   // Tránh user ở lâu step 2 → liveOrdersForCheck stale → báo sai tồn kho
   useEffect(() => {
     if (step !== 2) return;
-    // DEBUG: tắt fetchFresh poll step 2
-    return () => {};
+    const fetchFresh = () => storageGet(STORE_KEYS.orders, true)
+      .then(fresh => { if (fresh && Array.isArray(fresh)) setLiveOrdersForCheck(fresh); })
+      .catch(() => {});
+    fetchFresh();
+    const iv = setInterval(fetchFresh, 30000);
+    return () => clearInterval(iv);
   }, [step]);
   const [expandedCam, setExpandedCam] = useState(null);
   // camImgIdx: { [camId]: currentSlideIndex } — track ảnh đang hiện cho từng card
@@ -6523,17 +6516,15 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
   const prevScrollY = useRef(0);
   const scrollRaf = useRef(null);
   const [hov, setHov] = useState(null);
+  const [ticker, setTicker] = useState(0);
   const [qrHidden, setQrHidden] = useState(false);
   const [logoClick, setLogoClick] = useState(0);
   const [logoRipple, setLogoRipple] = useState(false);
   const [bracketSpread, setBracketSpread] = useState(false);
   const handleBracketClick = () => { setBracketSpread(true); setTimeout(() => setBracketSpread(false), 500); };
   // ── Typewriter cho 2 dòng subtitle + tagline ──
-  // tw2Delay ref khai báo TRƯỚC cả 2 hook — đúng Rules of Hooks
-  const tw2Delay = useRef(99999);
   const tw1 = useTypewriter("DỊCH VỤ CHO THUÊ MÁY ẢNH · NÚI THÀNH · TAM KỲ", 38, 600);
-  if (tw1.done && tw2Delay.current === 99999) tw2Delay.current = 100;
-  const tw2 = useTypewriter("Trải nghiệm máy ảnh · Bắt trọn khoảnh khắc", 42, tw2Delay.current);
+  const tw2 = useTypewriter("Trải nghiệm máy ảnh · Bắt trọn khoảnh khắc", 42, tw1.done ? 100 : 99999);
   const handleLogoClick = () => {
     const n = logoClick + 1;
     setLogoClick(n);
@@ -6555,8 +6546,9 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       });
     };
     window.addEventListener("scroll", h, { passive: true });
-    return () => { window.removeEventListener("scroll", h); if (scrollRaf.current) { cancelAnimationFrame(scrollRaf.current); scrollRaf.current = null; } };
-  }, []);
+    const t = setInterval(() => setTicker(p => (p + 1) % cameras.length), 3000);
+    return () => { window.removeEventListener("scroll", h); clearInterval(t); if (scrollRaf.current) { cancelAnimationFrame(scrollRaf.current); scrollRaf.current = null; } };
+  }, [cameras.length]);
   // navState: "top" | "visible" | "compact"
   const navState = scrollY < 60 ? "top" : (scrollDir === "up" ? "visible" : "compact");
   const marquee = cameras.map(c => `${c.icon || "📷"} ${c.name}`);
@@ -7210,10 +7202,9 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
         }, { skipStorage: true });
       } catch {}
     };
-    fetchFresh(); // fetch ngay khi mount (debug: từ localStorage)
-    // DEBUG: tắt poll AdminLogin
-    // const poll = setInterval(fetchFresh, 30000);
-    return () => { cancelled = true; };
+    fetchFresh(); // fetch ngay khi mount
+    const poll = setInterval(fetchFresh, 30000); // poll mỗi 30s khi đang ở AdminLogin
+    return () => { cancelled = true; clearInterval(poll); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Tab Quản trị ──
@@ -8340,26 +8331,25 @@ let _photosCache = null;
 let _photosCacheTs = 0;
 const PHOTOS_CACHE_MS = 10 * 60 * 1000;
 
-// Fetch từ Supabase gallery_photos (nguồn sự thật, đồng bộ mọi thiết bị)
+// Fetch từ Firestore gallery_photos (nguồn sự thật, đồng bộ mọi thiết bị)
 async function galleryFetchPhotos(forceRefresh = false) {
-  // DEBUG: fetchPhotos TẮT — trả mảng rỗng
-  if (true) return [];
   if (!forceRefresh && _photosCache && (Date.now() - _photosCacheTs) < PHOTOS_CACHE_MS) {
     return _photosCache;
   }
   try {
-    const res = await fetch(
-      `${SB_URL}/rest/v1/gallery_photos?select=*&order=uploaded_at.desc`,
-      { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }, cache: "default" }
-    );
-    if (!res.ok) return _photosCache || [];
-    const rows = await res.json();
-    const photos = (rows || []).map(r => ({
-      id:        r.public_id,
-      public_id: r.public_id,
-      url:       r.url,
-      uploadedAt: r.uploaded_at,
-    }));
+    const db = await getFirestore();
+    const { collection, getDocs, query, orderBy } = _fbHelpers;
+    const q = query(collection(db, FB_GALLERY_COLLECTION), orderBy("uploaded_at", "desc"));
+    const snap = await getDocs(q);
+    const photos = snap.docs.map(d => {
+      const r = d.data();
+      return {
+        id:         r.public_id,
+        public_id:  r.public_id,
+        url:        r.url,
+        uploadedAt: r.uploaded_at,
+      };
+    });
     _photosCache = photos;
     _photosCacheTs = Date.now();
     return photos;
@@ -8369,7 +8359,7 @@ async function galleryFetchPhotos(forceRefresh = false) {
   }
 }
 
-// Upload lên Cloudinary, sau đó ghi metadata vào Supabase
+// Upload lên Cloudinary, sau đó ghi metadata vào Firestore
 async function cloudinaryUploadPhoto(file) {
   const fd = new FormData();
   fd.append("file", file);
@@ -8382,23 +8372,17 @@ async function cloudinaryUploadPhoto(file) {
   );
   if (!res.ok) throw new Error("Cloudinary upload failed");
   const data = await res.json();
-  // Ghi metadata vào Supabase gallery_photos
-  const dbRes = await fetch(`${SB_URL}/rest/v1/gallery_photos`, {
-    method: "POST",
-    headers: {
-      apikey: SB_KEY,
-      Authorization: `Bearer ${SB_KEY}`,
-      "Content-Type": "application/json",
-      Prefer: "return=minimal",
-    },
-    body: JSON.stringify({
+  // Ghi metadata vào Firestore gallery_photos (doc id = public_id)
+  try {
+    const db = await getFirestore();
+    const { doc, setDoc } = _fbHelpers;
+    await setDoc(doc(db, FB_GALLERY_COLLECTION, data.public_id), {
       public_id:   data.public_id,
       url:         data.secure_url,
       uploaded_at: data.created_at || new Date().toISOString(),
       uploaded_by: "admin",
-    }),
-  });
-  if (!dbRes.ok) console.warn("[92K] Supabase insert failed:", await dbRes.text());
+    });
+  } catch (e) { console.warn("[92K] Firestore gallery insert failed:", e); }
   return {
     id:        data.public_id,
     public_id: data.public_id,
@@ -8407,17 +8391,27 @@ async function cloudinaryUploadPhoto(file) {
   };
 }
 
-// Xóa thật qua Edge Function: Cloudinary destroy + DELETE gallery_photos cùng lúc
+// Xóa ảnh gallery: xóa metadata Firestore + gọi Cloudinary destroy qua unsigned delete
+// Lưu ý: Cloudinary unsigned delete chỉ hoạt động nếi preset được bật "Allow unsigned deletes"
+// Hoặc dùng Cloudinary API với delete_token (trả về khi upload với return_delete_token=1)
 async function cloudinaryDeletePhoto(public_id) {
-  const res = await fetch(`${SB_URL}/functions/v1/cloudinary-delete`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${SB_KEY}` },
-    body: JSON.stringify({ public_id }),
-  });
-  if (!res.ok) throw new Error(`Edge Function lỗi: ${res.status}`);
-  const data = await res.json();
-  if (data.result !== "ok" && data.result !== "not found") throw new Error(`Xóa thất bại: ${JSON.stringify(data)}`);
-  return data;
+  // 1. Xóa metadata khỏi Firestore
+  try {
+    const db = await getFirestore();
+    const { doc, deleteDoc } = _fbHelpers;
+    await deleteDoc(doc(db, FB_GALLERY_COLLECTION, public_id));
+  } catch (e) { console.warn("[92K] Firestore gallery delete failed:", e); }
+  // 2. Xóa ảnh khỏi Cloudinary (cần upload_preset hỗ trợ delete, hoặc dùng Admin API)
+  // Nếu chưa cấu hình Firebase Cloud Function, ảnh Cloudinary sẽ tự dọn định kỳ
+  try {
+    const fd = new FormData();
+    fd.append("public_id", public_id);
+    fd.append("upload_preset", UPLOAD_PRESET);
+    await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/destroy`, {
+      method: "POST", body: fd,
+    });
+  } catch (e) { console.warn("[92K] Cloudinary destroy failed:", e); }
+  return { result: "ok" };
 }
 
 // ── CLOUDINARY: Upload ảnh máy ảnh / phụ kiện ──
@@ -8437,15 +8431,15 @@ async function cloudinaryUploadAsset(file, folder = "92kamera_cameras") {
   return { url: data.secure_url, public_id: data.public_id };
 }
 
-// Xóa ảnh máy/phụ kiện khỏi Cloudinary qua Edge Function (không ghi DB)
+// Xóa ảnh máy/phụ kiện khỏi Cloudinary (không ghi DB vì không có metadata riêng)
 async function cloudinaryDeleteAsset(public_id) {
   try {
-    const res = await fetch(`${SB_URL}/functions/v1/cloudinary-delete`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${SB_KEY}` },
-      body: JSON.stringify({ public_id, skip_db: true }),
+    const fd = new FormData();
+    fd.append("public_id", public_id);
+    fd.append("upload_preset", UPLOAD_PRESET);
+    await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/destroy`, {
+      method: "POST", body: fd,
     });
-    if (!res.ok) console.warn("[92K] cloudinaryDeleteAsset failed:", res.status);
   } catch (e) {
     console.warn("[92K] cloudinaryDeleteAsset error:", e);
   }
@@ -8572,7 +8566,7 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
               Bấm hoặc kéo thả ảnh vào đây
             </div>
             <div style={{ color: MUT, fontSize: 11, marginTop: 4, fontFamily: "system-ui,sans-serif" }}>
-              Ảnh → Cloudinary CDN · Supabase không lưu gì về ảnh
+              Ảnh → Cloudinary CDN · Firestore lưu metadata nhẹ
             </div>
           </>
         )}
@@ -8865,7 +8859,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   // Track new unseen orders
   const unseenCount = orders.filter(o => !o.seen).length;
 
-  // ── REALTIME SYNC — Supabase WebSocket (instant) + fallback poll 30s ──
+  // ── REALTIME SYNC — Firestore onSnapshot (instant) + fallback poll 30s ──
   useEffect(() => {
     // Âm thanh thông báo đơn mới
     const playNotif = () => {
@@ -8894,18 +8888,15 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
           const incoming = data.filter(o => !deletedOrderIdsRef.current.has(o.id));
           const newOnes = incoming.filter(o => !prevMap.has(o.id));
           count = newOnes.length;
-          // Dọn entry cũ trong localOrderChangesRef
           const now = Date.now();
           for (const [id, ts] of localOrderChangesRef.current.entries()) {
             if (now - ts > LOCAL_LOCK_MS) localOrderChangesRef.current.delete(id);
           }
-          // Merge: CỐ ĐỊNH — không ghi đè order admin vừa đổi trong LOCAL_LOCK_MS
           const merged = prev.map(o => {
             const fresh = incoming.find(x => x.id === o.id);
             if (!fresh) return o;
             const locTs = localOrderChangesRef.current.get(o.id);
-            if (locTs && (now - locTs) < LOCAL_LOCK_MS) return o; // giữ bản local
-            // Giữ các field chỉ tồn tại local (không lưu Supabase)
+            if (locTs && (now - locTs) < LOCAL_LOCK_MS) return o;
             const localOnlyFields = {};
             if (o.cancelSeenByAdmin && !fresh.cancelSeenByAdmin) localOnlyFields.cancelSeenByAdmin = true;
             return { ...o, ...fresh, ...localOnlyFields };
@@ -8914,7 +8905,6 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
             setNewOrderIds(ids => new Set([...ids, ...newOnes.map(o => o.id)]));
             return [...newOnes.map(o => ({ ...o, seen: false })), ...merged];
           }
-          // Nếu có thay đổi status/field → trigger re-render
           const changed = prev.some(o => {
             const fresh = incoming.find(x => x.id === o.id);
             const locTs = localOrderChangesRef.current.get(o.id);
@@ -8925,7 +8915,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
         });
         return count;
       }
-      // photos không qua Supabase kv_store nữa — Cloudinary quản lý hoàn toàn
+      // photos không qua Firestore kv_store — Cloudinary quản lý hoàn toàn
       if (key === STORE_KEYS.feedbacks) {
         let count = 0;
         setFeedbacks(prev => {
@@ -8938,7 +8928,6 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
         return count;
       }
       if (key === STORE_KEYS.cameras) {
-        // Merge meta từ WS với images hiện có trong state
         setCameras(prev => {
           const imgMap = {};
           prev.forEach(c => { if (c.images?.length) imgMap[c.id] = c.images; });
@@ -8946,30 +8935,17 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
         });
         return 0;
       }
-      if (key === STORE_KEYS.accessories) {
-        setAccessories(data);
-        return 0;
-      }
-      if (key === STORE_KEYS.site) {
-        setSiteContent(data);
-        return 0;
-      }
-      if (key === STORE_KEYS.discounts) {
-        setDiscounts(data);
-        return 0;
-      }
+      if (key === STORE_KEYS.accessories) { setAccessories(data); return 0; }
+      if (key === STORE_KEYS.site)        { setSiteContent(data); return 0; }
+      if (key === STORE_KEYS.discounts)   { setDiscounts(data);   return 0; }
       return 0;
     };
 
-    // ── Supabase Realtime WebSocket ──
-    const WS_URL = SB_URL.replace("https://", "wss://") + "/realtime/v1/websocket?apikey=" + SB_KEY + "&vsn=1.0.0";
-    let ws, hb, retryT, dead = false, retryDelay = 5000, retryCount = 0;
-    const MAX_RETRY = 5; // sau 5 lần thất bại → chỉ dùng fallback poll, không retry WS nữa
-
-    // ── Adaptive poll: chỉ chạy khi WS chết ──
-    // WS sống → poll tắt hoàn toàn
-    // WS chết → poll 30s bật ngay để bù realtime
-    // WS sống lại → poll tắt lại
+    // ── Firestore onSnapshot listeners cho từng key quan trọng ──
+    // Chỉ lắng nghe orders + feedbacks + discounts (realtime critical)
+    // cameras/accessories/site: ít thay đổi → chỉ poll khi WS chết
+    let unsubs = [];
+    let dead = false;
     let fallbackPoll = null;
 
     const pollOnce = async () => {
@@ -8986,72 +8962,73 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
     };
 
     const startFallbackPoll = () => {
-      if (fallbackPoll) return; // đang chạy rồi
-      pollOnce(); // fetch ngay lập tức khi WS vừa chết
+      if (fallbackPoll) return;
+      pollOnce();
       fallbackPoll = setInterval(pollOnce, 30000);
     };
-
     const stopFallbackPoll = () => {
       if (!fallbackPoll) return;
-      clearInterval(fallbackPoll);
-      fallbackPoll = null;
+      clearInterval(fallbackPoll); fallbackPoll = null;
     };
 
-    const connectWithPoll = () => {
+    // Setup Firestore listeners sau khi SDK load xong
+    getFirestore().then((db) => {
       if (dead) return;
-      try { ws = new WebSocket(WS_URL); } catch { startFallbackPoll(); return; }
+      const { doc, onSnapshot } = _fbHelpers;
 
-      ws.onopen = () => {
-        retryDelay = 5000;
-        retryCount = 0; // reset khi kết nối thành công
-        stopFallbackPoll(); // WS sống → tắt poll
-        ws.send(JSON.stringify({
-          topic: "realtime:public:kv_store",
-          event: "phx_join",
-          payload: {
-            access_token: SB_KEY,
-            config: { postgres_changes: [{ event: "*", schema: "public", table: "kv_store" }] }
-          },
-          ref: "1",
-          join_ref: "1"
-        }));
-        hb = setInterval(() => {
-          if (ws.readyState === 1) ws.send(JSON.stringify({ topic: "phoenix", event: "heartbeat", payload: {}, ref: null }));
-        }, 25000);
-      };
+      // Lắng nghe doc orders
+      const unsubOrders = onSnapshot(
+        doc(db, FB_KV_COLLECTION, STORE_KEYS.orders),
+        (snap) => {
+          if (!snap.exists()) return;
+          stopFallbackPoll();
+          try {
+            const data = JSON.parse(snap.data().value);
+            const newCount = mergeData(STORE_KEYS.orders, data);
+            if (newCount > 0) playNotif();
+          } catch {}
+        },
+        () => startFallbackPoll() // error → fallback poll
+      );
 
-      ws.onmessage = (e) => {
-        try {
-          const msg = JSON.parse(e.data);
-          if (msg.event !== "postgres_changes") return;
-          const rec = msg.payload?.data?.record;
-          if (!rec?.key || !rec?.value) return;
-          const parsed = JSON.parse(rec.value);
-          const newCount = mergeData(rec.key, parsed);
-          if (rec.key === STORE_KEYS.orders && newCount > 0) playNotif();
-          if (rec.key === STORE_KEYS.feedbacks && newCount > 0) playNotif();
-        } catch {}
-      };
+      // Lắng nghe doc feedbacks
+      const unsubFeedbacks = onSnapshot(
+        doc(db, FB_KV_COLLECTION, STORE_KEYS.feedbacks),
+        (snap) => {
+          if (!snap.exists()) return;
+          try {
+            const data = JSON.parse(snap.data().value);
+            const newCount = mergeData(STORE_KEYS.feedbacks, data);
+            if (newCount > 0) playNotif();
+          } catch {}
+        },
+        () => {}
+      );
 
-      ws.onclose = () => {
-        clearInterval(hb);
-        if (!dead) {
-          startFallbackPoll(); // WS chết → bật poll 30s ngay
-          retryCount++;
-          if (retryCount <= MAX_RETRY) {
-            retryT = setTimeout(connectWithPoll, retryDelay);
-            retryDelay = Math.min(retryDelay * 1.5, 30000);
-          }
-          // Sau MAX_RETRY lần: không retry WS nữa, fallbackPoll tiếp tục lo
-        }
-      };
-      ws.onerror = () => ws.close();
+      // Lắng nghe doc discounts
+      const unsubDiscounts = onSnapshot(
+        doc(db, FB_KV_COLLECTION, STORE_KEYS.discounts),
+        (snap) => {
+          if (!snap.exists()) return;
+          try {
+            const data = JSON.parse(snap.data().value);
+            mergeData(STORE_KEYS.discounts, data);
+          } catch {}
+        },
+        () => {}
+      );
+
+      unsubs = [unsubOrders, unsubFeedbacks, unsubDiscounts];
+    }).catch(() => {
+      // Firestore load failed → fallback poll
+      startFallbackPoll();
+    });
+
+    return () => {
+      dead = true;
+      unsubs.forEach(u => u && u());
+      stopFallbackPoll();
     };
-
-    // ── DEBUG: connectWithPoll TẮT — không WS, không poll ──
-    // connectWithPoll();
-
-    return () => {};
   }, [setOrders, setFeedbacks]);
 
   // Mark orders as seen when entering orders tab
@@ -10705,8 +10682,8 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   );
 }
 
-// ── STORAGE HELPERS — Supabase Cloud (sync mọi thiết bị) ──
-// photos KHÔNG có trong STORE_KEYS — Cloudinary quản lý hoàn toàn, Supabase không biết
+// ── STORAGE HELPERS — Firebase Firestore (sync mọi thiết bị) ──
+// photos KHÔNG có trong STORE_KEYS — Cloudinary quản lý hoàn toàn, Firestore không biết
 const STORE_KEYS = { cameras: "k92_cameras_v2", accessories: "k92_accessories_v2", orders: "k92_orders_v2", site: "k92_site_v2", feedbacks: "k92_feedbacks_v1", users: "k92_users_v1", discounts: "k92_discounts_v1", albums: "k92_albums_v1", deliveryFees: "k92_delivery_fees_v1" };
 
 // ── DANH SÁCH KHU VỰC VÀ PHÍ GIAO NHẬN MẶC ĐỊNH (phí 2 chiều) ──
@@ -10743,19 +10720,35 @@ const DELIVERY_AREAS_DEFAULT = [
 ];
 
 // ── STATIC DATA LOADER ──────────────────────────────────────────────────────
-// Luồng: mở app → fetch /data.json 1 lần từ Vercel CDN (0 request Supabase)
-// Chỉ khi file lỗi mới fallback về Supabase trực tiếp.
-// Khi admin ghi đơn → Supabase webhook → GitHub Action → cập nhật data.json tự động.
+// Luồng: mở app → fetch /data.json 1 lần từ Vercel CDN (0 request Firestore)
+// Chỉ khi file lỗi mới fallback về Firestore trực tiếp.
 const STATIC_DATA_URL = "/data.json";
-const STATIC_CACHE_MS = 90 * 1000; // 90 giây — đủ để tránh spam CDN, đủ fresh cho booking
+const STATIC_CACHE_MS = 90 * 1000;
 let _staticDataCache = null;
 let _staticDataPromise = null;
 
-// ── DEBUG: getStaticData TẮT ──
-async function getStaticData(forceRefresh = false) { return null; }
+async function getStaticData(forceRefresh = false) {
+  if (!forceRefresh && _staticDataCache && (Date.now() - _staticDataCache.ts) < STATIC_CACHE_MS) {
+    return _staticDataCache.data;
+  }
+  if (_staticDataPromise) return _staticDataPromise;
+  _staticDataPromise = (async () => {
+    try {
+      const res = await fetch(`${STATIC_DATA_URL}?_t=${Date.now()}`, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      _staticDataCache = { data, ts: Date.now() };
+      return data;
+    } catch (err) {
+      console.warn("[92K] ⚠️ Static data load failed, fallback Firestore:", err.message);
+      return null;
+    } finally {
+      _staticDataPromise = null;
+    }
+  })();
+  return _staticDataPromise;
+}
 
-// Bust static cache (cameras/accessories/site) khi cần force refresh CDN
-// Orders không cần — luôn fetch Supabase thẳng, không qua CDN
 function invalidateStaticCache() {
   _staticDataCache = null;
   _staticDataPromise = null;
@@ -10763,67 +10756,101 @@ function invalidateStaticCache() {
 window.__92k_invalidateStaticCache = invalidateStaticCache;
 // ── END STATIC DATA LOADER ───────────────────────────────────────────────────
 
-const SB_URL = "https://gtgjixgcillbjwnnkavx.supabase.co";
-const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Z2ppeGdjaWxsYmp3bm5rYXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5OTg4MzMsImV4cCI6MjA5MjU3NDgzM30.iFh0KP4vrTZUDMrakW1a9nM8naJScP-D1WqJKrH0hiI";
-const SB_TABLE = "kv_store";
-const SB_HEADERS = { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Content-Type": "application/json", "Prefer": "resolution=merge-duplicates" };
-// ── ARCHITECTURE: Phân chia rõ ràng ──
-// Supabase kv_store → đơn hàng, máy ảnh, phụ kiện, feedback text, users (dữ liệu nghiệp vụ)
-// Cloudinary       → ảnh gallery feedback (binary file, CDN, optimize tự động)
-// Supabase KHÔNG lưu binary ảnh — chỉ lưu metadata nhẹ: [{ id, public_id, url, uploadedAt }]
+// ── FIREBASE FIRESTORE CONFIG ──
+// Dùng Firebase JS SDK v9+ compat via CDN (importmap / dynamic import)
+// Collection: kv_store  — doc id = key, fields: { value: string, updated_at: string }
+// Collection: gallery_photos — doc id = public_id, fields: { public_id, url, uploaded_at, uploaded_by }
+const FB_CONFIG = {
+  apiKey:            "AIzaSyCwsR5eFqeV7hEBNwPi5Jl76fyceCC40TQ",
+  authDomain:        "kamera-a88d1.firebaseapp.com",
+  projectId:         "kamera-a88d1",
+  storageBucket:     "kamera-a88d1.firebasestorage.app",
+  messagingSenderId: "960787597336",
+  appId:             "1:960787597336:web:32b80b9fc0150cf12f9b6d",
+  measurementId:     "G-D8R7YTY42S",
+};
+const FB_KV_COLLECTION       = "kv_store";
+const FB_GALLERY_COLLECTION  = "gallery_photos";
 
-// ── CACHE TTL theo loại data ──
-// orders: KHÔNG cache — WebSocket realtime lo, luôn fetch fresh
-// cameras/accs/site/albums/discounts/feedbacks: 60 phút (ít thay đổi)
-const CACHE_TTL_MS = 60 * 60 * 1000;          // default 60 phút
-function cacheKey(key) { return `__ts_${key}`; }
-function isCacheFresh(key) {
+// ── Firebase SDK bootstrap (lazy — chỉ load 1 lần) ──
+let _fbApp = null, _fbDb = null;
+let _fbInitPromise = null;
+
+async function getFirestore() {
+  if (_fbDb) return _fbDb;
+  if (_fbInitPromise) return _fbInitPromise;
+  _fbInitPromise = (async () => {
+    // Dynamic import Firebase SDK từ CDN
+    const { initializeApp, getApps } = await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js");
+    const { getFirestore: _getFs, doc, getDoc, setDoc, updateDoc,
+            collection, getDocs, deleteDoc, onSnapshot,
+            runTransaction, serverTimestamp, query, orderBy }
+      = await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js");
+
+    // Tránh duplicate app khi hot-reload
+    _fbApp = getApps().length ? getApps()[0] : initializeApp(FB_CONFIG);
+    _fbDb  = _getFs(_fbApp);
+
+    // Gắn helpers lên module-level object để dùng ở mọi hàm
+    _fbHelpers = { doc, getDoc, setDoc, updateDoc, collection, getDocs, deleteDoc, onSnapshot, runTransaction, serverTimestamp, query, orderBy };
+    return _fbDb;
+  })();
+  return _fbInitPromise;
+}
+let _fbHelpers = null;
+
+// ── ARCHITECTURE: Phân chia rõ ràng ──
+// Firestore kv_store       → đơn hàng, máy ảnh, phụ kiện, feedback text, users (dữ liệu nghiệp vụ)
+// Firestore gallery_photos → metadata ảnh gallery (public_id, url, uploaded_at)
+// Cloudinary               → binary ảnh (CDN, optimize tự động)
+
+// ── CACHE TTL ──
+// orders: KHÔNG cache — Firestore onSnapshot lo, luôn fresh
+// cameras/accs/site/albums/discounts/feedbacks: 60 phút
+const CACHE_TTL_MS = 60 * 60 * 1000;
+function cacheKey(k) { return `__ts_${k}`; }
+function isCacheFresh(k) {
   try {
-    // orders không bao giờ dùng cache — phải luôn fresh
-    if (key === STORE_KEYS.orders) return false;
-    const ts = localStorage.getItem(cacheKey(key));
+    if (k === STORE_KEYS.orders) return false;
+    const ts = localStorage.getItem(cacheKey(k));
     if (!ts) return false;
     return (Date.now() - parseInt(ts)) < CACHE_TTL_MS;
   } catch { return false; }
 }
-function markCacheFresh(key) {
-  try { localStorage.setItem(cacheKey(key), String(Date.now())); } catch {}
+function markCacheFresh(k) {
+  try { localStorage.setItem(cacheKey(k), String(Date.now())); } catch {}
 }
-function invalidateCache(key) {
-  try { localStorage.removeItem(cacheKey(key)); } catch {}
+function invalidateCache(k) {
+  try { localStorage.removeItem(cacheKey(k)); } catch {}
 }
 
+// ── GET — đọc 1 doc từ kv_store ──
 async function storageGet(key, forceRefresh = false) {
+  // 1. localStorage cache
   if (!forceRefresh && isCacheFresh(key)) {
     try { const r = localStorage.getItem(key); if (r) return JSON.parse(r); } catch {}
   }
+  // 2. Fetch từ Firestore
   try {
-    const controller = new AbortController();
-    const tid = setTimeout(() => controller.abort(), 3000); // timeout 3s — không chờ Supabase mãi
-    const res = await fetch(`${SB_URL}/rest/v1/${SB_TABLE}?key=eq.${encodeURIComponent(key)}&select=value`, {
-      headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` },
-      signal: controller.signal
-    });
-    clearTimeout(tid);
-    if (res.ok) {
-      const rows = await res.json();
-      if (rows.length > 0) {
-        try { localStorage.setItem(key, rows[0].value); } catch {}
-        markCacheFresh(key);
-        return JSON.parse(rows[0].value);
-      }
+    const db = await getFirestore();
+    const { doc, getDoc } = _fbHelpers;
+    const snap = await getDoc(doc(db, FB_KV_COLLECTION, key));
+    if (snap.exists()) {
+      const raw = snap.data().value;
+      try { localStorage.setItem(key, raw); } catch {}
+      markCacheFresh(key);
+      return JSON.parse(raw);
     }
-  } catch {}
-  // Fallback localStorage
+  } catch (e) { console.warn("[92K fb] storageGet failed:", key, e); }
+  // 3. Fallback localStorage
   try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : null; } catch { return null; }
 }
 
-// ── WRITE ERROR TOAST — hiện thông báo khi Supabase write thất bại ──
-// Dùng module-level throttle → không spam nhiều toast cùng lúc
+// ── WRITE ERROR TOAST ──
 let _writeErrToastTs = 0;
 function showWriteErrToast(key) {
   const now = Date.now();
-  if (now - _writeErrToastTs < 8000) return; // throttle 8s
+  if (now - _writeErrToastTs < 8000) return;
   _writeErrToastTs = now;
   const label = key === "k92_orders_v2" ? "dữ liệu đơn hàng" :
                 key === "k92_cameras_v2" ? "máy ảnh" :
@@ -10843,30 +10870,86 @@ function showWriteErrToast(key) {
   setTimeout(() => el.remove(), 5000);
 }
 
-// ── DEBUG: storageSet — TẮT SUPABASE, chỉ ghi localStorage ──
+// ── DEBOUNCE WRITE ──
 const _writeTimers = {};
 function storageSet(key, val) {
-  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+  const value = JSON.stringify(val);
+  try { localStorage.setItem(key, value); } catch {}
+  markCacheFresh(key);
+  const debounceMs = key === STORE_KEYS.orders ? 800 : 2000;
+  clearTimeout(_writeTimers[key]);
+  _writeTimers[key] = setTimeout(async () => {
+    try {
+      const db = await getFirestore();
+      const { doc, setDoc } = _fbHelpers;
+      await setDoc(doc(db, FB_KV_COLLECTION, key), {
+        value,
+        updated_at: new Date().toISOString(),
+      });
+      markCacheFresh(key);
+    } catch (e) {
+      console.warn("[92K fb] storageSet failed:", key, e);
+      showWriteErrToast(key);
+    }
+  }, debounceMs);
 }
 
-// ── DEBUG: storageSetImmediate — TẮT SUPABASE ──
+// ── IMMEDIATE WRITE — không debounce, dùng khi submit đơn ──
 async function storageSetImmediate(key, val) {
-  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+  const value = JSON.stringify(val);
+  try { localStorage.setItem(key, value); } catch {}
+  invalidateCache(key);
+  const db = await getFirestore();
+  const { doc, setDoc } = _fbHelpers;
+  await setDoc(doc(db, FB_KV_COLLECTION, key), {
+    value,
+    updated_at: new Date().toISOString(),
+  });
+  markCacheFresh(key);
 }
 
-// ── DEBUG: storageGetWithMeta — TẮT SUPABASE ──
+// ── GET WITH META — dùng cho compare-and-swap (CAS) ──
 async function storageGetWithMeta(key) {
-  try {
-    const r = localStorage.getItem(key);
-    const value = r ? JSON.parse(r) : null;
-    return { value, updatedAt: null, exists: !!value };
-  } catch { return { value: null, updatedAt: null, exists: false }; }
+  const db = await getFirestore();
+  const { doc, getDoc } = _fbHelpers;
+  const snap = await getDoc(doc(db, FB_KV_COLLECTION, key));
+  if (!snap.exists()) return { value: null, updatedAt: null, exists: false };
+  const data = snap.data();
+  try { localStorage.setItem(key, data.value); } catch {}
+  markCacheFresh(key);
+  return { value: JSON.parse(data.value), updatedAt: data.updated_at || null, exists: true };
 }
 
-// ── DEBUG: storageCasSet — TẮT SUPABASE ──
+// ── CAS SET — compare-and-swap: chỉ ghi nếu updated_at khớp với expectedUpdatedAt ──
+// Dùng Firestore transaction để đảm bảo atomic
 async function storageCasSet(key, val, expectedUpdatedAt) {
-  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
-  return true;
+  const value = JSON.stringify(val);
+  const nextUpdatedAt = new Date().toISOString();
+  const db = await getFirestore();
+  const { doc, runTransaction } = _fbHelpers;
+  const ref = doc(db, FB_KV_COLLECTION, key);
+
+  if (!expectedUpdatedAt) {
+    // Insert mới — setDoc đơn giản
+    await _fbHelpers.setDoc(ref, { value, updated_at: nextUpdatedAt });
+    try { localStorage.setItem(key, value); } catch {}
+    invalidateCache(key); markCacheFresh(key);
+    return true;
+  }
+
+  // CAS: chỉ ghi nếu updated_at hiện tại = expectedUpdatedAt
+  const success = await runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists()) return false;
+    if (snap.data().updated_at !== expectedUpdatedAt) return false;
+    tx.set(ref, { value, updated_at: nextUpdatedAt });
+    return true;
+  });
+  if (success) {
+    try { localStorage.setItem(key, value); } catch {}
+    invalidateCache(key); markCacheFresh(key);
+  }
+  return success;
 }
 
 async function rollbackDiscountUsage(discountId) {
@@ -11007,11 +11090,8 @@ function FlowBg() {
     raf = requestAnimationFrame(draw);
 
     const onVisibility = () => {
-      if (document.hidden) {
-        cancelAnimationFrame(raf); raf = null;
-      } else {
-        if (!raf) raf = requestAnimationFrame(draw);
-      }
+      if (document.hidden) cancelAnimationFrame(raf);
+      else { raf = requestAnimationFrame(draw); }
     };
     document.addEventListener("visibilitychange", onVisibility);
 
@@ -11268,15 +11348,7 @@ function AppRoot() {
   const setAlbums = useCallback((updater) => {
     _setAlbums(prev => {
       const next = typeof updater === "function" ? updater(prev) : updater;
-      if (next !== prev) setTimeout(() => {
-        // Strip photos array trước khi ghi Supabase — ảnh do Cloudinary quản lý
-        // Lưu photoIds để rehydrate lại sau khi load
-        const slim = (next || []).map(({ photos: _photos, ...meta }) => ({
-          ...meta,
-          photoIds: (_photos || []).map(p => p.id),
-        }));
-        storageSet(STORE_KEYS.albums, slim);
-      }, 0);
+      if (next !== prev) setTimeout(() => storageSet(STORE_KEYS.albums, next), 0);
       return next;
     });
   }, []);
@@ -11364,17 +11436,9 @@ function AppRoot() {
               return [...fresh, ...staticData.feedbacks];
             });
           }
+          if (staticData.albums) _setAlbums(staticData.albums);
           const pts = await galleryFetchPhotos();
           if (pts.length > 0) _setPhotos(pts);
-          // Rehydrate albums: gắn lại photos từ photoIds sau khi đã có danh sách photos
-          if (staticData.albums) {
-            const photoMap = Object.fromEntries((pts || []).map(p => [p.id, p]));
-            const rehydrated = staticData.albums.map(alb => ({
-              ...alb,
-              photos: (alb.photoIds || []).map(id => photoMap[id]).filter(Boolean),
-            }));
-            _setAlbums(rehydrated);
-          }
         }, 4000);
 
         // Users từ Supabase — PII, không export ra file tĩnh
@@ -11385,7 +11449,7 @@ function AppRoot() {
 
       } else {
         // ── Fallback: data.json lỗi → fetch catalog từ Supabase ──
-        console.warn("[92K] data.json lỗi, fallback Supabase cho catalog");
+        console.warn("[92K] data.json lỗi, fallback Firestore cho catalog");
         const [cams, accs, site, disc] = await Promise.all([
           loadCamerasFromStorage(),
           storageGet(STORE_KEYS.accessories),
@@ -11415,15 +11479,7 @@ function AppRoot() {
           const pts = await galleryFetchPhotos();
           if (pts.length > 0) _setPhotos(pts);
           const albs = await storageGet(STORE_KEYS.albums);
-          // Rehydrate albums: gắn lại photos từ photoIds sau khi đã có danh sách photos
-          if (albs) {
-            const photoMap = Object.fromEntries((pts || []).map(p => [p.id, p]));
-            const rehydrated = albs.map(alb => ({
-              ...alb,
-              photos: (alb.photoIds || []).map(id => photoMap[id]).filter(Boolean),
-            }));
-            _setAlbums(rehydrated);
-          }
+          if (albs) _setAlbums(albs);
         }, 4000);
         setTimeout(async () => {
           const usrs = await storageGet(STORE_KEYS.users);
@@ -11473,8 +11529,6 @@ function AppRoot() {
         /* GPU compositing layers cho các element animate nhiều */
         .nav92, .nav-inner, .btn-3d { will-change: transform; }
         .lens-float-wrap { will-change: transform; transform: translateZ(0); }
-        /* Pause toàn bộ CSS animation khi tab bị ẩn — tránh Chrome throttle/suspend */
-        .tab-hidden * { animation-play-state: paused !important; }
         /* Mobile scroll performance */
         html { -webkit-overflow-scrolling: touch; }
         .cv-section { content-visibility: auto; contain-intrinsic-size: 0 600px; }
