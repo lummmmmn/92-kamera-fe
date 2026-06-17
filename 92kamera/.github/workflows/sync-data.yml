@@ -1,36 +1,39 @@
-name: Sync Supabase data
+name: Sync data.json từ Firestore
 
 on:
   schedule:
     - cron: "*/15 * * * *"
-  workflow_dispatch:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-data
+  cancel-in-progress: false
 
 jobs:
-  export:
+  sync:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: 20
 
-      - name: Export data
+      - name: Cài firebase-admin
+        run: npm install firebase-admin@12 --no-save
+
+      - name: Generate data.json
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-        run: node scripts/export-data.js
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+        run: node scripts/sync-data.js
 
-      - name: Commit if changed
+      - name: Commit & push nếu data.json thay đổi
         run: |
-          git config user.name "92kamera-bot"
-          git config user.email "bot@92kamera.vercel.app"
+          git config user.name "92k-sync-bot"
+          git config user.email "sync-bot@92kamera.com"
           git add public/data.json
-          if git diff --staged --quiet; then
-            echo "No changes"
-          else
-            git commit -m "chore: sync data $(date -u '+%Y-%m-%d %H:%M UTC')"
-            git push
-          fi
+          git diff --staged --quiet || git commit -m "chore: sync data.json [skip ci]"
+          git push
