@@ -1782,11 +1782,25 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
 // ── FEEDBACK CARD
 // ── FEEDBACK CARD (text-only, không ảnh) ──
 // ── FEEDBACK MARQUEE — dải băng chạy ngang ──
-function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
+function FeedbackMarquee({ photos, albums, feedbacks, isMobile, onNeedPhotos, onNeedFullPhotos }) {
   const [paused, setPaused] = useState(false);
   const [lightbox, setLightbox] = useState(null); // index ảnh rời
   const [openAlbum, setOpenAlbum] = useState(null); // album object
   const [showAllAlbums, setShowAllAlbums] = useState(false);
+
+  // ── Lazy trigger: gọi onNeedPhotos() khi mục này sắp lọt vào viewport ──
+  // rootMargin 500px → bắt đầu fetch trước khi khách cuộn tới, tránh giật/trống ảnh.
+  const sectionRef = useRef(null);
+  useEffect(() => {
+    if (!onNeedPhotos) return;
+    const el = sectionRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { onNeedPhotos(); obs.disconnect(); }
+    }, { rootMargin: "500px 0px" });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [onNeedPhotos]);
 
   const cards = (feedbacks || [])
     .filter(f => f.status === "approved" && !f.hidden)
@@ -1812,7 +1826,7 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
   const swipeTouch = useRef(null);
 
   if (total === 0 && !hasAlbums && !hasPhotos) return (
-    <div id="feedback" className="home-section" style={{ padding: "72px 16px 64px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28,
+    <div id="feedback" ref={sectionRef} className="home-section" style={{ padding: "72px 16px 64px", margin: isMobile ? "20px 12px" : "32px 20px", borderRadius: 28,
       border: "none",
       boxShadow: "0 1px 0 rgba(255,255,255,0.55) inset, 0 -1px 0 rgba(13,27,42,0.08) inset, 0 4px 6px rgba(13,27,42,0.06) inset, 0 16px 64px rgba(5,17,31,0.20), 0 4px 18px rgba(5,17,31,0.12), 0 0 0 1px rgba(13,27,42,0.07)",
       background: isMobile ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.13)", backdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", WebkitBackdropFilter: isMobile ? "none" : "blur(52px) saturate(180%) brightness(1.04)", textAlign: "center" }}>
@@ -1856,7 +1870,7 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
   );
 
   return (
-    <div id="feedback" className="home-section" style={{ padding: isMobile ? "48px 0 44px" : "72px 0 64px", margin: isMobile ? "16px 0" : "32px 20px", background: "transparent", boxShadow: "none", border: "none", overflow: "hidden", position: "relative" }}>
+    <div id="feedback" ref={sectionRef} className="home-section" style={{ padding: isMobile ? "48px 0 44px" : "72px 0 64px", margin: isMobile ? "16px 0" : "32px 20px", background: "transparent", boxShadow: "none", border: "none", overflow: "hidden", position: "relative" }}>
       <style>{`@keyframes marqueeRun{0%{transform:translateX(0)}100%{transform:translateX(-50%)}} .marquee-band{will-change:transform;} .gal-thumb:hover .gal-overlay{opacity:1!important;} .gal-thumb:hover img{transform:scale(1.06);}
       .fb-swipe-card{transition:transform .35s cubic-bezier(.25,.46,.45,.94),opacity .35s ease;}`}</style>
 
@@ -2097,7 +2111,7 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
           {!hasAlbums && hasPhotos && (
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: isMobile ? 8 : 10 }}>
               {photosArr.map((p, i) => (
-                <div key={p.id || i} className="gal-thumb" onClick={() => setLightbox(i)} style={{
+                <div key={p.id || i} className="gal-thumb" onClick={() => { onNeedFullPhotos?.(); setLightbox(i); }} style={{
                   position: "relative", borderRadius: isMobile ? 12 : 16, overflow: "hidden", aspectRatio: "1/1", cursor: "pointer",
                   background: "rgba(13,27,42,0.08)", boxShadow: "0 2px 12px rgba(5,17,31,0.12)",
                 }}>
@@ -6510,7 +6524,7 @@ function RoadmapCards({ isMobile }) {
   );
 }
 
-function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, isMobile, photos, albums, feedbacks, loggedUser, onOpenLogin, onOpenCustomer }) {
+function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, isMobile, photos, albums, feedbacks, loggedUser, onOpenLogin, onOpenCustomer, onNeedPhotos, onNeedFullPhotos }) {
   const [scrollY, setScrollY] = useState(0);
   const [scrollDir, setScrollDir] = useState("up");
   const prevScrollY = useRef(0);
@@ -7029,7 +7043,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       <QuyTrinh6Buoc isMobile={isMobile} />
 
       {/* CUSTOMER PHOTO FEED */}
-      <FeedbackMarquee photos={photos || []} albums={albums || []} feedbacks={feedbacks || []} isMobile={isMobile} />
+      <FeedbackMarquee photos={photos || []} albums={albums || []} feedbacks={feedbacks || []} isMobile={isMobile} onNeedPhotos={onNeedPhotos} onNeedFullPhotos={onNeedFullPhotos} />
 
       {/* ABOUT — Lộ Trình Phát Triển */}
       <div id="about" className="acc-section" style={{
@@ -8329,17 +8343,25 @@ function cdnUrl(url, mode = "thumb") {
 // Cache ảnh gallery 10 phút — ảnh ít thay đổi, không cần fetch mỗi lần load trang
 let _photosCache = null;
 let _photosCacheTs = 0;
+let _photosCacheLimit = 0; // limit đã dùng để fetch lần gần nhất — quyết định cache có đủ dùng không
 const PHOTOS_CACHE_MS = 10 * 60 * 1000;
+const PHOTOS_PREVIEW_LIMIT = 12; // đủ cho lưới thumbnail — fetch khi khách cuộn tới mục feedback
+const PHOTOS_FULL_LIMIT = 200;   // đủ cho lightbox/album — chỉ fetch khi khách bấm xem ảnh
 
 // Fetch từ Firestore gallery_photos (nguồn sự thật, đồng bộ mọi thiết bị)
-async function galleryFetchPhotos(forceRefresh = false) {
-  if (!forceRefresh && _photosCache && (Date.now() - _photosCacheTs) < PHOTOS_CACHE_MS) {
+// limitCount mặc định = FULL — admin (GalleryUpload/AlbumManager) gọi không truyền tham số vẫn ra full như cũ.
+// Trang khách gọi tường minh PHOTOS_PREVIEW_LIMIT ở tầng 1 (lazy), rồi PHOTOS_FULL_LIMIT ở tầng 2 (khi bấm ảnh).
+async function galleryFetchPhotos(forceRefresh = false, limitCount = PHOTOS_FULL_LIMIT) {
+  const cacheFresh = _photosCache && (Date.now() - _photosCacheTs) < PHOTOS_CACHE_MS;
+  // Cache chỉ dùng được nếu lần fetch trước đó đã lấy ĐỦ hoặc NHIỀU HƠN số lượng đang cần
+  if (!forceRefresh && cacheFresh && _photosCacheLimit >= limitCount) {
     return _photosCache;
   }
   try {
     const db = await getFirestore();
-    const { collection, getDocs, query, orderBy } = _fbHelpers;
-    const q = query(collection(db, FB_GALLERY_COLLECTION), orderBy("uploaded_at", "desc"));
+    const { collection, getDocs, query, orderBy, limit } = _fbHelpers;
+    // GIỚI HẠN limitCount ảnh mới nhất — tránh đọc toàn bộ collection khi gallery phình to.
+    const q = query(collection(db, FB_GALLERY_COLLECTION), orderBy("uploaded_at", "desc"), limit(limitCount));
     const snap = await getDocs(q);
     const photos = snap.docs.map(d => {
       const r = d.data();
@@ -8352,6 +8374,7 @@ async function galleryFetchPhotos(forceRefresh = false) {
     });
     _photosCache = photos;
     _photosCacheTs = Date.now();
+    _photosCacheLimit = limitCount;
     return photos;
   } catch (e) {
     console.warn("[92K] galleryFetchPhotos failed:", e);
@@ -10784,7 +10807,7 @@ async function getFirestore() {
     const { initializeApp, getApps } = await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js");
     const { getFirestore: _getFs, doc, getDoc, setDoc, updateDoc,
             collection, getDocs, deleteDoc, onSnapshot,
-            runTransaction, serverTimestamp, query, orderBy }
+            runTransaction, serverTimestamp, query, orderBy, limit }
       = await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js");
 
     // Tránh duplicate app khi hot-reload
@@ -10792,7 +10815,7 @@ async function getFirestore() {
     _fbDb  = _getFs(_fbApp);
 
     // Gắn helpers lên module-level object để dùng ở mọi hàm
-    _fbHelpers = { doc, getDoc, setDoc, updateDoc, collection, getDocs, deleteDoc, onSnapshot, runTransaction, serverTimestamp, query, orderBy };
+    _fbHelpers = { doc, getDoc, setDoc, updateDoc, collection, getDocs, deleteDoc, onSnapshot, runTransaction, serverTimestamp, query, orderBy, limit };
     return _fbDb;
   })();
   return _fbInitPromise;
@@ -11345,6 +11368,28 @@ function AppRoot() {
     });
   }, []);
 
+  // ── Lazy-load gallery photos — 2 TẦNG ──
+  // Tầng 1: fetch PREVIEW_LIMIT (12 ảnh) khi mục feedback/gallery sắp vào viewport.
+  // Tầng 2: fetch FULL_LIMIT (200 ảnh) chỉ khi khách thật sự bấm vào ảnh để xem lightbox.
+  const _photosLoadedRef = useRef(false);     // đã fetch tầng 1 chưa
+  const _photosFullLoadedRef = useRef(false); // đã fetch tầng 2 (full) chưa
+  const loadGalleryPhotosLazy = useCallback(async () => {
+    if (_photosLoadedRef.current) return; // guard — chỉ chạy 1 lần / session
+    _photosLoadedRef.current = true;
+    try {
+      const pts = await galleryFetchPhotos(false, PHOTOS_PREVIEW_LIMIT);
+      if (pts.length > 0) _setPhotos(pts);
+    } catch {}
+  }, []);
+  const loadGalleryPhotosFull = useCallback(async () => {
+    if (_photosFullLoadedRef.current) return; // guard — chỉ chạy 1 lần / session
+    _photosFullLoadedRef.current = true;
+    try {
+      const pts = await galleryFetchPhotos(false, PHOTOS_FULL_LIMIT);
+      if (pts.length > 0) _setPhotos(pts);
+    } catch {}
+  }, []);
+
   const setAlbums = useCallback((updater) => {
     _setAlbums(prev => {
       const next = typeof updater === "function" ? updater(prev) : updater;
@@ -11386,8 +11431,10 @@ function AppRoot() {
   }, []);
 
   // ── On mount: load data song song ──
-  // Catalog (cameras/accessories/site/discounts): /data.json CDN → 0 Supabase request
-  // Orders: Supabase thẳng LUÔN LUÔN → fresh 100%, không lag GitHub Action
+  // Catalog (cameras/accessories/site/discounts/feedbacks/albums/deliveryFees + photos):
+  // /data.json CDN → 0 Firestore request. File này do GitHub Action sync-data.yml
+  // generate mỗi 15 phút từ Firestore (xem scripts/sync-data.js).
+  // Orders: Firestore thẳng LUÔN LUÔN → fresh 100%, không lag GitHub Action
   // Tách riêng vì orders cần chính xác realtime (tránh double booking, khách tra cứu đúng)
   useEffect(() => {
     setReady(true);
@@ -11422,10 +11469,11 @@ function AppRoot() {
         if (site) _setSiteContent(site);
         if (disc) _setDiscounts(disc);
 
-        // Load delivery fees từ Supabase (không có trong staticData)
-        storageGet(STORE_KEYS.deliveryFees).then(fees => {
-          if (fees && Array.isArray(fees) && fees.length > 0) _setDeliveryFees(fees);
-        }).catch(() => {});
+        // Delivery fees giờ nằm trong data.json (1 trong 7 key export từ kv_store)
+        // → không gọi Firestore riêng nữa, đỡ 1 read/khách
+        if (staticData.deliveryFees && Array.isArray(staticData.deliveryFees) && staticData.deliveryFees.length > 0) {
+          _setDeliveryFees(staticData.deliveryFees);
+        }
 
         // Lazy sau 4s: feedbacks + photos + albums
         setTimeout(async () => {
@@ -11437,8 +11485,8 @@ function AppRoot() {
             });
           }
           if (staticData.albums) _setAlbums(staticData.albums);
-          const pts = await galleryFetchPhotos();
-          if (pts.length > 0) _setPhotos(pts);
+          // Photos: KHÔNG fetch ở đây nữa — đợi loadGalleryPhotosLazy() khi khách
+          // cuộn gần tới mục feedback/gallery (xem onNeedPhotos trong FeedbackMarquee).
         }, 4000);
 
         // Users từ Supabase — PII, không export ra file tĩnh
@@ -11891,6 +11939,8 @@ function AppRoot() {
           photos={photos}
           albums={albums}
           feedbacks={feedbacks}
+          onNeedPhotos={loadGalleryPhotosLazy}
+          onNeedFullPhotos={loadGalleryPhotosFull}
           loggedUser={loggedUser}
           onOpenLogin={() => setLoginOpen(true)}
           onOpenCustomer={() => { if (loggedUser) setPage("customer"); else setLoginOpen(true); }}
