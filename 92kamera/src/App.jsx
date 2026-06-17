@@ -10798,9 +10798,13 @@ async function storageGet(key, forceRefresh = false) {
     try { const r = localStorage.getItem(key); if (r) return JSON.parse(r); } catch {}
   }
   try {
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 3000); // timeout 3s — không chờ Supabase mãi
     const res = await fetch(`${SB_URL}/rest/v1/${SB_TABLE}?key=eq.${encodeURIComponent(key)}&select=value`, {
-      headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` }
+      headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` },
+      signal: controller.signal
     });
+    clearTimeout(tid);
     if (res.ok) {
       const rows = await res.json();
       if (rows.length > 0) {
@@ -10810,6 +10814,7 @@ async function storageGet(key, forceRefresh = false) {
       }
     }
   } catch {}
+  // Fallback localStorage
   try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : null; } catch { return null; }
 }
 
