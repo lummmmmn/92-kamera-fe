@@ -5,7 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 let _camIdNum = 100;
 
 // ── SHA-256 — dùng Web Crypto API (sẵn có trong browser, không cần thư viện) ──
-// Lưu hash thay v�� plaintext → ai đọc được Supabase cũng không biết password gốc
+// Lưu hash thay vì plaintext — ai đọc được Firestore cũng không biết password gốc
 async function sha256(str) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
@@ -86,7 +86,7 @@ const sessionConflicts = (oSession, targetSession) => {
 
 // getAvailQty: trả về số lượng còn lại cho 1 item trong 1 ngày + session
 const getAvailQty = (camId, camQty, orders, targetDate, targetSession) => {
-  // Orders luôn đến từ Supabase thẳng (không qua data.json) → tính runtime luôn đúng
+  // Orders luôn đến từ Firestore thẳng (không qua data.json) → tính runtime luôn đúng
   const active = ["pending", "confirmed", "active"];
   let used = 0;
   orders.filter(o => active.includes(o.status)).forEach(o => {
@@ -2540,8 +2540,8 @@ function CustomerPage({ loggedUser, setLoggedUser, orders, setOrders, feedbacks,
     try {
       const fresh = await storageGet(STORE_KEYS.orders, true);
       if (fresh && Array.isArray(fresh)) {
-        // BUG-E FIX: skipStorage=true — đây là sync từ Supabase về local state.
-        // Nếu không skip, setOrders wrapper sẽ ghi ngược lại Supabase và overwrite
+        // BUG-E FIX: skipStorage=true — đây là sync từ Firestore về local state.
+        // Nếu không skip, setOrders wrapper sẽ ghi ngược lại Firestore và overwrite
         // các đơn mới được tạo trong window 500ms debounce.
         setOrders(prev => {
           const freshIds = new Set(fresh.map(o => o.id));
@@ -3577,7 +3577,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
   // chưa có gì → step 1
   const initialStep = noDate ? 2 : !hasQuickSelect ? 1 : 3;
   const [step, setStep] = useState(initialStep);
-  // BUG-C FIX: liveOrdersForCheck — orders fresh từ Supabase, fetch khi vào step 2.
+  // BUG-C FIX: liveOrdersForCheck — orders fresh từ Firestore, fetch khi vào step 2.
   // Tránh blockingItems và auto-clamp dùng local state stale → UI báo "còn hàng" nhưng thực ra hết.
   const [liveOrdersForCheck, setLiveOrdersForCheck] = useState(orders);
   // BUG-STALE FIX: fetch fresh + polling 30s trong suốt thời gian ở step 2
@@ -3817,7 +3817,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
       return false;
     }
     try {
-      // BUG-A FIX: fetch fresh discounts từ Supabase trước khi check maxUse/usedCount.
+      // BUG-A FIX: fetch fresh discounts từ Firestore trước khi check maxUse/usedCount.
       let allDiscs;
       try {
         const freshDiscs = await storageGet(STORE_KEYS.discounts, true);
@@ -7207,7 +7207,7 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
       try {
         const fresh = await storageGet(STORE_KEYS.orders, true);
         if (cancelled || !fresh || !Array.isArray(fresh)) return;
-        // BUG-H FIX: skipStorage:true — chỉ sync state, không write-back lên Supabase.
+        // BUG-H FIX: skipStorage:true — chỉ sync state, không write-back lên Firestore.
         // Pattern giống BUG-E fix ở CustomerPage.refreshOrders.
         setOrders(prev => {
           const freshIds = new Set(fresh.map(o => o.id));
@@ -7994,7 +7994,7 @@ function AdminNoteEditor({ order, setOrders }) {
   );
 }
 
-// ── CLOUDINARY + SUPABASE GALLERY ──
+// ── CLOUDINARY + FIRESTORE GALLERY ──
 // Cloudinary  → lưu file ảnh thật (binary, CDN)
 // ── ALBUM LIGHTBOX — xem hết ảnh trong album ──
 function AlbumLightbox({ album, onClose }) {
@@ -8146,6 +8146,7 @@ function AlbumManager({ photos, albums, setAlbums, isMobile }) {
   const [form, setForm] = useState({ name: "", cameraTag: "", coverId: "", photoIds: [] });
   const [openAlbum, setOpenAlbum] = useState(null);
   const [msg, setMsg] = useState(null);
+  const [confirmCfg, setConfirmCfg] = useState(null);
 
   const showMsg = (type, text) => { setMsg({ type, text }); setTimeout(() => setMsg(null), 3500); };
 
@@ -8317,11 +8318,16 @@ function AlbumManager({ photos, albums, setAlbums, isMobile }) {
 
       {/* Album Lightbox trong admin */}
       {openAlbum && <AlbumLightbox album={openAlbum} onClose={() => setOpenAlbum(null)} />}
+      <ConfirmDialog
+        message={confirmCfg?.message}
+        onOk={confirmCfg?.onOk}
+        onCancel={() => setConfirmCfg(null)}
+      />
     </div>
   );
 }
 
-// Supabase    → lưu metadata (public_id, url, uploaded_at) trong bảng gallery_photos
+// Firestore   → lưu metadata (public_id, url, uploaded_at) trong collection gallery_photos
 // Xóa = xóa đồng thời cả 2 nơi qua Edge Function cloudinary-delete
 const CLOUD_NAME     = "dgre5eh7l";
 const UPLOAD_PRESET  = "92kamerafeedback";
@@ -8476,7 +8482,7 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
   const [previewIdx, setPreviewIdx] = useState(null); // lightbox admin
   const [confirmCfg, setConfirmCfg] = useState(null); // thay window.confirm
 
-  // Refresh từ Supabase (nguồn sự thật)
+  // Refresh từ Firestore (nguồn sự thật)
   const handleRefresh = async () => {
     setRefreshing(true);
     const fresh = await galleryFetchPhotos(true); // force refresh — bust cache
@@ -8520,7 +8526,7 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
 
   const [deletingId, setDeletingId] = useState(null);
 
-  // Xóa thật khỏi Cloudinary + Supabase qua Edge Function
+  // Xóa thật khỏi Cloudinary + Firestore (xem cloudinaryDeletePhoto — gọi trực tiếp, không qua Edge Function)
   const handleDelete = async (photo) => {
     setConfirmCfg({
       message: "Xóa ảnh này vĩnh viễn?\n\nHành động không thể hoàn tác.",
@@ -8649,7 +8655,7 @@ function DeliveryFeesPanel({ fees, setDeliveryFees, isMobile }) {
   const [saved, setSavedLocal] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // sync khi fees prop thay đổi từ ngoài (lần đầu load từ Supabase)
+  // sync khi fees prop thay đổi từ ngoài (lần đầu load từ Firestore)
   const firstRender = useRef(true);
   useEffect(() => {
     if (firstRender.current) { firstRender.current = false; return; }
@@ -9103,6 +9109,8 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
   const saveCam = (original, edited) => {
     setCameras(p => p.map(c => c.id === original.id ? { ...edited } : c));
     setEditCam(null);
+    // Xóa cache /data.json trong bộ nhớ → lần load tiếp sẽ fetch Firestore mới
+    try { invalidateStaticCache(); } catch {}
   };
 
   const saveAcc = (original, edited) => {
@@ -9455,7 +9463,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                     {/* Actions */}
                     {editCam?.id !== c.id && (
                       <div style={{ display: "flex", gap: 7, flexShrink: 0 }}>
-                        <button onClick={() => setEditCam({ ...c, images: c.images || [] })} style={btn("ghost")}>✏️ Sửa</button>
+                        <button onClick={() => setEditCam({ ...c, images: c.images || [], imagesMeta: c.imagesMeta || [] })} style={btn("ghost")}>✏️ Sửa</button>
                         <button onClick={() => setCameras(p => p.filter(x => x.id !== c.id))} style={btn("danger")}>🗑</button>
                       </div>
                     )}
@@ -9999,7 +10007,7 @@ function AdminDashboard({ cameras, setCameras, accessories, setAccessories, orde
                                   setDiscounts(prev => (prev || []).map(d =>
                                     discIds.includes(d.id) ? { ...d, usedCount: Math.max(0, (d.usedCount || 0) - 1) } : d
                                   ));
-                                  // Rollback CAS lên Supabase (fire-and-forget, không block UI)
+                                  // Rollback CAS lên Firestore (fire-and-forget, không block UI)
                                   discIds.forEach(id => rollbackDiscountUsage(id).catch(() => {}));
                                 }
                               }
@@ -11342,8 +11350,8 @@ function AppRoot() {
     });
   }, []);
 
-  // Orders: opts.skipStorage=true → chỉ update React state (dùng khi sync từ Supabase về).
-  // Ghi Supabase đi qua storageCasSet (handleFinish) hoặc storageSet (admin đổi status).
+  // Orders: opts.skipStorage=true → chỉ update React state (dùng khi sync từ Firestore về).
+  // Ghi Firestore đi qua storageCasSet (handleFinish) hoặc storageSet (admin đổi status).
   const setOrders = useCallback((updater, opts = {}) => {
     _setOrders(prev => {
       const next = typeof updater === "function" ? updater(prev) : updater;
@@ -11363,7 +11371,7 @@ function AppRoot() {
   const setPhotos = useCallback((updater) => {
     _setPhotos(prev => {
       const next = typeof updater === "function" ? updater(prev) : updater;
-      // ✅ Photos do Cloudinary quản lý hoàn toàn — KHÔNG ghi Supabase
+      // ✅ Photos do Cloudinary quản lý hoàn toàn — KHÔNG ghi Firestore
       return next;
     });
   }, []);
@@ -11376,11 +11384,30 @@ function AppRoot() {
   const loadGalleryPhotosLazy = useCallback(async () => {
     if (_photosLoadedRef.current) return; // guard — chỉ chạy 1 lần / session
     _photosLoadedRef.current = true;
+    // Ưu tiên data.json (CDN, 0 Firestore read) — file này đã có sẵn field "photos"
+    // (tối đa 100 ảnh mới nhất, export bởi scripts/sync-data.js mỗi 15 phút).
+    // Dùng Array.isArray (không chỉ truthy) để phân biệt rõ 2 trường hợp:
+    //   - staticData.photos === []  → gallery thật sự chưa có ảnh nào → DÙNG LUÔN, không fallback
+    //   - staticData.photos === undefined → data.json cũ/lỗi chưa có field này → fallback Firestore
+    try {
+      const staticData = await getStaticData();
+      if (staticData && Array.isArray(staticData.photos)) {
+        const mapped = staticData.photos.slice(0, PHOTOS_PREVIEW_LIMIT).map(r => ({
+          id: r.public_id, public_id: r.public_id, url: r.url, uploadedAt: r.uploaded_at,
+        }));
+        _setPhotos(mapped);
+        return; // có data.json hợp lệ → dừng, không gọi Firestore
+      }
+    } catch {} // lỗi đọc data.json → rơi xuống fallback bên dưới
+    // Fallback: data.json chưa có field photos (vd. workflow mới chưa chạy lần nào)
+    // hoặc fetch data.json lỗi → vẫn lấy được ảnh, chỉ tốn Firestore như cách cũ.
     try {
       const pts = await galleryFetchPhotos(false, PHOTOS_PREVIEW_LIMIT);
       if (pts.length > 0) _setPhotos(pts);
     } catch {}
   }, []);
+  // Tầng 2 — KHÔNG đổi: data.json chỉ cache tối đa 100 ảnh nên không đủ thay cho FULL_LIMIT (200),
+  // và tầng này chỉ chạy khi khách chủ động bấm xem ảnh (tần suất thấp, không phải điểm nóng) → giữ Firestore trực tiếp.
   const loadGalleryPhotosFull = useCallback(async () => {
     if (_photosFullLoadedRef.current) return; // guard — chỉ chạy 1 lần / session
     _photosFullLoadedRef.current = true;
@@ -11389,6 +11416,7 @@ function AppRoot() {
       if (pts.length > 0) _setPhotos(pts);
     } catch {}
   }, []);
+
 
   const setAlbums = useCallback((updater) => {
     _setAlbums(prev => {
@@ -11439,7 +11467,7 @@ function AppRoot() {
   useEffect(() => {
     setReady(true);
     (async () => {
-      // ── 1. Orders: fetch Supabase thẳng, không qua CDN ──
+      // ── 1. Orders: fetch Firestore thẳng, không qua CDN ──
       // Chạy song song với CDN fetch bên dưới, không block nhau
       storageGet(STORE_KEYS.orders, true).then(ords => {
         if (!ords || !Array.isArray(ords)) return;
@@ -11459,7 +11487,7 @@ function AppRoot() {
         const accs = staticData.accessories;
         const site = staticData.site;
         const disc = staticData.discounts;
-        // orders KHÔNG đọc từ staticData nữa — đã fetch Supabase thẳng ở trên
+        // orders KHÔNG đọc từ staticData nữa — đã fetch Firestore thẳng ở trên
 
         if (cams) _setCameras(cams);
         if (accs) _setAccessories(accs.map(a => ({
@@ -11489,14 +11517,14 @@ function AppRoot() {
           // cuộn gần tới mục feedback/gallery (xem onNeedPhotos trong FeedbackMarquee).
         }, 4000);
 
-        // Users từ Supabase — PII, không export ra file tĩnh
+        // Users từ Firestore — PII, không export ra file tĩnh
         setTimeout(async () => {
           const usrs = await storageGet(STORE_KEYS.users);
           if (usrs) _setUsers(usrs);
         }, 5000);
 
       } else {
-        // ── Fallback: data.json lỗi → fetch catalog từ Supabase ──
+        // ── Fallback: data.json lỗi → fetch catalog từ Firestore ──
         console.warn("[92K] data.json lỗi, fallback Firestore cho catalog");
         const [cams, accs, site, disc] = await Promise.all([
           loadCamerasFromStorage(),
@@ -11543,7 +11571,7 @@ function AppRoot() {
 
   const handleNewOrder = useCallback((order) => {
     // BUG-D FIX: skipStorage=true — BookingModal.handleFinish đã dùng storageCasSet
-    // ghi array đầy đủ lên Supabase. Nếu setOrders ghi lại đây sẽ overwrite bằng prev stale.
+    // ghi array đầy đủ lên Firestore. Nếu setOrders ghi lại đây sẽ overwrite bằng prev stale.
     setOrders(prev => [{ ...order, seen: false }, ...prev], { skipStorage: true });
   }, [setOrders]);
 
