@@ -10902,27 +10902,52 @@ function showWriteErrToast(key) {
 }
 
 // ── DEBOUNCE WRITE ──
+// _pendingValues lưu giá trị (JSON string) đang chờ ghi Firestore cho mỗi key.
+// Cần tách riêng khỏi closure của setTimeout để có thể "flush" sớm (ghi ngay)
+// khi user rời trang / reload trước khi debounce timer tự chạy.
 const _writeTimers = {};
+const _pendingValues = {};
+
+async function _flushKey(key) {
+  clearTimeout(_writeTimers[key]);
+  delete _writeTimers[key];
+  const value = _pendingValues[key];
+  if (value === undefined) return;
+  delete _pendingValues[key];
+  try {
+    const db = await getFirestore();
+    const { doc, setDoc } = _fbHelpers;
+    await setDoc(doc(db, FB_KV_COLLECTION, key), {
+      value,
+      updated_at: new Date().toISOString(),
+    });
+    markCacheFresh(key);
+  } catch (e) {
+    console.warn("[92K fb] storageSet failed:", key, e);
+    showWriteErrToast(key);
+  }
+}
+
+// Ghi ngay tất cả các key còn đang chờ debounce — gọi khi tab bị ẩn/đóng/reload
+// để KHÔNG MẤT dữ liệu vừa sửa (vd. admin đổi ảnh xong reload ngay để kiểm tra).
+function flushAllPendingWrites() {
+  Object.keys(_writeTimers).forEach((k) => { _flushKey(k); });
+}
+if (typeof window !== "undefined") {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") flushAllPendingWrites();
+  });
+  window.addEventListener("pagehide", flushAllPendingWrites);
+}
+
 function storageSet(key, val) {
   const value = JSON.stringify(val);
   try { localStorage.setItem(key, value); } catch {}
   markCacheFresh(key);
+  _pendingValues[key] = value;
   const debounceMs = key === STORE_KEYS.orders ? 800 : 2000;
   clearTimeout(_writeTimers[key]);
-  _writeTimers[key] = setTimeout(async () => {
-    try {
-      const db = await getFirestore();
-      const { doc, setDoc } = _fbHelpers;
-      await setDoc(doc(db, FB_KV_COLLECTION, key), {
-        value,
-        updated_at: new Date().toISOString(),
-      });
-      markCacheFresh(key);
-    } catch (e) {
-      console.warn("[92K fb] storageSet failed:", key, e);
-      showWriteErrToast(key);
-    }
-  }, debounceMs);
+  _writeTimers[key] = setTimeout(() => { _flushKey(key); }, debounceMs);
 }
 
 // ── IMMEDIATE WRITE — không debounce, dùng khi submit đơn ──
@@ -11568,6 +11593,32 @@ function AppRoot() {
   // NOTE: page-sync effect removed — all state lives in App (single source of truth).
   // Reloading from storage on page change caused race conditions.
   // new orders (seen:false) and newly added cameras were overwritten by stale storage reads.
+
+  // ── ADMIN LIVE REFRESH ──────────────────────────────────────────────────
+  // Khác với effect trên (chỉ đọc /data.json — có thể cũ tới 15 phút vì chờ cron),
+  // effect này CHỈ chạy khi admin đăng nhập vào dashboard, và đọc THẲNG Firestore
+  // (forceRefresh=true, bỏ qua cả cache localStorage) để admin luôn thấy bản mới
+  // nhất — không bị data.json cũ "đè" lên ảnh/giá vừa sửa khi admin reload trang.
+  // Khách thường vẫn dùng /data.json như cũ (không tốn thêm Firestore read).
+  useEffect(() => {
+    if (page !== "admin" || !adminAuth) return;
+    (async () => {
+      try {
+        const [cams, accs, site, disc, fees] = await Promise.all([
+          storageGet(STORE_KEYS.cameras, true),
+          storageGet(STORE_KEYS.accessories, true),
+          storageGet(STORE_KEYS.site, true),
+          storageGet(STORE_KEYS.discounts, true),
+          storageGet(STORE_KEYS.deliveryFees, true),
+        ]);
+        if (cams) _setCameras(cams);
+        if (accs) _setAccessories(accs.map(a => ({ qty: 1, active: true, priceShift: null, desc: "", ...a })));
+        if (site) _setSiteContent(site);
+        if (disc) _setDiscounts(disc);
+        if (fees && Array.isArray(fees) && fees.length > 0) _setDeliveryFees(fees);
+      } catch (e) { console.warn("[92K] admin live refresh failed", e); }
+    })();
+  }, [page, adminAuth]);
 
   const handleNewOrder = useCallback((order) => {
     // BUG-D FIX: skipStorage=true — BookingModal.handleFinish đã dùng storageCasSet
