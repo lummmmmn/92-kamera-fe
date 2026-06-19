@@ -4368,7 +4368,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
                           };
                           return (
                             <>
-                              <img src={cdnUrl(imgs[safeIdx], "thumb")} alt={c.name} onClick={() => toggleCam(c)} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }} />
+                              <img src={cdnUrl(imgs[safeIdx], "thumb")} alt={c.name} onClick={() => toggleCam(c)} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", objectPosition: "center", cursor: "pointer" }} />
                               {imgs.length > 1 && (
                                 <>
                                   {/* Nút prev */}
