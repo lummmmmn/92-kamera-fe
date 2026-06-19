@@ -1150,7 +1150,7 @@ function CamImage({ cam, height = 176 }) {
   }
   return (
     <div style={{ height, position: "relative", overflow: "hidden", borderBottom: `1px solid ${BR}`, background: BG }}>
-      <img src={cdnUrl(imgs[idx], "full")} alt={cam.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
+      <img src={cdnUrl(imgs[idx], "full")} alt={cam.name} style={{ width: "100%", height: "100%", objectFit: "contain", objectPosition: "center" }} loading="lazy" />
       {imgs.length > 1 && (
         <>
           <button onClick={e => { e.stopPropagation(); setIdx((idx - 1 + imgs.length) % imgs.length); }}
