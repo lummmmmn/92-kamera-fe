@@ -7273,8 +7273,10 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
       // Đăng nhập thành công → reset brute force state
       saveBfState({ fails: 0, lockUntil: 0 });
       setFailCount(0); setLockUntil(0);
-      // Sign in Firebase Auth — Firestore Rules biết \u0111ây là admin có quyền ghi
-      firebaseSignInAdmin();
+      // Sign in Firebase Auth — PHẢI đợi xong rồi mới cho vào trang quản trị,
+      // tránh trường hợp admin bấm lưu quá nhanh trong lúc request.auth chưa kịp
+      // có giá trị (mạng chậm) → Firestore Rules chặn ghi ngay lần đầu mà không retry.
+      await firebaseSignInAdmin();
       onLogin();
     } else {
       const newFails = failCount + 1;
@@ -12165,7 +12167,7 @@ function AppRoot() {
           users={users} setUsers={(u) => setUsers(u)}
           discounts={discounts} setDiscounts={setDiscounts}
           deliveryFees={deliveryFees} setDeliveryFees={setDeliveryFees}
-          onBack={() => { firebaseSignOutAdmin(); setPage("home"); }}
+          onBack={() => { firebaseSignOutAdmin(); setAdminAuth(false); setPage("home"); }}
           isMobile={isMobile}
         />
       )}
