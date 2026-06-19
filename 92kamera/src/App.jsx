@@ -10851,7 +10851,7 @@ let _fbInitPromise = null;
 const FB_ADMIN_UID = "Zgqk4QDXStU92JUjeqVBwSAGOOy1";
 // Email/pass dùng để sign in Firebase Auth khi admin login
 // Account này phải tạo sẵn trong Firebase Console → Authentication → Users
-const FB_ADMIN_EMAIL = "admin@92kamera.local";
+const FB_ADMIN_EMAIL = "admin@92kamera.com";
 const FB_ADMIN_FIREBASE_PW = "92kamera@zxc";
 
 async function getFirestore() {
