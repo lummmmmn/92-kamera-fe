@@ -8384,6 +8384,11 @@ async function galleryFetchPhotos(forceRefresh = false, limitCount = PHOTOS_FULL
     return photos;
   } catch (e) {
     console.warn("[92K] galleryFetchPhotos failed:", e);
+    // forceRefresh=true → admin chủ động bấm Refresh/vừa upload xong → throw ra để
+    // UI báo lỗi thật (vd. "permission-denied" do Firestore Rules chưa cho phép
+    // list/query collection gallery_photos), thay vì im lặng hiện "0 ảnh" gây hiểu nhầm.
+    // forceRefresh=false (lazy load cho khách) → vẫn nuốt lỗi, trả cache/rỗng để không vỡ UI.
+    if (forceRefresh) throw e;
     return _photosCache || [];
   }
 }
@@ -8402,16 +8407,18 @@ async function cloudinaryUploadPhoto(file) {
   if (!res.ok) throw new Error("Cloudinary upload failed");
   const data = await res.json();
   // Ghi metadata vào Firestore gallery_photos (doc id = public_id)
-  try {
-    const db = await getFirestore();
-    const { doc, setDoc } = _fbHelpers;
-    await setDoc(doc(db, FB_GALLERY_COLLECTION, data.public_id), {
-      public_id:   data.public_id,
-      url:         data.secure_url,
-      uploaded_at: data.created_at || new Date().toISOString(),
-      uploaded_by: "admin",
-    });
-  } catch (e) { console.warn("[92K] Firestore gallery insert failed:", e); }
+  // QUAN TRỌNG: KHÔNG nuốt lỗi ở đây — nếu ghi Firestore thất bại (vd. rules chặn),
+  // ảnh đã lên Cloudinary nhưng KHÔNG có metadata → gallery sẽ không bao giờ hiện ảnh
+  // mà admin vẫn thấy "upload thành công" (vì Cloudinary upload có OK thật).
+  // Throw lỗi ra để handleUpload() biết và báo đúng cho admin.
+  const db = await getFirestore();
+  const { doc, setDoc } = _fbHelpers;
+  await setDoc(doc(db, FB_GALLERY_COLLECTION, data.public_id), {
+    public_id:   data.public_id,
+    url:         data.secure_url,
+    uploaded_at: data.created_at || new Date().toISOString(),
+    uploaded_by: "admin",
+  });
   return {
     id:        data.public_id,
     public_id: data.public_id,
@@ -8485,8 +8492,14 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
   // Refresh từ Firestore (nguồn sự thật)
   const handleRefresh = async () => {
     setRefreshing(true);
-    const fresh = await galleryFetchPhotos(true); // force refresh — bust cache
-    setPhotos(fresh);
+    try {
+      const fresh = await galleryFetchPhotos(true); // force refresh — bust cache
+      setPhotos(fresh);
+    } catch (e) {
+      console.error("[92K] gallery refresh failed:", e);
+      setUploadMsg({ type: "err", text: `❌ Không tải được danh sách ảnh: ${e.message || e.code || "lỗi không rõ"}. Có thể do Firestore Rules chưa cho phép đọc (list) collection "gallery_photos".` });
+      setTimeout(() => setUploadMsg(null), 8000);
+    }
     setRefreshing(false);
   };
 
@@ -8513,10 +8526,16 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
       setUploadMsg({ type: "ok", text: `✓ Upload ${successCount}/${fileArr.length} ảnh — đang tải danh sách...` });
       // Cloudinary cần vài giây để index tag mới → delay nhỏ rồi fetch lại
       setTimeout(async () => {
-        const fresh = await galleryFetchPhotos(true); // force refresh sau upload
-        setPhotos(fresh);
-        setUploadMsg({ type: "ok", text: `✓ Đã upload ${successCount} ảnh lên Cloudinary` });
-        setTimeout(() => setUploadMsg(null), 4000);
+        try {
+          const fresh = await galleryFetchPhotos(true); // force refresh sau upload
+          setPhotos(fresh);
+          setUploadMsg({ type: "ok", text: `✓ Đã upload ${successCount} ảnh lên Cloudinary` });
+          setTimeout(() => setUploadMsg(null), 4000);
+        } catch (e) {
+          console.error("[92K] reload sau upload thất bại:", e);
+          setUploadMsg({ type: "err", text: `⚠️ Đã upload ảnh lên Cloudinary nhưng KHÔNG tải lại được danh sách: ${e.message || e.code || "lỗi không rõ"}. Thường do Firestore Rules chưa cho phép đọc (list) collection "gallery_photos" — vào Firebase Console → Firestore → Rules kiểm tra lại.` });
+          setTimeout(() => setUploadMsg(null), 10000);
+        }
       }, 2000);
     } else {
       setUploadMsg({ type: "err", text: "❌ Upload thất bại — kiểm tra preset Cloudinary" });
