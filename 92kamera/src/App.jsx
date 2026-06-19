@@ -10848,7 +10848,7 @@ let _fbApp = null, _fbDb = null, _fbAuth = null;
 let _fbInitPromise = null;
 
 // UID admin duy nhất — dùng cho Firestore Rules
-const FB_ADMIN_UID = "CQPnAQFWXGO0ySE06AokITKxIH73";
+const FB_ADMIN_UID = "Zgqk4QDXStU92JUjeqVBwSAGOOy1";
 // Email/pass dùng để sign in Firebase Auth khi admin login
 // Account này phải tạo sẵn trong Firebase Console → Authentication → Users
 const FB_ADMIN_EMAIL = "admin@92kamera.local";
