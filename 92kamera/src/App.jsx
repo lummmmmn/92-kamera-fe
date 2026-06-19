@@ -7273,6 +7273,8 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
       // Đăng nhập thành công → reset brute force state
       saveBfState({ fails: 0, lockUntil: 0 });
       setFailCount(0); setLockUntil(0);
+      // Sign in Firebase Auth — Firestore Rules biết \u0111ây là admin có quyền ghi
+      firebaseSignInAdmin();
       onLogin();
     } else {
       const newFails = failCount + 1;
@@ -8404,7 +8406,16 @@ async function cloudinaryUploadPhoto(file) {
     `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
     { method: "POST", body: fd }
   );
-  if (!res.ok) throw new Error("Cloudinary upload failed");
+  if (!res.ok) {
+    // Đọc message thật Cloudinary trả về (vd. "Upload preset not found",
+    // "Invalid signature" khi preset đang ở chế độ Signed...) thay vì throw lỗi chung.
+    let detail = `HTTP ${res.status}`;
+    try {
+      const errJson = await res.json();
+      if (errJson?.error?.message) detail = errJson.error.message;
+    } catch {}
+    throw new Error(`Cloudinary: ${detail}`);
+  }
   const data = await res.json();
   // Ghi metadata vào Firestore gallery_photos (doc id = public_id)
   // QUAN TRỌNG: KHÔNG nuốt lỗi ở đây — nếu ghi Firestore thất bại (vd. rules chặn),
@@ -8413,12 +8424,16 @@ async function cloudinaryUploadPhoto(file) {
   // Throw lỗi ra để handleUpload() biết và báo đúng cho admin.
   const db = await getFirestore();
   const { doc, setDoc } = _fbHelpers;
-  await setDoc(doc(db, FB_GALLERY_COLLECTION, data.public_id), {
-    public_id:   data.public_id,
-    url:         data.secure_url,
-    uploaded_at: data.created_at || new Date().toISOString(),
-    uploaded_by: "admin",
-  });
+  try {
+    await setDoc(doc(db, FB_GALLERY_COLLECTION, data.public_id), {
+      public_id:   data.public_id,
+      url:         data.secure_url,
+      uploaded_at: data.created_at || new Date().toISOString(),
+      uploaded_by: "admin",
+    });
+  } catch (e) {
+    throw new Error(`Firestore (đã lên Cloudinary nhưng lưu metadata lỗi): ${e.message || e.code}`);
+  }
   return {
     id:        data.public_id,
     public_id: data.public_id,
@@ -8511,11 +8526,15 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
     setUploadProgress({ done: 0, total: fileArr.length });
 
     let successCount = 0;
+    let lastError = null;
     for (let i = 0; i < fileArr.length; i++) {
       try {
         await cloudinaryUploadPhoto(fileArr[i]);
         successCount++;
-      } catch (e) { console.error("Upload lỗi:", fileArr[i].name, e); }
+      } catch (e) {
+        console.error("Upload lỗi:", fileArr[i].name, e);
+        lastError = e;
+      }
       setUploadProgress({ done: i + 1, total: fileArr.length });
     }
 
@@ -8530,6 +8549,7 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
           const fresh = await galleryFetchPhotos(true); // force refresh sau upload
           setPhotos(fresh);
           setUploadMsg({ type: "ok", text: `✓ Đã upload ${successCount} ảnh lên Cloudinary` });
+          triggerInstantSyncDebounced();
           setTimeout(() => setUploadMsg(null), 4000);
         } catch (e) {
           console.error("[92K] reload sau upload thất bại:", e);
@@ -8538,8 +8558,8 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
         }
       }, 2000);
     } else {
-      setUploadMsg({ type: "err", text: "❌ Upload thất bại — kiểm tra preset Cloudinary" });
-      setTimeout(() => setUploadMsg(null), 5000);
+      setUploadMsg({ type: "err", text: `❌ Upload thất bại: ${lastError?.message || "lỗi không rõ"}` });
+      setTimeout(() => setUploadMsg(null), 7000);
     }
   };
 
@@ -8556,6 +8576,7 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
           await cloudinaryDeletePhoto(photo.public_id);
           setPhotos(prev => (prev || []).filter(p => p.public_id !== photo.public_id));
           setUploadMsg({ type: "ok", text: "✓ Đã xóa ảnh khỏi Cloudinary + database" });
+          triggerInstantSyncDebounced();
           setTimeout(() => setUploadMsg(null), 3000);
         } catch (e) {
           console.error("[92K] delete failed:", e);
@@ -10823,8 +10844,15 @@ const FB_KV_COLLECTION       = "kv_store";
 const FB_GALLERY_COLLECTION  = "gallery_photos";
 
 // ── Firebase SDK bootstrap (lazy — chỉ load 1 lần) ──
-let _fbApp = null, _fbDb = null;
+let _fbApp = null, _fbDb = null, _fbAuth = null;
 let _fbInitPromise = null;
+
+// UID admin duy nhất — dùng cho Firestore Rules
+const FB_ADMIN_UID = "snIb0e6MiSYepMRizBYxYa0gGog1";
+// Email/pass dùng để sign in Firebase Auth khi admin login
+// Account này phải tạo sẵn trong Firebase Console → Authentication → Users
+const FB_ADMIN_EMAIL = "admin@92kamera.local";
+const FB_ADMIN_FIREBASE_PW = "K4m3r4-92-admin!";
 
 async function getFirestore() {
   if (_fbDb) return _fbDb;
@@ -10836,10 +10864,13 @@ async function getFirestore() {
             collection, getDocs, deleteDoc, onSnapshot,
             runTransaction, serverTimestamp, query, orderBy, limit }
       = await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js");
+    const { getAuth: _getAuth }
+      = await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js");
 
     // Tránh duplicate app khi hot-reload
     _fbApp = getApps().length ? getApps()[0] : initializeApp(FB_CONFIG);
     _fbDb  = _getFs(_fbApp);
+    _fbAuth = _getAuth(_fbApp);
 
     // Gắn helpers lên module-level object để dùng ở mọi hàm
     _fbHelpers = { doc, getDoc, setDoc, updateDoc, collection, getDocs, deleteDoc, onSnapshot, runTransaction, serverTimestamp, query, orderBy, limit };
@@ -10848,6 +10879,59 @@ async function getFirestore() {
   return _fbInitPromise;
 }
 let _fbHelpers = null;
+
+// ── FIREBASE AUTH — sign in để Firestore Rules nhận UID admin ──
+async function firebaseSignInAdmin() {
+  try {
+    await getFirestore(); // đảm bảo _fbAuth đã init
+    if (!_fbAuth) return;
+    if (_fbAuth.currentUser?.uid === FB_ADMIN_UID) return; // đã sign in rồi
+    const { signInWithEmailAndPassword }
+      = await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js");
+    await signInWithEmailAndPassword(_fbAuth, FB_ADMIN_EMAIL, FB_ADMIN_FIREBASE_PW);
+    console.log("[92K] Firebase Auth: admin signed in ✓");
+  } catch (e) {
+    console.warn("[92K] Firebase Auth sign-in failed:", e.message);
+  }
+}
+
+async function firebaseSignOutAdmin() {
+  try {
+    if (!_fbAuth) return;
+    const { signOut } = await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js");
+    await signOut(_fbAuth);
+    console.log("[92K] Firebase Auth: signed out");
+  } catch (e) {
+    console.warn("[92K] Firebase Auth sign-out failed:", e.message);
+  }
+}
+
+// ── INSTANT SYNC TRIGGER ─────────────────────────────────────────────────
+// Sau khi admin sửa cameras/accessories/site/discounts/deliveryFees/feedbacks/
+// photos/albums, gọi Cloud Function "triggerSync" để chạy NGAY workflow
+// GitHub sync-data.yml (thay vì đợi tối đa 15 phút cron) → data.json trên
+// CDN cập nhật trong ~10-30s, khách nào load cũng thấy đúng ngay.
+// Debounce 4s: admin sửa nhiều thứ liên tiếp chỉ trigger 1 lần, không spam.
+//
+// TODO: dán URL Cloud Function thật vào sau khi deploy xong (xem hướng dẫn).
+const SYNC_FN_URL = "https://asia-southeast1-kamera-a88d1.cloudfunctions.net/triggerSync";
+// TODO: dán đúng chuỗi đã set qua `firebase functions:secrets:set ADMIN_TRIGGER_SECRET`
+const ADMIN_TRIGGER_SECRET_CLIENT = "DAN_SECRET_GIONG_TREN_CLOUD_FUNCTION_VAO_DAY";
+
+let _syncTriggerTimer = null;
+function triggerInstantSyncDebounced() {
+  if (!SYNC_FN_URL || SYNC_FN_URL.includes("kamera-a88d1.cloudfunctions.net") === false) {
+    // vẫn cho phép chạy — chỉ là gợi ý nếu URL chưa cấu hình đúng, không chặn
+  }
+  clearTimeout(_syncTriggerTimer);
+  _syncTriggerTimer = setTimeout(() => {
+    fetch(SYNC_FN_URL, {
+      method: "POST",
+      headers: { "x-admin-secret": ADMIN_TRIGGER_SECRET_CLIENT },
+    }).catch((e) => console.warn("[92K] triggerInstantSync failed (không sao, cron 15 phút vẫn chạy):", e.message));
+  }, 4000);
+}
+// ── END INSTANT SYNC TRIGGER ─────────────────────────────────────────────
 
 // ── ARCHITECTURE: Phân chia rõ ràng ──
 // Firestore kv_store       → đơn hàng, máy ảnh, phụ kiện, feedback text, users (dữ liệu nghiệp vụ)
@@ -10967,6 +11051,10 @@ function storageSet(key, val) {
   const debounceMs = key === STORE_KEYS.orders ? 800 : 2000;
   clearTimeout(_writeTimers[key]);
   _writeTimers[key] = setTimeout(() => { _flushKey(key); }, debounceMs);
+  // orders/users không nằm trong data.json export → không cần trigger sync sớm
+  if (key !== STORE_KEYS.orders && key !== STORE_KEYS.users) {
+    triggerInstantSyncDebounced();
+  }
 }
 
 // ── IMMEDIATE WRITE — không debounce, dùng khi submit đơn ──
@@ -12056,7 +12144,7 @@ function AppRoot() {
           cameras={cameras}
           users={users}
           setUsers={setUsers}
-          onBack={() => setPage("home")}
+          onBack={() => { firebaseSignOutAdmin(); setPage("home"); }}
           onOpenBooking={() => { setPage("home"); setBooking(true); }}
         />
       )}
@@ -12077,7 +12165,7 @@ function AppRoot() {
           users={users} setUsers={(u) => setUsers(u)}
           discounts={discounts} setDiscounts={setDiscounts}
           deliveryFees={deliveryFees} setDeliveryFees={setDeliveryFees}
-          onBack={() => setPage("home")}
+          onBack={() => { firebaseSignOutAdmin(); setPage("home"); }}
           isMobile={isMobile}
         />
       )}
