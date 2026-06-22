@@ -23,14 +23,22 @@ jobs:
           node-version: 20
 
       - name: Cài firebase-admin
+        # Code thật nằm trong thư mục con "92kamera", không phải gốc repo
+        working-directory: 92kamera
         run: npm install firebase-admin@12 --no-save
 
       - name: Generate data.json
+        # QUAN TRỌNG: scripts/sync-data.js và public/data.json nằm trong
+        # thư mục con "92kamera/", không phải ở gốc repo. Thiếu working-directory
+        # này là lý do workflow chạy "node scripts/sync-data.js" báo lỗi
+        # "Cannot find module" vì tìm sai đường dẫn từ gốc repo.
+        working-directory: 92kamera
         env:
           FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
         run: node scripts/sync-data.js
 
       - name: Commit & push nếu data.json thay đổi
+        working-directory: 92kamera
         run: |
           git config user.name "92k-sync-bot"
           git config user.email "sync-bot@92kamera.com"
