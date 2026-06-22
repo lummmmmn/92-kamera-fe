@@ -1,0 +1,39 @@
+name: Sync data.json từ Firestore
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-data
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Cài firebase-admin
+        run: npm install firebase-admin@12 --no-save
+
+      - name: Generate data.json
+        env:
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+        run: node scripts/sync-data.js
+
+      - name: Commit & push nếu data.json thay đổi
+        run: |
+          git config user.name "92k-sync-bot"
+          git config user.email "sync-bot@92kamera.com"
+          git add public/data.json
+          git diff --staged --quiet || git commit -m "chore: sync data.json [skip ci]"
+          git push
