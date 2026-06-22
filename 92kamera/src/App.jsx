@@ -4201,7 +4201,7 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
       onSubmit(finalOrder);
       setDone(true);
     } catch (e) {
-      console.error("[92K] submit error", e);
+      console.error("[92K] submit error | code:", e.code, "| message:", e.message, "| full:", e);
       if (reservedDiscountIds.length > 0) {
         try {
           for (const rid of reservedDiscountIds) {
@@ -4210,7 +4210,13 @@ function BookingModal({ cameras, accessories, siteContent, discounts, setDiscoun
           }
         } catch {}
       }
-      setSubmitError("❌ Lỗi kết nối. Vui lòng thử lại.");
+      // Phân loại nguyên nhân thật từ e.code (Firestore) thay vì luôn nói "lỗi kết nối" —
+      // permission-denied nghĩa là Security Rules đang chặn khách ghi đơn hàng,
+      // khác hẳn lỗi mạng thật, và admin cần biết để sửa Rules chứ không phải bảo khách thử lại mạng.
+      const msg = e.code === "permission-denied"
+        ? "❌ Hệ thống đang bảo trì, chưa thể nhận đơn lúc này. Vui lòng liên hệ Zalo để đặt trực tiếp."
+        : "❌ Lỗi kết nối. Vui lòng thử lại.";
+      setSubmitError(msg);
       setSubmitting(false);
     }
   };
@@ -7276,8 +7282,19 @@ function AdminLogin({ onLogin, onBack, orders = [], defaultTab = "customer", log
       // Sign in Firebase Auth — PHẢI đợi xong rồi mới cho vào trang quản trị,
       // tránh trường hợp admin bấm lưu quá nhanh trong lúc request.auth chưa kịp
       // có giá trị (mạng chậm) → Firestore Rules chặn ghi ngay lần đầu mà không retry.
-      await firebaseSignInAdmin();
-      onLogin();
+      try {
+        await firebaseSignInAdmin();
+        onLogin();
+      } catch (fbErr) {
+        // Đăng nhập Firebase thất bại → KHÔNG cho vào trang quản trị,
+        // vì mọi lệnh ghi sau đó sẽ bị Firestore Rules chặn (request.auth == null)
+        // mà admin không biết tại sao "lưu không được".
+        console.error("[92K] Không thể vào trang quản trị — Firebase Auth lỗi:", fbErr.message);
+        alert("Đăng nhập Firebase thất bại, không thể vào trang quản trị.\n\nChi tiết: " + fbErr.message + "\n\nKiểm tra lại tài khoản admin trong Firebase Console > Authentication.");
+        setErr(true); setShake(true);
+        setTimeout(() => { setErr(false); setShake(false); }, 2000);
+        return;
+      }
     } else {
       const newFails = failCount + 1;
       if (newFails >= BF_MAX) {
@@ -10884,16 +10901,20 @@ let _fbHelpers = null;
 
 // ── FIREBASE AUTH — sign in để Firestore Rules nhận UID admin ──
 async function firebaseSignInAdmin() {
+  await getFirestore(); // đảm bảo _fbAuth đã init
+  if (!_fbAuth) throw new Error("[92K] Firebase Auth chưa init được (getFirestore lỗi).");
+  if (_fbAuth.currentUser?.uid === FB_ADMIN_UID) return; // đã sign in rồi
+  const { signInWithEmailAndPassword }
+    = await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js");
   try {
-    await getFirestore(); // đảm bảo _fbAuth đã init
-    if (!_fbAuth) return;
-    if (_fbAuth.currentUser?.uid === FB_ADMIN_UID) return; // đã sign in rồi
-    const { signInWithEmailAndPassword }
-      = await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js");
     await signInWithEmailAndPassword(_fbAuth, FB_ADMIN_EMAIL, FB_ADMIN_FIREBASE_PW);
-    console.log("[92K] Firebase Auth: admin signed in ✓");
+    console.log("[92K] Firebase Auth: admin signed in ✓ UID:", _fbAuth.currentUser?.uid);
   } catch (e) {
-    console.warn("[92K] Firebase Auth sign-in failed:", e.message);
+    // KHÔNG nuốt lỗi — throw lại để caller (AdminLogin) biết sign-in thất bại
+    // và KHÔNG cho vào trang quản trị (nếu không, mọi lệnh ghi sau đó sẽ bị
+    // Firestore Rules chặn permission-denied vì request.auth == null).
+    console.error("[92K] Firebase Auth sign-in THẤT BẠI:", e.code, e.message);
+    throw new Error(`Đăng nhập Firebase thất bại (${e.code}): ${e.message}`);
   }
 }
 
@@ -10984,7 +11005,7 @@ async function storageGet(key, forceRefresh = false) {
 
 // ── WRITE ERROR TOAST ──
 let _writeErrToastTs = 0;
-function showWriteErrToast(key) {
+function showWriteErrToast(key, err) {
   const now = Date.now();
   if (now - _writeErrToastTs < 8000) return;
   _writeErrToastTs = now;
@@ -10993,17 +11014,26 @@ function showWriteErrToast(key) {
                 key === "k92_accessories_v2" ? "phụ kiện" :
                 key === "k92_site_v2" ? "nội dung trang" :
                 key === "k92_discounts_v1" ? "mã giảm giá" : "dữ liệu";
+  // Phân loại nguyên nhân thật dựa vào e.code của Firestore, thay vì luôn nói "kiểm tra mạng"
+  let reason = "Kiểm tra mạng và thử lại.";
+  if (err?.code === "permission-denied") {
+    reason = "Chưa đăng nhập admin đúng cách (Firestore từ chối quyền ghi). Hãy đăng xuất và đăng nhập lại trang quản trị.";
+  } else if (err?.code === "unauthenticated") {
+    reason = "Phiên đăng nhập Firebase đã hết. Đăng xuất và đăng nhập lại.";
+  } else if (err?.code === "unavailable") {
+    reason = "Không kết nối được tới Firebase. Kiểm tra mạng.";
+  }
   const el = document.createElement("div");
   el.style.cssText = "position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:99999;" +
     "background:#7f1d1d;color:#fecaca;padding:10px 20px;border-radius:10px;font-size:13px;" +
     "font-family:system-ui,sans-serif;box-shadow:0 4px 20px rgba(0,0,0,0.4);pointer-events:none;" +
-    "animation:fadeInUp .25s ease both;";
-  el.textContent = "⚠️ Lưu " + label + " thất bại. Kiểm tra mạng và thử lại.";
+    "animation:fadeInUp .25s ease both;max-width:360px;";
+  el.textContent = "⚠️ Lưu " + label + " thất bại. " + reason;
   const style = document.createElement("style");
   style.textContent = "@keyframes fadeInUp{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}";
   document.head.appendChild(style);
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 5000);
+  setTimeout(() => el.remove(), 6000);
 }
 
 // ── DEBOUNCE WRITE ──
@@ -11028,8 +11058,10 @@ async function _flushKey(key) {
     });
     markCacheFresh(key);
   } catch (e) {
-    console.warn("[92K fb] storageSet failed:", key, e);
-    showWriteErrToast(key);
+    // LOG ĐẦY ĐỦ — không nuốt lỗi. console.error để luôn nổi trong DevTools,
+    // kèm e.code (permission-denied / unauthenticated / unavailable / ...)
+    console.error("[92K fb] storageSet THẤT BẠI cho key:", key, "| code:", e.code, "| message:", e.message, "| full error:", e);
+    showWriteErrToast(key, e);
   }
 }
 
@@ -11048,7 +11080,13 @@ if (typeof window !== "undefined") {
 function storageSet(key, val) {
   const value = JSON.stringify(val);
   try { localStorage.setItem(key, value); } catch {}
-  markCacheFresh(key);
+  // KHÔNG markCacheFresh ở đây — ghi Firestore còn đang debounce (2s),
+  // nếu đánh dấu "cache mới" ngay bây giờ thì storageGet() sau đó sẽ tin
+  // tưởng cache cũ kể cả khi _flushKey() chưa chạy xong hoặc bị lỗi
+  // (permission-denied, mất mạng...) → dữ liệu KHÔNG thực sự lên Firestore
+  // nhưng UI vẫn coi như đã lưu. Đây là nguyên nhân "sửa máy ảnh xong không
+  // lưu được" trước đây. markCacheFresh chỉ được gọi trong _flushKey,
+  // đúng lúc setDoc() thành công thật.
   _pendingValues[key] = value;
   const debounceMs = key === STORE_KEYS.orders ? 800 : 2000;
   clearTimeout(_writeTimers[key]);
@@ -11086,35 +11124,48 @@ async function storageGetWithMeta(key) {
 }
 
 // ── CAS SET — compare-and-swap: chỉ ghi nếu updated_at khớp với expectedUpdatedAt ──
-// Dùng Firestore transaction để đảm bảo atomic
+// Dùng Firestore transaction để đảm bảo atomic.
+// QUAN TRỌNG: hàm này được gọi cả từ booking flow của KHÁCH (tạo đơn, áp mã
+// giảm giá) — khách không đăng nhập Firebase Auth, nên Firestore Rules phải
+// cho phép ghi "k92_orders_v2"/"k92_discounts_v1" khi request.auth == null
+// (xem firestore.rules). Nếu Rules chưa deploy đúng, lỗi permission-denied
+// sẽ throw ra đây — KHÔNG được nuốt, vì caller (BookingModal) cần biết để
+// báo khách "đặt hàng thất bại" thay vì coi như đã đặt thành công.
 async function storageCasSet(key, val, expectedUpdatedAt) {
   const value = JSON.stringify(val);
   const nextUpdatedAt = new Date().toISOString();
-  const db = await getFirestore();
-  const { doc, runTransaction } = _fbHelpers;
-  const ref = doc(db, FB_KV_COLLECTION, key);
+  try {
+    const db = await getFirestore();
+    const { doc, runTransaction } = _fbHelpers;
+    const ref = doc(db, FB_KV_COLLECTION, key);
 
-  if (!expectedUpdatedAt) {
-    // Insert mới — setDoc đơn giản
-    await _fbHelpers.setDoc(ref, { value, updated_at: nextUpdatedAt });
-    try { localStorage.setItem(key, value); } catch {}
-    invalidateCache(key); markCacheFresh(key);
-    return true;
-  }
+    if (!expectedUpdatedAt) {
+      // Insert mới — setDoc đơn giản
+      await _fbHelpers.setDoc(ref, { value, updated_at: nextUpdatedAt });
+      try { localStorage.setItem(key, value); } catch {}
+      invalidateCache(key); markCacheFresh(key);
+      return true;
+    }
 
-  // CAS: chỉ ghi nếu updated_at hiện tại = expectedUpdatedAt
-  const success = await runTransaction(db, async (tx) => {
-    const snap = await tx.get(ref);
-    if (!snap.exists()) return false;
-    if (snap.data().updated_at !== expectedUpdatedAt) return false;
-    tx.set(ref, { value, updated_at: nextUpdatedAt });
-    return true;
-  });
-  if (success) {
-    try { localStorage.setItem(key, value); } catch {}
-    invalidateCache(key); markCacheFresh(key);
+    // CAS: chỉ ghi nếu updated_at hiện tại = expectedUpdatedAt
+    const success = await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists()) return false;
+      if (snap.data().updated_at !== expectedUpdatedAt) return false;
+      tx.set(ref, { value, updated_at: nextUpdatedAt });
+      return true;
+    });
+    if (success) {
+      try { localStorage.setItem(key, value); } catch {}
+      invalidateCache(key); markCacheFresh(key);
+    }
+    return success;
+  } catch (e) {
+    // LOG ĐẦY ĐỦ — đây là chỗ hay bị permission-denied nhất nếu Firestore
+    // Rules chưa cho khách (request.auth == null) ghi đúng key này.
+    console.error("[92K fb] storageCasSet THẤT BẠI cho key:", key, "| code:", e.code, "| message:", e.message, "| full error:", e);
+    throw e; // re-throw để caller (booking flow) biết và báo lỗi cho khách, không âm thầm coi như thành công
   }
-  return success;
 }
 
 async function rollbackDiscountUsage(discountId) {
