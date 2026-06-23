@@ -23,7 +23,7 @@ jobs:
         working-directory: 92kamera
         env:
           FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
-        run: node scripts/export-data.js
+        run: node scripts/export-data.cjs
       - name: Commit & push nếu data.json thay đổi
         working-directory: 92kamera
         run: |
