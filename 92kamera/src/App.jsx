@@ -8443,8 +8443,14 @@ async function cloudinaryUploadPhoto(file) {
   // Throw lỗi ra để handleUpload() biết và báo đúng cho admin.
   const db = await getFirestore();
   const { doc, setDoc } = _fbHelpers;
+  // public_id Cloudinary trả về có chứa "/" (vd. "92kamera_gallery/xxxx") vì
+  // upload có folder. Firestore doc id KHÔNG được chứa "/" (nó sẽ hiểu thành
+  // path collection/doc lồng nhau → lỗi "must have an even number of segments").
+  // → encode "/" thành "__" để làm doc id hợp lệ, vẫn lưu public_id gốc trong field
+  // để Cloudinary destroy (xóa ảnh) dùng đúng giá trị thật.
+  const docId = data.public_id.replace(/\//g, "__");
   try {
-    await setDoc(doc(db, FB_GALLERY_COLLECTION, data.public_id), {
+    await setDoc(doc(db, FB_GALLERY_COLLECTION, docId), {
       public_id:   data.public_id,
       url:         data.secure_url,
       uploaded_at: data.created_at || new Date().toISOString(),
@@ -8466,10 +8472,14 @@ async function cloudinaryUploadPhoto(file) {
 // Hoặc dùng Cloudinary API với delete_token (trả về khi upload với return_delete_token=1)
 async function cloudinaryDeletePhoto(public_id) {
   // 1. Xóa metadata khỏi Firestore
+  // QUAN TRỌNG: doc id lưu trong Firestore đã được encode "/" → "__" lúc upload
+  // (xem cloudinaryUploadPhoto), nên ở đây phải encode lại CÙNG CÁCH để xóa đúng doc,
+  // còn Cloudinary destroy vẫn dùng public_id gốc (có "/") như bình thường.
+  const docId = public_id.replace(/\//g, "__");
   try {
     const db = await getFirestore();
     const { doc, deleteDoc } = _fbHelpers;
-    await deleteDoc(doc(db, FB_GALLERY_COLLECTION, public_id));
+    await deleteDoc(doc(db, FB_GALLERY_COLLECTION, docId));
   } catch (e) { console.warn("[92K] Firestore gallery delete failed:", e); }
   // 2. Xóa ảnh khỏi Cloudinary (cần upload_preset hỗ trợ delete, hoặc dùng Admin API)
   // Nếu chưa cấu hình Firebase Cloud Function, ảnh Cloudinary sẽ tự dọn định kỳ
