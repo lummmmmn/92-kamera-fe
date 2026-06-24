@@ -982,66 +982,6 @@ function Logo({ light = true, size = 1 }) {
   );
 }
 
-// ── RESIZE CHO ẢNH GALLERY — giữ độ nét cao, chỉ giảm dung lượng file ──
-// Ảnh chụp bằng máy ảnh thật thường nặng 10-40MB+ (full-res, ít khi đã nén).
-// Đẩy thẳng file đó lên Cloudinary qua mạng chậm/yếu dễ bị treo giữa đường
-// (request "pending" mãi không xong, không lỗi không xong — đúng triệu chứng
-// "đứng web khi upload"). Hàm này resize cạnh dài tối đa 2400px (vẫn đủ nét
-// cho lightbox full màn hình w_2000) + nén JPEG chất lượng cao 0.88 → dung
-// lượng còn khoảng 0.5-3MB, upload nhanh và ổn định hơn rất nhiều.
-// Trả về File thật (không phải base64 string) để gửi qua FormData như cũ.
-//
-// QUAN TRỌNG: dùng URL.createObjectURL() thay vì FileReader.readAsDataURL().
-// readAsDataURL biến cả file thành base64 string trong RAM — với ảnh máy ảnh
-// 20-40MB, string đó (UTF-16 trong JS) có thể chiếm 50-70MB+ RAM mỗi ảnh, và
-// việc encode base64 cho nhiều ảnh liên tiếp chiếm dụng main thread khá lâu
-// → đúng cảm giác "đứng web" mà không có lỗi gì hiện ra. createObjectURL chỉ
-// tạo 1 tham chiếu blob nhẹ, không copy dữ liệu, nhanh và ít tốn RAM hơn nhiều.
-function resizeImageFile(file, maxEdge = 2400, quality = 0.88) {
-  return new Promise((resolve, reject) => {
-    const objectUrl = URL.createObjectURL(file);
-    const img = new Image();
-
-    // TIMEOUT 15s — phòng trường hợp file định dạng trình duyệt không decode
-    // được (vd. .heic/.heif từ một số máy ảnh/điện thoại): file.type vẫn báo
-    // "image/heic" nên qua được filter ban đầu, nhưng gán vào <img src> thì
-    // CHROME/EDGE KHÔNG decode được HEIC → img.onload không bao giờ chạy, cũng
-    // không có onerror → Promise treo VĨNH VIỄN. Đây khớp đúng triệu chứng
-    // "đứng web, không có lỗi đỏ, F5 cũng không hết" vì bản chất là 1 Promise
-    // đang chờ mãi, không phải crash hay lỗi mạng.
-    const timeoutId = setTimeout(() => {
-      URL.revokeObjectURL(objectUrl);
-      reject(new Error("Không đọc được ảnh sau 15s — định dạng này (vd. HEIC/HEIF từ iPhone hoặc 1 số máy ảnh) có thể không được trình duyệt hỗ trợ. Hãy đổi ảnh sang JPG/PNG trước khi upload."));
-    }, 15000);
-
-    img.onerror = () => {
-      clearTimeout(timeoutId);
-      URL.revokeObjectURL(objectUrl);
-      reject(new Error("Ảnh bị lỗi hoặc không đúng định dạng"));
-    };
-    img.onload = () => {
-      clearTimeout(timeoutId);
-      try {
-        const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
-        const w = Math.round(img.width * scale);
-        const h = Math.round(img.height * scale);
-        const canvas = document.createElement("canvas");
-        canvas.width = w; canvas.height = h;
-        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-        canvas.toBlob((blob) => {
-          URL.revokeObjectURL(objectUrl); // giải phóng ngay sau khi đã vẽ xong lên canvas
-          if (!blob) { reject(new Error("Không nén được ảnh — có thể ảnh quá lớn cho thiết bị này")); return; }
-          resolve(new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" }));
-        }, "image/jpeg", quality);
-      } catch (err) {
-        URL.revokeObjectURL(objectUrl);
-        reject(err);
-      }
-    };
-    img.src = objectUrl;
-  });
-}
-
 // ── IMAGE COMPRESS HELPER ──
 function compressImage(file, maxW = 480, quality = 0.55) {
   return new Promise((resolve) => {
@@ -1714,20 +1654,7 @@ function MobileBackground() {
 // ── PHOTO LIGHTBOX — full màn hình, lướt trái/phải ──
 function PhotoLightbox({ photos, startIndex, onClose }) {
   const [idx, setIdx] = useState(startIndex || 0);
-  const total = (photos || []).length;
-
-  // GUARD: nếu photos rỗng (vd. admin xóa hết ảnh trong khi lightbox đang mở)
-  // → đóng lightbox ngay, KHÔNG render gì cả. Tránh "% 0 = NaN" → photos[NaN]
-  // = undefined → .url crash toàn bộ React tree (đứng trắng màn hình).
-  useEffect(() => {
-    if (total === 0) onClose();
-  }, [total, onClose]);
-
-  // GUARD: nếu idx hiện tại vượt quá total mới (vd. admin xóa 1 ảnh đang xem,
-  // danh sách tụt xuống) → kẹp lại idx về trong phạm vi hợp lệ.
-  useEffect(() => {
-    if (total > 0 && idx >= total) setIdx(total - 1);
-  }, [total, idx]);
+  const total = photos.length;
 
   // Khoá scroll body khi lightbox mở
   useEffect(() => {
@@ -1760,12 +1687,6 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
     touchStart.current = null;
   };
 
-  // Sau các guard ở trên, nếu total === 0 thì useEffect đã gọi onClose() rồi
-  // nhưng React vẫn render xong lượt này trước khi unmount — phải chặn render
-  // ở đây để không đụng tới photos[idx] khi rỗng.
-  if (total === 0) return null;
-  const safeIdx = Math.min(idx, total - 1);
-
   return (
     <div
       onClick={onClose}
@@ -1775,7 +1696,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
 
       {/* Ảnh chính */}
       <img
-        src={cdnUrl(photos[safeIdx].url, "full")}
+        src={cdnUrl(photos[idx].url, "full")}
         alt=""
         onClick={e => e.stopPropagation()}
         style={{
@@ -1796,7 +1717,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
         color: "#ffffff", fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: 700, letterSpacing: 1,
         backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
       }}>
-        {safeIdx + 1} / {total}
+        {idx + 1} / {total}
       </div>
 
       {/* Nút đóng */}
@@ -1837,8 +1758,8 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
               <img key={p.id || i} src={cdnUrl(p.url, "thumb")} alt="" onClick={() => setIdx(i)}
                 style={{
                   width: 40, height: 40, objectFit: "cover", borderRadius: 7, flexShrink: 0, cursor: "pointer",
-                  border: i === safeIdx ? "2px solid #c9a84c" : "2px solid transparent",
-                  opacity: i === safeIdx ? 1 : 0.50,
+                  border: i === idx ? "2px solid #c9a84c" : "2px solid transparent",
+                  opacity: i === idx ? 1 : 0.50,
                   transition: "all .2s",
                 }} loading="lazy" />
             ))}
@@ -1861,12 +1782,25 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
 // ── FEEDBACK CARD
 // ── FEEDBACK CARD (text-only, không ảnh) ──
 // ── FEEDBACK MARQUEE — dải băng chạy ngang ──
-function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
+function FeedbackMarquee({ photos, albums, feedbacks, isMobile, onNeedPhotos, onNeedFullPhotos }) {
   const [paused, setPaused] = useState(false);
   const [lightbox, setLightbox] = useState(null); // index ảnh rời
   const [openAlbum, setOpenAlbum] = useState(null); // album object
   const [showAllAlbums, setShowAllAlbums] = useState(false);
-  const sectionRef = useRef(null); // giữ lại ref cho id="feedback" (anchor cuộn tới mục này)
+
+  // ── Lazy trigger: gọi onNeedPhotos() khi mục này sắp lọt vào viewport ──
+  // rootMargin 500px → bắt đầu fetch trước khi khách cuộn tới, tránh giật/trống ảnh.
+  const sectionRef = useRef(null);
+  useEffect(() => {
+    if (!onNeedPhotos) return;
+    const el = sectionRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { onNeedPhotos(); obs.disconnect(); }
+    }, { rootMargin: "500px 0px" });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [onNeedPhotos]);
 
   const cards = (feedbacks || [])
     .filter(f => f.status === "approved" && !f.hidden)
@@ -2177,7 +2111,7 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
           {!hasAlbums && hasPhotos && (
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: isMobile ? 8 : 10 }}>
               {photosArr.map((p, i) => (
-                <div key={p.id || i} className="gal-thumb" onClick={() => { setLightbox(i); }} style={{
+                <div key={p.id || i} className="gal-thumb" onClick={() => { onNeedFullPhotos?.(); setLightbox(i); }} style={{
                   position: "relative", borderRadius: isMobile ? 12 : 16, overflow: "hidden", aspectRatio: "1/1", cursor: "pointer",
                   background: "rgba(13,27,42,0.08)", boxShadow: "0 2px 12px rgba(5,17,31,0.12)",
                 }}>
@@ -6596,7 +6530,7 @@ function RoadmapCards({ isMobile }) {
   );
 }
 
-function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, isMobile, photos, albums, feedbacks, loggedUser, onOpenLogin, onOpenCustomer }) {
+function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, isMobile, photos, albums, feedbacks, loggedUser, onOpenLogin, onOpenCustomer, onNeedPhotos, onNeedFullPhotos }) {
   const [scrollY, setScrollY] = useState(0);
   const [scrollDir, setScrollDir] = useState("up");
   const prevScrollY = useRef(0);
@@ -7115,8 +7049,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       <QuyTrinh6Buoc isMobile={isMobile} />
 
       {/* CUSTOMER PHOTO FEED */}
-      {/* TẠM TẮT để test cô lập lỗi "trắng trang" — xem có phải do FeedbackMarquee/gallery không */}
-      {false && <FeedbackMarquee photos={photos || []} albums={albums || []} feedbacks={feedbacks || []} isMobile={isMobile} />}
+      <FeedbackMarquee photos={photos || []} albums={albums || []} feedbacks={feedbacks || []} isMobile={isMobile} onNeedPhotos={onNeedPhotos} onNeedFullPhotos={onNeedFullPhotos} />
 
       {/* ABOUT — Lộ Trình Phát Triển */}
       <div id="about" className="acc-section" style={{
@@ -8439,12 +8372,12 @@ let _photosCache = null;
 let _photosCacheTs = 0;
 let _photosCacheLimit = 0; // limit đã dùng để fetch lần gần nhất — quyết định cache có đủ dùng không
 const PHOTOS_CACHE_MS = 10 * 60 * 1000;
-const PHOTOS_FULL_LIMIT = 200;   // đủ cho lightbox/album admin
+const PHOTOS_PREVIEW_LIMIT = 12; // đủ cho lưới thumbnail — fetch khi khách cuộn tới mục feedback
+const PHOTOS_FULL_LIMIT = 200;   // đủ cho lightbox/album — chỉ fetch khi khách bấm xem ảnh
 
 // Fetch từ Firestore gallery_photos (nguồn sự thật, đồng bộ mọi thiết bị)
-// CHỈ dùng bởi admin (GalleryUpload/AlbumManager) — trang khách giờ đọc photos
-// 1 lần duy nhất từ data.json cùng cameras/accessories, không gọi hàm này nữa
-// (đã bỏ cơ chế 2 tầng lazy-load để giống y cách máy ảnh, đơn giản và ổn định hơn).
+// limitCount mặc định = FULL — admin (GalleryUpload/AlbumManager) gọi không truyền tham số vẫn ra full như cũ.
+// Trang khách gọi tường minh PHOTOS_PREVIEW_LIMIT ở tầng 1 (lazy), rồi PHOTOS_FULL_LIMIT ở tầng 2 (khi bấm ảnh).
 async function galleryFetchPhotos(forceRefresh = false, limitCount = PHOTOS_FULL_LIMIT) {
   const cacheFresh = _photosCache && (Date.now() - _photosCacheTs) < PHOTOS_CACHE_MS;
   // Cache chỉ dùng được nếu lần fetch trước đó đã lấy ĐỦ hoặc NHIỀU HƠN số lượng đang cần
@@ -8481,47 +8414,17 @@ async function galleryFetchPhotos(forceRefresh = false, limitCount = PHOTOS_FULL
   }
 }
 
-// Upload ảnh gallery lên Cloudinary — CHỈ upload, KHÔNG ghi Firestore.
-// Dùng bởi GalleryUpload (draft mode): admin upload nhiều ảnh liên tục mà không
-// có request Firestore nào chạy ngầm → không bị giật/đứng UI. Metadata chỉ được
-// ghi vào Firestore khi admin bấm "Lưu & cập nhật web" (xem galleryWritePhotoMeta).
-async function cloudinaryUploadAssetOnly(file) {
-  // NGUYÊN NHÂN GỐC của "đứng web khi upload": ảnh chụp bằng máy ảnh thật
-  // thường nặng 10-40MB+ (chưa nén), khác hẳn ảnh điện thoại đã tự nén sẵn.
-  // Đẩy thẳng file gốc qua mạng yếu/chậm khiến request "pending" rất lâu,
-  // không lỗi không xong → tab trông như đứng cứng. Resize trước khi upload
-  // để dung lượng còn vài MB, vẫn đủ nét cho lightbox (w_2000).
-  let uploadFile = file;
-  try {
-    uploadFile = await resizeImageFile(file, 2400, 0.88);
-  } catch (e) {
-    console.warn("[92K] resize ảnh thất bại, dùng file gốc:", e);
-    // Resize lỗi (vd. file hỏng/không phải ảnh thật) → vẫn thử upload file gốc,
-    // để timeout dưới đây bắt lỗi rõ ràng thay vì im lặng treo.
-  }
-
+// Upload lên Cloudinary, sau đó ghi metadata vào Firestore
+async function cloudinaryUploadPhoto(file) {
   const fd = new FormData();
-  fd.append("file", uploadFile);
+  fd.append("file", file);
   fd.append("upload_preset", UPLOAD_PRESET);
   fd.append("tags", CLOUDINARY_TAG);
   fd.append("folder", "92kamera_gallery");
-
-  // TIMEOUT 45s — nếu mạng quá chậm/đứt giữa đường, throw lỗi rõ ràng để UI
-  // báo cho admin biết, thay vì await treo vô thời hạn (không lỗi không xong).
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 45000);
-  let res;
-  try {
-    res = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
-      { method: "POST", body: fd, signal: controller.signal }
-    );
-  } catch (e) {
-    if (e.name === "AbortError") throw new Error("Upload quá lâu (>45s) — mạng yếu hoặc ảnh quá nặng, thử lại");
-    throw e;
-  } finally {
-    clearTimeout(timeoutId);
-  }
+  const res = await fetch(
+    `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+    { method: "POST", body: fd }
+  );
   if (!res.ok) {
     // Đọc message thật Cloudinary trả về (vd. "Upload preset not found",
     // "Invalid signature" khi preset đang ở chế độ Signed...) thay vì throw lỗi chung.
@@ -8533,6 +8436,23 @@ async function cloudinaryUploadAssetOnly(file) {
     throw new Error(`Cloudinary: ${detail}`);
   }
   const data = await res.json();
+  // Ghi metadata vào Firestore gallery_photos (doc id = public_id)
+  // QUAN TRỌNG: KHÔNG nuốt lỗi ở đây — nếu ghi Firestore thất bại (vd. rules chặn),
+  // ảnh đã lên Cloudinary nhưng KHÔNG có metadata → gallery sẽ không bao giờ hiện ảnh
+  // mà admin vẫn thấy "upload thành công" (vì Cloudinary upload có OK thật).
+  // Throw lỗi ra để handleUpload() biết và báo đúng cho admin.
+  const db = await getFirestore();
+  const { doc, setDoc } = _fbHelpers;
+  try {
+    await setDoc(doc(db, FB_GALLERY_COLLECTION, data.public_id), {
+      public_id:   data.public_id,
+      url:         data.secure_url,
+      uploaded_at: data.created_at || new Date().toISOString(),
+      uploaded_by: "admin",
+    });
+  } catch (e) {
+    throw new Error(`Firestore (đã lên Cloudinary nhưng lưu metadata lỗi): ${e.message || e.code}`);
+  }
   return {
     id:        data.public_id,
     public_id: data.public_id,
@@ -8541,51 +8461,15 @@ async function cloudinaryUploadAssetOnly(file) {
   };
 }
 
-// Ghi metadata 1 ảnh gallery vào Firestore (doc id = public_id đã encode).
-// Gọi khi admin bấm "Lưu & cập nhật web" — gộp tất cả ảnh mới upload thành
-// các lệnh ghi chạy song song 1 lần, thay vì ghi ngay từng ảnh lúc upload.
-async function galleryWritePhotoMeta(photo) {
-  const db = await getFirestore();
-  const { doc, setDoc } = _fbHelpers;
-  // public_id Cloudinary trả về có chứa "/" (vd. "92kamera_gallery/xxxx") vì
-  // upload có folder. Firestore doc id KHÔNG được chứa "/" (nó sẽ hiểu thành
-  // path collection/doc lồng nhau → lỗi "must have an even number of segments").
-  // → encode "/" thành "__" để làm doc id hợp lệ, vẫn lưu public_id gốc trong field
-  // để Cloudinary destroy (xóa ảnh) dùng đúng giá trị thật.
-  const docId = photo.public_id.replace(/\//g, "__");
-  await setDoc(doc(db, FB_GALLERY_COLLECTION, docId), {
-    public_id:   photo.public_id,
-    url:         photo.url,
-    uploaded_at: photo.uploadedAt || new Date().toISOString(),
-    uploaded_by: "admin",
-  });
-}
-
-// Giữ lại cloudinaryUploadPhoto (upload + ghi Firestore ngay) để tương thích
-// nếu có nơi khác trong code còn gọi theo kiểu cũ — nay chỉ là gộp 2 hàm trên.
-async function cloudinaryUploadPhoto(file) {
-  const photo = await cloudinaryUploadAssetOnly(file);
-  try {
-    await galleryWritePhotoMeta(photo);
-  } catch (e) {
-    throw new Error(`Firestore (đã lên Cloudinary nhưng lưu metadata lỗi): ${e.message || e.code}`);
-  }
-  return photo;
-}
-
 // Xóa ảnh gallery: xóa metadata Firestore + gọi Cloudinary destroy qua unsigned delete
 // Lưu ý: Cloudinary unsigned delete chỉ hoạt động nếi preset được bật "Allow unsigned deletes"
 // Hoặc dùng Cloudinary API với delete_token (trả về khi upload với return_delete_token=1)
 async function cloudinaryDeletePhoto(public_id) {
   // 1. Xóa metadata khỏi Firestore
-  // QUAN TRỌNG: doc id lưu trong Firestore đã được encode "/" → "__" lúc upload
-  // (xem cloudinaryUploadPhoto), nên ở đây phải encode lại CÙNG CÁCH để xóa đúng doc,
-  // còn Cloudinary destroy vẫn dùng public_id gốc (có "/") như bình thường.
-  const docId = public_id.replace(/\//g, "__");
   try {
     const db = await getFirestore();
     const { doc, deleteDoc } = _fbHelpers;
-    await deleteDoc(doc(db, FB_GALLERY_COLLECTION, docId));
+    await deleteDoc(doc(db, FB_GALLERY_COLLECTION, public_id));
   } catch (e) { console.warn("[92K] Firestore gallery delete failed:", e); }
   // 2. Xóa ảnh khỏi Cloudinary (cần upload_preset hỗ trợ delete, hoặc dùng Admin API)
   // Nếu chưa cấu hình Firebase Cloud Function, ảnh Cloudinary sẽ tự dọn định kỳ
@@ -8634,144 +8518,114 @@ async function cloudinaryDeleteAsset(public_id) {
 function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 });
-  const [uploadStage, setUploadStage] = useState(""); // "Đang nén ảnh..." | "Đang gửi lên Cloudinary..."
   const [uploadMsg, setUploadMsg] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [previewIdx, setPreviewIdx] = useState(null); // lightbox admin
   const [confirmCfg, setConfirmCfg] = useState(null); // thay window.confirm
-  const [saving, setSaving] = useState(false);
 
-  // ── DRAFT MODE — giống ImageUploader của máy ảnh ──
-  // Upload/xóa ảnh CHỈ thay đổi state local (draft) — KHÔNG đụng Firestore.
-  // Nhờ vậy bấm upload/xóa nhiều ảnh liên tục vẫn mượt, không có request nào
-  // chạy ngầm gây treo UI. Chỉ khi admin bấm "✓ Lưu & cập nhật web" mới ghi
-  // thật vào Firestore (1 lần, gộp hết thay đổi) rồi trigger sync data.json.
-  const [draft, setDraft] = useState(() => photos || []);
-  const [removedIds, setRemovedIds] = useState([]); // public_id ảnh cũ bị đánh dấu xóa (chưa xóa thật)
-  const dirty = removedIds.length > 0 || (draft || []).some(p => p._new);
-
-  // Nếu prop photos đổi từ ngoài (vd. load lần đầu xong) và admin chưa sửa gì → đồng bộ lại draft
-  const firstRender = useRef(true);
-  useEffect(() => {
-    if (firstRender.current) { firstRender.current = false; return; }
-    if (!dirty) setDraft(photos || []);
-  }, [photos]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Refresh từ Firestore (nguồn sự thật)
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const fresh = await galleryFetchPhotos(true); // force refresh — bust cache
+      setPhotos(fresh);
+    } catch (e) {
+      console.error("[92K] gallery refresh failed:", e);
+      setUploadMsg({ type: "err", text: `❌ Không tải được danh sách ảnh: ${e.message || e.code || "lỗi không rõ"}. Có thể do Firestore Rules chưa cho phép đọc (list) collection "gallery_photos".` });
+      setTimeout(() => setUploadMsg(null), 8000);
+    }
+    setRefreshing(false);
+  };
 
   const handleUpload = async (files) => {
     if (!files || files.length === 0) return;
-    const fileArr = Array.from(files).filter(f => f.type.startsWith("image/"));
-    if (!fileArr.length) return;
-
-    // GIỚI HẠN SỐ ẢNH MỖI LẦN — ảnh chụp bằng máy ảnh thật rất nặng (10-40MB+).
-    // Upload quá nhiều ảnh nặng cùng lúc dễ làm trình duyệt quá tải RAM khi vừa
-    // decode canvas vừa giữ nhiều file trong bộ nhớ → tab phản hồi chậm/đứng,
-    // F5 cũng không kịp giải phóng ngay. Giới hạn 8 ảnh/lượt cho an toàn.
-    const MAX_PER_BATCH = 8;
-    const batch = fileArr.slice(0, MAX_PER_BATCH);
-    const skipped = fileArr.length - batch.length;
-
+    const fileArr = Array.from(files);
     setUploading(true);
     setUploadMsg(null);
-    setUploadProgress({ done: 0, total: batch.length });
+    setUploadProgress({ done: 0, total: fileArr.length });
 
-    const newOnes = [];
+    let successCount = 0;
     let lastError = null;
-    for (let i = 0; i < batch.length; i++) {
+    for (let i = 0; i < fileArr.length; i++) {
       try {
-        setUploadStage(`Đang nén ảnh ${i + 1}/${batch.length}...`);
-        // cloudinaryUploadAssetOnly tự resize/nén ảnh trước khi gửi (xem hàm bên dưới)
-        // — bước này có thể chậm vài giây với ảnh máy ảnh gốc nặng, không phải đứng máy.
-        setUploadStage(`Đang gửi ảnh ${i + 1}/${batch.length} lên Cloudinary...`);
-        const r = await cloudinaryUploadAssetOnly(batch[i]);
-        newOnes.push({
-          id: r.public_id, public_id: r.public_id, url: r.url,
-          uploadedAt: new Date().toISOString(), _new: true,
-        });
+        await cloudinaryUploadPhoto(fileArr[i]);
+        successCount++;
       } catch (e) {
-        console.error("Upload lỗi:", batch[i].name, e);
+        console.error("Upload lỗi:", fileArr[i].name, e);
         lastError = e;
       }
-      setUploadProgress({ done: i + 1, total: batch.length });
+      setUploadProgress({ done: i + 1, total: fileArr.length });
     }
 
     setUploading(false);
-    setUploadStage("");
     setUploadProgress({ done: 0, total: 0 });
 
-    if (newOnes.length > 0) {
-      setDraft(prev => [...newOnes, ...(prev || [])]);
-      const skipNote = skipped > 0 ? ` (${skipped} ảnh còn lại, upload tiếp ở lượt sau)` : "";
-      setUploadMsg({ type: "ok", text: `✓ Đã thêm ${newOnes.length}/${batch.length} ảnh${skipNote} — bấm "Lưu & cập nhật web" để áp dụng` });
-      setTimeout(() => setUploadMsg(null), 6000);
+    if (successCount > 0) {
+      setUploadMsg({ type: "ok", text: `✓ Upload ${successCount}/${fileArr.length} ảnh — đang tải danh sách...` });
+      // Cloudinary cần vài giây để index tag mới → delay nhỏ rồi fetch lại
+      setTimeout(async () => {
+        try {
+          const fresh = await galleryFetchPhotos(true); // force refresh sau upload
+          setPhotos(fresh);
+          setUploadMsg({ type: "ok", text: `✓ Đã upload ${successCount} ảnh lên Cloudinary` });
+          triggerInstantSyncDebounced();
+          setTimeout(() => setUploadMsg(null), 4000);
+        } catch (e) {
+          console.error("[92K] reload sau upload thất bại:", e);
+          setUploadMsg({ type: "err", text: `⚠️ Đã upload ảnh lên Cloudinary nhưng KHÔNG tải lại được danh sách: ${e.message || e.code || "lỗi không rõ"}. Thường do Firestore Rules chưa cho phép đọc (list) collection "gallery_photos" — vào Firebase Console → Firestore → Rules kiểm tra lại.` });
+          setTimeout(() => setUploadMsg(null), 10000);
+        }
+      }, 2000);
     } else {
       setUploadMsg({ type: "err", text: `❌ Upload thất bại: ${lastError?.message || "lỗi không rõ"}` });
       setTimeout(() => setUploadMsg(null), 7000);
     }
   };
 
-  // Xóa trong draft — ảnh mới (_new, chưa lưu Firestore) thì xóa Cloudinary luôn cho sạch;
-  // ảnh cũ (đã có trong Firestore) thì chỉ đánh dấu removed, đợi bấm Lưu mới xóa thật.
-  const handleDelete = (photo) => {
+  const [deletingId, setDeletingId] = useState(null);
+
+  // Xóa thật khỏi Cloudinary + Firestore (xem cloudinaryDeletePhoto — gọi trực tiếp, không qua Edge Function)
+  const handleDelete = async (photo) => {
     setConfirmCfg({
-      message: "Xóa ảnh này?\n\nẢnh sẽ bị xóa khi bạn bấm \"Lưu & cập nhật web\".",
-      onOk: () => {
+      message: "Xóa ảnh này vĩnh viễn?\n\nHành động không thể hoàn tác.",
+      onOk: async () => {
         setConfirmCfg(null);
-        if (photo._new) {
-          cloudinaryDeleteAsset(photo.public_id); // ảnh chưa từng lưu DB → xóa Cloudinary ngay
-          setDraft(prev => (prev || []).filter(p => p.public_id !== photo.public_id));
-        } else {
-          setRemovedIds(prev => [...prev, photo.public_id]);
-          setDraft(prev => (prev || []).filter(p => p.public_id !== photo.public_id));
+        setDeletingId(photo.public_id);
+        try {
+          await cloudinaryDeletePhoto(photo.public_id);
+          setPhotos(prev => (prev || []).filter(p => p.public_id !== photo.public_id));
+          setUploadMsg({ type: "ok", text: "✓ Đã xóa ảnh khỏi Cloudinary + database" });
+          triggerInstantSyncDebounced();
+          setTimeout(() => setUploadMsg(null), 3000);
+        } catch (e) {
+          console.error("[92K] delete failed:", e);
+          setUploadMsg({ type: "err", text: `❌ Xóa thất bại: ${e.message}` });
+          setTimeout(() => setUploadMsg(null), 5000);
         }
+        setDeletingId(null);
       }
     });
-  };
-
-  // ✓ Lưu & cập nhật web — ghi 1 lần toàn bộ thay đổi vào Firestore.
-  // KHÔNG auto-trigger sync (instant sync Cloud Function chưa cấu hình, và admin
-  // chủ động chọn chạy GitHub Action "Run workflow" thủ công để tiết kiệm request/data
-  // — chỉ chạy khi admin thật sự bấm, không chạy ngầm theo mỗi lượt khách xem feed).
-  const handleSaveAndPublish = async () => {
-    setSaving(true);
-    setUploadMsg(null);
-    try {
-      const newOnes = (draft || []).filter(p => p._new);
-      // Ghi metadata các ảnh mới vào Firestore (mỗi ảnh 1 doc, nhưng chạy song song)
-      await Promise.all(newOnes.map(p => galleryWritePhotoMeta(p)));
-      // Xóa thật các ảnh đã đánh dấu xóa (Firestore + Cloudinary)
-      await Promise.all(removedIds.map(pid => cloudinaryDeletePhoto(pid)));
-
-      const finalPhotos = (draft || []).map(p => ({ ...p, _new: undefined }));
-      setPhotos(finalPhotos);
-      setRemovedIds([]);
-      setUploadMsg({ type: "ok", text: "✓ Đã lưu vào database — vào GitHub Actions bấm \"Run workflow\" (sync-data.yml) để cập nhật web cho khách" });
-      setTimeout(() => setUploadMsg(null), 8000);
-    } catch (e) {
-      console.error("[92K] save gallery failed:", e);
-      setUploadMsg({ type: "err", text: `❌ Lưu thất bại: ${e.message || e.code || "lỗi không rõ"}` });
-      setTimeout(() => setUploadMsg(null), 8000);
-    }
-    setSaving(false);
   };
 
   const pct = uploadProgress.total > 0 ? Math.round((uploadProgress.done / uploadProgress.total) * 100) : 0;
 
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div>
           <h2 style={{ margin: 0, color: TXT, fontWeight: 600, fontSize: 18, fontFamily: "system-ui,sans-serif" }}>
-            Ảnh Gallery Khách ({(draft || []).length})
+            Ảnh Gallery Khách ({(photos || []).length})
           </h2>
           <div style={{ width: 30, height: 2, background: G, marginTop: 6 }} />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button onClick={handleRefresh} disabled={refreshing}
+            style={{ ...btn("ghost"), fontSize: 11, padding: "6px 12px", opacity: refreshing ? 0.6 : 1 }}>
+            {refreshing ? "⏳ Đang tải..." : "🔄 Refresh"}
+          </button>
           <div style={{ fontSize: 11, color: "#22c55e", fontFamily: "system-ui,sans-serif", fontWeight: 600 }}>
             ☁️ Cloudinary
           </div>
-          <button onClick={handleSaveAndPublish} disabled={!dirty || saving}
-            style={{ ...btn("gold"), fontSize: 12, padding: "8px 16px", opacity: (!dirty || saving) ? 0.5 : 1, cursor: (!dirty || saving) ? "default" : "pointer" }}>
-            {saving ? "⏳ Đang lưu..." : "✓ Lưu & cập nhật web"}
-          </button>
         </div>
       </div>
 
@@ -8782,12 +8636,12 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
         onDragLeave={e => { e.currentTarget.style.borderColor = BR; }}
         onDrop={e => { e.preventDefault(); e.currentTarget.style.borderColor = BR; handleUpload(e.dataTransfer.files); }}
         style={{ border: `2px dashed ${BR}`, borderRadius: 16, padding: "28px 20px", textAlign: "center", cursor: uploading ? "wait" : "pointer", marginBottom: 18, background: "rgba(255,255,255,0.35)", transition: "border-color .2s" }}>
-        <input id="gal-upload-input" type="file" accept="image/*" multiple style={{ display: "none" }} onChange={e => { handleUpload(e.target.files); e.target.value = ""; }} />
+        <input id="gal-upload-input" type="file" accept="image/*" multiple style={{ display: "none" }} onChange={e => handleUpload(e.target.files)} />
         <div style={{ fontSize: 32, marginBottom: 8 }}>🖼️</div>
         {uploading ? (
           <>
             <div style={{ color: TXT, fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif", marginBottom: 10 }}>
-              ⏳ {uploadStage || `Đang xử lý ${uploadProgress.done}/${uploadProgress.total} ảnh...`}
+              ⏳ Đang upload {uploadProgress.done}/{uploadProgress.total} ảnh...
             </div>
             <div style={{ width: "100%", maxWidth: 280, margin: "0 auto", height: 6, background: BR, borderRadius: 99, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${pct}%`, background: G, borderRadius: 99, transition: "width .3s ease" }} />
@@ -8800,7 +8654,7 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
               Bấm hoặc kéo thả ảnh vào đây
             </div>
             <div style={{ color: MUT, fontSize: 11, marginTop: 4, fontFamily: "system-ui,sans-serif" }}>
-              Ảnh → Cloudinary CDN · Bấm "Lưu & cập nhật web" để áp dụng
+              Ảnh → Cloudinary CDN · Firestore lưu metadata nhẹ
             </div>
           </>
         )}
@@ -8812,28 +8666,19 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
         </div>
       )}
 
-      {dirty && (
-        <div style={{ padding: "8px 14px", borderRadius: 10, marginBottom: 14, background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.3)", color: G, fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: 600 }}>
-          ⚠️ Có thay đổi chưa lưu — bấm "Lưu & cập nhật web" để áp dụng cho khách
-        </div>
-      )}
-
-      {(draft || []).length === 0 ? (
+      {(photos || []).length === 0 ? (
         <div style={{ color: MUT, fontSize: 13, padding: "16px 0" }}>
           Chưa có ảnh nào — upload ảnh khách lên để hiện ở trang chủ
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: 10, marginBottom: 16 }}>
-          {(draft || []).map((p, i) => (
+          {(photos || []).map((p, i) => (
             <div key={p.id} style={{ position: "relative", borderRadius: 12, overflow: "hidden", aspectRatio: "1/1", background: CARD2 }}>
               <img src={cdnUrl(p.url, "thumb")} alt="" onClick={() => setPreviewIdx(i)}
                 style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", cursor: "zoom-in" }} loading="lazy" />
-              {p._new && (
-                <div style={{ position: "absolute", top: 6, left: 6, background: G, color: "#1a1a1a", fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 6, fontFamily: "system-ui,sans-serif" }}>MỚI</div>
-              )}
-              <button onClick={() => handleDelete(p)} title="Xóa ảnh"
-                style={{ position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: "50%", background: "rgba(192,41,10,0.85)", border: "none", color: "#fff", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                🗑
+              <button onClick={() => handleDelete(p)} title="Xóa ảnh vĩnh viễn" disabled={deletingId === p.public_id}
+                style={{ position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: "50%", background: deletingId === p.public_id ? "rgba(0,0,0,0.4)" : "rgba(192,41,10,0.85)", border: "none", color: "#fff", cursor: deletingId === p.public_id ? "wait" : "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {deletingId === p.public_id ? "⏳" : "🗑"}
               </button>
             </div>
           ))}
@@ -8841,19 +8686,19 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
       )}
 
       {/* Lightbox xem ảnh to trong admin */}
-      {previewIdx !== null && (draft || []).length > 0 && (
-        <PhotoLightbox photos={draft} startIndex={previewIdx} onClose={() => setPreviewIdx(null)} />
+      {previewIdx !== null && (photos || []).length > 0 && (
+        <PhotoLightbox photos={photos} startIndex={previewIdx} onClose={() => setPreviewIdx(null)} />
       )}
 
       {/* Ghi chú */}
       <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.2)", marginBottom: 28, fontSize: 11, color: MUT, fontFamily: "system-ui,sans-serif", lineHeight: 1.7 }}>
-        <strong style={{ color: G }}>💡 Quản lý:</strong> Bấm 🗑 để đánh dấu xóa, rồi bấm "Lưu & cập nhật web" để áp dụng thật.
+        <strong style={{ color: G }}>💡 Quản lý:</strong> Bấm 🗑 để xóa ảnh vĩnh viễn khỏi Cloudinary + database.
         Quản lý thủ công → <a href="https://cloudinary.com/console" target="_blank" rel="noreferrer" style={{ color: G }}>Cloudinary Console</a> → Media Library → folder <code>92kamera_gallery</code>
       </div>
       <div style={{ width: "100%", height: 1, background: BR, marginBottom: 28, opacity: 0.4 }} />
 
       {/* ── ALBUM MANAGER ── */}
-      <AlbumManager photos={draft} albums={albums} setAlbums={setAlbums} isMobile={isMobile} />
+      <AlbumManager photos={photos} albums={albums} setAlbums={setAlbums} isMobile={isMobile} />
       <ConfirmDialog
         message={confirmCfg?.message}
         onOk={confirmCfg?.onOk}
@@ -10978,26 +10823,16 @@ async function getStaticData(forceRefresh = false) {
   }
   if (_staticDataPromise) return _staticDataPromise;
   _staticDataPromise = (async () => {
-    // TIMEOUT 10s — fetch() không có timeout mặc định, nếu mạng/CDN bị treo
-    // (request "pending" mãi, không lỗi không xong) thì await fetch() có thể
-    // chờ VÔ THỜI HẠN. Đây là nguyên nhân gây "trang load mãi, console im lặng"
-    // — không phải lỗi JS, mà là 1 network request chưa kết thúc. AbortController
-    // đảm bảo sau 10s sẽ luôn có kết quả (lỗi rõ ràng), code rơi xuống catch,
-    // fallback Firestore, KHÔNG còn treo vĩnh viễn.
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
     try {
-      const res = await fetch(`${STATIC_DATA_URL}?_t=${Date.now()}`, { cache: "no-store", signal: controller.signal });
+      const res = await fetch(`${STATIC_DATA_URL}?_t=${Date.now()}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       _staticDataCache = { data, ts: Date.now() };
       return data;
     } catch (err) {
-      const msg = err.name === "AbortError" ? "timeout sau 10s" : err.message;
-      console.warn("[92K] ⚠️ Static data load failed, fallback Firestore:", msg);
+      console.warn("[92K] ⚠️ Static data load failed, fallback Firestore:", err.message);
       return null;
     } finally {
-      clearTimeout(timeoutId);
       _staticDataPromise = null;
     }
   })();
@@ -11042,42 +10877,23 @@ async function getFirestore() {
   if (_fbDb) return _fbDb;
   if (_fbInitPromise) return _fbInitPromise;
   _fbInitPromise = (async () => {
-    // TIMEOUT 15s — đây là SINGLETON: nếu lần gọi đầu tiên bị treo (CDN
-    // gstatic.com chậm/chặn, mất mạng giữa đường...), _fbInitPromise giữ
-    // nguyên 1 Promise treo vĩnh viễn, và MỌI lệnh gọi getFirestore() sau đó
-    // trong suốt session (kể cả ở component khác) đều return lại đúng Promise
-    // treo đó → toàn bộ phần phụ thuộc Firestore (orders, feedbacks...) kẹt
-    // mãi, dù getStaticData()/data.json có load xong cũng không cứu được nếu
-    // có chỗ nào khác đang await getFirestore() trước đó.
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Load Firebase SDK quá 15s — CDN chậm hoặc mất mạng")), 15000)
-    );
-    try {
-      // Dynamic import Firebase SDK từ CDN
-      const loadPromise = (async () => {
-        const { initializeApp, getApps } = await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js");
-        const { getFirestore: _getFs, doc, getDoc, setDoc, updateDoc,
-                collection, getDocs, deleteDoc, onSnapshot,
-                runTransaction, serverTimestamp, query, orderBy, limit }
-          = await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js");
-        const { getAuth: _getAuth }
-          = await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js");
+    // Dynamic import Firebase SDK từ CDN
+    const { initializeApp, getApps } = await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js");
+    const { getFirestore: _getFs, doc, getDoc, setDoc, updateDoc,
+            collection, getDocs, deleteDoc, onSnapshot,
+            runTransaction, serverTimestamp, query, orderBy, limit }
+      = await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js");
+    const { getAuth: _getAuth }
+      = await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js");
 
-        // Tránh duplicate app khi hot-reload
-        _fbApp = getApps().length ? getApps()[0] : initializeApp(FB_CONFIG);
-        _fbDb  = _getFs(_fbApp);
-        _fbAuth = _getAuth(_fbApp);
+    // Tránh duplicate app khi hot-reload
+    _fbApp = getApps().length ? getApps()[0] : initializeApp(FB_CONFIG);
+    _fbDb  = _getFs(_fbApp);
+    _fbAuth = _getAuth(_fbApp);
 
-        // Gắn helpers lên module-level object để dùng ở mọi hàm
-        _fbHelpers = { doc, getDoc, setDoc, updateDoc, collection, getDocs, deleteDoc, onSnapshot, runTransaction, serverTimestamp, query, orderBy, limit };
-        return _fbDb;
-      })();
-      return await Promise.race([loadPromise, timeoutPromise]);
-    } catch (e) {
-      console.error("[92K] getFirestore() lỗi/timeout:", e.message);
-      _fbInitPromise = null; // reset để lần gọi SAU được thử lại, không kẹt vĩnh viễn
-      throw e;
-    }
+    // Gắn helpers lên module-level object để dùng ở mọi hàm
+    _fbHelpers = { doc, getDoc, setDoc, updateDoc, collection, getDocs, deleteDoc, onSnapshot, runTransaction, serverTimestamp, query, orderBy, limit };
+    return _fbDb;
   })();
   return _fbInitPromise;
 }
@@ -11288,10 +11104,11 @@ async function _flushKey(key) {
       updated_at: new Date().toISOString(),
     });
     markCacheFresh(key);
-    // KHÔNG auto-trigger sync ở đây — admin chủ động chạy GitHub Action
-    // "Run workflow" (sync-data.yml) thủ công sau khi sửa xong, để kiểm soát
-    // đúng khi nào data.json cập nhật, tránh tốn request/phút Actions ngoài ý muốn
-    // (vd. mỗi feedback khách gửi lên không cần tự sync ngay).
+    // Chỉ trigger sync sau khi Firestore đã ghi thành công thật.
+    // Nếu gọi trong storageSet() trước khi setDoc xong, GitHub Action có thể đọc bản cũ.
+    if (key !== STORE_KEYS.orders && key !== STORE_KEYS.users) {
+      triggerInstantSyncDebounced(key);
+    }
   } catch (e) {
     // LOG ĐẦY ĐỦ — không nuốt lỗi. console.error để luôn nổi trong DevTools,
     // kèm e.code (permission-denied / unauthenticated / unavailable / ...)
@@ -11793,9 +11610,46 @@ function AppRoot() {
   }, []);
 
   // ── Lazy-load gallery photos — 2 TẦNG ──
-  // Đã bỏ cơ chế 2 tầng lazy-load (preview 12 ảnh + full 200 ảnh khi mở lightbox).
-  // Giờ photos load 1 LẦN DUY NHẤT cùng cameras/accessories ngay khi vào trang
-  // (xem effect chính phía trên) — giống y cách máy ảnh, đơn giản và ổn định hơn.
+  // Tầng 1: fetch PREVIEW_LIMIT (12 ảnh) khi mục feedback/gallery sắp vào viewport.
+  // Tầng 2: fetch FULL_LIMIT (200 ảnh) chỉ khi khách thật sự bấm vào ảnh để xem lightbox.
+  const _photosLoadedRef = useRef(false);     // đã fetch tầng 1 chưa
+  const _photosFullLoadedRef = useRef(false); // đã fetch tầng 2 (full) chưa
+  const loadGalleryPhotosLazy = useCallback(async () => {
+    if (_photosLoadedRef.current) return; // guard — chỉ chạy 1 lần / session
+    _photosLoadedRef.current = true;
+    // Ưu tiên data.json (CDN, 0 Firestore read) — file này đã có sẵn field "photos"
+    // (tối đa 100 ảnh mới nhất, export bởi scripts/sync-data.js mỗi 15 phút).
+    // Dùng Array.isArray (không chỉ truthy) để phân biệt rõ 2 trường hợp:
+    //   - staticData.photos === []  → gallery thật sự chưa có ảnh nào → DÙNG LUÔN, không fallback
+    //   - staticData.photos === undefined → data.json cũ/lỗi chưa có field này → fallback Firestore
+    try {
+      const staticData = await getStaticData();
+      if (staticData && Array.isArray(staticData.photos)) {
+        const mapped = staticData.photos.slice(0, PHOTOS_PREVIEW_LIMIT).map(r => ({
+          id: r.public_id, public_id: r.public_id, url: r.url, uploadedAt: r.uploaded_at,
+        }));
+        _setPhotos(mapped);
+        return; // có data.json hợp lệ → dừng, không gọi Firestore
+      }
+    } catch {} // lỗi đọc data.json → rơi xuống fallback bên dưới
+    // Fallback: data.json chưa có field photos (vd. workflow mới chưa chạy lần nào)
+    // hoặc fetch data.json lỗi → vẫn lấy được ảnh, chỉ tốn Firestore như cách cũ.
+    try {
+      const pts = await galleryFetchPhotos(false, PHOTOS_PREVIEW_LIMIT);
+      if (pts.length > 0) _setPhotos(pts);
+    } catch {}
+  }, []);
+  // Tầng 2 — KHÔNG đổi: data.json chỉ cache tối đa 100 ảnh nên không đủ thay cho FULL_LIMIT (200),
+  // và tầng này chỉ chạy khi khách chủ động bấm xem ảnh (tần suất thấp, không phải điểm nóng) → giữ Firestore trực tiếp.
+  const loadGalleryPhotosFull = useCallback(async () => {
+    if (_photosFullLoadedRef.current) return; // guard — chỉ chạy 1 lần / session
+    _photosFullLoadedRef.current = true;
+    try {
+      const pts = await galleryFetchPhotos(false, PHOTOS_FULL_LIMIT);
+      if (pts.length > 0) _setPhotos(pts);
+    } catch {}
+  }, []);
+
 
   const setAlbums = useCallback((updater) => {
     _setAlbums(prev => {
@@ -11846,7 +11700,6 @@ function AppRoot() {
   useEffect(() => {
     setReady(true);
     (async () => {
-      try {
       // ── 1. Orders: fetch Firestore thẳng, không qua CDN ──
       // Chạy song song với CDN fetch bên dưới, không block nhau
       storageGet(STORE_KEYS.orders, true).then(ords => {
@@ -11883,39 +11736,24 @@ function AppRoot() {
           _setDeliveryFees(staticData.deliveryFees);
         }
 
-        // Lazy sau 4s: feedbacks + albums (ít quan trọng hơn, không cần ngay khi vào trang)
+        // Lazy sau 4s: feedbacks + photos + albums
         setTimeout(async () => {
-          try {
-            if (staticData.feedbacks) {
-              _setFeedbacks(prev => {
-                const storageIds = new Set(staticData.feedbacks.map(f => f.id));
-                const fresh = prev.filter(f => !storageIds.has(f.id));
-                return [...fresh, ...staticData.feedbacks];
-              });
-            }
-            if (staticData.albums) _setAlbums(staticData.albums);
-          } catch (e) { console.error("[92K] Lỗi load feedbacks/albums:", e); }
+          if (staticData.feedbacks) {
+            _setFeedbacks(prev => {
+              const storageIds = new Set(staticData.feedbacks.map(f => f.id));
+              const fresh = prev.filter(f => !storageIds.has(f.id));
+              return [...fresh, ...staticData.feedbacks];
+            });
+          }
+          if (staticData.albums) _setAlbums(staticData.albums);
+          // Photos: KHÔNG fetch ở đây nữa — đợi loadGalleryPhotosLazy() khi khách
+          // cuộn gần tới mục feedback/gallery (xem onNeedPhotos trong FeedbackMarquee).
         }, 4000);
-
-        // Photos: load NGAY cùng cameras/accessories — giống y cách máy ảnh,
-        // không qua tầng lazy/IntersectionObserver riêng nữa (đã bỏ 2 tầng cũ).
-        // TẠM TẮT để test cô lập lỗi "trắng trang":
-        if (false) {
-          try {
-            if (Array.isArray(staticData.photos)) {
-              _setPhotos(staticData.photos.map(r => ({
-                id: r.public_id, public_id: r.public_id, url: r.url, uploadedAt: r.uploaded_at,
-              })));
-            }
-          } catch (e) { console.error("[92K] Lỗi xử lý photos từ data.json:", e); }
-        }
 
         // Users từ Firestore — PII, không export ra file tĩnh
         setTimeout(async () => {
-          try {
-            const usrs = await storageGet(STORE_KEYS.users);
-            if (usrs) _setUsers(usrs);
-          } catch (e) { console.error("[92K] Lỗi load users:", e); }
+          const usrs = await storageGet(STORE_KEYS.users);
+          if (usrs) _setUsers(usrs);
         }, 5000);
 
       } else {
@@ -11939,35 +11777,23 @@ function AppRoot() {
           if (fees && Array.isArray(fees) && fees.length > 0) _setDeliveryFees(fees);
         }).catch(() => {});
         setTimeout(async () => {
-          try {
-            const fbs = await storageGet(STORE_KEYS.feedbacks);
-            if (fbs) {
-              _setFeedbacks(prev => {
-                const storageIds = new Set(fbs.map(f => f.id));
-                const fresh = prev.filter(f => !storageIds.has(f.id));
-                return [...fresh, ...fbs];
-              });
-            }
-            const pts = await galleryFetchPhotos();
-            if (pts.length > 0) _setPhotos(pts);
-            const albs = await storageGet(STORE_KEYS.albums);
-            if (albs) _setAlbums(albs);
-          } catch (e) { console.error("[92K] Lỗi fallback feedbacks/photos/albums:", e); }
+          const fbs = await storageGet(STORE_KEYS.feedbacks);
+          if (fbs) {
+            _setFeedbacks(prev => {
+              const storageIds = new Set(fbs.map(f => f.id));
+              const fresh = prev.filter(f => !storageIds.has(f.id));
+              return [...fresh, ...fbs];
+            });
+          }
+          const pts = await galleryFetchPhotos();
+          if (pts.length > 0) _setPhotos(pts);
+          const albs = await storageGet(STORE_KEYS.albums);
+          if (albs) _setAlbums(albs);
         }, 4000);
         setTimeout(async () => {
-          try {
-            const usrs = await storageGet(STORE_KEYS.users);
-            if (usrs) _setUsers(usrs);
-          } catch (e) { console.error("[92K] Lỗi load users (fallback):", e); }
+          const usrs = await storageGet(STORE_KEYS.users);
+          if (usrs) _setUsers(usrs);
         }, 5000);
-      }
-      } catch (e) {
-        // BẮT MỌI LỖI ở effect chính — nếu không có dòng này, 1 lỗi throw ở đây
-        // sẽ làm Promise của (async () => {...})() reject mà KHÔNG AI catch,
-        // chỉ in "Uncaught (in promise)" rất nhỏ, dễ bị bỏ qua, và quan trọng
-        // hơn: phần code đứng SAU dòng lỗi (vd. set các state khác) sẽ KHÔNG
-        // chạy nữa → trang có thể kẹt ở trạng thái thiếu dữ liệu mãi.
-        console.error("[92K] LỖI EFFECT CHÍNH (catalog load):", e);
       }
     })();
   }, []);
@@ -12400,6 +12226,8 @@ function AppRoot() {
           photos={photos}
           albums={albums}
           feedbacks={feedbacks}
+          onNeedPhotos={loadGalleryPhotosLazy}
+          onNeedFullPhotos={loadGalleryPhotosFull}
           loggedUser={loggedUser}
           onOpenLogin={() => setLoginOpen(true)}
           onOpenCustomer={() => { if (loggedUser) setPage("customer"); else setLoginOpen(true); }}
