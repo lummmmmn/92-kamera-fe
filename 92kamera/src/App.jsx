@@ -10934,25 +10934,72 @@ async function firebaseSignOutAdmin() {
 // photos/albums, gọi Cloud Function "triggerSync" để chạy NGAY workflow
 // GitHub sync-data.yml (thay vì đợi tối đa 15 phút cron) → data.json trên
 // CDN cập nhật trong ~10-30s, khách nào load cũng thấy đúng ngay.
-// Debounce 4s: admin sửa nhiều thứ liên tiếp chỉ trigger 1 lần, không spam.
+// Debounce 8s + rate limit 60s: admin sửa nhiều thứ liên tiếp chỉ trigger 1 lần, không spam.
 //
 // TODO: dán URL Cloud Function thật vào sau khi deploy xong (xem hướng dẫn).
 const SYNC_FN_URL = "https://asia-southeast1-kamera-a88d1.cloudfunctions.net/triggerSync";
 // TODO: dán đúng chuỗi đã set qua `firebase functions:secrets:set ADMIN_TRIGGER_SECRET`
 const ADMIN_TRIGGER_SECRET_CLIENT = "DAN_SECRET_GIONG_TREN_CLOUD_FUNCTION_VAO_DAY";
+const ADMIN_TRIGGER_SECRET_PLACEHOLDER = "DAN_SECRET_GIONG_TREN_CLOUD_FUNCTION_VAO_DAY";
 
+// Chỉ sync data.json khi admin thật sự sửa dữ liệu catalog và Firestore đã ghi OK.
+// Debounce gom nhiều lần sửa gần nhau thành 1 request; min interval tránh spam workflow.
+const SYNC_TRIGGER_DEBOUNCE_MS = 8000;
+const SYNC_TRIGGER_MIN_INTERVAL_MS = 60 * 1000;
 let _syncTriggerTimer = null;
-function triggerInstantSyncDebounced() {
-  if (!SYNC_FN_URL || SYNC_FN_URL.includes("kamera-a88d1.cloudfunctions.net") === false) {
-    // vẫn cho phép chạy — chỉ là gợi ý nếu URL chưa cấu hình đúng, không chặn
+let _syncTriggerInFlight = false;
+let _syncLastTriggerTs = 0;
+const _syncPendingKeys = new Set();
+
+function isInstantSyncConfigured() {
+  return !!SYNC_FN_URL &&
+    /^https:\/\//.test(SYNC_FN_URL) &&
+    !!ADMIN_TRIGGER_SECRET_CLIENT &&
+    ADMIN_TRIGGER_SECRET_CLIENT !== ADMIN_TRIGGER_SECRET_PLACEHOLDER;
+}
+
+function triggerInstantSyncDebounced(key) {
+  if (key) _syncPendingKeys.add(key);
+
+  // Chưa cấu hình Cloud Function/secret thì không gọi request lỗi vô ích.
+  // Khi cần test nhanh vẫn có thể chạy GitHub Action thủ công.
+  if (!isInstantSyncConfigured()) {
+    console.warn("[92K] Instant sync chưa cấu hình secret/url — bỏ qua auto trigger, dùng GitHub Action manual hoặc cron backup.");
+    return;
   }
+
   clearTimeout(_syncTriggerTimer);
-  _syncTriggerTimer = setTimeout(() => {
-    fetch(SYNC_FN_URL, {
-      method: "POST",
-      headers: { "x-admin-secret": ADMIN_TRIGGER_SECRET_CLIENT },
-    }).catch((e) => console.warn("[92K] triggerInstantSync failed (không sao, cron 15 phút vẫn chạy):", e.message));
-  }, 4000);
+  const waitForRateLimit = Math.max(0, SYNC_TRIGGER_MIN_INTERVAL_MS - (Date.now() - _syncLastTriggerTs));
+  const delay = Math.max(SYNC_TRIGGER_DEBOUNCE_MS, waitForRateLimit);
+
+  _syncTriggerTimer = setTimeout(async () => {
+    if (_syncTriggerInFlight) {
+      triggerInstantSyncDebounced();
+      return;
+    }
+
+    const changedKeys = Array.from(_syncPendingKeys);
+    _syncPendingKeys.clear();
+    _syncTriggerInFlight = true;
+
+    try {
+      await fetch(SYNC_FN_URL, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-admin-secret": ADMIN_TRIGGER_SECRET_CLIENT,
+        },
+        body: JSON.stringify({ keys: changedKeys, at: new Date().toISOString() }),
+      });
+      _syncLastTriggerTs = Date.now();
+      console.log("[92K] Instant sync triggered:", changedKeys.join(",") || "unknown");
+    } catch (e) {
+      console.warn("[92K] triggerInstantSync failed (không sao nếu vẫn còn cron/manual backup):", e.message);
+    } finally {
+      _syncTriggerInFlight = false;
+      if (_syncPendingKeys.size > 0) triggerInstantSyncDebounced();
+    }
+  }, delay);
 }
 // ── END INSTANT SYNC TRIGGER ─────────────────────────────────────────────
 
@@ -11057,6 +11104,11 @@ async function _flushKey(key) {
       updated_at: new Date().toISOString(),
     });
     markCacheFresh(key);
+    // Chỉ trigger sync sau khi Firestore đã ghi thành công thật.
+    // Nếu gọi trong storageSet() trước khi setDoc xong, GitHub Action có thể đọc bản cũ.
+    if (key !== STORE_KEYS.orders && key !== STORE_KEYS.users) {
+      triggerInstantSyncDebounced(key);
+    }
   } catch (e) {
     // LOG ĐẦY ĐỦ — không nuốt lỗi. console.error để luôn nổi trong DevTools,
     // kèm e.code (permission-denied / unauthenticated / unavailable / ...)
@@ -11091,10 +11143,6 @@ function storageSet(key, val) {
   const debounceMs = key === STORE_KEYS.orders ? 800 : 2000;
   clearTimeout(_writeTimers[key]);
   _writeTimers[key] = setTimeout(() => { _flushKey(key); }, debounceMs);
-  // orders/users không nằm trong data.json export → không cần trigger sync sớm
-  if (key !== STORE_KEYS.orders && key !== STORE_KEYS.users) {
-    triggerInstantSyncDebounced();
-  }
 }
 
 // ── IMMEDIATE WRITE — không debounce, dùng khi submit đơn ──
