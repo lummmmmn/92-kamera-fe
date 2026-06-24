@@ -982,6 +982,66 @@ function Logo({ light = true, size = 1 }) {
   );
 }
 
+// ── RESIZE CHO ẢNH GALLERY — giữ độ nét cao, chỉ giảm dung lượng file ──
+// Ảnh chụp bằng máy ảnh thật thường nặng 10-40MB+ (full-res, ít khi đã nén).
+// Đẩy thẳng file đó lên Cloudinary qua mạng chậm/yếu dễ bị treo giữa đường
+// (request "pending" mãi không xong, không lỗi không xong — đúng triệu chứng
+// "đứng web khi upload"). Hàm này resize cạnh dài tối đa 2400px (vẫn đủ nét
+// cho lightbox full màn hình w_2000) + nén JPEG chất lượng cao 0.88 → dung
+// lượng còn khoảng 0.5-3MB, upload nhanh và ổn định hơn rất nhiều.
+// Trả về File thật (không phải base64 string) để gửi qua FormData như cũ.
+//
+// QUAN TRỌNG: dùng URL.createObjectURL() thay vì FileReader.readAsDataURL().
+// readAsDataURL biến cả file thành base64 string trong RAM — với ảnh máy ảnh
+// 20-40MB, string đó (UTF-16 trong JS) có thể chiếm 50-70MB+ RAM mỗi ảnh, và
+// việc encode base64 cho nhiều ảnh liên tiếp chiếm dụng main thread khá lâu
+// → đúng cảm giác "đứng web" mà không có lỗi gì hiện ra. createObjectURL chỉ
+// tạo 1 tham chiếu blob nhẹ, không copy dữ liệu, nhanh và ít tốn RAM hơn nhiều.
+function resizeImageFile(file, maxEdge = 2400, quality = 0.88) {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+
+    // TIMEOUT 15s — phòng trường hợp file định dạng trình duyệt không decode
+    // được (vd. .heic/.heif từ một số máy ảnh/điện thoại): file.type vẫn báo
+    // "image/heic" nên qua được filter ban đầu, nhưng gán vào <img src> thì
+    // CHROME/EDGE KHÔNG decode được HEIC → img.onload không bao giờ chạy, cũng
+    // không có onerror → Promise treo VĨNH VIỄN. Đây khớp đúng triệu chứng
+    // "đứng web, không có lỗi đỏ, F5 cũng không hết" vì bản chất là 1 Promise
+    // đang chờ mãi, không phải crash hay lỗi mạng.
+    const timeoutId = setTimeout(() => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Không đọc được ảnh sau 15s — định dạng này (vd. HEIC/HEIF từ iPhone hoặc 1 số máy ảnh) có thể không được trình duyệt hỗ trợ. Hãy đổi ảnh sang JPG/PNG trước khi upload."));
+    }, 15000);
+
+    img.onerror = () => {
+      clearTimeout(timeoutId);
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Ảnh bị lỗi hoặc không đúng định dạng"));
+    };
+    img.onload = () => {
+      clearTimeout(timeoutId);
+      try {
+        const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        canvas.toBlob((blob) => {
+          URL.revokeObjectURL(objectUrl); // giải phóng ngay sau khi đã vẽ xong lên canvas
+          if (!blob) { reject(new Error("Không nén được ảnh — có thể ảnh quá lớn cho thiết bị này")); return; }
+          resolve(new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" }));
+        }, "image/jpeg", quality);
+      } catch (err) {
+        URL.revokeObjectURL(objectUrl);
+        reject(err);
+      }
+    };
+    img.src = objectUrl;
+  });
+}
+
 // ── IMAGE COMPRESS HELPER ──
 function compressImage(file, maxW = 480, quality = 0.55) {
   return new Promise((resolve) => {
@@ -1654,7 +1714,20 @@ function MobileBackground() {
 // ── PHOTO LIGHTBOX — full màn hình, lướt trái/phải ──
 function PhotoLightbox({ photos, startIndex, onClose }) {
   const [idx, setIdx] = useState(startIndex || 0);
-  const total = photos.length;
+  const total = (photos || []).length;
+
+  // GUARD: nếu photos rỗng (vd. admin xóa hết ảnh trong khi lightbox đang mở)
+  // → đóng lightbox ngay, KHÔNG render gì cả. Tránh "% 0 = NaN" → photos[NaN]
+  // = undefined → .url crash toàn bộ React tree (đứng trắng màn hình).
+  useEffect(() => {
+    if (total === 0) onClose();
+  }, [total, onClose]);
+
+  // GUARD: nếu idx hiện tại vượt quá total mới (vd. admin xóa 1 ảnh đang xem,
+  // danh sách tụt xuống) → kẹp lại idx về trong phạm vi hợp lệ.
+  useEffect(() => {
+    if (total > 0 && idx >= total) setIdx(total - 1);
+  }, [total, idx]);
 
   // Khoá scroll body khi lightbox mở
   useEffect(() => {
@@ -1687,6 +1760,12 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
     touchStart.current = null;
   };
 
+  // Sau các guard ở trên, nếu total === 0 thì useEffect đã gọi onClose() rồi
+  // nhưng React vẫn render xong lượt này trước khi unmount — phải chặn render
+  // ở đây để không đụng tới photos[idx] khi rỗng.
+  if (total === 0) return null;
+  const safeIdx = Math.min(idx, total - 1);
+
   return (
     <div
       onClick={onClose}
@@ -1696,7 +1775,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
 
       {/* Ảnh chính */}
       <img
-        src={cdnUrl(photos[idx].url, "full")}
+        src={cdnUrl(photos[safeIdx].url, "full")}
         alt=""
         onClick={e => e.stopPropagation()}
         style={{
@@ -1717,7 +1796,7 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
         color: "#ffffff", fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: 700, letterSpacing: 1,
         backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
       }}>
-        {idx + 1} / {total}
+        {safeIdx + 1} / {total}
       </div>
 
       {/* Nút đóng */}
@@ -1758,8 +1837,8 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
               <img key={p.id || i} src={cdnUrl(p.url, "thumb")} alt="" onClick={() => setIdx(i)}
                 style={{
                   width: 40, height: 40, objectFit: "cover", borderRadius: 7, flexShrink: 0, cursor: "pointer",
-                  border: i === idx ? "2px solid #c9a84c" : "2px solid transparent",
-                  opacity: i === idx ? 1 : 0.50,
+                  border: i === safeIdx ? "2px solid #c9a84c" : "2px solid transparent",
+                  opacity: i === safeIdx ? 1 : 0.50,
                   transition: "all .2s",
                 }} loading="lazy" />
             ))}
@@ -8419,15 +8498,42 @@ async function galleryFetchPhotos(forceRefresh = false, limitCount = PHOTOS_FULL
 // có request Firestore nào chạy ngầm → không bị giật/đứng UI. Metadata chỉ được
 // ghi vào Firestore khi admin bấm "Lưu & cập nhật web" (xem galleryWritePhotoMeta).
 async function cloudinaryUploadAssetOnly(file) {
+  // NGUYÊN NHÂN GỐC của "đứng web khi upload": ảnh chụp bằng máy ảnh thật
+  // thường nặng 10-40MB+ (chưa nén), khác hẳn ảnh điện thoại đã tự nén sẵn.
+  // Đẩy thẳng file gốc qua mạng yếu/chậm khiến request "pending" rất lâu,
+  // không lỗi không xong → tab trông như đứng cứng. Resize trước khi upload
+  // để dung lượng còn vài MB, vẫn đủ nét cho lightbox (w_2000).
+  let uploadFile = file;
+  try {
+    uploadFile = await resizeImageFile(file, 2400, 0.88);
+  } catch (e) {
+    console.warn("[92K] resize ảnh thất bại, dùng file gốc:", e);
+    // Resize lỗi (vd. file hỏng/không phải ảnh thật) → vẫn thử upload file gốc,
+    // để timeout dưới đây bắt lỗi rõ ràng thay vì im lặng treo.
+  }
+
   const fd = new FormData();
-  fd.append("file", file);
+  fd.append("file", uploadFile);
   fd.append("upload_preset", UPLOAD_PRESET);
   fd.append("tags", CLOUDINARY_TAG);
   fd.append("folder", "92kamera_gallery");
-  const res = await fetch(
-    `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
-    { method: "POST", body: fd }
-  );
+
+  // TIMEOUT 45s — nếu mạng quá chậm/đứt giữa đường, throw lỗi rõ ràng để UI
+  // báo cho admin biết, thay vì await treo vô thời hạn (không lỗi không xong).
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 45000);
+  let res;
+  try {
+    res = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+      { method: "POST", body: fd, signal: controller.signal }
+    );
+  } catch (e) {
+    if (e.name === "AbortError") throw new Error("Upload quá lâu (>45s) — mạng yếu hoặc ảnh quá nặng, thử lại");
+    throw e;
+  } finally {
+    clearTimeout(timeoutId);
+  }
   if (!res.ok) {
     // Đọc message thật Cloudinary trả về (vd. "Upload preset not found",
     // "Invalid signature" khi preset đang ở chế độ Signed...) thay vì throw lỗi chung.
@@ -8540,6 +8646,7 @@ async function cloudinaryDeleteAsset(public_id) {
 function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 });
+  const [uploadStage, setUploadStage] = useState(""); // "Đang nén ảnh..." | "Đang gửi lên Cloudinary..."
   const [uploadMsg, setUploadMsg] = useState(null);
   const [previewIdx, setPreviewIdx] = useState(null); // lightbox admin
   const [confirmCfg, setConfirmCfg] = useState(null); // thay window.confirm
@@ -8565,35 +8672,48 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
     if (!files || files.length === 0) return;
     const fileArr = Array.from(files).filter(f => f.type.startsWith("image/"));
     if (!fileArr.length) return;
+
+    // GIỚI HẠN SỐ ẢNH MỖI LẦN — ảnh chụp bằng máy ảnh thật rất nặng (10-40MB+).
+    // Upload quá nhiều ảnh nặng cùng lúc dễ làm trình duyệt quá tải RAM khi vừa
+    // decode canvas vừa giữ nhiều file trong bộ nhớ → tab phản hồi chậm/đứng,
+    // F5 cũng không kịp giải phóng ngay. Giới hạn 8 ảnh/lượt cho an toàn.
+    const MAX_PER_BATCH = 8;
+    const batch = fileArr.slice(0, MAX_PER_BATCH);
+    const skipped = fileArr.length - batch.length;
+
     setUploading(true);
     setUploadMsg(null);
-    setUploadProgress({ done: 0, total: fileArr.length });
+    setUploadProgress({ done: 0, total: batch.length });
 
     const newOnes = [];
     let lastError = null;
-    for (let i = 0; i < fileArr.length; i++) {
+    for (let i = 0; i < batch.length; i++) {
       try {
-        // cloudinaryUploadAssetOnly = chỉ lên Cloudinary, KHÔNG ghi Firestore
-        // (xem hàm bên dưới — tách riêng phần ghi DB ra khỏi phần upload ảnh)
-        const r = await cloudinaryUploadAssetOnly(fileArr[i]);
+        setUploadStage(`Đang nén ảnh ${i + 1}/${batch.length}...`);
+        // cloudinaryUploadAssetOnly tự resize/nén ảnh trước khi gửi (xem hàm bên dưới)
+        // — bước này có thể chậm vài giây với ảnh máy ảnh gốc nặng, không phải đứng máy.
+        setUploadStage(`Đang gửi ảnh ${i + 1}/${batch.length} lên Cloudinary...`);
+        const r = await cloudinaryUploadAssetOnly(batch[i]);
         newOnes.push({
           id: r.public_id, public_id: r.public_id, url: r.url,
           uploadedAt: new Date().toISOString(), _new: true,
         });
       } catch (e) {
-        console.error("Upload lỗi:", fileArr[i].name, e);
+        console.error("Upload lỗi:", batch[i].name, e);
         lastError = e;
       }
-      setUploadProgress({ done: i + 1, total: fileArr.length });
+      setUploadProgress({ done: i + 1, total: batch.length });
     }
 
     setUploading(false);
+    setUploadStage("");
     setUploadProgress({ done: 0, total: 0 });
 
     if (newOnes.length > 0) {
       setDraft(prev => [...newOnes, ...(prev || [])]);
-      setUploadMsg({ type: "ok", text: `✓ Đã thêm ${newOnes.length}/${fileArr.length} ảnh — bấm "Lưu & cập nhật web" để áp dụng` });
-      setTimeout(() => setUploadMsg(null), 5000);
+      const skipNote = skipped > 0 ? ` (${skipped} ảnh còn lại, upload tiếp ở lượt sau)` : "";
+      setUploadMsg({ type: "ok", text: `✓ Đã thêm ${newOnes.length}/${batch.length} ảnh${skipNote} — bấm "Lưu & cập nhật web" để áp dụng` });
+      setTimeout(() => setUploadMsg(null), 6000);
     } else {
       setUploadMsg({ type: "err", text: `❌ Upload thất bại: ${lastError?.message || "lỗi không rõ"}` });
       setTimeout(() => setUploadMsg(null), 7000);
@@ -8679,7 +8799,7 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
         {uploading ? (
           <>
             <div style={{ color: TXT, fontWeight: 700, fontSize: 14, fontFamily: "system-ui,sans-serif", marginBottom: 10 }}>
-              ⏳ Đang upload {uploadProgress.done}/{uploadProgress.total} ảnh...
+              ⏳ {uploadStage || `Đang xử lý ${uploadProgress.done}/${uploadProgress.total} ảnh...`}
             </div>
             <div style={{ width: "100%", maxWidth: 280, margin: "0 auto", height: 6, background: BR, borderRadius: 99, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${pct}%`, background: G, borderRadius: 99, transition: "width .3s ease" }} />
