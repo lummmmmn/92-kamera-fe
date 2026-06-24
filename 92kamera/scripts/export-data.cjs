@@ -7115,7 +7115,8 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       <QuyTrinh6Buoc isMobile={isMobile} />
 
       {/* CUSTOMER PHOTO FEED */}
-      <FeedbackMarquee photos={photos || []} albums={albums || []} feedbacks={feedbacks || []} isMobile={isMobile} />
+      {/* TẠM TẮT để test cô lập lỗi "trắng trang" — xem có phải do FeedbackMarquee/gallery không */}
+      {false && <FeedbackMarquee photos={photos || []} albums={albums || []} feedbacks={feedbacks || []} isMobile={isMobile} />}
 
       {/* ABOUT — Lộ Trình Phát Triển */}
       <div id="about" className="acc-section" style={{
@@ -11898,13 +11899,16 @@ function AppRoot() {
 
         // Photos: load NGAY cùng cameras/accessories — giống y cách máy ảnh,
         // không qua tầng lazy/IntersectionObserver riêng nữa (đã bỏ 2 tầng cũ).
-        try {
-          if (Array.isArray(staticData.photos)) {
-            _setPhotos(staticData.photos.map(r => ({
-              id: r.public_id, public_id: r.public_id, url: r.url, uploadedAt: r.uploaded_at,
-            })));
-          }
-        } catch (e) { console.error("[92K] Lỗi xử lý photos từ data.json:", e); }
+        // TẠM TẮT để test cô lập lỗi "trắng trang":
+        if (false) {
+          try {
+            if (Array.isArray(staticData.photos)) {
+              _setPhotos(staticData.photos.map(r => ({
+                id: r.public_id, public_id: r.public_id, url: r.url, uploadedAt: r.uploaded_at,
+              })));
+            }
+          } catch (e) { console.error("[92K] Lỗi xử lý photos từ data.json:", e); }
+        }
 
         // Users từ Firestore — PII, không export ra file tĩnh
         setTimeout(async () => {
