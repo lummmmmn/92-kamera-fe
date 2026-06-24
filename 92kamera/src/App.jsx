@@ -1861,25 +1861,12 @@ function PhotoLightbox({ photos, startIndex, onClose }) {
 // ── FEEDBACK CARD
 // ── FEEDBACK CARD (text-only, không ảnh) ──
 // ── FEEDBACK MARQUEE — dải băng chạy ngang ──
-function FeedbackMarquee({ photos, albums, feedbacks, isMobile, onNeedPhotos, onNeedFullPhotos }) {
+function FeedbackMarquee({ photos, albums, feedbacks, isMobile }) {
   const [paused, setPaused] = useState(false);
   const [lightbox, setLightbox] = useState(null); // index ảnh rời
   const [openAlbum, setOpenAlbum] = useState(null); // album object
   const [showAllAlbums, setShowAllAlbums] = useState(false);
-
-  // ── Lazy trigger: gọi onNeedPhotos() khi mục này sắp lọt vào viewport ──
-  // rootMargin 500px → bắt đầu fetch trước khi khách cuộn tới, tránh giật/trống ảnh.
-  const sectionRef = useRef(null);
-  useEffect(() => {
-    if (!onNeedPhotos) return;
-    const el = sectionRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) { onNeedPhotos(); obs.disconnect(); }
-    }, { rootMargin: "500px 0px" });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [onNeedPhotos]);
+  const sectionRef = useRef(null); // giữ lại ref cho id="feedback" (anchor cuộn tới mục này)
 
   const cards = (feedbacks || [])
     .filter(f => f.status === "approved" && !f.hidden)
@@ -2190,7 +2177,7 @@ function FeedbackMarquee({ photos, albums, feedbacks, isMobile, onNeedPhotos, on
           {!hasAlbums && hasPhotos && (
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: isMobile ? 8 : 10 }}>
               {photosArr.map((p, i) => (
-                <div key={p.id || i} className="gal-thumb" onClick={() => { onNeedFullPhotos?.(); setLightbox(i); }} style={{
+                <div key={p.id || i} className="gal-thumb" onClick={() => { setLightbox(i); }} style={{
                   position: "relative", borderRadius: isMobile ? 12 : 16, overflow: "hidden", aspectRatio: "1/1", cursor: "pointer",
                   background: "rgba(13,27,42,0.08)", boxShadow: "0 2px 12px rgba(5,17,31,0.12)",
                 }}>
@@ -6609,7 +6596,7 @@ function RoadmapCards({ isMobile }) {
   );
 }
 
-function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, isMobile, photos, albums, feedbacks, loggedUser, onOpenLogin, onOpenCustomer, onNeedPhotos, onNeedFullPhotos }) {
+function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, isMobile, photos, albums, feedbacks, loggedUser, onOpenLogin, onOpenCustomer }) {
   const [scrollY, setScrollY] = useState(0);
   const [scrollDir, setScrollDir] = useState("up");
   const prevScrollY = useRef(0);
@@ -7128,7 +7115,7 @@ function HomePage({ cameras, accessories, siteContent, orders, onBook, onAdmin, 
       <QuyTrinh6Buoc isMobile={isMobile} />
 
       {/* CUSTOMER PHOTO FEED */}
-      <FeedbackMarquee photos={photos || []} albums={albums || []} feedbacks={feedbacks || []} isMobile={isMobile} onNeedPhotos={onNeedPhotos} onNeedFullPhotos={onNeedFullPhotos} />
+      <FeedbackMarquee photos={photos || []} albums={albums || []} feedbacks={feedbacks || []} isMobile={isMobile} />
 
       {/* ABOUT — Lộ Trình Phát Triển */}
       <div id="about" className="acc-section" style={{
@@ -8451,12 +8438,12 @@ let _photosCache = null;
 let _photosCacheTs = 0;
 let _photosCacheLimit = 0; // limit đã dùng để fetch lần gần nhất — quyết định cache có đủ dùng không
 const PHOTOS_CACHE_MS = 10 * 60 * 1000;
-const PHOTOS_PREVIEW_LIMIT = 12; // đủ cho lưới thumbnail — fetch khi khách cuộn tới mục feedback
-const PHOTOS_FULL_LIMIT = 200;   // đủ cho lightbox/album — chỉ fetch khi khách bấm xem ảnh
+const PHOTOS_FULL_LIMIT = 200;   // đủ cho lightbox/album admin
 
 // Fetch từ Firestore gallery_photos (nguồn sự thật, đồng bộ mọi thiết bị)
-// limitCount mặc định = FULL — admin (GalleryUpload/AlbumManager) gọi không truyền tham số vẫn ra full như cũ.
-// Trang khách gọi tường minh PHOTOS_PREVIEW_LIMIT ở tầng 1 (lazy), rồi PHOTOS_FULL_LIMIT ở tầng 2 (khi bấm ảnh).
+// CHỈ dùng bởi admin (GalleryUpload/AlbumManager) — trang khách giờ đọc photos
+// 1 lần duy nhất từ data.json cùng cameras/accessories, không gọi hàm này nữa
+// (đã bỏ cơ chế 2 tầng lazy-load để giống y cách máy ảnh, đơn giản và ổn định hơn).
 async function galleryFetchPhotos(forceRefresh = false, limitCount = PHOTOS_FULL_LIMIT) {
   const cacheFresh = _photosCache && (Date.now() - _photosCacheTs) < PHOTOS_CACHE_MS;
   // Cache chỉ dùng được nếu lần fetch trước đó đã lấy ĐỦ hoặc NHIỀU HƠN số lượng đang cần
@@ -11776,46 +11763,9 @@ function AppRoot() {
   }, []);
 
   // ── Lazy-load gallery photos — 2 TẦNG ──
-  // Tầng 1: fetch PREVIEW_LIMIT (12 ảnh) khi mục feedback/gallery sắp vào viewport.
-  // Tầng 2: fetch FULL_LIMIT (200 ảnh) chỉ khi khách thật sự bấm vào ảnh để xem lightbox.
-  const _photosLoadedRef = useRef(false);     // đã fetch tầng 1 chưa
-  const _photosFullLoadedRef = useRef(false); // đã fetch tầng 2 (full) chưa
-  const loadGalleryPhotosLazy = useCallback(async () => {
-    if (_photosLoadedRef.current) return; // guard — chỉ chạy 1 lần / session
-    _photosLoadedRef.current = true;
-    // Ưu tiên data.json (CDN, 0 Firestore read) — file này đã có sẵn field "photos"
-    // (tối đa 100 ảnh mới nhất, export bởi scripts/sync-data.js mỗi 15 phút).
-    // Dùng Array.isArray (không chỉ truthy) để phân biệt rõ 2 trường hợp:
-    //   - staticData.photos === []  → gallery thật sự chưa có ảnh nào → DÙNG LUÔN, không fallback
-    //   - staticData.photos === undefined → data.json cũ/lỗi chưa có field này → fallback Firestore
-    try {
-      const staticData = await getStaticData();
-      if (staticData && Array.isArray(staticData.photos)) {
-        const mapped = staticData.photos.slice(0, PHOTOS_PREVIEW_LIMIT).map(r => ({
-          id: r.public_id, public_id: r.public_id, url: r.url, uploadedAt: r.uploaded_at,
-        }));
-        _setPhotos(mapped);
-        return; // có data.json hợp lệ → dừng, không gọi Firestore
-      }
-    } catch {} // lỗi đọc data.json → rơi xuống fallback bên dưới
-    // Fallback: data.json chưa có field photos (vd. workflow mới chưa chạy lần nào)
-    // hoặc fetch data.json lỗi → vẫn lấy được ảnh, chỉ tốn Firestore như cách cũ.
-    try {
-      const pts = await galleryFetchPhotos(false, PHOTOS_PREVIEW_LIMIT);
-      if (pts.length > 0) _setPhotos(pts);
-    } catch {}
-  }, []);
-  // Tầng 2 — KHÔNG đổi: data.json chỉ cache tối đa 100 ảnh nên không đủ thay cho FULL_LIMIT (200),
-  // và tầng này chỉ chạy khi khách chủ động bấm xem ảnh (tần suất thấp, không phải điểm nóng) → giữ Firestore trực tiếp.
-  const loadGalleryPhotosFull = useCallback(async () => {
-    if (_photosFullLoadedRef.current) return; // guard — chỉ chạy 1 lần / session
-    _photosFullLoadedRef.current = true;
-    try {
-      const pts = await galleryFetchPhotos(false, PHOTOS_FULL_LIMIT);
-      if (pts.length > 0) _setPhotos(pts);
-    } catch {}
-  }, []);
-
+  // Đã bỏ cơ chế 2 tầng lazy-load (preview 12 ảnh + full 200 ảnh khi mở lightbox).
+  // Giờ photos load 1 LẦN DUY NHẤT cùng cameras/accessories ngay khi vào trang
+  // (xem effect chính phía trên) — giống y cách máy ảnh, đơn giản và ổn định hơn.
 
   const setAlbums = useCallback((updater) => {
     _setAlbums(prev => {
@@ -11902,7 +11852,7 @@ function AppRoot() {
           _setDeliveryFees(staticData.deliveryFees);
         }
 
-        // Lazy sau 4s: feedbacks + photos + albums
+        // Lazy sau 4s: feedbacks + albums (ít quan trọng hơn, không cần ngay khi vào trang)
         setTimeout(async () => {
           if (staticData.feedbacks) {
             _setFeedbacks(prev => {
@@ -11912,9 +11862,15 @@ function AppRoot() {
             });
           }
           if (staticData.albums) _setAlbums(staticData.albums);
-          // Photos: KHÔNG fetch ở đây nữa — đợi loadGalleryPhotosLazy() khi khách
-          // cuộn gần tới mục feedback/gallery (xem onNeedPhotos trong FeedbackMarquee).
         }, 4000);
+
+        // Photos: load NGAY cùng cameras/accessories — giống y cách máy ảnh,
+        // không qua tầng lazy/IntersectionObserver riêng nữa (đã bỏ 2 tầng cũ).
+        if (Array.isArray(staticData.photos)) {
+          _setPhotos(staticData.photos.map(r => ({
+            id: r.public_id, public_id: r.public_id, url: r.url, uploadedAt: r.uploaded_at,
+          })));
+        }
 
         // Users từ Firestore — PII, không export ra file tĩnh
         setTimeout(async () => {
@@ -12392,8 +12348,6 @@ function AppRoot() {
           photos={photos}
           albums={albums}
           feedbacks={feedbacks}
-          onNeedPhotos={loadGalleryPhotosLazy}
-          onNeedFullPhotos={loadGalleryPhotosFull}
           loggedUser={loggedUser}
           onOpenLogin={() => setLoginOpen(true)}
           onOpenCustomer={() => { if (loggedUser) setPage("customer"); else setLoginOpen(true); }}
