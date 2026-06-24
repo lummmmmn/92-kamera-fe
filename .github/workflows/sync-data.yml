@@ -1,8 +1,6 @@
-name: Sync data.json từ Firestore
+name: Sync data.json tu Firestore
 
 on:
-  schedule:
-    - cron: "*/15 * * * *"
   workflow_dispatch: {}
 
 permissions:
@@ -15,27 +13,30 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
         with:
           token: ${{ github.token }}
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Cài firebase-admin
+      - name: Cai firebase-admin
         working-directory: 92kamera
         run: npm install firebase-admin@12 --no-save
 
-      - name: Generate data.json
+      - name: Generate data.json tu Firestore
         working-directory: 92kamera
         env:
           FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
         run: node scripts/export-data.cjs
 
-      - name: Commit & push nếu data.json thay đổi
+      - name: Commit & push neu data.json thay doi
         working-directory: 92kamera
         run: |
           git config user.name "92k-sync-bot"
@@ -44,7 +45,7 @@ jobs:
           git add public/data.json
 
           if git diff --staged --quiet; then
-            echo "data.json không thay đổi, bỏ qua commit."
+            echo "data.json khong thay doi, bo qua commit."
             exit 0
           fi
 
