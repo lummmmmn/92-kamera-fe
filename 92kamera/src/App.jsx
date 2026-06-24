@@ -8414,8 +8414,11 @@ async function galleryFetchPhotos(forceRefresh = false, limitCount = PHOTOS_FULL
   }
 }
 
-// Upload lên Cloudinary, sau đó ghi metadata vào Firestore
-async function cloudinaryUploadPhoto(file) {
+// Upload ảnh gallery lên Cloudinary — CHỈ upload, KHÔNG ghi Firestore.
+// Dùng bởi GalleryUpload (draft mode): admin upload nhiều ảnh liên tục mà không
+// có request Firestore nào chạy ngầm → không bị giật/đứng UI. Metadata chỉ được
+// ghi vào Firestore khi admin bấm "Lưu & cập nhật web" (xem galleryWritePhotoMeta).
+async function cloudinaryUploadAssetOnly(file) {
   const fd = new FormData();
   fd.append("file", file);
   fd.append("upload_preset", UPLOAD_PRESET);
@@ -8436,11 +8439,18 @@ async function cloudinaryUploadPhoto(file) {
     throw new Error(`Cloudinary: ${detail}`);
   }
   const data = await res.json();
-  // Ghi metadata vào Firestore gallery_photos (doc id = public_id)
-  // QUAN TRỌNG: KHÔNG nuốt lỗi ở đây — nếu ghi Firestore thất bại (vd. rules chặn),
-  // ảnh đã lên Cloudinary nhưng KHÔNG có metadata → gallery sẽ không bao giờ hiện ảnh
-  // mà admin vẫn thấy "upload thành công" (vì Cloudinary upload có OK thật).
-  // Throw lỗi ra để handleUpload() biết và báo đúng cho admin.
+  return {
+    id:        data.public_id,
+    public_id: data.public_id,
+    url:       data.secure_url,
+    uploadedAt: data.created_at || new Date().toISOString(),
+  };
+}
+
+// Ghi metadata 1 ảnh gallery vào Firestore (doc id = public_id đã encode).
+// Gọi khi admin bấm "Lưu & cập nhật web" — gộp tất cả ảnh mới upload thành
+// các lệnh ghi chạy song song 1 lần, thay vì ghi ngay từng ảnh lúc upload.
+async function galleryWritePhotoMeta(photo) {
   const db = await getFirestore();
   const { doc, setDoc } = _fbHelpers;
   // public_id Cloudinary trả về có chứa "/" (vd. "92kamera_gallery/xxxx") vì
@@ -8448,23 +8458,25 @@ async function cloudinaryUploadPhoto(file) {
   // path collection/doc lồng nhau → lỗi "must have an even number of segments").
   // → encode "/" thành "__" để làm doc id hợp lệ, vẫn lưu public_id gốc trong field
   // để Cloudinary destroy (xóa ảnh) dùng đúng giá trị thật.
-  const docId = data.public_id.replace(/\//g, "__");
+  const docId = photo.public_id.replace(/\//g, "__");
+  await setDoc(doc(db, FB_GALLERY_COLLECTION, docId), {
+    public_id:   photo.public_id,
+    url:         photo.url,
+    uploaded_at: photo.uploadedAt || new Date().toISOString(),
+    uploaded_by: "admin",
+  });
+}
+
+// Giữ lại cloudinaryUploadPhoto (upload + ghi Firestore ngay) để tương thích
+// nếu có nơi khác trong code còn gọi theo kiểu cũ — nay chỉ là gộp 2 hàm trên.
+async function cloudinaryUploadPhoto(file) {
+  const photo = await cloudinaryUploadAssetOnly(file);
   try {
-    await setDoc(doc(db, FB_GALLERY_COLLECTION, docId), {
-      public_id:   data.public_id,
-      url:         data.secure_url,
-      uploaded_at: data.created_at || new Date().toISOString(),
-      uploaded_by: "admin",
-    });
+    await galleryWritePhotoMeta(photo);
   } catch (e) {
     throw new Error(`Firestore (đã lên Cloudinary nhưng lưu metadata lỗi): ${e.message || e.code}`);
   }
-  return {
-    id:        data.public_id,
-    public_id: data.public_id,
-    url:       data.secure_url,
-    uploadedAt: data.created_at || new Date().toISOString(),
-  };
+  return photo;
 }
 
 // Xóa ảnh gallery: xóa metadata Firestore + gọi Cloudinary destroy qua unsigned delete
@@ -8529,37 +8541,45 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 });
   const [uploadMsg, setUploadMsg] = useState(null);
-  const [refreshing, setRefreshing] = useState(false);
   const [previewIdx, setPreviewIdx] = useState(null); // lightbox admin
   const [confirmCfg, setConfirmCfg] = useState(null); // thay window.confirm
+  const [saving, setSaving] = useState(false);
 
-  // Refresh từ Firestore (nguồn sự thật)
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    try {
-      const fresh = await galleryFetchPhotos(true); // force refresh — bust cache
-      setPhotos(fresh);
-    } catch (e) {
-      console.error("[92K] gallery refresh failed:", e);
-      setUploadMsg({ type: "err", text: `❌ Không tải được danh sách ảnh: ${e.message || e.code || "lỗi không rõ"}. Có thể do Firestore Rules chưa cho phép đọc (list) collection "gallery_photos".` });
-      setTimeout(() => setUploadMsg(null), 8000);
-    }
-    setRefreshing(false);
-  };
+  // ── DRAFT MODE — giống ImageUploader của máy ảnh ──
+  // Upload/xóa ảnh CHỈ thay đổi state local (draft) — KHÔNG đụng Firestore.
+  // Nhờ vậy bấm upload/xóa nhiều ảnh liên tục vẫn mượt, không có request nào
+  // chạy ngầm gây treo UI. Chỉ khi admin bấm "✓ Lưu & cập nhật web" mới ghi
+  // thật vào Firestore (1 lần, gộp hết thay đổi) rồi trigger sync data.json.
+  const [draft, setDraft] = useState(() => photos || []);
+  const [removedIds, setRemovedIds] = useState([]); // public_id ảnh cũ bị đánh dấu xóa (chưa xóa thật)
+  const dirty = removedIds.length > 0 || (draft || []).some(p => p._new);
+
+  // Nếu prop photos đổi từ ngoài (vd. load lần đầu xong) và admin chưa sửa gì → đồng bộ lại draft
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return; }
+    if (!dirty) setDraft(photos || []);
+  }, [photos]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleUpload = async (files) => {
     if (!files || files.length === 0) return;
-    const fileArr = Array.from(files);
+    const fileArr = Array.from(files).filter(f => f.type.startsWith("image/"));
+    if (!fileArr.length) return;
     setUploading(true);
     setUploadMsg(null);
     setUploadProgress({ done: 0, total: fileArr.length });
 
-    let successCount = 0;
+    const newOnes = [];
     let lastError = null;
     for (let i = 0; i < fileArr.length; i++) {
       try {
-        await cloudinaryUploadPhoto(fileArr[i]);
-        successCount++;
+        // cloudinaryUploadAssetOnly = chỉ lên Cloudinary, KHÔNG ghi Firestore
+        // (xem hàm bên dưới — tách riêng phần ghi DB ra khỏi phần upload ảnh)
+        const r = await cloudinaryUploadAssetOnly(fileArr[i]);
+        newOnes.push({
+          id: r.public_id, public_id: r.public_id, url: r.url,
+          uploadedAt: new Date().toISOString(), _new: true,
+        });
       } catch (e) {
         console.error("Upload lỗi:", fileArr[i].name, e);
         lastError = e;
@@ -8570,72 +8590,80 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
     setUploading(false);
     setUploadProgress({ done: 0, total: 0 });
 
-    if (successCount > 0) {
-      setUploadMsg({ type: "ok", text: `✓ Upload ${successCount}/${fileArr.length} ảnh — đang tải danh sách...` });
-      // Cloudinary cần vài giây để index tag mới → delay nhỏ rồi fetch lại
-      setTimeout(async () => {
-        try {
-          const fresh = await galleryFetchPhotos(true); // force refresh sau upload
-          setPhotos(fresh);
-          setUploadMsg({ type: "ok", text: `✓ Đã upload ${successCount} ảnh lên Cloudinary` });
-          triggerInstantSyncDebounced();
-          setTimeout(() => setUploadMsg(null), 4000);
-        } catch (e) {
-          console.error("[92K] reload sau upload thất bại:", e);
-          setUploadMsg({ type: "err", text: `⚠️ Đã upload ảnh lên Cloudinary nhưng KHÔNG tải lại được danh sách: ${e.message || e.code || "lỗi không rõ"}. Thường do Firestore Rules chưa cho phép đọc (list) collection "gallery_photos" — vào Firebase Console → Firestore → Rules kiểm tra lại.` });
-          setTimeout(() => setUploadMsg(null), 10000);
-        }
-      }, 2000);
+    if (newOnes.length > 0) {
+      setDraft(prev => [...newOnes, ...(prev || [])]);
+      setUploadMsg({ type: "ok", text: `✓ Đã thêm ${newOnes.length}/${fileArr.length} ảnh — bấm "Lưu & cập nhật web" để áp dụng` });
+      setTimeout(() => setUploadMsg(null), 5000);
     } else {
       setUploadMsg({ type: "err", text: `❌ Upload thất bại: ${lastError?.message || "lỗi không rõ"}` });
       setTimeout(() => setUploadMsg(null), 7000);
     }
   };
 
-  const [deletingId, setDeletingId] = useState(null);
-
-  // Xóa thật khỏi Cloudinary + Firestore (xem cloudinaryDeletePhoto — gọi trực tiếp, không qua Edge Function)
-  const handleDelete = async (photo) => {
+  // Xóa trong draft — ảnh mới (_new, chưa lưu Firestore) thì xóa Cloudinary luôn cho sạch;
+  // ảnh cũ (đã có trong Firestore) thì chỉ đánh dấu removed, đợi bấm Lưu mới xóa thật.
+  const handleDelete = (photo) => {
     setConfirmCfg({
-      message: "Xóa ảnh này vĩnh viễn?\n\nHành động không thể hoàn tác.",
-      onOk: async () => {
+      message: "Xóa ảnh này?\n\nẢnh sẽ bị xóa khi bạn bấm \"Lưu & cập nhật web\".",
+      onOk: () => {
         setConfirmCfg(null);
-        setDeletingId(photo.public_id);
-        try {
-          await cloudinaryDeletePhoto(photo.public_id);
-          setPhotos(prev => (prev || []).filter(p => p.public_id !== photo.public_id));
-          setUploadMsg({ type: "ok", text: "✓ Đã xóa ảnh khỏi Cloudinary + database" });
-          triggerInstantSyncDebounced();
-          setTimeout(() => setUploadMsg(null), 3000);
-        } catch (e) {
-          console.error("[92K] delete failed:", e);
-          setUploadMsg({ type: "err", text: `❌ Xóa thất bại: ${e.message}` });
-          setTimeout(() => setUploadMsg(null), 5000);
+        if (photo._new) {
+          cloudinaryDeleteAsset(photo.public_id); // ảnh chưa từng lưu DB → xóa Cloudinary ngay
+          setDraft(prev => (prev || []).filter(p => p.public_id !== photo.public_id));
+        } else {
+          setRemovedIds(prev => [...prev, photo.public_id]);
+          setDraft(prev => (prev || []).filter(p => p.public_id !== photo.public_id));
         }
-        setDeletingId(null);
       }
     });
+  };
+
+  // ✓ Lưu & cập nhật web — ghi 1 lần toàn bộ thay đổi vào Firestore.
+  // KHÔNG auto-trigger sync (instant sync Cloud Function chưa cấu hình, và admin
+  // chủ động chọn chạy GitHub Action "Run workflow" thủ công để tiết kiệm request/data
+  // — chỉ chạy khi admin thật sự bấm, không chạy ngầm theo mỗi lượt khách xem feed).
+  const handleSaveAndPublish = async () => {
+    setSaving(true);
+    setUploadMsg(null);
+    try {
+      const newOnes = (draft || []).filter(p => p._new);
+      // Ghi metadata các ảnh mới vào Firestore (mỗi ảnh 1 doc, nhưng chạy song song)
+      await Promise.all(newOnes.map(p => galleryWritePhotoMeta(p)));
+      // Xóa thật các ảnh đã đánh dấu xóa (Firestore + Cloudinary)
+      await Promise.all(removedIds.map(pid => cloudinaryDeletePhoto(pid)));
+
+      const finalPhotos = (draft || []).map(p => ({ ...p, _new: undefined }));
+      setPhotos(finalPhotos);
+      setRemovedIds([]);
+      setUploadMsg({ type: "ok", text: "✓ Đã lưu vào database — vào GitHub Actions bấm \"Run workflow\" (sync-data.yml) để cập nhật web cho khách" });
+      setTimeout(() => setUploadMsg(null), 8000);
+    } catch (e) {
+      console.error("[92K] save gallery failed:", e);
+      setUploadMsg({ type: "err", text: `❌ Lưu thất bại: ${e.message || e.code || "lỗi không rõ"}` });
+      setTimeout(() => setUploadMsg(null), 8000);
+    }
+    setSaving(false);
   };
 
   const pct = uploadProgress.total > 0 ? Math.round((uploadProgress.done / uploadProgress.total) * 100) : 0;
 
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
         <div>
           <h2 style={{ margin: 0, color: TXT, fontWeight: 600, fontSize: 18, fontFamily: "system-ui,sans-serif" }}>
-            Ảnh Gallery Khách ({(photos || []).length})
+            Ảnh Gallery Khách ({(draft || []).length})
           </h2>
           <div style={{ width: 30, height: 2, background: G, marginTop: 6 }} />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <button onClick={handleRefresh} disabled={refreshing}
-            style={{ ...btn("ghost"), fontSize: 11, padding: "6px 12px", opacity: refreshing ? 0.6 : 1 }}>
-            {refreshing ? "⏳ Đang tải..." : "🔄 Refresh"}
-          </button>
           <div style={{ fontSize: 11, color: "#22c55e", fontFamily: "system-ui,sans-serif", fontWeight: 600 }}>
             ☁️ Cloudinary
           </div>
+          <button onClick={handleSaveAndPublish} disabled={!dirty || saving}
+            style={{ ...btn("gold"), fontSize: 12, padding: "8px 16px", opacity: (!dirty || saving) ? 0.5 : 1, cursor: (!dirty || saving) ? "default" : "pointer" }}>
+            {saving ? "⏳ Đang lưu..." : "✓ Lưu & cập nhật web"}
+          </button>
         </div>
       </div>
 
@@ -8646,7 +8674,7 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
         onDragLeave={e => { e.currentTarget.style.borderColor = BR; }}
         onDrop={e => { e.preventDefault(); e.currentTarget.style.borderColor = BR; handleUpload(e.dataTransfer.files); }}
         style={{ border: `2px dashed ${BR}`, borderRadius: 16, padding: "28px 20px", textAlign: "center", cursor: uploading ? "wait" : "pointer", marginBottom: 18, background: "rgba(255,255,255,0.35)", transition: "border-color .2s" }}>
-        <input id="gal-upload-input" type="file" accept="image/*" multiple style={{ display: "none" }} onChange={e => handleUpload(e.target.files)} />
+        <input id="gal-upload-input" type="file" accept="image/*" multiple style={{ display: "none" }} onChange={e => { handleUpload(e.target.files); e.target.value = ""; }} />
         <div style={{ fontSize: 32, marginBottom: 8 }}>🖼️</div>
         {uploading ? (
           <>
@@ -8664,7 +8692,7 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
               Bấm hoặc kéo thả ảnh vào đây
             </div>
             <div style={{ color: MUT, fontSize: 11, marginTop: 4, fontFamily: "system-ui,sans-serif" }}>
-              Ảnh → Cloudinary CDN · Firestore lưu metadata nhẹ
+              Ảnh → Cloudinary CDN · Bấm "Lưu & cập nhật web" để áp dụng
             </div>
           </>
         )}
@@ -8676,19 +8704,28 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
         </div>
       )}
 
-      {(photos || []).length === 0 ? (
+      {dirty && (
+        <div style={{ padding: "8px 14px", borderRadius: 10, marginBottom: 14, background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.3)", color: G, fontSize: 12, fontFamily: "system-ui,sans-serif", fontWeight: 600 }}>
+          ⚠️ Có thay đổi chưa lưu — bấm "Lưu & cập nhật web" để áp dụng cho khách
+        </div>
+      )}
+
+      {(draft || []).length === 0 ? (
         <div style={{ color: MUT, fontSize: 13, padding: "16px 0" }}>
           Chưa có ảnh nào — upload ảnh khách lên để hiện ở trang chủ
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: 10, marginBottom: 16 }}>
-          {(photos || []).map((p, i) => (
+          {(draft || []).map((p, i) => (
             <div key={p.id} style={{ position: "relative", borderRadius: 12, overflow: "hidden", aspectRatio: "1/1", background: CARD2 }}>
               <img src={cdnUrl(p.url, "thumb")} alt="" onClick={() => setPreviewIdx(i)}
                 style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", cursor: "zoom-in" }} loading="lazy" />
-              <button onClick={() => handleDelete(p)} title="Xóa ảnh vĩnh viễn" disabled={deletingId === p.public_id}
-                style={{ position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: "50%", background: deletingId === p.public_id ? "rgba(0,0,0,0.4)" : "rgba(192,41,10,0.85)", border: "none", color: "#fff", cursor: deletingId === p.public_id ? "wait" : "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                {deletingId === p.public_id ? "⏳" : "🗑"}
+              {p._new && (
+                <div style={{ position: "absolute", top: 6, left: 6, background: G, color: "#1a1a1a", fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 6, fontFamily: "system-ui,sans-serif" }}>MỚI</div>
+              )}
+              <button onClick={() => handleDelete(p)} title="Xóa ảnh"
+                style={{ position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: "50%", background: "rgba(192,41,10,0.85)", border: "none", color: "#fff", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                🗑
               </button>
             </div>
           ))}
@@ -8696,19 +8733,19 @@ function GalleryUpload({ photos, setPhotos, albums, setAlbums, isMobile }) {
       )}
 
       {/* Lightbox xem ảnh to trong admin */}
-      {previewIdx !== null && (photos || []).length > 0 && (
-        <PhotoLightbox photos={photos} startIndex={previewIdx} onClose={() => setPreviewIdx(null)} />
+      {previewIdx !== null && (draft || []).length > 0 && (
+        <PhotoLightbox photos={draft} startIndex={previewIdx} onClose={() => setPreviewIdx(null)} />
       )}
 
       {/* Ghi chú */}
       <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.2)", marginBottom: 28, fontSize: 11, color: MUT, fontFamily: "system-ui,sans-serif", lineHeight: 1.7 }}>
-        <strong style={{ color: G }}>💡 Quản lý:</strong> Bấm 🗑 để xóa ảnh vĩnh viễn khỏi Cloudinary + database.
+        <strong style={{ color: G }}>💡 Quản lý:</strong> Bấm 🗑 để đánh dấu xóa, rồi bấm "Lưu & cập nhật web" để áp dụng thật.
         Quản lý thủ công → <a href="https://cloudinary.com/console" target="_blank" rel="noreferrer" style={{ color: G }}>Cloudinary Console</a> → Media Library → folder <code>92kamera_gallery</code>
       </div>
       <div style={{ width: "100%", height: 1, background: BR, marginBottom: 28, opacity: 0.4 }} />
 
       {/* ── ALBUM MANAGER ── */}
-      <AlbumManager photos={photos} albums={albums} setAlbums={setAlbums} isMobile={isMobile} />
+      <AlbumManager photos={draft} albums={albums} setAlbums={setAlbums} isMobile={isMobile} />
       <ConfirmDialog
         message={confirmCfg?.message}
         onOk={confirmCfg?.onOk}
@@ -11114,11 +11151,10 @@ async function _flushKey(key) {
       updated_at: new Date().toISOString(),
     });
     markCacheFresh(key);
-    // Chỉ trigger sync sau khi Firestore đã ghi thành công thật.
-    // Nếu gọi trong storageSet() trước khi setDoc xong, GitHub Action có thể đọc bản cũ.
-    if (key !== STORE_KEYS.orders && key !== STORE_KEYS.users) {
-      triggerInstantSyncDebounced(key);
-    }
+    // KHÔNG auto-trigger sync ở đây — admin chủ động chạy GitHub Action
+    // "Run workflow" (sync-data.yml) thủ công sau khi sửa xong, để kiểm soát
+    // đúng khi nào data.json cập nhật, tránh tốn request/phút Actions ngoài ý muốn
+    // (vd. mỗi feedback khách gửi lên không cần tự sync ngay).
   } catch (e) {
     // LOG ĐẦY ĐỦ — không nuốt lỗi. console.error để luôn nổi trong DevTools,
     // kèm e.code (permission-denied / unauthenticated / unavailable / ...)
