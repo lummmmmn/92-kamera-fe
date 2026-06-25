@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useMobile } from "./hooks/useMobile.js";
-import { useSmoothScroll, useScrollPerfClass } from "./hooks/useScrollPerf.js";
+import { useScrollPerfClass } from "./hooks/useScrollPerf.js";
 import { BG, MUT, CAMS_INIT } from "./lib/constants.js";
 import { setAuthToken, clearAuthToken } from "./lib/axios.js";
 
@@ -69,7 +69,6 @@ function AppRoot() {
   }, [loggedUser, page]);
 
   // Scroll Performance
-  useSmoothScroll(page === "home" && !booking && !loginOpen && !isMobile);
   useScrollPerfClass();
 
   // React Query data queries
@@ -248,8 +247,23 @@ function AppRoot() {
       {/* Styles Injection */}
       <style>{`
         input, select, textarea { font-size: 16px !important; }
+        html { scroll-behavior: smooth; }
+        .home-section {
+          content-visibility: auto;
+          contain-intrinsic-size: 1px 720px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          html { scroll-behavior: auto; }
+          *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            scroll-behavior: auto !important;
+            transition-duration: 0.01ms !important;
+          }
+        }
         @media(max-width:767px) {
           ::-webkit-scrollbar { display:none }
+          html, body { overscroll-behavior-y: none; }
         }
         @media(min-width:768px) {
           html { zoom:1.3; }

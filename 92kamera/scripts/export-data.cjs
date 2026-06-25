@@ -160,7 +160,7 @@ const G = "#0D1B2A", BG = "#8fc8d4", CARD = "#C5D8EC", BR = "#8BAECF", TXT = "#0
 const CARD2 = "#B5CEEA", BR2 = "#7A9FBF";
 
 // ── GOOGLE OAUTH ──
-const GOOGLE_CLIENT_ID = "338403275162-fa55lm8g53eu1h6ursqpd714ce1qre8m.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = "80405419117-8srlsmskud8ndikp55026ngfmfobtcen.apps.googleusercontent.com";
 // Flag: chỉ gọi google.accounts.id.initialize 1 lần mỗi phiên để tránh loop
 let _gsiInitialized = false;
 function decodeGoogleJWT(token) {

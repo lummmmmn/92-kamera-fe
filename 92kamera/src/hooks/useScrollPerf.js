@@ -72,18 +72,32 @@ export function useSmoothScroll(enabled) {
 export function useScrollPerfClass() {
   useEffect(() => {
     let timer = null;
-    const onScroll = () => {
-      document.body.classList.add("is-scrolling");
+    let raf = null;
+    let active = false;
+
+    const markScrolling = (delay = 140) => {
+      if (!active) {
+        document.body.classList.add("is-scrolling");
+        active = true;
+      }
       clearTimeout(timer);
-      timer = setTimeout(() => document.body.classList.remove("is-scrolling"), 120);
+      timer = setTimeout(() => {
+        document.body.classList.remove("is-scrolling");
+        active = false;
+      }, delay);
+    };
+
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = null;
+        markScrolling(140);
+      });
     };
     window.addEventListener("scroll", onScroll, { passive: true });
 
-    const onTouchStart = () => document.body.classList.add("is-scrolling");
-    const onTouchEnd = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => document.body.classList.remove("is-scrolling"), 200);
-    };
+    const onTouchStart = () => markScrolling(220);
+    const onTouchEnd = () => markScrolling(220);
     window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchend", onTouchEnd, { passive: true });
 
@@ -91,6 +105,7 @@ export function useScrollPerfClass() {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchend", onTouchEnd);
+      if (raf) cancelAnimationFrame(raf);
       clearTimeout(timer);
       document.body.classList.remove("is-scrolling");
     };

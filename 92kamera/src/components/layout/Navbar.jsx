@@ -15,8 +15,7 @@ export default function Navbar({
   openQS,
   orders,
 }) {
-  const [scrollY, setScrollY] = useState(0);
-  const [scrollDir, setScrollDir] = useState("up");
+  const [navState, setNavState] = useState("top");
   const prevScrollY = useRef(0);
   const scrollRaf = useRef(null);
 
@@ -44,10 +43,16 @@ export default function Navbar({
       scrollRaf.current = requestAnimationFrame(() => {
         scrollRaf.current = null;
         const curr = window.scrollY;
-        if (curr > prevScrollY.current + 8) setScrollDir("down");
-        else if (curr < prevScrollY.current - 8) setScrollDir("up");
+        let nextState = navState;
+        if (curr < 60) {
+          nextState = "top";
+        } else if (curr > prevScrollY.current + 8) {
+          nextState = "compact";
+        } else if (curr < prevScrollY.current - 8) {
+          nextState = "visible";
+        }
         prevScrollY.current = curr;
-        setScrollY(curr);
+        setNavState((prev) => (prev === nextState ? prev : nextState));
       });
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -55,14 +60,13 @@ export default function Navbar({
       window.removeEventListener("scroll", handleScroll);
       if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current);
     };
-  }, []);
+  }, [navState]);
 
   // Đóng nav khi cuộn xuống
   useEffect(() => {
-    if (scrollDir === "down") setNavForceOpen(false);
-  }, [scrollDir]);
+    if (navState === "compact") setNavForceOpen(false);
+  }, [navState]);
 
-  const navState = scrollY < 60 ? "top" : scrollDir === "up" ? "visible" : "compact";
   const isCollapsed = !navForceOpen;
 
   return (
