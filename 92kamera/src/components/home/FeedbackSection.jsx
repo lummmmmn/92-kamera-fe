@@ -2,12 +2,12 @@ import { useState, useRef } from "react";
 import { G, MUT, TXT } from "../../lib/constants.js";
 import { cdnUrl } from "../../utils/format.js";
 import PhotoLightbox from "../common/PhotoLightbox.jsx";
-import AlbumLightbox from "../common/AlbumLightbox.jsx";
 
 export default function FeedbackSection({ photos, albums, feedbacks, isMobile }) {
   const [paused, setPaused] = useState(false);
   const [lightbox, setLightbox] = useState(null); // index ảnh rời
   const [openAlbum, setOpenAlbum] = useState(null); // album object
+  const [albumPhotoLightbox, setAlbumPhotoLightbox] = useState(null);
   const [showAllAlbums, setShowAllAlbums] = useState(false);
   const sectionRef = useRef(null);
 
@@ -29,6 +29,7 @@ export default function FeedbackSection({ photos, albums, feedbacks, isMobile })
   const albumsArr = (albums || []).filter((a) => (a.photos || []).length > 0);
   const hasAlbums = albumsArr.length > 0;
   const hasPhotos = photosArr.length > 0;
+  const openAlbumPhotos = openAlbum?.photos || [];
 
   const [swipeIdx, setSwipeIdx] = useState(0);
 
@@ -287,6 +288,98 @@ export default function FeedbackSection({ photos, albums, feedbacks, isMobile })
             </p>
           </div>
 
+          {openAlbum ? (
+            <div>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: isMobile ? "column" : "row",
+                  alignItems: isMobile ? "stretch" : "center",
+                  justifyContent: "space-between",
+                  gap: 14,
+                  marginBottom: isMobile ? 16 : 20,
+                  padding: isMobile ? "14px 14px" : "16px 18px",
+                  borderRadius: isMobile ? 18 : 22,
+                  background: "rgba(255,255,255,0.24)",
+                  border: "1px solid rgba(255,255,255,0.36)",
+                  boxShadow: "0 10px 30px rgba(13,27,42,0.10), inset 0 1px 0 rgba(255,255,255,0.55)",
+                  backdropFilter: isMobile ? "none" : "blur(20px) saturate(150%)",
+                  WebkitBackdropFilter: isMobile ? "none" : "blur(20px) saturate(150%)",
+                }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ color: G, fontSize: isMobile ? 18 : 22, fontFamily: "var(--font-display)", fontWeight: 800, lineHeight: 1.25, marginBottom: 4 }}>
+                    {openAlbum.cameraTag || openAlbum.name}
+                  </div>
+                  <div style={{ color: MUT, fontSize: isMobile ? 12 : 13, fontFamily: "var(--font-ui)", fontWeight: 650, lineHeight: 1.5 }}>
+                    {openAlbum.cameraTag && openAlbum.name !== openAlbum.cameraTag ? openAlbum.name + " · " : ""}{openAlbumPhotos.length} ảnh
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setAlbumPhotoLightbox(null);
+                    setOpenAlbum(null);
+                  }}
+                  style={{
+                    alignSelf: isMobile ? "flex-start" : "center",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    padding: isMobile ? "9px 14px" : "10px 18px",
+                    borderRadius: 999,
+                    background: "rgba(13,27,42,0.08)",
+                    border: "1px solid rgba(13,27,42,0.14)",
+                    color: G,
+                    cursor: "pointer",
+                    fontSize: isMobile ? 11 : 12,
+                    fontFamily: "var(--font-ui)",
+                    fontWeight: 850,
+                    letterSpacing: 1.4,
+                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.55)",
+                  }}
+                >
+                  ← TẤT CẢ ALBUM
+                </button>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(4, minmax(0,1fr))",
+                  gap: isMobile ? 8 : 12,
+                }}
+              >
+                {openAlbumPhotos.map((p, i) => (
+                  <div
+                    key={p.id || p.url || i}
+                    className="gal-thumb"
+                    onClick={() => setAlbumPhotoLightbox(i)}
+                    style={{
+                      position: "relative",
+                      borderRadius: isMobile ? 14 : 18,
+                      overflow: "hidden",
+                      aspectRatio: isMobile ? "4/5" : "1/1",
+                      cursor: "pointer",
+                      background: "rgba(13,27,42,0.08)",
+                      boxShadow: "0 4px 18px rgba(5,17,31,0.13)",
+                    }}
+                  >
+                    <GalleryImage src={cdnUrl(p.url, "thumb")} alt={openAlbum.name} />
+                    <div className="gal-overlay" style={{ position: "absolute", inset: 0, background: "rgba(5,17,31,0.32)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity .2s" }}>
+                      <div style={{ width: isMobile ? 38 : 44, height: isMobile ? 38 : 44, borderRadius: "50%", background: "rgba(255,255,255,0.90)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 18px rgba(0,0,0,0.20)" }}>
+                        <svg width={isMobile ? 16 : 18} height={isMobile ? 16 : 18} viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="11" cy="11" r="7" />
+                          <line x1="16.5" y1="16.5" x2="22" y2="22" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
           {hasAlbums && (() => {
             const displayed = showAllAlbums ? albumsArr : albumsArr.slice(0, 3);
             const [big, ...smalls] = displayed;
@@ -526,11 +619,19 @@ export default function FeedbackSection({ photos, albums, feedbacks, isMobile })
               ))}
             </div>
           )}
+            </>
+          )}
         </div>
       )}
 
       {lightbox !== null && <PhotoLightbox photos={photosArr} startIndex={lightbox} onClose={() => setLightbox(null)} />}
-      {openAlbum && <AlbumLightbox album={openAlbum} onClose={() => setOpenAlbum(null)} />}
+      {openAlbum && albumPhotoLightbox !== null && (
+        <PhotoLightbox
+          photos={openAlbumPhotos}
+          startIndex={albumPhotoLightbox}
+          onClose={() => setAlbumPhotoLightbox(null)}
+        />
+      )}
     </div>
   );
 }

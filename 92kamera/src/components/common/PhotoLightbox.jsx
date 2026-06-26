@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { cdnUrl } from "../../utils/format.js";
 
 
@@ -19,11 +20,45 @@ export default function PhotoLightbox({ photos, startIndex, onClose }) {
   useEffect(() => { if (total === 0) onClose(); }, [total, onClose]);
   useEffect(() => { if (total > 0 && idx >= total) setIdx(total - 1); }, [total, idx]);
 
-  // Lock body scroll
+  // Lock page scroll while the full-screen viewer is open.
   useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
+    const html = document.documentElement;
+    const body = document.body;
+    const scrollY = window.scrollY || html.scrollTop || body.scrollTop || 0;
+    const prev = {
+      htmlOverflow: html.style.overflow,
+      htmlOverscroll: html.style.overscrollBehavior,
+      bodyOverflow: body.style.overflow,
+      bodyOverscroll: body.style.overscrollBehavior,
+      bodyPosition: body.style.position,
+      bodyTop: body.style.top,
+      bodyLeft: body.style.left,
+      bodyRight: body.style.right,
+      bodyWidth: body.style.width,
+    };
+
+    html.style.overflow = "hidden";
+    html.style.overscrollBehavior = "none";
+    body.style.overflow = "hidden";
+    body.style.overscrollBehavior = "none";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+
+    return () => {
+      html.style.overflow = prev.htmlOverflow;
+      html.style.overscrollBehavior = prev.htmlOverscroll;
+      body.style.overflow = prev.bodyOverflow;
+      body.style.overscrollBehavior = prev.bodyOverscroll;
+      body.style.position = prev.bodyPosition;
+      body.style.top = prev.bodyTop;
+      body.style.left = prev.bodyLeft;
+      body.style.right = prev.bodyRight;
+      body.style.width = prev.bodyWidth;
+      window.scrollTo(0, scrollY);
+    };
   }, []);
 
   // Keyboard
@@ -54,12 +89,12 @@ export default function PhotoLightbox({ photos, startIndex, onClose }) {
   const safeIdx = Math.min(idx, total - 1);
   const photo   = photos[safeIdx];
 
-  return (
+  const overlay = (
     <div
       onClick={onClose}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
-      style={{ position: "fixed", inset: 0, zIndex: 99999, background: "rgba(5,12,22,0.94)", display: "flex", alignItems: "center", justifyContent: "center" }}
+      style={{ position: "fixed", inset: 0, width: "100vw", height: "100dvh", zIndex: 99999, background: "rgba(5,12,22,0.94)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", overscrollBehavior: "none" }}
     >
       {/* Main image */}
       <img
@@ -101,4 +136,6 @@ export default function PhotoLightbox({ photos, startIndex, onClose }) {
       )}
     </div>
   );
+
+  return createPortal(overlay, document.body);
 }
