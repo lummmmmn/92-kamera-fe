@@ -34,62 +34,66 @@ export default function HomePage({
 
   return (
     <div style={{ position: "relative", zIndex: 1, fontFamily: "var(--font-display)", color: TXT }}>
-      {/* NAV */}
-      <Navbar
-        isMobile={isMobile}
-        loggedUser={loggedUser}
-        onOpenLogin={onOpenLogin}
-        onOpenCustomer={onOpenCustomer}
-        onAdmin={onAdmin}
-        siteContent={siteContent}
-        onBook={onBook}
-        openQS={openQS}
-        orders={orders}
-      />
+      <div className="home-page-shell-92">
+        {/* NAV */}
+        <Navbar
+          isMobile={isMobile}
+          loggedUser={loggedUser}
+          onOpenLogin={onOpenLogin}
+          onOpenCustomer={onOpenCustomer}
+          onAdmin={onAdmin}
+          siteContent={siteContent}
+          onBook={onBook}
+          openQS={openQS}
+          orders={orders}
+        />
 
-      {/* HERO */}
-      <HeroSection
-        isMobile={isMobile}
-        loggedUser={loggedUser}
-        onOpenLogin={onOpenLogin}
-        onOpenCustomer={onOpenCustomer}
-        onBook={onBook}
-        openQS={openQS}
-        setLookupOpen={setLookupOpen}
-        siteContent={siteContent}
-      />
+        {/* HERO */}
+        <HeroSection
+          isMobile={isMobile}
+          loggedUser={loggedUser}
+          onOpenLogin={onOpenLogin}
+          onOpenCustomer={onOpenCustomer}
+          onBook={onBook}
+          openQS={openQS}
+          setLookupOpen={setLookupOpen}
+          siteContent={siteContent}
+        />
 
-      {/* CAMERAS */}
-      <CameraSection
-        id="cameras"
-        cameras={cameras}
-        onBook={onBook}
-        isMobile={isMobile}
-      />
+        <div className="home-lower-shell-92">
+          {/* CAMERAS */}
+          <CameraSection
+            id="cameras"
+            cameras={cameras}
+            onBook={onBook}
+            isMobile={isMobile}
+          />
 
-      {/* ACCESSORIES */}
-      <AccessorySection
-        accessories={accessories}
-        onBook={onBook}
-        isMobile={isMobile}
-      />
+          {/* ACCESSORIES */}
+          <AccessorySection
+            accessories={accessories}
+            onBook={onBook}
+            isMobile={isMobile}
+          />
 
-      {/* PROCESS */}
-      <ProcessSection isMobile={isMobile} />
+          {/* PROCESS */}
+          <ProcessSection isMobile={isMobile} />
 
-      {/* CUSTOMER PHOTO FEED */}
-      <FeedbackSection
-        photos={photos}
-        albums={albums}
-        feedbacks={feedbacks}
-        isMobile={isMobile}
-      />
+          {/* CUSTOMER PHOTO FEED */}
+          <FeedbackSection
+            photos={photos}
+            albums={albums}
+            feedbacks={feedbacks}
+            isMobile={isMobile}
+          />
 
-      {/* ABOUT — Lộ Trình Phát Triển */}
-      <RoadmapSection isMobile={isMobile} />
+          {/* ABOUT — Lộ Trình Phát Triển */}
+          <RoadmapSection isMobile={isMobile} />
 
-      {/* FOOTER */}
-      <Footer isMobile={isMobile} siteContent={siteContent} />
+          {/* FOOTER */}
+          <Footer isMobile={isMobile} siteContent={siteContent} />
+        </div>
+      </div>
 
       {/* Quick Search Float */}
       <QuickSearchFloat
@@ -115,6 +119,12 @@ export default function HomePage({
         .text-type__cursor--hidden { display:none; }
         @keyframes cursorBlink { 0%,100%{opacity:1} 50%{opacity:0} }
         input[type="date"]::-webkit-calendar-picker-indicator { opacity:0; width:0; padding:0; margin:0; position:absolute; }
+        @media (min-width: 1024px) {
+          .home-page-shell-92,
+          .home-lower-shell-92 {
+            zoom: 1;
+          }
+        }
         .qr-corner {
           position:fixed; bottom:20px; right:20px; z-index:999; cursor:pointer;
           transition: opacity .3s, transform .3s;

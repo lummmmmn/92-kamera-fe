@@ -128,7 +128,7 @@ function AppRoot() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", position: "relative" }}>
+    <div className="app-shell-92" style={{ minHeight: "100vh", position: "relative" }}>
       {/* Background elements */}
       {page === "home" && <LensBackground isMob={isMobile} />}
 
@@ -263,6 +263,11 @@ function AppRoot() {
           width: 100%;
           min-width: 0;
           overflow-x: hidden;
+        }
+        @media (min-width: 1024px) {
+          .app-shell-92 {
+            zoom: 1.08;
+          }
         }
         .home-section {
           content-visibility: auto;
