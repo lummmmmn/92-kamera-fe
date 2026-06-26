@@ -15,6 +15,7 @@ import {
 import AlbumManager from "./AlbumManager.jsx";
 import PhotoLightbox from "../common/PhotoLightbox.jsx";
 import ConfirmDialog from "../common/ConfirmDialog.jsx";
+import AdminToast from "./AdminToast.jsx";
 
 export default function GalleryPanel({ isMobile }) {
   const qc = useQueryClient();
@@ -118,6 +119,11 @@ export default function GalleryPanel({ isMobile }) {
           setRemovedIds(prev => prev.includes(id) ? prev : [...prev, id]);
           setDraft(prev => prev.filter(p => photoId(p) !== id));
         }
+        setUploadMsg({
+          type: "ok",
+          text: "✓ Đã đánh dấu xóa ảnh — bấm \"Lưu & cập nhật web\" để áp dụng",
+        });
+        setTimeout(() => setUploadMsg(null), 4000);
       },
     });
   };
@@ -207,8 +213,23 @@ export default function GalleryPanel({ isMobile }) {
         const { id, ...data } = alb;
         await createAlbumMutation.mutateAsync(data);
       } else {
-        // ID thật -> cập nhật
-        await updateAlbumMutation.mutateAsync({ id: alb.id, data: alb });
+        // ID thật -> Chỉ gửi request cập nhật nếu có thay đổi thực sự để tránh spam request làm treo hệ thống
+        const original = albums.find((a) => a.id === alb.id);
+        if (original) {
+          const photoId = (p) => p?.public_id || p?.id || p?._id;
+          const origPhotoIds = (original.photos || []).map(photoId).join(",");
+          const nextPhotoIds = (alb.photos || []).map(photoId).join(",");
+
+          const hasChanged =
+            original.name !== alb.name ||
+            original.cameraTag !== alb.cameraTag ||
+            original.coverId !== alb.coverId ||
+            origPhotoIds !== nextPhotoIds;
+
+          if (hasChanged) {
+            await updateAlbumMutation.mutateAsync({ id: alb.id, data: alb });
+          }
+        }
       }
     }
     await refetchAlbums();
@@ -218,6 +239,7 @@ export default function GalleryPanel({ isMobile }) {
 
   return (
     <>
+      <AdminToast toast={uploadMsg} onClose={() => setUploadMsg(null)} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
         <div>
           <h2 style={{ margin: 0, color: TXT, fontWeight: 600, fontSize: 18, fontFamily: "system-ui,sans-serif" }}>
@@ -308,22 +330,7 @@ export default function GalleryPanel({ isMobile }) {
         )}
       </div>
 
-      {uploadMsg && (
-        <div
-          style={{
-            padding: "10px 14px",
-            borderRadius: 10,
-            marginBottom: 14,
-            background: uploadMsg.type === "ok" ? "#EEF9F4" : "#FEF0F0",
-            border: `1px solid ${uploadMsg.type === "ok" ? "#22c55e44" : "#ef444433"}`,
-            color: uploadMsg.type === "ok" ? "#22c55e" : "#ef4444",
-            fontSize: 13,
-            fontFamily: "system-ui,sans-serif",
-          }}
-        >
-          {uploadMsg.text}
-        </div>
-      )}
+
 
       {dirty && (
         <div

@@ -3,6 +3,7 @@ import { TXT, MUT, CARD, CARD2, BR, G, btn } from "../../lib/constants.js";
 import { cdnUrl } from "../../utils/format.js";
 import AlbumLightbox from "../common/AlbumLightbox.jsx";
 import ConfirmDialog from "../common/ConfirmDialog.jsx";
+import AdminToast from "./AdminToast.jsx";
 
 export default function AlbumManager({ photos, albums, setAlbums, isMobile }) {
   const [mode, setMode] = useState("list"); // "list" | "create" | "edit"
@@ -130,6 +131,7 @@ export default function AlbumManager({ photos, albums, setAlbums, isMobile }) {
 
   return (
     <div style={{ marginBottom: 28 }}>
+      <AdminToast toast={msg} onClose={() => setMsg(null)} />
       {/* Title + nút tạo */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div>
@@ -151,23 +153,6 @@ export default function AlbumManager({ photos, albums, setAlbums, isMobile }) {
           </button>
         )}
       </div>
-
-      {msg && (
-        <div
-          style={{
-            padding: "9px 14px",
-            borderRadius: 10,
-            marginBottom: 14,
-            background: msg.type === "ok" ? "#EEF9F4" : "#FEF0F0",
-            border: `1px solid ${msg.type === "ok" ? "#22c55e44" : "#ef444433"}`,
-            color: msg.type === "ok" ? "#22c55e" : "#ef4444",
-            fontSize: 13,
-            fontFamily: "system-ui,sans-serif",
-          }}
-        >
-          {msg.text}
-        </div>
-      )}
 
       {/* FORM TẠO / SỬA */}
       {(mode === "create" || mode === "edit") && (
