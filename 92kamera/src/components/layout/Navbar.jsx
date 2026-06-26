@@ -294,15 +294,27 @@ export default function Navbar({
                     width: 28,
                     height: 28,
                     borderRadius: "50%",
-                    background: "rgba(13,27,42,0.07)",
+                    background: "rgba(13,27,42,0.06)",
                     border: "1px solid rgba(13,27,42,0.12)",
-                    color: "rgba(13,27,42,0.58)",
-                    fontSize: 13,
+                    color: "rgba(13,27,42,0.6)",
+                    fontSize: 11,
+                    fontWeight: 700,
                     cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     flexShrink: 0,
+                    transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(13,27,42,0.12)";
+                    e.currentTarget.style.color = "rgba(13,27,42,0.85)";
+                    e.currentTarget.style.transform = "rotate(90deg) scale(1.05)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(13,27,42,0.06)";
+                    e.currentTarget.style.color = "rgba(13,27,42,0.6)";
+                    e.currentTarget.style.transform = "none";
                   }}
                 >
                   ✕

@@ -2,7 +2,6 @@ import { useState, useRef } from "react";
 
 export default function DesktopFAB({ onOpen, visible }) {
   const SIZE = 48;
-  const DOT = 10;
 
   const [dragged, setDragged] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 18 });
@@ -49,30 +48,9 @@ export default function DesktopFAB({ onOpen, visible }) {
 
   const G2 = "#c9a84c";
   const baseStyle = dragged ? { left: pos.x, top: pos.y } : { right: 18, top: 18 };
-  const dotStyle = dragged ? { left: pos.x + (SIZE - DOT) / 2, top: pos.y + (SIZE - DOT) / 2 } : { right: 18 + (SIZE - DOT) / 2, top: 18 + (SIZE - DOT) / 2 };
 
   return (
     <>
-      {/* Small dot when navbar is expanded */}
-      <div
-        onClick={() => { if (!visible) onOpen(); }}
-        style={{
-          position: "fixed",
-          zIndex: 9999,
-          ...dotStyle,
-          width: DOT,
-          height: DOT,
-          borderRadius: "50%",
-          background: G2,
-          boxShadow: `0 0 8px ${G2}cc`,
-          cursor: "pointer",
-          pointerEvents: visible ? "none" : "all",
-          opacity: visible ? 0 : 1,
-          transform: visible ? "scale(0)" : "scale(1)",
-          transition: "opacity .25s, transform .25s",
-        }}
-      />
-
       {/* Main floating icon button */}
       <div
         onPointerDown={onPointerDown}
