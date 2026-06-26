@@ -176,10 +176,10 @@ export default function Navbar({
                         : onOpenCustomer || onOpenLogin
                     }
                     style={{
-                      color: loggedUser.role === "admin" ? "#3a7bfd" : G,
+                      color: loggedUser.role === "admin" ? "#1f5fbf" : G,
                       fontSize: 11,
-                      background: loggedUser.role === "admin" ? "rgba(58,123,253,0.12)" : G + "15",
-                      border: `1px solid ${loggedUser.role === "admin" ? "rgba(58,123,253,0.35)" : G + "44"}`,
+                      background: loggedUser.role === "admin" ? "rgba(31,95,191,0.12)" : "rgba(244,251,253,0.70)",
+                      border: `1px solid ${loggedUser.role === "admin" ? "rgba(31,95,191,0.28)" : "rgba(13,27,42,0.16)"}`,
                       padding: "4px 12px 4px 4px",
                       borderRadius: 99,
                       cursor: "pointer",
@@ -188,8 +188,9 @@ export default function Navbar({
                       display: "flex",
                       alignItems: "center",
                       gap: 7,
-                      boxShadow: loggedUser.role === "admin" ? "0 2px 8px rgba(58,123,253,0.18)" : `0 2px 8px ${G}22`,
+                      boxShadow: loggedUser.role === "admin" ? "0 8px 20px rgba(31,95,191,0.14)" : "0 8px 22px rgba(13,27,42,0.12)",
                       flexShrink: 0,
+                      transition: "transform .2s ease, background .2s ease, box-shadow .2s ease",
                     }}
                   >
                     <div
@@ -228,10 +229,10 @@ export default function Navbar({
                   <button
                     onClick={onOpenLogin}
                     style={{
-                      color: "#3a3836",
+                      color: G,
                       fontSize: 10,
-                      background: "rgba(0,0,0,0.06)",
-                      border: "1px solid rgba(0,0,0,0.14)",
+                      background: "rgba(244,251,253,0.70)",
+                      border: "1px solid rgba(13,27,42,0.16)",
                       padding: "8px 18px 8px 13px",
                       borderRadius: 99,
                       cursor: "pointer",
@@ -243,17 +244,22 @@ export default function Navbar({
                       gap: 8,
                       flexShrink: 0,
                       whiteSpace: "nowrap",
-                      fontWeight: 600,
+                      fontWeight: 750,
+                      boxShadow: "0 8px 22px rgba(13,27,42,0.12), inset 0 1px 0 rgba(255,255,255,0.70)",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = "rgba(0,0,0,0.28)";
-                      e.currentTarget.style.background = "rgba(0,0,0,0.10)";
-                      e.currentTarget.style.color = "#111";
+                      e.currentTarget.style.transform = "translateY(-1px)";
+                      e.currentTarget.style.borderColor = "rgba(13,27,42,0.28)";
+                      e.currentTarget.style.background = "rgba(255,255,255,0.86)";
+                      e.currentTarget.style.color = G;
+                      e.currentTarget.style.boxShadow = "0 12px 28px rgba(13,27,42,0.16), inset 0 1px 0 rgba(255,255,255,0.80)";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "rgba(0,0,0,0.14)";
-                      e.currentTarget.style.background = "rgba(0,0,0,0.06)";
-                      e.currentTarget.style.color = "#3a3836";
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.borderColor = "rgba(13,27,42,0.16)";
+                      e.currentTarget.style.background = "rgba(244,251,253,0.70)";
+                      e.currentTarget.style.color = G;
+                      e.currentTarget.style.boxShadow = "0 8px 22px rgba(13,27,42,0.12), inset 0 1px 0 rgba(255,255,255,0.70)";
                     }}
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -272,11 +278,10 @@ export default function Navbar({
                       padding: "10px 22px",
                       letterSpacing: 3,
                       whiteSpace: "nowrap",
-                      background:
-                        "linear-gradient(160deg, rgba(232,240,248,0.95) 0%, rgba(197,216,236,0.90) 60%, rgba(181,206,230,0.95) 100%)",
-                      color: "#0d1b2a",
-                      border: "1px solid rgba(255,255,255,0.60)",
-                      boxShadow: "0 1px 0 rgba(255,255,255,0.80) inset, 0 4px 16px rgba(13,27,42,0.15)",
+                      background: "linear-gradient(135deg, #0D1B2A 0%, #17324B 100%)",
+                      color: "#f4fbff",
+                      border: "1px solid rgba(255,255,255,0.28)",
+                      boxShadow: "0 1px 0 rgba(255,255,255,0.18) inset, 0 10px 24px rgba(13,27,42,0.24)",
                     }}
                   >
                     THUÊ NGAY
@@ -289,9 +294,9 @@ export default function Navbar({
                     width: 28,
                     height: 28,
                     borderRadius: "50%",
-                    background: "rgba(255,255,255,0.07)",
-                    border: "1px solid rgba(255,255,255,0.14)",
-                    color: "#aaa",
+                    background: "rgba(13,27,42,0.07)",
+                    border: "1px solid rgba(13,27,42,0.12)",
+                    color: "rgba(13,27,42,0.58)",
                     fontSize: 13,
                     cursor: "pointer",
                     display: "flex",

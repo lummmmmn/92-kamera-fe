@@ -9,6 +9,11 @@ export default function DeliveryPanel({ isMobile }) {
   const [localFees, setLocalFees] = useState([]);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingArea, setEditingArea] = useState(null);
+  const [savingArea, setSavingArea] = useState(null);
+  const [addingArea, setAddingArea] = useState(false);
+  const [newArea, setNewArea] = useState({ name: "", fee: "" });
+  const [savingNewArea, setSavingNewArea] = useState(false);
 
   useEffect(() => {
     if (fees) {
@@ -16,21 +21,111 @@ export default function DeliveryPanel({ isMobile }) {
     }
   }, [fees]);
 
+  const parseFeeInput = (val) => {
+    const num = parseInt(String(val).replace(/\D/g, ""), 10);
+    return isNaN(num) ? 0 : num;
+  };
+
   const handleFeeChange = (idx, val) => {
-    const num = parseInt(val.replace(/\D/g, ""), 10);
+    const num = parseFeeInput(val);
     setLocalFees((prev) =>
-      prev.map((f, i) => (i === idx ? { ...f, fee: isNaN(num) ? 0 : num } : f))
+      prev.map((f, i) => (i === idx ? { ...f, fee: num } : f))
     );
     setSaved(false);
   };
 
+  const handleStartEdit = (areaName) => {
+    if (saving || savingArea || savingNewArea) return;
+    setAddingArea(false);
+    setEditingArea(areaName);
+    setSaved(false);
+  };
+
+  const handleCancelEdit = (idx, areaName) => {
+    const original = fees.find((f) => f.name === areaName);
+    if (original) {
+      setLocalFees((prev) => prev.map((f, i) => (i === idx ? { ...original } : f)));
+    }
+    setEditingArea(null);
+  };
+
+  const handleSaveArea = async (areaName) => {
+    if (saving || savingArea || savingNewArea) return;
+
+    setSavingArea(areaName);
+    try {
+      await updateDeliveryMutation.mutateAsync(localFees);
+      await refetch();
+      setSaved(true);
+      setEditingArea(null);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      alert("Lưu phí giao nhận thất bại: " + err.message);
+    } finally {
+      setSavingArea(null);
+    }
+  };
+
+  const handleStartAdd = () => {
+    if (saving || savingArea || savingNewArea) return;
+    setEditingArea(null);
+    setNewArea({ name: "", fee: "" });
+    setAddingArea(true);
+    setSaved(false);
+  };
+
+  const handleCancelAdd = () => {
+    if (savingNewArea) return;
+    setAddingArea(false);
+    setNewArea({ name: "", fee: "" });
+  };
+
+  const handleSaveNewArea = async () => {
+    if (saving || savingArea || savingNewArea) return;
+
+    const name = newArea.name.trim();
+    if (!name) {
+      alert("Nhập tên khu vực/xã");
+      return;
+    }
+
+    const exists = localFees.some((f) => f.name.trim().toLowerCase() === name.toLowerCase());
+    if (exists) {
+      alert("Khu vực/xã này đã tồn tại");
+      return;
+    }
+
+    const nextFees = [...localFees, { name, fee: parseFeeInput(newArea.fee) }];
+
+    setSavingNewArea(true);
+    try {
+      await updateDeliveryMutation.mutateAsync(nextFees);
+      setLocalFees(nextFees);
+      await refetch();
+      setSaved(true);
+      setAddingArea(false);
+      setNewArea({ name: "", fee: "" });
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      alert("Thêm khu vực/xã thất bại: " + err.message);
+    } finally {
+      setSavingNewArea(false);
+    }
+  };
+
   const handleSave = async () => {
+    if (savingArea || savingNewArea) return;
+
     setSaving(true);
     try {
       await updateDeliveryMutation.mutateAsync(localFees);
       setSaved(true);
-      refetch();
+      await refetch();
+      setEditingArea(null);
+      setAddingArea(false);
       setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      alert("Lưu phí giao nhận thất bại: " + err.message);
     } finally {
       setSaving(false);
     }
@@ -57,25 +152,45 @@ export default function DeliveryPanel({ isMobile }) {
           </h2>
           <div style={{ width: 30, height: 2, background: G, marginTop: 6 }} />
         </div>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" }}>
+        <button
+          onClick={handleStartAdd}
+          disabled={saving || !!savingArea || savingNewArea || addingArea}
+          style={{
+            padding: "9px 16px",
+            background: "rgba(13,27,42,0.08)",
+            color: TXT,
+            border: `1px solid ${BR}`,
+            borderRadius: 12,
+            cursor: saving || savingArea || savingNewArea || addingArea ? "not-allowed" : "pointer",
+            fontSize: 13,
+            fontWeight: 700,
+            fontFamily: "system-ui,sans-serif",
+            opacity: saving || savingArea || savingNewArea || addingArea ? 0.6 : 1,
+          }}
+        >
+          + Thêm khu vực
+        </button>
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || !!savingArea || savingNewArea}
           style={{
             padding: "9px 22px",
             background: saved ? "#22c55e" : `linear-gradient(135deg,${G},#1a3a5c)`,
             color: "#fff",
             border: "none",
             borderRadius: 12,
-            cursor: saving ? "not-allowed" : "pointer",
+            cursor: saving || savingArea || savingNewArea ? "not-allowed" : "pointer",
             fontSize: 13,
             fontWeight: 700,
             fontFamily: "system-ui,sans-serif",
-            opacity: saving ? 0.7 : 1,
+            opacity: saving || savingArea || savingNewArea ? 0.7 : 1,
             transition: "all .2s",
           }}
         >
-          {saving ? "⏳ Đang lưu..." : saved ? "✓ Đã lưu!" : "Lưu thay đổi"}
+          {saving ? "⏳ Đang lưu..." : saved ? "✓ Đã lưu!" : "Lưu tất cả"}
         </button>
+        </div>
       </div>
 
       <div
@@ -96,43 +211,137 @@ export default function DeliveryPanel({ isMobile }) {
 
       <div style={{ background: "rgba(255,255,255,0.45)", border: `1px solid ${BR}`, borderRadius: 16, overflow: "hidden" }}>
         {/* Header bảng */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 180px", gap: 0, background: "rgba(8,20,36,0.07)", padding: "10px 16px", borderBottom: `1px solid ${BR}` }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 180px 170px", gap: 0, background: "rgba(8,20,36,0.07)", padding: "10px 16px", borderBottom: `1px solid ${BR}` }}>
           <span style={{ color: MUT, fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", letterSpacing: 1 }}>KHU VỰC</span>
-          <span style={{ color: MUT, fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", letterSpacing: 1, textAlign: "right" }}>PHÍ 2 CHIỀU (đ)</span>
+          {!isMobile && <span style={{ color: MUT, fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", letterSpacing: 1, textAlign: "right" }}>PHÍ 2 CHIỀU (đ)</span>}
+          {!isMobile && <span style={{ color: MUT, fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", letterSpacing: 1, textAlign: "right" }}>THAO TÁC</span>}
         </div>
 
-        {/* Rows */}
-        {localFees.map((area, idx) => (
+        {addingArea && (
           <div
-            key={area.name}
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 180px",
-              gap: 12,
+              gridTemplateColumns: isMobile ? "1fr" : "1fr 180px 170px",
+              gap: isMobile ? 8 : 12,
               alignItems: "center",
               padding: "10px 16px",
-              borderBottom: idx < localFees.length - 1 ? `1px solid rgba(139,174,207,0.25)` : "none",
-              background: idx % 2 === 0 ? "transparent" : "rgba(255,255,255,0.18)",
+              borderBottom: `1px solid rgba(139,174,207,0.25)`,
+              background: "rgba(201,168,76,0.08)",
             }}
           >
-            <div>
-              <span style={{ color: TXT, fontSize: 13, fontFamily: "system-ui,sans-serif", fontWeight: 500 }}>{area.name}</span>
-              {area.fee === 0 && (
-                <span style={{ marginLeft: 8, fontSize: 10, color: "#22c55e", fontFamily: "system-ui,sans-serif" }}>Miễn phí</span>
-              )}
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <input
+              style={inp2}
+              value={newArea.name}
+              disabled={savingNewArea}
+              onChange={(e) => setNewArea((p) => ({ ...p, name: e.target.value }))}
+              placeholder="Tên khu vực / xã mới"
+              autoFocus
+            />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: isMobile ? "flex-start" : "flex-end", gap: 6 }}>
               <input
                 type="text"
                 inputMode="numeric"
-                style={{ ...inp2, textAlign: "right", width: 120 }}
-                value={area.fee === 0 ? "0" : String(area.fee)}
-                onChange={(e) => handleFeeChange(idx, e.target.value)}
+                disabled={savingNewArea}
+                style={{ ...inp2, textAlign: "right", width: 120, opacity: savingNewArea ? 0.65 : 1 }}
+                value={newArea.fee}
+                onChange={(e) => setNewArea((p) => ({ ...p, fee: e.target.value.replace(/\D/g, "") }))}
+                placeholder="0"
               />
               <span style={{ color: MUT, fontSize: 11, fontFamily: "system-ui,sans-serif", flexShrink: 0 }}>đ</span>
             </div>
+            <div style={{ display: "flex", justifyContent: isMobile ? "flex-start" : "flex-end", gap: 8 }}>
+              <button
+                onClick={handleSaveNewArea}
+                disabled={savingNewArea}
+                style={{ padding: "7px 12px", background: "#0d1b2a", color: "#fff", border: "none", borderRadius: 10, cursor: savingNewArea ? "not-allowed" : "pointer", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", opacity: savingNewArea ? 0.7 : 1 }}
+              >
+                {savingNewArea ? "Đang thêm..." : "Lưu"}
+              </button>
+              <button
+                onClick={handleCancelAdd}
+                disabled={savingNewArea}
+                style={{ padding: "7px 12px", background: CARD2, color: MUT, border: `1px solid ${BR}`, borderRadius: 10, cursor: savingNewArea ? "not-allowed" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", opacity: savingNewArea ? 0.55 : 1 }}
+              >
+                Huỷ
+              </button>
+            </div>
           </div>
-        ))}
+        )}
+
+        {/* Rows */}
+        {localFees.map((area, idx) => {
+          const isEditing = editingArea === area.name;
+          const isSaving = savingArea === area.name;
+          const rowDisabled = saving || savingNewArea || (!!savingArea && !isSaving);
+
+          return (
+            <div
+              key={area.name}
+              style={{
+                display: "grid",
+                gridTemplateColumns: isMobile ? "1fr" : "1fr 180px 170px",
+                gap: isMobile ? 8 : 12,
+                alignItems: "center",
+                padding: "10px 16px",
+                borderBottom: idx < localFees.length - 1 ? `1px solid rgba(139,174,207,0.25)` : "none",
+                background: idx % 2 === 0 ? "transparent" : "rgba(255,255,255,0.18)",
+              }}
+            >
+              <div>
+                <span style={{ color: TXT, fontSize: 13, fontFamily: "system-ui,sans-serif", fontWeight: 500 }}>{area.name}</span>
+                {area.fee === 0 && (
+                  <span style={{ marginLeft: 8, fontSize: 10, color: "#22c55e", fontFamily: "system-ui,sans-serif" }}>Miễn phí</span>
+                )}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: isMobile ? "flex-start" : "flex-end", gap: 6 }}>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    disabled={isSaving}
+                    style={{ ...inp2, textAlign: "right", width: 120, opacity: isSaving ? 0.65 : 1 }}
+                    value={area.fee === 0 ? "0" : String(area.fee)}
+                    onChange={(e) => handleFeeChange(idx, e.target.value)}
+                    autoFocus
+                  />
+                ) : (
+                  <span style={{ color: TXT, fontSize: 15, fontFamily: "system-ui,sans-serif", fontWeight: 700 }}>
+                    {new Intl.NumberFormat("vi-VN").format(area.fee)}
+                  </span>
+                )}
+                <span style={{ color: MUT, fontSize: 11, fontFamily: "system-ui,sans-serif", flexShrink: 0 }}>đ</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: isMobile ? "flex-start" : "flex-end", gap: 8 }}>
+                {isEditing ? (
+                  <>
+                    <button
+                      onClick={() => handleSaveArea(area.name)}
+                      disabled={isSaving}
+                      style={{ padding: "7px 12px", background: "#0d1b2a", color: "#fff", border: "none", borderRadius: 10, cursor: isSaving ? "not-allowed" : "pointer", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", opacity: isSaving ? 0.7 : 1 }}
+                    >
+                      {isSaving ? "Đang lưu..." : "Lưu"}
+                    </button>
+                    <button
+                      onClick={() => handleCancelEdit(idx, area.name)}
+                      disabled={isSaving}
+                      style={{ padding: "7px 12px", background: CARD2, color: MUT, border: `1px solid ${BR}`, borderRadius: 10, cursor: isSaving ? "not-allowed" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", opacity: isSaving ? 0.55 : 1 }}
+                    >
+                      Huỷ
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => handleStartEdit(area.name)}
+                    disabled={rowDisabled}
+                    style={{ padding: "7px 14px", background: "rgba(13,27,42,0.08)", color: TXT, border: `1px solid ${BR}`, borderRadius: 10, cursor: rowDisabled ? "not-allowed" : "pointer", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", opacity: rowDisabled ? 0.55 : 1 }}
+                  >
+                    Sửa
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Preview logic */}

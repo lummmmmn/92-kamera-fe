@@ -105,6 +105,44 @@ export default function FeedbackSection({ photos, albums, feedbacks, isMobile })
     </div>
   );
 
+  const GalleryImage = ({ src, alt = "" }) => (
+    <>
+      <img
+        aria-hidden="true"
+        src={src}
+        alt=""
+        loading="lazy"
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          objectPosition: "center",
+          filter: "blur(18px)",
+          transform: "scale(1.08)",
+          opacity: 0.48,
+        }}
+      />
+      <img
+        className="gal-img"
+        src={src}
+        alt={alt}
+        loading="lazy"
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+          objectPosition: "center",
+          display: "block",
+          transition: "transform .35s ease",
+        }}
+      />
+    </>
+  );
+
   return (
     <div
       id="feedback"
@@ -124,7 +162,7 @@ export default function FeedbackSection({ photos, albums, feedbacks, isMobile })
         @keyframes marqueeRun{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
         .marquee-band{will-change:transform;}
         .gal-thumb:hover .gal-overlay{opacity:1!important;}
-        .gal-thumb:hover img{transform:scale(1.06);}
+        .gal-thumb:hover .gal-img{transform:scale(1.01);}
         .fb-swipe-card{transition:transform .35s cubic-bezier(.25,.46,.45,.94),opacity .35s ease;}
       `}</style>
 
@@ -279,7 +317,7 @@ export default function FeedbackSection({ photos, albums, feedbacks, isMobile })
                     }}
                   >
                     {big.coverUrl ? (
-                      <img src={cdnUrl(big.coverUrl, "thumb")} alt={big.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform .4s ease" }} />
+                      <GalleryImage src={cdnUrl(big.coverUrl, "thumb")} alt={big.name} />
                     ) : (
                       <div style={{ width: "100%", height: "100%", background: "rgba(13,27,42,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>📷</div>
                     )}
@@ -325,7 +363,7 @@ export default function FeedbackSection({ photos, albums, feedbacks, isMobile })
                         }}
                       >
                         {alb.coverUrl ? (
-                          <img src={cdnUrl(alb.coverUrl, "thumb")} alt={alb.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform .4s ease" }} />
+                          <GalleryImage src={cdnUrl(alb.coverUrl, "thumb")} alt={alb.name} />
                         ) : (
                           <div style={{ width: "100%", height: "100%", background: "rgba(13,27,42,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>📷</div>
                         )}
@@ -371,7 +409,7 @@ export default function FeedbackSection({ photos, albums, feedbacks, isMobile })
                       }}
                     >
                       {alb.coverUrl ? (
-                        <img src={cdnUrl(alb.coverUrl, "thumb")} alt={alb.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform .4s ease" }} />
+                        <GalleryImage src={cdnUrl(alb.coverUrl, "thumb")} alt={alb.name} />
                       ) : (
                         <div style={{ width: "100%", height: "100%", background: "rgba(13,27,42,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>📷</div>
                       )}
@@ -465,7 +503,7 @@ export default function FeedbackSection({ photos, albums, feedbacks, isMobile })
                     boxShadow: "0 2px 12px rgba(5,17,31,0.12)",
                   }}
                 >
-                  <img src={cdnUrl(p.url, "thumb")} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform .35s ease" }} />
+                  <GalleryImage src={cdnUrl(p.url, "thumb")} />
                   <div className="gal-overlay" style={{ position: "absolute", inset: 0, background: "rgba(5,17,31,0.38)", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0, transition: "opacity .2s" }}>
                     <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.90)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">

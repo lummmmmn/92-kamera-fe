@@ -81,34 +81,35 @@ export default function HeroSection({
                   width: 36,
                   height: 36,
                   borderRadius: "50%",
-                  background: "rgba(10,10,10,0.72)",
-                  border: "1px solid rgba(255,255,255,0.12)",
+                  background: "rgba(244,251,253,0.66)",
+                  border: "1px solid rgba(13,27,42,0.14)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   cursor: url ? "pointer" : "default",
-                  color: "rgba(255,255,255,0.55)",
+                  color: "rgba(13,27,42,0.66)",
                   opacity: url ? 1 : 0.38,
                   transition: "all .25s cubic-bezier(.34,1.56,.64,1)",
-                  backdropFilter: "blur(8px)",
-                  boxShadow: "0 2px 10px rgba(0,0,0,0.35)",
+                  backdropFilter: "blur(14px) saturate(155%)",
+                  WebkitBackdropFilter: "blur(14px) saturate(155%)",
+                  boxShadow: "0 8px 24px rgba(13,27,42,0.14), inset 0 1px 0 rgba(255,255,255,0.72)",
                 }}
                 onMouseEnter={(e) => {
                   if (!url) return;
                   const el = e.currentTarget;
-                  el.style.transform = "translateY(-4px) scale(1.18)";
-                  el.style.background = s.glow + "cc";
-                  el.style.borderColor = s.border;
+                  el.style.transform = "translateY(-3px) scale(1.08)";
+                  el.style.background = "rgba(13,27,42,0.90)";
+                  el.style.borderColor = "rgba(255,255,255,0.35)";
                   el.style.color = "#fff";
-                  el.style.boxShadow = `0 0 18px ${s.glowShadow},0 0 36px ${s.glowShadow}66,0 6px 20px rgba(0,0,0,0.4)`;
+                  el.style.boxShadow = `0 10px 28px rgba(13,27,42,0.26), 0 0 0 3px ${s.glowShadow}24`;
                 }}
                 onMouseLeave={(e) => {
                   const el = e.currentTarget;
                   el.style.transform = "translateY(0) scale(1)";
-                  el.style.background = "rgba(10,10,10,0.72)";
-                  el.style.borderColor = "rgba(255,255,255,0.12)";
-                  el.style.color = "rgba(255,255,255,0.55)";
-                  el.style.boxShadow = "0 2px 10px rgba(0,0,0,0.35)";
+                  el.style.background = "rgba(244,251,253,0.66)";
+                  el.style.borderColor = "rgba(13,27,42,0.14)";
+                  el.style.color = "rgba(13,27,42,0.66)";
+                  el.style.boxShadow = "0 8px 24px rgba(13,27,42,0.14), inset 0 1px 0 rgba(255,255,255,0.72)";
                 }}
               >
                 <svg
@@ -353,11 +354,11 @@ export default function HeroSection({
             <div
               className="btn-hero-wrap"
               onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = "0 0 32px rgba(200,200,240,0.55), 0 0 64px rgba(200,200,240,0.2)";
-                e.currentTarget.style.transform = "translateY(-3px)";
+                e.currentTarget.style.boxShadow = "0 16px 34px rgba(13,27,42,0.28)";
+                e.currentTarget.style.transform = "translateY(-2px)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = "0 0 18px rgba(200,200,240,0.15)";
+                e.currentTarget.style.boxShadow = "0 10px 26px rgba(13,27,42,0.18)";
                 e.currentTarget.style.transform = "translateY(0)";
               }}
               style={{
@@ -374,10 +375,9 @@ export default function HeroSection({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  background:
-                    "linear-gradient(160deg, rgba(232,240,248,0.95) 0%, rgba(197,216,236,0.90) 60%, rgba(181,206,230,0.95) 100%)",
-                  color: "#0d1b2a",
-                  border: "1px solid rgba(255,255,255,0.60)",
+                  background: "linear-gradient(135deg, #0D1B2A 0%, #17324B 100%)",
+                  color: "#f4fbff",
+                  border: "1px solid rgba(255,255,255,0.28)",
                   padding: isMobile ? "0 14px" : "0 32px",
                   width: "100%",
                   height: "100%",
@@ -390,7 +390,7 @@ export default function HeroSection({
                   transition: "filter .2s",
                   whiteSpace: "nowrap",
                   lineHeight: 1,
-                  boxShadow: "0 1px 0 rgba(255,255,255,0.80) inset, 0 4px 16px rgba(13,27,42,0.15)",
+                  boxShadow: "0 1px 0 rgba(255,255,255,0.18) inset, 0 10px 24px rgba(13,27,42,0.24)",
                   boxSizing: "border-box",
                 }}
                 onMouseEnter={(e) => {
@@ -412,9 +412,9 @@ export default function HeroSection({
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 8,
-                  background: "rgba(74,89,104,0.85)",
-                  color: "#d4cab8",
-                  border: "1px solid rgba(139,174,207,0.35)",
+                  background: "rgba(244,251,253,0.68)",
+                  color: "#0D1B2A",
+                  border: "1px solid rgba(13,27,42,0.17)",
                   borderRadius: 12,
                   padding: isMobile ? "0 14px" : "0 32px",
                   width: "100%",
@@ -427,7 +427,9 @@ export default function HeroSection({
                   transition: "filter .2s",
                   whiteSpace: "nowrap",
                   lineHeight: 1,
-                  boxShadow: "0 2px 12px rgba(0,0,0,0.22)",
+                  backdropFilter: "blur(14px) saturate(155%)",
+                  WebkitBackdropFilter: "blur(14px) saturate(155%)",
+                  boxShadow: "0 1px 0 rgba(255,255,255,0.72) inset, 0 8px 22px rgba(13,27,42,0.14)",
                   boxSizing: "border-box",
                 }}
                 onMouseEnter={(e) => {
