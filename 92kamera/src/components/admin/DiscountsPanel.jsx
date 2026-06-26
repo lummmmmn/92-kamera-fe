@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import AdminToast from "./AdminToast.jsx";
 import { G, MUT, TXT, BR2, CARD, CARD2, btn } from "../../lib/constants.js";
 import { fmtVND, todayStr } from "../../utils/format.js";
 import { useDiscounts, useCreateDiscount, useUpdateDiscount, useDeleteDiscount } from "../../hooks/useAppData.js";
@@ -24,6 +25,17 @@ export default function DiscountsPanel({ isMobile }) {
   const [editDiscId, setEditDiscId] = useState(null);
   const [pendingDeleteDiscId, setPendingDeleteDiscId] = useState(null);
   const [discMsg, setDiscMsg] = useState(null);
+  const [savingDisc, setSavingDisc] = useState(false);
+  const [deletingDiscId, setDeletingDiscId] = useState(null);
+  const [togglingDiscId, setTogglingDiscId] = useState(null);
+  const [toast, setToast] = useState(null);
+  const toastTimerRef = useRef(null);
+
+  const showToast = (text, type = "ok") => {
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    setToast({ type, text });
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 2600);
+  };
 
   const [discForm, setDiscForm] = useState({
     code: "",
@@ -37,6 +49,8 @@ export default function DiscountsPanel({ isMobile }) {
   });
 
   const saveDisc = async () => {
+    if (savingDisc) return;
+
     setDiscMsg(null);
     const code = (discForm.code || "").trim().toUpperCase();
     if (!code) {
@@ -70,19 +84,21 @@ export default function DiscountsPanel({ isMobile }) {
     };
 
     try {
+      setSavingDisc(true);
       if (editDiscId) {
         await updateDiscountMutation.mutateAsync({ id: editDiscId, data: payload });
-        setDiscMsg({ type: "ok", text: "✓ Đã cập nhật mã giảm giá" });
+        showToast("Đã cập nhật mã giảm giá");
       } else {
         await createDiscountMutation.mutateAsync({ ...payload, usedCount: 0, createdAt: todayStr() });
-        setDiscMsg({ type: "ok", text: "✓ Đã tạo mã giảm giá mới" });
+        showToast("Đã tạo mã giảm giá mới");
       }
       setDiscForm({ code: "", type: "percent", value: "", minOrder: "", maxUse: "", active: true, requiredBadge: "none", voucherScope: "rental" });
       setEditDiscId(null);
       refetch();
-      setTimeout(() => setDiscMsg(null), 2500);
     } catch (e) {
       setDiscMsg({ type: "err", text: `Lỗi: ${e.message || "Không lưu được"}` });
+    } finally {
+      setSavingDisc(false);
     }
   };
 
@@ -102,14 +118,34 @@ export default function DiscountsPanel({ isMobile }) {
   };
 
   const deleteDisc = async (id) => {
-    await deleteDiscountMutation.mutateAsync(id);
-    refetch();
-    setPendingDeleteDiscId(null);
+    if (deletingDiscId) return;
+
+    try {
+      setDeletingDiscId(id);
+      await deleteDiscountMutation.mutateAsync(id);
+      await refetch();
+      setPendingDeleteDiscId(null);
+      showToast("Đã xoá mã giảm giá");
+    } catch (e) {
+      setDiscMsg({ type: "err", text: `Xóa mã thất bại: ${e.message || "Không xóa được"}` });
+    } finally {
+      setDeletingDiscId(null);
+    }
   };
 
   const toggleActive = async (d) => {
-    await updateDiscountMutation.mutateAsync({ id: d.id, data: { ...d, active: !d.active } });
-    refetch();
+    if (togglingDiscId) return;
+
+    try {
+      setTogglingDiscId(d.id);
+      await updateDiscountMutation.mutateAsync({ id: d.id, data: { ...d, active: !d.active } });
+      await refetch();
+      showToast(d.active ? "Đã tắt mã giảm giá" : "Đã kích hoạt mã giảm giá");
+    } catch (e) {
+      setDiscMsg({ type: "err", text: `Cập nhật mã thất bại: ${e.message || "Không lưu được"}` });
+    } finally {
+      setTogglingDiscId(null);
+    }
   };
 
   const inp2 = {
@@ -127,6 +163,7 @@ export default function DiscountsPanel({ isMobile }) {
 
   return (
     <div>
+      <AdminToast toast={toast} onClose={() => setToast(null)} />
       <STitle c="Mã giảm giá" />
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 18, marginBottom: 24 }}>
         {/* Form tạo/sửa */}
@@ -211,8 +248,8 @@ export default function DiscountsPanel({ isMobile }) {
             <span style={{ color: discForm.active ? "#22c55e" : MUT, fontSize: 12, fontFamily: "system-ui,sans-serif" }}>{discForm.active ? "Đang hoạt động" : "Tắt mã"}</span>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={saveDisc} style={{ ...btn("gold"), flex: 1 }}>{editDiscId ? "💾 Lưu thay đổi" : "➕ Tạo mã"}</button>
-            {editDiscId && <button onClick={() => { setEditDiscId(null); setDiscForm({ code: "", type: "percent", value: "", minOrder: "", maxUse: "", active: true, requiredBadge: "none", voucherScope: "rental" }); setDiscMsg(null); }} style={{ ...btn("ghost") }}>Huỷ</button>}
+            <button onClick={saveDisc} disabled={savingDisc} style={{ ...btn("gold"), flex: 1, opacity: savingDisc ? 0.65 : 1, cursor: savingDisc ? "not-allowed" : "pointer" }}>{savingDisc ? "⏳ Đang lưu..." : editDiscId ? "💾 Lưu thay đổi" : "➕ Tạo mã"}</button>
+            {editDiscId && <button disabled={savingDisc} onClick={() => { setEditDiscId(null); setDiscForm({ code: "", type: "percent", value: "", minOrder: "", maxUse: "", active: true, requiredBadge: "none", voucherScope: "rental" }); setDiscMsg(null); }} style={{ ...btn("ghost"), opacity: savingDisc ? 0.55 : 1, cursor: savingDisc ? "not-allowed" : "pointer" }}>Huỷ</button>}
           </div>
         </div>
 
@@ -272,19 +309,19 @@ export default function DiscountsPanel({ isMobile }) {
               </div>
             </div>
             <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-              <button onClick={() => toggleActive(d)}
-                style={{ padding: "6px 12px", background: d.active ? "#160505" : "#021a0a", color: d.active ? "#ef4444" : "#22c55e", border: `1px solid ${d.active ? "#ef444433" : "#22c55e33"}`, borderRadius: 10, cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>
-                {d.active ? "Tắt" : "Bật"}
+              <button disabled={!!togglingDiscId || deletingDiscId === d.id} onClick={() => toggleActive(d)}
+                style={{ padding: "6px 12px", background: d.active ? "#160505" : "#021a0a", color: d.active ? "#ef4444" : "#22c55e", border: `1px solid ${d.active ? "#ef444433" : "#22c55e33"}`, borderRadius: 10, cursor: togglingDiscId || deletingDiscId === d.id ? "not-allowed" : "pointer", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", opacity: togglingDiscId && togglingDiscId !== d.id ? 0.55 : 1 }}>
+                {togglingDiscId === d.id ? "Đang lưu..." : d.active ? "Tắt" : "Bật"}
               </button>
-              <button onClick={() => startEdit(d)} style={{ padding: "6px 12px", background: CARD, color: TXT, border: `1px solid ${BR2}`, borderRadius: 10, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>✏️</button>
+              <button disabled={deletingDiscId === d.id || togglingDiscId === d.id} onClick={() => startEdit(d)} style={{ padding: "6px 12px", background: CARD, color: TXT, border: `1px solid ${BR2}`, borderRadius: 10, cursor: deletingDiscId === d.id || togglingDiscId === d.id ? "not-allowed" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", opacity: deletingDiscId === d.id || togglingDiscId === d.id ? 0.55 : 1 }}>✏️</button>
               {pendingDeleteDiscId === d.id ? (
                 <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
                   <span style={{ fontSize: 10, color: "#ef4444", fontFamily: "system-ui,sans-serif" }}>Xoá?</span>
-                  <button onClick={() => deleteDisc(d.id)} style={{ padding: "6px 10px", background: "#ef4444", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>✓</button>
-                  <button onClick={() => setPendingDeleteDiscId(null)} style={{ padding: "6px 10px", background: CARD, color: MUT, border: `1px solid ${BR2}`, borderRadius: 10, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>✕</button>
+                  <button disabled={deletingDiscId === d.id} onClick={() => deleteDisc(d.id)} style={{ padding: "6px 10px", background: "#ef4444", color: "#fff", border: "none", borderRadius: 10, cursor: deletingDiscId === d.id ? "not-allowed" : "pointer", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", opacity: deletingDiscId === d.id ? 0.7 : 1 }}>{deletingDiscId === d.id ? "..." : "✓"}</button>
+                  <button disabled={deletingDiscId === d.id} onClick={() => setPendingDeleteDiscId(null)} style={{ padding: "6px 10px", background: CARD, color: MUT, border: `1px solid ${BR2}`, borderRadius: 10, cursor: deletingDiscId === d.id ? "not-allowed" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", opacity: deletingDiscId === d.id ? 0.55 : 1 }}>✕</button>
                 </div>
               ) : (
-                <button onClick={() => setPendingDeleteDiscId(d.id)} style={{ padding: "6px 12px", background: "#FEF0F0", color: "#ef4444", border: "1px solid #ef444430", borderRadius: 10, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>🗑</button>
+                <button disabled={togglingDiscId === d.id} onClick={() => setPendingDeleteDiscId(d.id)} style={{ padding: "6px 12px", background: "#FEF0F0", color: "#ef4444", border: "1px solid #ef444430", borderRadius: 10, cursor: togglingDiscId === d.id ? "not-allowed" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", opacity: togglingDiscId === d.id ? 0.55 : 1 }}>🗑</button>
               )}
             </div>
           </div>

@@ -33,7 +33,12 @@ export function useUpdateOrder() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }) => updateOrder(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ORDERS_QK }),
+    onSuccess: (updatedOrder, variables) => {
+      qc.setQueryData(ORDERS_QK, (old) =>
+        (old ?? []).map((o) => o.id === variables.id ? { ...o, ...updatedOrder } : o)
+      );
+      qc.invalidateQueries({ queryKey: ORDERS_QK });
+    },
   });
 }
 
@@ -43,7 +48,12 @@ export function useUpdateOrderStatus() {
   return useMutation({
     mutationFn: ({ id, status, adminNote }) =>
       updateOrderStatus(id, { status, adminNote }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ORDERS_QK }),
+    onSuccess: (updatedOrder, variables) => {
+      qc.setQueryData(ORDERS_QK, (old) =>
+        (old ?? []).map((o) => o.id === variables.id ? { ...o, ...updatedOrder } : o)
+      );
+      qc.invalidateQueries({ queryKey: ORDERS_QK });
+    },
   });
 }
 
@@ -52,7 +62,12 @@ export function useDeleteOrder() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: deleteOrder,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ORDERS_QK }),
+    onSuccess: (deletedOrder, deletedId) => {
+      qc.setQueryData(ORDERS_QK, (old) =>
+        (old ?? []).filter((o) => o.id !== deletedId)
+      );
+      qc.invalidateQueries({ queryKey: ORDERS_QK });
+    },
   });
 }
 

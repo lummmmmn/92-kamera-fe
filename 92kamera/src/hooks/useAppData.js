@@ -37,7 +37,12 @@ export function useUpdateCamera() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }) => updateCamera(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["cameras"] }),
+    onSuccess: (updatedCamera, variables) => {
+      qc.setQueryData(["cameras"], (old) =>
+        (old ?? []).map((c) => c.id === variables.id ? { ...c, ...updatedCamera } : c)
+      );
+      qc.invalidateQueries({ queryKey: ["cameras"] });
+    },
   });
 }
 
@@ -45,7 +50,10 @@ export function useCreateCamera() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: createCamera,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["cameras"] }),
+    onSuccess: (newCamera) => {
+      qc.setQueryData(["cameras"], (old) => [newCamera, ...(old ?? [])]);
+      qc.invalidateQueries({ queryKey: ["cameras"] });
+    },
   });
 }
 
@@ -53,7 +61,12 @@ export function useDeleteCamera() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: deleteCamera,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["cameras"] }),
+    onSuccess: (deletedCamera, deletedId) => {
+      qc.setQueryData(["cameras"], (old) =>
+        (old ?? []).filter((c) => c.id !== deletedId)
+      );
+      qc.invalidateQueries({ queryKey: ["cameras"] });
+    },
   });
 }
 
@@ -78,7 +91,12 @@ export function useUpdateAccessory() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }) => updateAccessory(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["accessories"] }),
+    onSuccess: (updatedAccessory, variables) => {
+      qc.setQueryData(["accessories"], (old) =>
+        (old ?? []).map((a) => a.id === variables.id ? { ...a, ...updatedAccessory } : a)
+      );
+      qc.invalidateQueries({ queryKey: ["accessories"] });
+    },
   });
 }
 
@@ -86,7 +104,10 @@ export function useCreateAccessory() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: createAccessory,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["accessories"] }),
+    onSuccess: (newAccessory) => {
+      qc.setQueryData(["accessories"], (old) => [newAccessory, ...(old ?? [])]);
+      qc.invalidateQueries({ queryKey: ["accessories"] });
+    },
   });
 }
 
@@ -94,7 +115,12 @@ export function useDeleteAccessory() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: deleteAccessory,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["accessories"] }),
+    onSuccess: (deletedAccessory, deletedId) => {
+      qc.setQueryData(["accessories"], (old) =>
+        (old ?? []).filter((a) => a.id !== deletedId)
+      );
+      qc.invalidateQueries({ queryKey: ["accessories"] });
+    },
   });
 }
 
@@ -253,7 +279,10 @@ export function useCreateDiscount() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: createDiscount,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["discounts"] }),
+    onSuccess: (newDiscount) => {
+      qc.setQueryData(["discounts"], (old) => [newDiscount, ...(old ?? [])]);
+      qc.invalidateQueries({ queryKey: ["discounts"] });
+    },
   });
 }
 
@@ -261,7 +290,12 @@ export function useUpdateDiscount() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }) => updateDiscount(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["discounts"] }),
+    onSuccess: (updatedDiscount, variables) => {
+      qc.setQueryData(["discounts"], (old) =>
+        (old ?? []).map((d) => d.id === variables.id ? { ...d, ...updatedDiscount } : d)
+      );
+      qc.invalidateQueries({ queryKey: ["discounts"] });
+    },
   });
 }
 
@@ -269,7 +303,12 @@ export function useDeleteDiscount() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: deleteDiscount,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["discounts"] }),
+    onSuccess: (deletedDiscount, deletedId) => {
+      qc.setQueryData(["discounts"], (old) =>
+        (old ?? []).filter((d) => d.id !== deletedId)
+      );
+      qc.invalidateQueries({ queryKey: ["discounts"] });
+    },
   });
 }
 

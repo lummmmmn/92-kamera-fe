@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import AdminToast from "./AdminToast.jsx";
 import { G, MUT, TXT, BR2, CARD, CARD2, STATUS_CFG } from "../../lib/constants.js";
 import { fmtVND } from "../../utils/format.js";
 import { useUsers, useUpsertUser, useFeedbacks } from "../../hooks/useAppData.js";
@@ -25,13 +26,24 @@ export default function UsersPanel() {
   const [resetTarget, setResetTarget] = useState(null);
   const [resetPwVal, setResetPwVal] = useState("");
   const [resetPwMsg, setResetPwMsg] = useState(null);
+  const [resettingPhone, setResettingPhone] = useState(null);
+  const [toast, setToast] = useState(null);
+  const toastTimerRef = useRef(null);
+
+  const showToast = (text, type = "ok") => {
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    setToast({ type, text });
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 2600);
+  };
 
   const handleResetPassword = async (phone, userObj) => {
     if (resetPwVal.length < 4) {
       setResetPwMsg({ type: "err", text: "Tối thiểu 4 ký tự" });
       return;
     }
+    if (resettingPhone) return;
     try {
+      setResettingPhone(phone);
       await upsertUserMutation.mutateAsync({
         phone,
         name: userObj.name,
@@ -41,6 +53,7 @@ export default function UsersPanel() {
         picture: userObj.picture || "",
       });
       setResetPwMsg({ type: "ok", text: `✓ Đã đổi! Nhắn khách: MK mới là "${resetPwVal}"` });
+      showToast("Đã đổi mật khẩu khách hàng");
       setResetPwVal("");
       refetch();
       setTimeout(() => {
@@ -49,6 +62,8 @@ export default function UsersPanel() {
       }, 3000);
     } catch (e) {
       setResetPwMsg({ type: "err", text: `Lỗi: ${e.message || "Không thể lưu"}` });
+    } finally {
+      setResettingPhone(null);
     }
   };
 
@@ -70,6 +85,7 @@ export default function UsersPanel() {
 
   return (
     <div>
+      <AdminToast toast={toast} onClose={() => setToast(null)} />
       <STitle c={`Khách hàng đã đăng ký (${userEntries.length})`} />
       {userEntries.length === 0 ? (
         <div style={{ textAlign: "center", color: MUT, padding: 40, fontSize: 14 }}>Chưa có khách hàng đăng ký tài khoản</div>
@@ -163,20 +179,22 @@ export default function UsersPanel() {
                       />
                       <button
                         onClick={() => handleResetPassword(phone, u)}
+                        disabled={resettingPhone === phone}
                         style={{
                           padding: "9px 16px",
                           background: G,
                           color: "#fff",
                           border: "none",
                           borderRadius: 10,
-                          cursor: "pointer",
+                          cursor: resettingPhone === phone ? "not-allowed" : "pointer",
                           fontWeight: 700,
                           fontSize: 12,
                           fontFamily: "system-ui,sans-serif",
                           whiteSpace: "nowrap",
+                          opacity: resettingPhone === phone ? 0.65 : 1,
                         }}
                       >
-                        Lưu
+                        {resettingPhone === phone ? "⏳ Lưu..." : "Lưu"}
                       </button>
                     </div>
                     {resetPwMsg && (

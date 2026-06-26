@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import AdminToast from "./AdminToast.jsx";
 import { G, MUT, TXT, BR, BR2, CARD, CARD2, btn } from "../../lib/constants.js";
 import { fmtVND } from "../../utils/format.js";
 import { compressIcon } from "../../utils/image.js";
@@ -141,6 +142,18 @@ export default function AccessoriesPanel() {
 
   const [addAcc, setAddAcc] = useState(false);
   const [editAcc, setEditAcc] = useState(null);
+  const [creatingAcc, setCreatingAcc] = useState(false);
+  const [updatingAccId, setUpdatingAccId] = useState(null);
+  const [togglingAccId, setTogglingAccId] = useState(null);
+  const [deletingAccId, setDeletingAccId] = useState(null);
+  const [toast, setToast] = useState(null);
+  const toastTimerRef = useRef(null);
+
+  const showToast = (text, type = "ok") => {
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    setToast({ type, text });
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 2600);
+  };
   
   const [na, setNa] = useState({
     name: "",
@@ -191,52 +204,92 @@ export default function AccessoriesPanel() {
   const totalRentedUnits = accessories.reduce((s, a) => s + getAccRented(a.name), 0);
   const inp3 = { ...na, background: CARD, border: `1px solid ${BR2}`, borderRadius: 10, color: TXT, padding: "9px 13px", outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "system-ui,sans-serif", fontSize: 12 };
 
-  const handleSaveNew = () => {
-    if (!na.name || !na.price) return;
-    createMutation.mutate({
-      name: na.name,
-      price: parseInt(na.price),
-      priceShift: na.priceShift ? parseInt(na.priceShift) : null,
-      qty: na.qty || 1,
-      active: na.active,
-      desc: na.desc,
-      image: na.image || "",
-    });
-    setNa({ name: "", price: "", qty: 1, active: true, priceShift: "", desc: "", image: "" });
-    setAddAcc(false);
+  const handleSaveNew = async () => {
+    if (!na.name || !na.price || creatingAcc) return;
+
+    try {
+      setCreatingAcc(true);
+      await createMutation.mutateAsync({
+        name: na.name,
+        price: parseInt(na.price),
+        priceShift: na.priceShift ? parseInt(na.priceShift) : null,
+        qty: na.qty || 1,
+        active: na.active,
+        desc: na.desc,
+        image: na.image || "",
+      });
+      setNa({ name: "", price: "", qty: 1, active: true, priceShift: "", desc: "", image: "" });
+      setAddAcc(false);
+      showToast("Đã thêm phụ kiện mới");
+    } catch (err) {
+      alert("Lưu phụ kiện thất bại: " + err.message);
+    } finally {
+      setCreatingAcc(false);
+    }
   };
 
-  const handleSaveEdit = (acc) => {
-    updateMutation.mutate({
-      id: acc.id,
-      data: {
-        ...acc,
-        price: parseInt(acc.price),
-        priceShift: acc.priceShift ? parseInt(acc.priceShift) : null,
-        qty: parseInt(acc.qty) || 1,
-      },
-    });
-    setEditAcc(null);
+  const handleSaveEdit = async (acc) => {
+    if (updatingAccId) return;
+
+    try {
+      setUpdatingAccId(acc.id);
+      await updateMutation.mutateAsync({
+        id: acc.id,
+        data: {
+          ...acc,
+          price: parseInt(acc.price),
+          priceShift: acc.priceShift ? parseInt(acc.priceShift) : null,
+          qty: parseInt(acc.qty) || 1,
+        },
+      });
+      setEditAcc(null);
+      showToast("Đã cập nhật phụ kiện");
+    } catch (err) {
+      alert("Cập nhật phụ kiện thất bại: " + err.message);
+    } finally {
+      setUpdatingAccId(null);
+    }
   };
 
-  const handleToggleActive = (acc) => {
-    updateMutation.mutate({
-      id: acc.id,
-      data: {
-        ...acc,
-        active: !acc.active,
-      },
-    });
+  const handleToggleActive = async (acc) => {
+    if (togglingAccId) return;
+
+    try {
+      setTogglingAccId(acc.id);
+      await updateMutation.mutateAsync({
+        id: acc.id,
+        data: {
+          ...acc,
+          active: !acc.active,
+        },
+      });
+      showToast(acc.active ? "Đã ẩn phụ kiện với khách" : "Đã hiển thị phụ kiện cho khách");
+    } catch (err) {
+      alert("Cập nhật trạng thái phụ kiện thất bại: " + err.message);
+    } finally {
+      setTogglingAccId(null);
+    }
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm("Bạn có chắc chắn muốn xoá phụ kiện này?")) {
-      deleteMutation.mutate(id);
+      if (deletingAccId) return;
+
+      try {
+        setDeletingAccId(id);
+        await deleteMutation.mutateAsync(id);
+        showToast("Đã xoá phụ kiện");
+      } catch (err) {
+        alert("Xoá phụ kiện thất bại: " + err.message);
+      } finally {
+        setDeletingAccId(null);
+      }
     }
   };
 
   return (
     <div>
+      <AdminToast toast={toast} onClose={() => setToast(null)} />
       <STitle
         c={`Phụ kiện (${accessories.length})`}
         extra={
@@ -294,8 +347,8 @@ export default function AccessoriesPanel() {
             <AccIconUploader image={na.image} onChange={(img) => setNa((p) => ({ ...p, image: img }))} />
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <button onClick={handleSaveNew} style={btn("gold")}>✓ Lưu</button>
-            <button onClick={() => setAddAcc(false)} style={btn("ghost")}>Huỷ</button>
+            <button onClick={handleSaveNew} disabled={creatingAcc} style={{ ...btn("gold"), opacity: creatingAcc ? 0.65 : 1, cursor: creatingAcc ? "not-allowed" : "pointer" }}>{creatingAcc ? "⏳ Đang lưu..." : "✓ Lưu"}</button>
+            <button onClick={() => setAddAcc(false)} disabled={creatingAcc} style={{ ...btn("ghost"), opacity: creatingAcc ? 0.55 : 1, cursor: creatingAcc ? "not-allowed" : "pointer" }}>Huỷ</button>
             <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", marginLeft: "auto" }}>
               <span style={{ color: MUT, fontSize: 11 }}>Hiển thị cho khách</span>
               <div onClick={() => setNa((p) => ({ ...p, active: !p.active }))}
@@ -347,8 +400,8 @@ export default function AccessoriesPanel() {
                     <AccIconUploader image={editAcc.image || ""} onChange={(img) => setEditAcc((p) => ({ ...p, image: img }))} />
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
-                    <button onClick={() => handleSaveEdit(editAcc)} style={btn("gold")}>✓ Lưu</button>
-                    <button onClick={() => setEditAcc(null)} style={btn("ghost")}>Huỷ</button>
+                    <button onClick={() => handleSaveEdit(editAcc)} disabled={updatingAccId === editAcc.id} style={{ ...btn("gold"), opacity: updatingAccId === editAcc.id ? 0.65 : 1, cursor: updatingAccId === editAcc.id ? "not-allowed" : "pointer" }}>{updatingAccId === editAcc.id ? "⏳ Đang lưu..." : "✓ Lưu"}</button>
+                    <button onClick={() => setEditAcc(null)} disabled={updatingAccId === editAcc.id} style={{ ...btn("ghost"), opacity: updatingAccId === editAcc.id ? 0.55 : 1, cursor: updatingAccId === editAcc.id ? "not-allowed" : "pointer" }}>Huỷ</button>
                   </div>
                 </div>
               ) : (
@@ -379,14 +432,14 @@ export default function AccessoriesPanel() {
                     </div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end", flexShrink: 0 }}>
-                    <div onClick={() => handleToggleActive(a)}
+                    <div onClick={() => togglingAccId ? null : handleToggleActive(a)}
                       title={a.active === false ? "Bật hiển thị" : "Ẩn khỏi trang khách"}
-                      style={{ width: 36, height: 18, borderRadius: 99, background: a.active === false ? "#333" : G, position: "relative", cursor: "pointer", transition: "all .2s", flexShrink: 0 }}>
+                      style={{ width: 36, height: 18, borderRadius: 99, background: a.active === false ? "#333" : G, position: "relative", cursor: togglingAccId ? "not-allowed" : "pointer", transition: "all .2s", flexShrink: 0, opacity: togglingAccId && togglingAccId !== a.id ? 0.55 : 1 }}>
                       <div style={{ position: "absolute", top: 1, left: a.active === false ? 1 : 17, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "all .2s" }} />
                     </div>
                     <div style={{ display: "flex", gap: 6 }}>
-                      <button onClick={() => setEditAcc({ ...a })} style={{ ...btn("ghost"), padding: "5px 9px", fontSize: 13 }}>✏️</button>
-                      <button onClick={() => handleDelete(a.id)} style={{ ...btn("danger"), padding: "5px 9px", fontSize: 13 }}>🗑</button>
+                      <button disabled={deletingAccId === a.id || togglingAccId === a.id} onClick={() => setEditAcc({ ...a })} style={{ ...btn("ghost"), padding: "5px 9px", fontSize: 13, opacity: deletingAccId === a.id || togglingAccId === a.id ? 0.55 : 1, cursor: deletingAccId === a.id || togglingAccId === a.id ? "not-allowed" : "pointer" }}>✏️</button>
+                      <button disabled={deletingAccId === a.id || togglingAccId === a.id} onClick={() => handleDelete(a.id)} style={{ ...btn("danger"), padding: "5px 9px", fontSize: 13, opacity: deletingAccId === a.id ? 0.65 : 1, cursor: deletingAccId === a.id || togglingAccId === a.id ? "not-allowed" : "pointer" }}>{deletingAccId === a.id ? "Đang xoá..." : "🗑"}</button>
                     </div>
                   </div>
                 </div>

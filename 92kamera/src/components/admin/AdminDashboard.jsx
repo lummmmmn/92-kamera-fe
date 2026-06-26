@@ -43,10 +43,12 @@ export default function AdminDashboard({ onBack, isMobile }) {
   const [exporting, setExporting] = useState(false);
 
   // Queries
-  const { data: orders = [], refetch: refetchOrders } = useOrders();
-  const { data: cameras = [] } = useCameras();
-  const { data: feedbacks = [] } = useFeedbacks();
-  const { data: discounts = [], refetch: refetchDiscounts } = useDiscounts();
+  const { data: orders = [], refetch: refetchOrders, isLoading: isLoadingOrders } = useOrders();
+  const { data: cameras = [], isLoading: isLoadingCameras } = useCameras();
+  const { data: feedbacks = [], isLoading: isLoadingFeedbacks } = useFeedbacks();
+  const { data: discounts = [], refetch: refetchDiscounts, isLoading: isLoadingDiscounts } = useDiscounts();
+
+  const isInitialLoading = isLoadingOrders || isLoadingCameras || isLoadingFeedbacks || isLoadingDiscounts;
 
   // Mutations
   const updateOrderMutation = useUpdateOrder();
@@ -139,9 +141,9 @@ export default function AdminDashboard({ onBack, isMobile }) {
     if (typeof updatedListOrFn === "function") {
       nextList = updatedListOrFn(discounts);
     }
-    for (const d of nextList) {
-      await updateDiscountMutation.mutateAsync({ id: d.id, data: d });
-    }
+    await Promise.all(
+      nextList.map((d) => updateDiscountMutation.mutateAsync({ id: d.id, data: d }))
+    );
     refetchDiscounts();
   };
 
@@ -230,46 +232,58 @@ export default function AdminDashboard({ onBack, isMobile }) {
 
       {/* Main Content */}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: isMobile ? "20px 14px" : "32px 24px" }}>
-        {tab === "overview" && <OverviewPanel isMobile={isMobile} setTab={setTab} />}
-        {tab === "cameras" && (
-          <CamerasPanel
-            cameras={cameras}
-            onCreateCamera={createCamMutation.mutateAsync}
-            onUpdateCamera={updateCamMutation.mutateAsync}
-            onDeleteCamera={deleteCamMutation.mutateAsync}
-            isMobile={isMobile}
-          />
-        )}
-        {tab === "accessories" && <AccessoriesPanel />}
-        {tab === "orders" && (
-          <OrdersPanel
-            orders={orders}
-            onUpdateOrder={updateOrderMutation.mutateAsync}
-            onUpdateOrderStatus={updateOrderStatusMutation.mutateAsync}
-            onDeleteOrder={deleteOrderMutation.mutateAsync}
-            discounts={discounts}
-            setDiscounts={handleSetDiscountsWrapper}
-            exportMonth={exportMonth}
-            setExportMonth={setExportMonth}
-            handleExportExcel={handleExportExcel}
-            exporting={exporting}
-            refetchOrders={refetchOrders}
-          />
-        )}
-        {tab === "calendar" && <RentalCalendar orders={orders} cameras={cameras} />}
-        {tab === "delivery" && <DeliveryPanel isMobile={isMobile} />}
-        {tab === "media" && (
-          <div>
-            <GalleryPanel isMobile={isMobile} />
-            <div style={{ height: 32 }} />
-            <FeedbackPanel isMobile={isMobile} />
+        <style>{`
+          @keyframes spin { to { transform: rotate(360deg); } }
+        `}</style>
+        {isInitialLoading ? (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "50vh", gap: 14 }}>
+            <div style={{ width: 36, height: 36, border: "3.5px solid rgba(201,168,76,0.18)", borderTopColor: "#c9a84c", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+            <div style={{ color: MUT, fontSize: 13, fontWeight: 500, fontFamily: "system-ui,sans-serif" }}>Đang tải dữ liệu hệ thống...</div>
           </div>
+        ) : (
+          <>
+            {tab === "overview" && <OverviewPanel isMobile={isMobile} setTab={setTab} />}
+            {tab === "cameras" && (
+              <CamerasPanel
+                cameras={cameras}
+                onCreateCamera={createCamMutation.mutateAsync}
+                onUpdateCamera={updateCamMutation.mutateAsync}
+                onDeleteCamera={deleteCamMutation.mutateAsync}
+                isMobile={isMobile}
+              />
+            )}
+            {tab === "accessories" && <AccessoriesPanel />}
+            {tab === "orders" && (
+              <OrdersPanel
+                orders={orders}
+                onUpdateOrder={updateOrderMutation.mutateAsync}
+                onUpdateOrderStatus={updateOrderStatusMutation.mutateAsync}
+                onDeleteOrder={deleteOrderMutation.mutateAsync}
+                discounts={discounts}
+                setDiscounts={handleSetDiscountsWrapper}
+                exportMonth={exportMonth}
+                setExportMonth={setExportMonth}
+                handleExportExcel={handleExportExcel}
+                exporting={exporting}
+                refetchOrders={refetchOrders}
+              />
+            )}
+            {tab === "calendar" && <RentalCalendar orders={orders} cameras={cameras} />}
+            {tab === "delivery" && <DeliveryPanel isMobile={isMobile} />}
+            {tab === "media" && (
+              <div>
+                <GalleryPanel isMobile={isMobile} />
+                <div style={{ height: 32 }} />
+                <FeedbackPanel isMobile={isMobile} />
+              </div>
+            )}
+            {tab === "users" && <UsersPanel />}
+            {tab === "discounts" && <DiscountsPanel isMobile={isMobile} />}
+            {tab === "inventory" && <InventoryPanel isMobile={isMobile} />}
+            {tab === "content" && <SitePanel isMobile={isMobile} />}
+            {tab === "security" && <SecurityPanel />}
+          </>
         )}
-        {tab === "users" && <UsersPanel />}
-        {tab === "discounts" && <DiscountsPanel isMobile={isMobile} />}
-        {tab === "inventory" && <InventoryPanel isMobile={isMobile} />}
-        {tab === "content" && <SitePanel isMobile={isMobile} />}
-        {tab === "security" && <SecurityPanel />}
       </div>
     </div>
   );

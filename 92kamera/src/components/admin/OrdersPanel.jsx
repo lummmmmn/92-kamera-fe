@@ -2,11 +2,12 @@ import { useState, useRef } from "react";
 import Badge from "../common/Badge.jsx";
 import QuickOrderLookup from "./QuickOrderLookup.jsx";
 import AdminNoteEditor from "./AdminNoteEditor.jsx";
+import AdminToast from "./AdminToast.jsx";
 import { G, MUT, TXT, BR2, CARD, CARD2, RED, ORDER_STATUSES, STATUS_CFG } from "../../lib/constants.js";
 import { fmtVND, fmtDays, dateAddDays } from "../../utils/format.js";
 
 // Inner subcomponent DeleteOrderBtn
-function DeleteOrderBtn({ onDelete }) {
+function DeleteOrderBtn({ onDelete, loading }) {
   const [confirm, setConfirm] = useState(false);
   if (!confirm) {
     return (
@@ -37,29 +38,33 @@ function DeleteOrderBtn({ onDelete }) {
       <span style={{ color: "#ef4444", fontSize: 11, fontWeight: 700 }}>Chắc chắn xoá đơn này?</span>
       <button
         onClick={onDelete}
+        disabled={loading}
         style={{
           padding: "4px 10px",
           background: "#ef4444",
           color: "#fff",
           border: "none",
           borderRadius: 6,
-          cursor: "pointer",
+          cursor: loading ? "not-allowed" : "pointer",
           fontSize: 10,
           fontWeight: 700,
+          opacity: loading ? 0.7 : 1,
         }}
       >
-        Xoá
+        {loading ? "Đang xoá..." : "Xoá"}
       </button>
       <button
         onClick={() => setConfirm(false)}
+        disabled={loading}
         style={{
           padding: "4px 10px",
           background: "rgba(0,0,0,0.06)",
           border: "1px solid rgba(0,0,0,0.12)",
           color: MUT,
           borderRadius: 6,
-          cursor: "pointer",
+          cursor: loading ? "not-allowed" : "pointer",
           fontSize: 10,
+          opacity: loading ? 0.55 : 1,
         }}
       >
         Huỷ
@@ -120,6 +125,17 @@ export default function OrdersPanel({
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [editOrder, setEditOrder] = useState(null);
   const [editOrderMsg, setEditOrderMsg] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [savingEditId, setSavingEditId] = useState(null);
+  const [statusSaving, setStatusSaving] = useState(null);
+  const [deletingOrderId, setDeletingOrderId] = useState(null);
+  const toastTimerRef = useRef(null);
+
+  const showToast = (text, type = "ok") => {
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    setToast({ type, text });
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 2600);
+  };
 
   const filteredOrders = orders.filter((o) => {
     if (orderFilter !== "all" && o.status !== orderFilter) return false;
@@ -133,6 +149,8 @@ export default function OrdersPanel({
   });
 
   const handleSaveEdit = async (o) => {
+    if (savingEditId) return;
+
     if (!editOrder.name.trim()) {
       setEditOrderMsg({ type: "err", text: "Tên không được để trống" });
       return;
@@ -147,6 +165,7 @@ export default function OrdersPanel({
     }
 
     try {
+      setSavingEditId(o.id);
       await onUpdateOrder({
         id: o.id,
         data: {
@@ -163,17 +182,23 @@ export default function OrdersPanel({
         },
       });
       setEditOrderMsg({ type: "ok", text: "✓ Đã lưu thay đổi!" });
+      showToast("Đã lưu thông tin / ghi chú đơn");
       setTimeout(() => {
         setEditOrder(null);
         setEditOrderMsg(null);
       }, 1200);
     } catch (err) {
       setEditOrderMsg({ type: "err", text: "Lưu thất bại: " + err.message });
+    } finally {
+      setSavingEditId(null);
     }
   };
 
   const handleStatusChange = async (o, newStatus) => {
+    if (statusSaving || o.status === newStatus) return;
+
     try {
+      setStatusSaving({ orderId: o.id, status: newStatus });
       await onUpdateOrderStatus({ id: o.id, status: newStatus, adminNote: o.adminNote || "" });
 
       // Rollback discount usage count locally if status changed to cancelled
@@ -197,13 +222,32 @@ export default function OrdersPanel({
           );
         }
       }
+      showToast(`Đã đổi trạng thái: ${ORDER_STATUSES[newStatus] || newStatus}`);
     } catch (err) {
       alert("Đổi trạng thái thất bại: " + err.message);
+    } finally {
+      setStatusSaving(null);
+    }
+  };
+
+  const handleDeleteOrder = async (id) => {
+    if (deletingOrderId) return;
+
+    try {
+      setDeletingOrderId(id);
+      await onDeleteOrder(id);
+      showToast("Đã xoá đơn thuê");
+    } catch (err) {
+      alert("Xoá đơn thất bại: " + err.message);
+    } finally {
+      setDeletingOrderId(null);
     }
   };
 
   return (
     <div>
+      <AdminToast toast={toast} onClose={() => setToast(null)} />
+
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div>
           <h2 style={{ margin: 0, color: TXT, fontWeight: 600, fontSize: 18, fontFamily: "system-ui,sans-serif" }}>
@@ -623,7 +667,7 @@ export default function OrdersPanel({
                   />
                 </div>
 
-                <AdminNoteEditor order={o} onUpdateOrder={onUpdateOrder} />
+                <AdminNoteEditor order={o} onUpdateOrder={onUpdateOrder} onToast={showToast} />
 
                 {(o.appliedDiscounts?.length > 0 || o.discountCode) && (
                   <div style={{ fontSize: 11, marginBottom: 8, background: "#EEF9F4", border: "1px solid #22c55e22", borderRadius: 10, padding: "6px 12px" }}>
@@ -743,6 +787,7 @@ export default function OrdersPanel({
                       <div style={{ display: "flex", gap: 8 }}>
                         <button
                           onClick={() => handleSaveEdit(o)}
+                          disabled={savingEditId === o.id}
                           style={{
                             flex: 1,
                             padding: "9px 0",
@@ -750,28 +795,31 @@ export default function OrdersPanel({
                             border: `1px solid ${G}55`,
                             color: G,
                             borderRadius: 10,
-                            cursor: "pointer",
+                            cursor: savingEditId === o.id ? "not-allowed" : "pointer",
                             fontSize: 12,
                             fontWeight: 700,
                             fontFamily: "system-ui,sans-serif",
+                            opacity: savingEditId === o.id ? 0.72 : 1,
                           }}
                         >
-                          ✓ Lưu thay đổi
+                          {savingEditId === o.id ? "⏳ Đang lưu..." : "✓ Lưu thay đổi"}
                         </button>
                         <button
                           onClick={() => {
                             setEditOrder(null);
                             setEditOrderMsg(null);
                           }}
+                          disabled={savingEditId === o.id}
                           style={{
                             padding: "9px 16px",
                             background: "none",
                             border: `1px solid ${BR2}`,
                             color: MUT,
                             borderRadius: 10,
-                            cursor: "pointer",
+                            cursor: savingEditId === o.id ? "not-allowed" : "pointer",
                             fontSize: 12,
                             fontFamily: "system-ui,sans-serif",
+                            opacity: savingEditId === o.id ? 0.55 : 1,
                           }}
                         >
                           Huỷ
@@ -822,24 +870,26 @@ export default function OrdersPanel({
                       <button
                         key={s}
                         onClick={() => handleStatusChange(o, s)}
+                        disabled={!!statusSaving && statusSaving.orderId === o.id}
                         style={{
                           padding: "6px 12px",
                           background: o.status === s ? "#FFF8ED" : CARD,
                           color: o.status === s ? G : MUT,
                           border: `1px solid ${o.status === s ? G + "55" : BR2}`,
                           borderRadius: 99,
-                          cursor: "pointer",
+                          cursor: statusSaving?.orderId === o.id ? "not-allowed" : "pointer",
                           fontSize: 11,
                           fontWeight: o.status === s ? 700 : 400,
                           fontFamily: "system-ui,sans-serif",
                           transition: "all .15s",
+                          opacity: statusSaving?.orderId === o.id && statusSaving?.status !== s ? 0.55 : 1,
                         }}
                       >
-                        {l}
+                        {statusSaving?.orderId === o.id && statusSaving?.status === s ? "⏳ Đang đổi..." : l}
                       </button>
                     ))}
                   </div>
-                  <DeleteOrderBtn onDelete={() => onDeleteOrder(o.id)} />
+                  <DeleteOrderBtn onDelete={() => handleDeleteOrder(o.id)} loading={deletingOrderId === o.id} />
                 </div>
               </div>
             )}

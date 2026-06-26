@@ -37,6 +37,7 @@ export default function GalleryPanel({ isMobile }) {
   const [draft, setDraft] = useState([]);
   const [removedIds, setRemovedIds] = useState([]);
   const dirty = removedIds.length > 0 || draft.some(p => p._new);
+  const photoId = (photo) => photo?.public_id || photo?.id || photo?._id;
 
   useEffect(() => {
     setDraft(photos || []);
@@ -104,15 +105,18 @@ export default function GalleryPanel({ isMobile }) {
   };
 
   const handleDelete = (photo) => {
+    const id = photoId(photo);
+    if (!id) return;
+
     setConfirmCfg({
       message: 'Xóa ảnh này?\n\nẢnh sẽ bị xóa khi bạn bấm "Lưu & cập nhật web".',
       onOk: () => {
         setConfirmCfg(null);
         if (photo._new) {
-          setDraft(prev => prev.filter(p => p.public_id !== photo.public_id));
+          setDraft(prev => prev.filter(p => photoId(p) !== id));
         } else {
-          setRemovedIds(prev => [...prev, photo.public_id]);
-          setDraft(prev => prev.filter(p => p.public_id !== photo.public_id));
+          setRemovedIds(prev => prev.includes(id) ? prev : [...prev, id]);
+          setDraft(prev => prev.filter(p => photoId(p) !== id));
         }
       },
     });
@@ -122,12 +126,46 @@ export default function GalleryPanel({ isMobile }) {
     setSaving(true);
     setUploadMsg(null);
     try {
-      // 1. Thực hiện xóa các ảnh cũ trên server
-      for (const pid of removedIds) {
-        await deletePhotoMutation.mutateAsync(pid);
-      }
+      const removedSet = new Set(removedIds);
+
+      // 1. Thực hiện xóa các ảnh cũ trên server song song
+      await Promise.all(removedIds.map((pid) => deletePhotoMutation.mutateAsync(pid)));
+
+      // 2. Cập nhật hoặc xóa các album tương ứng song song
+      const albumPromises = (albums || []).map(async (album) => {
+        const currentPhotos = Array.isArray(album.photos) ? album.photos : [];
+        const nextPhotos = currentPhotos.filter((p) => !removedSet.has(photoId(p)));
+
+        if (nextPhotos.length === currentPhotos.length) return;
+
+        if (nextPhotos.length === 0) {
+          await deleteAlbumMutation.mutateAsync(album.id);
+          return;
+        }
+
+        const coverStillExists = nextPhotos.some((p) => photoId(p) === album.coverId);
+        const nextCover = coverStillExists
+          ? nextPhotos.find((p) => photoId(p) === album.coverId)
+          : nextPhotos[0];
+
+        await updateAlbumMutation.mutateAsync({
+          id: album.id,
+          data: {
+            ...album,
+            photos: nextPhotos,
+            coverId: photoId(nextCover),
+            coverUrl: nextCover?.url,
+            updatedAt: new Date().toISOString(),
+          },
+        });
+      });
+
+      await Promise.all(albumPromises);
       // 2. Refresh lại danh sách ảnh gốc từ server
-      await qc.invalidateQueries({ queryKey: ["photos"] });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["photos"] }),
+        qc.invalidateQueries({ queryKey: ["albums"] }),
+      ]);
 
       setRemovedIds([]);
       setUploadMsg({
@@ -164,7 +202,7 @@ export default function GalleryPanel({ isMobile }) {
 
     // 2. Tìm album được thêm mới hoặc cập nhật
     for (const alb of nextAlbums) {
-      if (alb.id.startsWith("alb_")) {
+      if (alb.id.startsWith("tmp_alb_")) {
         // ID tạm của FE -> tạo mới
         const { id, ...data } = alb;
         await createAlbumMutation.mutateAsync(data);
@@ -173,7 +211,7 @@ export default function GalleryPanel({ isMobile }) {
         await updateAlbumMutation.mutateAsync({ id: alb.id, data: alb });
       }
     }
-    refetchAlbums();
+    await refetchAlbums();
   };
 
   const pct = uploadProgress.total > 0 ? Math.round((uploadProgress.done / uploadProgress.total) * 100) : 0;

@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import ImageUploader from "../common/ImageUploader.jsx";
 import Badge from "../common/Badge.jsx";
+import AdminToast from "./AdminToast.jsx";
 import { G, MUT, TXT, BR2, CARD, CARD2, inp2, btn } from "../../lib/constants.js";
 import { cdnUrl, fmtVND } from "../../utils/format.js";
 
@@ -23,33 +24,61 @@ export default function CamerasPanel({
     images: [],
     imagesMeta: [],
   });
+  const [toast, setToast] = useState(null);
+  const [creating, setCreating] = useState(false);
+  const [updatingId, setUpdatingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+  const toastTimerRef = useRef(null);
+
+  const showToast = (text, type = "ok") => {
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    setToast({ type, text });
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 2600);
+  };
 
   const handleCreate = async () => {
-    if (!nc.name || !nc.price) return;
+    if (!nc.name || !nc.price || creating) return;
+
     try {
+      setCreating(true);
       await onCreateCamera({ ...nc, price: parseInt(nc.price) });
       setNc({ name: "", price: "", desc: "", qty: 1, status: "available", icon: "📷", images: [], imagesMeta: [] });
       setAddCamOpen(false);
+      showToast("Đã thêm máy ảnh");
     } catch (err) {
       alert("Đăng sản phẩm thất bại: " + err.message);
+    } finally {
+      setCreating(false);
     }
   };
 
   const handleUpdate = async (c) => {
+    if (updatingId) return;
+
     try {
+      setUpdatingId(c.id);
       await onUpdateCamera({ id: c.id, data: editCam });
       setEditCam(null);
+      showToast("Đã lưu cập nhật máy ảnh");
     } catch (err) {
       alert("Lưu cập nhật thất bại: " + err.message);
+    } finally {
+      setUpdatingId(null);
     }
   };
 
   const handleDelete = async (id) => {
     if (window.confirm("Chắc chắn xoá máy ảnh này?")) {
+      if (deletingId) return;
+
       try {
+        setDeletingId(id);
         await onDeleteCamera(id);
+        showToast("Đã xoá máy ảnh");
       } catch (err) {
         alert("Xoá thất bại: " + err.message);
+      } finally {
+        setDeletingId(null);
       }
     }
   };
@@ -66,6 +95,8 @@ export default function CamerasPanel({
 
   return (
     <div>
+      <AdminToast toast={toast} onClose={() => setToast(null)} />
+
       <STitle
         c={`Quản lý máy ảnh (${cameras.length})`}
         extra={
@@ -118,10 +149,18 @@ export default function CamerasPanel({
             />
           </div>
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={handleCreate} disabled={!nc.name || !nc.price} style={{ ...btn("gold"), opacity: !nc.name || !nc.price ? 0.5 : 1 }}>
-              ✓ Đăng sản phẩm
+            <button
+              onClick={handleCreate}
+              disabled={!nc.name || !nc.price || creating}
+              style={{ ...btn("gold"), opacity: !nc.name || !nc.price || creating ? 0.5 : 1, cursor: !nc.name || !nc.price || creating ? "not-allowed" : "pointer" }}
+            >
+              {creating ? "⏳ Đang đăng..." : "✓ Đăng sản phẩm"}
             </button>
-            <button onClick={() => setAddCamOpen(false)} style={btn("ghost")}>
+            <button
+              onClick={() => setAddCamOpen(false)}
+              disabled={creating}
+              style={{ ...btn("ghost"), opacity: creating ? 0.55 : 1, cursor: creating ? "not-allowed" : "pointer" }}
+            >
               Huỷ
             </button>
           </div>
@@ -197,10 +236,18 @@ export default function CamerasPanel({
                       />
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button onClick={() => handleUpdate(c)} style={btn("gold")}>
-                        ✓ Lưu & cập nhật
+                      <button
+                        onClick={() => handleUpdate(c)}
+                        disabled={updatingId === c.id}
+                        style={{ ...btn("gold"), opacity: updatingId === c.id ? 0.65 : 1, cursor: updatingId === c.id ? "not-allowed" : "pointer" }}
+                      >
+                        {updatingId === c.id ? "⏳ Đang lưu..." : "✓ Lưu & cập nhật"}
                       </button>
-                      <button onClick={() => setEditCam(null)} style={btn("ghost")}>
+                      <button
+                        onClick={() => setEditCam(null)}
+                        disabled={updatingId === c.id}
+                        style={{ ...btn("ghost"), opacity: updatingId === c.id ? 0.55 : 1, cursor: updatingId === c.id ? "not-allowed" : "pointer" }}
+                      >
                         Huỷ
                       </button>
                     </div>
@@ -226,11 +273,19 @@ export default function CamerasPanel({
               {/* Actions */}
               {editCam?.id !== c.id && (
                 <div style={{ display: "flex", gap: 7, flexShrink: 0 }}>
-                  <button onClick={() => setEditCam({ ...c, images: c.images || [], imagesMeta: c.imagesMeta || [] })} style={btn("ghost")}>
+                  <button
+                    onClick={() => setEditCam({ ...c, images: c.images || [], imagesMeta: c.imagesMeta || [] })}
+                    disabled={deletingId === c.id}
+                    style={{ ...btn("ghost"), opacity: deletingId === c.id ? 0.55 : 1, cursor: deletingId === c.id ? "not-allowed" : "pointer" }}
+                  >
                     ✏️ Sửa
                   </button>
-                  <button onClick={() => handleDelete(c.id)} style={btn("danger")}>
-                    🗑
+                  <button
+                    onClick={() => handleDelete(c.id)}
+                    disabled={deletingId === c.id}
+                    style={{ ...btn("danger"), opacity: deletingId === c.id ? 0.65 : 1, cursor: deletingId === c.id ? "not-allowed" : "pointer" }}
+                  >
+                    {deletingId === c.id ? "Đang xoá..." : "🗑"}
                   </button>
                 </div>
               )}

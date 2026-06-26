@@ -21,8 +21,10 @@ export default function CustomerPage({ loggedUser, setLoggedUser, onBack, onOpen
   const isMobile = useMobile();
 
   // React Query queries
-  const { data: orders = [], refetch: refetchOrders, isRefetching } = useOrders();
-  const { data: feedbacks = [] } = useFeedbacks();
+  const { data: orders = [], refetch: refetchOrders, isLoading: isLoadingOrders, isRefetching } = useOrders();
+  const { data: feedbacks = [], isLoading: isLoadingFeedbacks } = useFeedbacks();
+
+  const isInitialLoading = isLoadingOrders || isLoadingFeedbacks;
 
   const handleRefreshOrders = useCallback(async () => {
     await refetchOrders();
@@ -406,50 +408,59 @@ export default function CustomerPage({ loggedUser, setLoggedUser, onBack, onOpen
         </div>
 
         {/* Tab panels */}
-        {tab === "dashboard" && (
-          <DashboardPanel
-            myOrders={myOrders}
-            completedOrders={completedOrders}
-            feedbacks={feedbacks}
-            totalSpent={totalSpent}
-            totalDays={totalDays}
-            usedCameras={usedCameras}
-            setTab={setTab}
-            setFbOrder={setFbOrder}
-            onOpenBooking={onOpenBooking}
-            myEmail={myEmail}
-            myPhone={myPhone}
-          />
-        )}
+        {isInitialLoading ? (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "40vh", gap: 14 }}>
+            <div style={{ width: 32, height: 32, border: "3px solid rgba(201,168,76,0.18)", borderTopColor: "#c9a84c", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+            <div style={{ color: MUT, fontSize: 13, fontFamily: "system-ui,sans-serif" }}>Đang tải thông tin tài khoản...</div>
+          </div>
+        ) : (
+          <>
+            {tab === "dashboard" && (
+              <DashboardPanel
+                myOrders={myOrders}
+                completedOrders={completedOrders}
+                feedbacks={feedbacks}
+                totalSpent={totalSpent}
+                totalDays={totalDays}
+                usedCameras={usedCameras}
+                setTab={setTab}
+                setFbOrder={setFbOrder}
+                onOpenBooking={onOpenBooking}
+                myEmail={myEmail}
+                myPhone={myPhone}
+              />
+            )}
 
-        {tab === "orders" && (
-          <CustomerOrdersPanel
-            myOrders={myOrders}
-            feedbacks={feedbacks}
-            refreshing={isRefetching}
-            refreshOrders={handleRefreshOrders}
-            onOpenBooking={onOpenBooking}
-            setFbOrder={setFbOrder}
-            loggedUser={loggedUser}
-            setConfirmCfg={setConfirmCfg}
-            myEmail={myEmail}
-            myPhone={myPhone}
-          />
-        )}
+            {tab === "orders" && (
+              <CustomerOrdersPanel
+                myOrders={myOrders}
+                feedbacks={feedbacks}
+                refreshing={isRefetching}
+                refreshOrders={handleRefreshOrders}
+                onOpenBooking={onOpenBooking}
+                setFbOrder={setFbOrder}
+                loggedUser={loggedUser}
+                setConfirmCfg={setConfirmCfg}
+                myEmail={myEmail}
+                myPhone={myPhone}
+              />
+            )}
 
-        {tab === "feedbacks" && (
-          <CustomerFeedbacksPanel
-            myFeedbacks={myFeedbacks}
-            myOrders={myOrders}
-            setFbOrder={setFbOrder}
-          />
-        )}
+            {tab === "feedbacks" && (
+              <CustomerFeedbacksPanel
+                myFeedbacks={myFeedbacks}
+                myOrders={myOrders}
+                setFbOrder={setFbOrder}
+              />
+            )}
 
-        {tab === "badges" && (
-          <CustomerBadgesPanel myOrders={myOrders} myFeedbacks={myFeedbacks} totalSpent={totalSpent} totalDays={totalDays} />
-        )}
+            {tab === "badges" && (
+              <CustomerBadgesPanel myOrders={myOrders} myFeedbacks={myFeedbacks} totalSpent={totalSpent} totalDays={totalDays} />
+            )}
 
-        {tab === "settings" && <CustomerSettingsPanel loggedUser={loggedUser} setLoggedUser={setLoggedUser} />}
+            {tab === "settings" && <CustomerSettingsPanel loggedUser={loggedUser} setLoggedUser={setLoggedUser} />}
+          </>
+        )}
       </div>
 
       {fbOrder && (

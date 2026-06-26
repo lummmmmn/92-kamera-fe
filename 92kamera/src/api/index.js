@@ -14,6 +14,8 @@
 import api from "../lib/axios.js";
 import { CAMS_INIT, ACC_INIT, SITE_INIT, ORDERS_INIT, DELIVERY_AREAS_DEFAULT } from "../lib/constants.js";
 
+const pathId = (id) => encodeURIComponent(String(id));
+
 // ─────────────────────────────────────────────
 // 📷 CAMERAS
 // ─────────────────────────────────────────────
@@ -21,13 +23,13 @@ export const getCameras = () =>
   api.get("/cameras").then((r) => r.data);
 
 export const updateCamera = (id, data) =>
-  api.put(`/cameras/${id}`, data).then((r) => r.data);
+  api.put(`/cameras/${pathId(id)}`, data).then((r) => r.data);
 
 export const createCamera = (data) =>
   api.post("/cameras", data).then((r) => r.data);
 
 export const deleteCamera = (id) =>
-  api.delete(`/cameras/${id}`).then((r) => r.data);
+  api.delete(`/cameras/${pathId(id)}`).then((r) => r.data);
 
 // ─────────────────────────────────────────────
 // 🎒 ACCESSORIES
@@ -36,13 +38,13 @@ export const getAccessories = () =>
   api.get("/accessories").then((r) => r.data);
 
 export const updateAccessory = (id, data) =>
-  api.put(`/accessories/${id}`, data).then((r) => r.data);
+  api.put(`/accessories/${pathId(id)}`, data).then((r) => r.data);
 
 export const createAccessory = (data) =>
   api.post("/accessories", data).then((r) => r.data);
 
 export const deleteAccessory = (id) =>
-  api.delete(`/accessories/${id}`).then((r) => r.data);
+  api.delete(`/accessories/${pathId(id)}`).then((r) => r.data);
 
 // ─────────────────────────────────────────────
 // 📋 ORDERS
@@ -51,22 +53,22 @@ export const getOrders = () =>
   api.get("/orders").then((r) => r.data);
 
 export const getOrderById = (id) =>
-  api.get(`/orders/${id}`).then((r) => r.data);
+  api.get(`/orders/${pathId(id)}`).then((r) => r.data);
 
 export const createOrder = (data) =>
   api.post("/orders", data).then((r) => r.data);
 
 export const updateOrder = (id, data) =>
-  api.put(`/orders/${id}`, data).then((r) => r.data);
+  api.put(`/orders/${pathId(id)}`, data).then((r) => r.data);
 
 export const updateOrderStatus = (id, data) =>
-  api.patch(`/orders/${id}/status`, data).then((r) => r.data);
+  api.patch(`/orders/${pathId(id)}/status`, data).then((r) => r.data);
 
 export const deleteOrder = (id) =>
-  api.delete(`/orders/${id}`).then((r) => r.data);
+  api.delete(`/orders/${pathId(id)}`).then((r) => r.data);
 
 export const markOrderSeen = (id) =>
-  api.patch(`/orders/${id}/seen`).then((r) => r.data);
+  api.patch(`/orders/${pathId(id)}/seen`).then((r) => r.data);
 
 // ─────────────────────────────────────────────
 // 🌐 SITE CONTENT
@@ -87,10 +89,10 @@ export const createDiscount = (data) =>
   api.post("/discounts", data).then((r) => r.data);
 
 export const updateDiscount = (id, data) =>
-  api.put(`/discounts/${id}`, data).then((r) => r.data);
+  api.put(`/discounts/${pathId(id)}`, data).then((r) => r.data);
 
 export const deleteDiscount = (id) =>
-  api.delete(`/discounts/${id}`).then((r) => r.data);
+  api.delete(`/discounts/${pathId(id)}`).then((r) => r.data);
 
 export const applyDiscount = (code, orderTotal) =>
   api.post("/discounts/apply", { code, orderTotal }).then((r) => r.data);
@@ -105,10 +107,10 @@ export const createFeedback = (data) =>
   api.post("/feedbacks", data).then((r) => r.data);
 
 export const updateFeedback = (id, data) =>
-  api.put(`/feedbacks/${id}`, data).then((r) => r.data);
+  api.put(`/feedbacks/${pathId(id)}`, data).then((r) => r.data);
 
 export const deleteFeedback = (id) =>
-  api.delete(`/feedbacks/${id}`).then((r) => r.data);
+  api.delete(`/feedbacks/${pathId(id)}`).then((r) => r.data);
 
 // ─────────────────────────────────────────────
 // 🖼️ GALLERY / PHOTOS / ALBUMS
@@ -117,7 +119,7 @@ export const getPhotos = () =>
   api.get("/photos").then((r) => r.data);
 
 export const deletePhoto = (id) =>
-  api.delete(`/photos/${id}`).then((r) => r.data);
+  api.delete(`/photos/${pathId(id)}`).then((r) => r.data);
 
 export const getAlbums = () =>
   api.get("/albums").then((r) => r.data);
@@ -126,10 +128,10 @@ export const createAlbum = (data) =>
   api.post("/albums", data).then((r) => r.data);
 
 export const updateAlbum = (id, data) =>
-  api.put(`/albums/${id}`, data).then((r) => r.data);
+  api.put(`/albums/${pathId(id)}`, data).then((r) => r.data);
 
 export const deleteAlbum = (id) =>
-  api.delete(`/albums/${id}`).then((r) => r.data);
+  api.delete(`/albums/${pathId(id)}`).then((r) => r.data);
 
 // Upload: multipart/form-data — BE xử lý Cloudinary
 export const uploadPhoto = (formData) =>
@@ -138,7 +140,7 @@ export const uploadPhoto = (formData) =>
   }).then((r) => r.data);
 
 export const uploadCameraImage = (id, formData) =>
-  api.post(`/cameras/${id}/images`, formData, {
+  api.post(`/cameras/${pathId(id)}/images`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   }).then((r) => r.data);
 
@@ -170,7 +172,7 @@ export const getUsers = () =>
   api.get("/users").then((r) => r.data);
 
 export const getUserByGoogleId = (googleId) =>
-  api.get(`/users/google/${googleId}`).then((r) => r.data);
+  api.get(`/users/google/${pathId(googleId)}`).then((r) => r.data);
 
 export const upsertUser = (data) =>
   api.post("/users/upsert", data).then((r) => r.data);

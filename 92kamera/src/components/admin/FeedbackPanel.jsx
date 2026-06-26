@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { TXT, MUT, CARD, CARD2, BR, G, btn } from "../../lib/constants.js";
 import { useFeedbacks, useUpdateFeedback, useDeleteFeedback } from "../../hooks/useAppData.js";
 
@@ -18,32 +18,46 @@ export default function FeedbackPanel({ isMobile }) {
   const { data: feedbacks = [], refetch } = useFeedbacks();
   const updateFeedbackMutation = useUpdateFeedback();
   const deleteFeedbackMutation = useDeleteFeedback();
+  const [loadingAction, setLoadingAction] = useState(null);
 
   const pending = feedbacks.filter(f => f.status === "pending");
   const approved = feedbacks.filter(f => f.status === "approved");
   const rejected = feedbacks.filter(f => f.status === "rejected");
 
+  const runAction = async (key, action) => {
+    if (loadingAction) return;
+
+    try {
+      setLoadingAction(key);
+      await action();
+      await refetch();
+    } catch (err) {
+      alert("Thao tác feedback thất bại: " + err.message);
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
   const handleApprove = async (id) => {
-    await updateFeedbackMutation.mutateAsync({ id, data: { status: "approved", seen: true } });
-    refetch();
+    await runAction(`approve:${id}`, () => updateFeedbackMutation.mutateAsync({ id, data: { status: "approved", seen: true } }));
   };
 
   const handleReject = async (id) => {
-    await updateFeedbackMutation.mutateAsync({ id, data: { status: "rejected", seen: true } });
-    refetch();
+    await runAction(`reject:${id}`, () => updateFeedbackMutation.mutateAsync({ id, data: { status: "rejected", seen: true } }));
   };
 
   const handleToggleHide = async (f) => {
-    await updateFeedbackMutation.mutateAsync({ id: f.id, data: { hidden: !f.hidden } });
-    refetch();
+    await runAction(`hide:${f.id}`, () => updateFeedbackMutation.mutateAsync({ id: f.id, data: { hidden: !f.hidden } }));
   };
 
   const handleDelete = async (id) => {
     if (window.confirm("Bạn có chắc chắn muốn xoá vĩnh viễn feedback này?")) {
-      await deleteFeedbackMutation.mutateAsync(id);
-      refetch();
+      await runAction(`delete:${id}`, () => deleteFeedbackMutation.mutateAsync(id));
     }
   };
+
+  const isLoading = (key) => loadingAction === key;
+  const isBusy = !!loadingAction;
 
   const FbCard = ({ f, actions }) => (
     <div style={{ background: CARD, border: `1px solid ${f.status === "approved" ? "#22c55e33" : f.status === "rejected" ? "#ef444433" : BR}`, borderRadius: 16, padding: 18 }}>
@@ -83,9 +97,9 @@ export default function FeedbackPanel({ isMobile }) {
             {pending.map(f => (
               <FbCard key={f.id} f={f} actions={
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button onClick={() => handleApprove(f.id)} style={{ flex: 1, padding: "8px 0", background: "#EEF9F4", border: "1px solid #22c55e44", color: "#22c55e", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>✓ Duyệt</button>
-                  <button onClick={() => handleReject(f.id)} style={{ flex: 1, padding: "8px 0", background: "#FEF0F0", border: "1px solid #ef444433", color: "#ef4444", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>✕ Từ chối</button>
-                  <button onClick={() => handleDelete(f.id)} style={{ padding: "8px 12px", background: "none", border: `1px solid ${BR}`, color: MUT, borderRadius: 10, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>🗑</button>
+                  <button disabled={isBusy} onClick={() => handleApprove(f.id)} style={{ flex: 1, padding: "8px 0", background: "#EEF9F4", border: "1px solid #22c55e44", color: "#22c55e", borderRadius: 10, cursor: isBusy ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 700, fontFamily: "system-ui,sans-serif", opacity: isBusy && !isLoading(`approve:${f.id}`) ? 0.55 : 1 }}>{isLoading(`approve:${f.id}`) ? "⏳ Đang duyệt..." : "✓ Duyệt"}</button>
+                  <button disabled={isBusy} onClick={() => handleReject(f.id)} style={{ flex: 1, padding: "8px 0", background: "#FEF0F0", border: "1px solid #ef444433", color: "#ef4444", borderRadius: 10, cursor: isBusy ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 700, fontFamily: "system-ui,sans-serif", opacity: isBusy && !isLoading(`reject:${f.id}`) ? 0.55 : 1 }}>{isLoading(`reject:${f.id}`) ? "⏳ Đang từ chối..." : "✕ Từ chối"}</button>
+                  <button disabled={isBusy} onClick={() => handleDelete(f.id)} style={{ padding: "8px 12px", background: "none", border: `1px solid ${BR}`, color: MUT, borderRadius: 10, cursor: isBusy ? "not-allowed" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", opacity: isBusy && !isLoading(`delete:${f.id}`) ? 0.55 : 1 }}>{isLoading(`delete:${f.id}`) ? "Đang xoá..." : "🗑"}</button>
                 </div>
               } />
             ))}
@@ -104,11 +118,11 @@ export default function FeedbackPanel({ isMobile }) {
             {approved.map(f => (
               <FbCard key={f.id} f={f} actions={
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button onClick={() => handleToggleHide(f)} style={{ flex: 1, padding: "7px 0", background: f.hidden ? "#052210" : "#1a1a00", border: `1px solid ${f.hidden ? "#22c55e44" : G + "44"}`, color: f.hidden ? "#22c55e" : G, borderRadius: 10, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>
-                    {f.hidden ? "👁 Hiện lại" : "🙈 Ẩn"}
+                  <button disabled={isBusy} onClick={() => handleToggleHide(f)} style={{ flex: 1, padding: "7px 0", background: f.hidden ? "#052210" : "#1a1a00", border: `1px solid ${f.hidden ? "#22c55e44" : G + "44"}`, color: f.hidden ? "#22c55e" : G, borderRadius: 10, cursor: isBusy ? "not-allowed" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", opacity: isBusy && !isLoading(`hide:${f.id}`) ? 0.55 : 1 }}>
+                    {isLoading(`hide:${f.id}`) ? "⏳ Đang lưu..." : f.hidden ? "👁 Hiện lại" : "🙈 Ẩn"}
                   </button>
-                  <button onClick={() => handleReject(f.id)} style={{ flex: 1, padding: "7px 0", background: "#FEF0F0", border: "1px solid #ef444433", color: "#ef4444", borderRadius: 10, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>Gỡ</button>
-                  <button onClick={() => handleDelete(f.id)} style={{ padding: "7px 12px", background: "none", border: `1px solid ${BR}`, color: MUT, borderRadius: 10, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>🗑</button>
+                  <button disabled={isBusy} onClick={() => handleReject(f.id)} style={{ flex: 1, padding: "7px 0", background: "#FEF0F0", border: "1px solid #ef444433", color: "#ef4444", borderRadius: 10, cursor: isBusy ? "not-allowed" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", opacity: isBusy && !isLoading(`reject:${f.id}`) ? 0.55 : 1 }}>{isLoading(`reject:${f.id}`) ? "⏳ Đang gỡ..." : "Gỡ"}</button>
+                  <button disabled={isBusy} onClick={() => handleDelete(f.id)} style={{ padding: "7px 12px", background: "none", border: `1px solid ${BR}`, color: MUT, borderRadius: 10, cursor: isBusy ? "not-allowed" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", opacity: isBusy && !isLoading(`delete:${f.id}`) ? 0.55 : 1 }}>{isLoading(`delete:${f.id}`) ? "Đang xoá..." : "🗑"}</button>
                 </div>
               } />
             ))}
@@ -124,8 +138,8 @@ export default function FeedbackPanel({ isMobile }) {
             {rejected.map(f => (
               <FbCard key={f.id} f={f} actions={
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={() => handleApprove(f.id)} style={{ flex: 1, padding: "7px 0", background: "#EEF9F4", border: "1px solid #22c55e44", color: "#22c55e", borderRadius: 10, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>Duyệt lại</button>
-                  <button onClick={() => handleDelete(f.id)} style={{ padding: "7px 12px", background: "none", border: `1px solid ${BR}`, color: MUT, borderRadius: 10, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>Xoá</button>
+                  <button disabled={isBusy} onClick={() => handleApprove(f.id)} style={{ flex: 1, padding: "7px 0", background: "#EEF9F4", border: "1px solid #22c55e44", color: "#22c55e", borderRadius: 10, cursor: isBusy ? "not-allowed" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", opacity: isBusy && !isLoading(`approve:${f.id}`) ? 0.55 : 1 }}>{isLoading(`approve:${f.id}`) ? "⏳ Đang duyệt..." : "Duyệt lại"}</button>
+                  <button disabled={isBusy} onClick={() => handleDelete(f.id)} style={{ padding: "7px 12px", background: "none", border: `1px solid ${BR}`, color: MUT, borderRadius: 10, cursor: isBusy ? "not-allowed" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", opacity: isBusy && !isLoading(`delete:${f.id}`) ? 0.55 : 1 }}>{isLoading(`delete:${f.id}`) ? "Đang xoá..." : "Xoá"}</button>
                 </div>
               } />
             ))}

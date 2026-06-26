@@ -49,6 +49,8 @@ export default function CustomerOrdersPanel({
 }) {
   const [filterStatus, setFilterStatus] = useState("all");
   const updateOrderMutation = useUpdateOrder();
+  const isUpdating = updateOrderMutation.isPending;
+  const updatingOrderId = updateOrderMutation.variables?.id;
 
   const normPhone = (p) => (p || "").replace(/[^0-9]/g, "");
 
@@ -300,9 +302,22 @@ export default function CustomerOrdersPanel({
                           },
                         });
                       }}
-                      style={{ padding: "7px 16px", background: "#FEF0F0", border: "1px solid #ef444433", color: "#ef4444", borderRadius: 10, cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", marginLeft: "auto" }}
+                      disabled={isUpdating}
+                      style={{
+                        padding: "7px 16px",
+                        background: "#FEF0F0",
+                        border: "1px solid #ef444433",
+                        color: "#ef4444",
+                        borderRadius: 10,
+                        cursor: isUpdating ? "not-allowed" : "pointer",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        fontFamily: "system-ui,sans-serif",
+                        marginLeft: "auto",
+                        opacity: isUpdating ? 0.65 : 1,
+                      }}
                     >
-                      ✕ Huỷ đơn
+                      {isUpdating && updatingOrderId === o.id ? "⏳ Đang huỷ..." : "✕ Huỷ đơn"}
                     </button>
                   )}
                 </div>

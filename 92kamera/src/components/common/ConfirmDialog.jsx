@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function ConfirmDialog({ message, onOk, onCancel }) {
+export default function ConfirmDialog({ message, onOk, onCancel, loading = false }) {
   if (!message) return null;
   return (
     <div
@@ -15,7 +15,9 @@ export default function ConfirmDialog({ message, onOk, onCancel }) {
         backdropFilter: "blur(4px)",
         WebkitBackdropFilter: "blur(4px)",
       }}
-      onClick={onCancel}
+      onClick={() => {
+        if (!loading) onCancel?.();
+      }}
     >
       <div
         style={{
@@ -44,35 +46,39 @@ export default function ConfirmDialog({ message, onOk, onCancel }) {
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
           <button
             onClick={onCancel}
+            disabled={loading}
             style={{
               padding: "8px 18px",
               background: "transparent",
               border: "1px solid #c0ccd8",
               color: "#4a6a8a",
               borderRadius: 10,
-              cursor: "pointer",
+              cursor: loading ? "not-allowed" : "pointer",
               fontSize: 12,
               fontFamily: "system-ui,sans-serif",
               fontWeight: 600,
+              opacity: loading ? 0.55 : 1,
             }}
           >
             Không
           </button>
           <button
             onClick={onOk}
+            disabled={loading}
             style={{
               padding: "8px 18px",
               background: "#ef4444",
               border: "none",
               color: "#fff",
               borderRadius: 10,
-              cursor: "pointer",
+              cursor: loading ? "not-allowed" : "pointer",
               fontSize: 12,
               fontFamily: "system-ui,sans-serif",
               fontWeight: 700,
+              opacity: loading ? 0.7 : 1,
             }}
           >
-            Xác nhận
+            {loading ? "Đang xử lý..." : "Xác nhận"}
           </button>
         </div>
       </div>

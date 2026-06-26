@@ -27,15 +27,25 @@ export default function SitePanel({ isMobile }) {
 
   const [localSite, setLocalSite] = useState(() => ({ ...siteContent }));
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (siteContent) setLocalSite({ ...siteContent });
   }, [siteContent]);
 
   const handleSave = async () => {
-    await updateSiteMutation.mutateAsync(localSite);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    if (saving) return;
+
+    try {
+      setSaving(true);
+      await updateSiteMutation.mutateAsync(localSite);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      alert("Lưu nội dung thất bại: " + err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   // System Stats calculation

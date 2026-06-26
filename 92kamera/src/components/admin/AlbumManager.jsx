@@ -11,6 +11,9 @@ export default function AlbumManager({ photos, albums, setAlbums, isMobile }) {
   const [openAlbum, setOpenAlbum] = useState(null);
   const [msg, setMsg] = useState(null);
   const [confirmCfg, setConfirmCfg] = useState(null);
+  const [savingAlbum, setSavingAlbum] = useState(false);
+  const [deletingAlbumId, setDeletingAlbumId] = useState(null);
+  const photoId = (photo) => photo?.public_id || photo?.id || photo?._id;
 
   const showMsg = (type, text) => {
     setMsg({ type, text });
@@ -28,22 +31,27 @@ export default function AlbumManager({ photos, albums, setAlbums, isMobile }) {
       name: alb.name,
       cameraTag: alb.cameraTag || "",
       coverId: alb.coverId || "",
-      photoIds: (alb.photos || []).map((p) => p.id),
+      photoIds: (alb.photos || []).map((p) => photoId(p)).filter(Boolean),
     });
     setEditAlbum(alb);
     setMode("edit");
   };
 
   const togglePhoto = (p) => {
+    const id = photoId(p);
+    if (!id) return;
+
     setForm((f) => {
-      const has = f.photoIds.includes(p.id);
-      const newIds = has ? f.photoIds.filter((x) => x !== p.id) : [...f.photoIds, p.id];
-      const coverId = has && f.coverId === p.id ? "" : f.coverId;
+      const has = f.photoIds.includes(id);
+      const newIds = has ? f.photoIds.filter((x) => x !== id) : [...f.photoIds, id];
+      const coverId = has && f.coverId === id ? "" : f.coverId;
       return { ...f, photoIds: newIds, coverId };
     });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (savingAlbum) return;
+
     if (!form.name.trim()) {
       showMsg("err", "Nhập tên album");
       return;
@@ -52,53 +60,70 @@ export default function AlbumManager({ photos, albums, setAlbums, isMobile }) {
       showMsg("err", "Chọn ít nhất 1 ảnh");
       return;
     }
-    const selectedPhotos = (photos || []).filter((p) => form.photoIds.includes(p.id));
+    const selectedPhotos = (photos || []).filter((p) => form.photoIds.includes(photoId(p)));
     const coverId = form.coverId || form.photoIds[0];
-    const coverPhoto = selectedPhotos.find((p) => p.id === coverId) || selectedPhotos[0];
+    const coverPhoto = selectedPhotos.find((p) => photoId(p) === coverId) || selectedPhotos[0];
     const now = new Date().toISOString();
-    if (editAlbum) {
-      setAlbums((prev) =>
-        prev.map((a) =>
-          a.id === editAlbum.id
-            ? {
-                ...a,
-                name: form.name.trim(),
-                cameraTag: form.cameraTag.trim(),
-                coverId,
-                coverUrl: coverPhoto?.url,
-                photos: selectedPhotos,
-                updatedAt: now,
-              }
-            : a
-        )
-      );
-      showMsg("ok", "✓ Đã lưu album");
-    } else {
-      setAlbums((prev) => [
-        {
-          id: "alb_" + Date.now(),
-          name: form.name.trim(),
-          cameraTag: form.cameraTag.trim(),
-          coverId,
-          coverUrl: coverPhoto?.url,
-          photos: selectedPhotos,
-          createdAt: now,
-          updatedAt: now,
-        },
-        ...prev,
-      ]);
-      showMsg("ok", "✓ Tạo album thành công");
+    try {
+      setSavingAlbum(true);
+      if (editAlbum) {
+        await setAlbums((prev) =>
+          prev.map((a) =>
+            a.id === editAlbum.id
+              ? {
+                  ...a,
+                  name: form.name.trim(),
+                  cameraTag: form.cameraTag.trim(),
+                  coverId,
+                  coverUrl: coverPhoto?.url,
+                  photos: selectedPhotos,
+                  updatedAt: now,
+                }
+              : a
+          )
+        );
+        showMsg("ok", "✓ Đã lưu album");
+      } else {
+        await setAlbums((prev) => [
+          {
+            id: "tmp_alb_" + Date.now(),
+            name: form.name.trim(),
+            cameraTag: form.cameraTag.trim(),
+            coverId,
+            coverUrl: coverPhoto?.url,
+            photos: selectedPhotos,
+            createdAt: now,
+            updatedAt: now,
+          },
+          ...prev,
+        ]);
+        showMsg("ok", "✓ Tạo album thành công");
+      }
+      setMode("list");
+    } catch (err) {
+      showMsg("err", "Lưu album thất bại: " + err.message);
+    } finally {
+      setSavingAlbum(false);
     }
-    setMode("list");
   };
 
   const handleDelete = (alb) => {
     setConfirmCfg({
       message: `Xóa album "${alb.name}"?\n\nẢnh gốc không bị xóa.`,
-      onOk: () => {
-        setAlbums((prev) => prev.filter((a) => a.id !== alb.id));
-        showMsg("ok", "✓ Đã xóa album");
-        setConfirmCfg(null);
+      id: alb.id,
+      onOk: async () => {
+        if (deletingAlbumId) return;
+
+        try {
+          setDeletingAlbumId(alb.id);
+          await setAlbums((prev) => prev.filter((a) => a.id !== alb.id));
+          showMsg("ok", "✓ Đã xóa album");
+          setConfirmCfg(null);
+        } catch (err) {
+          showMsg("err", "Xóa album thất bại: " + err.message);
+        } finally {
+          setDeletingAlbumId(null);
+        }
       },
     });
   };
@@ -201,11 +226,12 @@ export default function AlbumManager({ photos, albums, setAlbums, isMobile }) {
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(3,1fr)" : "repeat(5,1fr)", gap: 8 }}>
                 {(photos || []).map((p) => {
-                  const selected = form.photoIds.includes(p.id);
-                  const isCover = form.coverId === p.id;
+                  const id = photoId(p);
+                  const selected = form.photoIds.includes(id);
+                  const isCover = form.coverId === id;
                   return (
                     <div
-                      key={p.id}
+                      key={id}
                       style={{
                         position: "relative",
                         borderRadius: 10,
@@ -247,7 +273,7 @@ export default function AlbumManager({ photos, albums, setAlbums, isMobile }) {
                       )}
                       {selected && (
                         <button
-                          onClick={() => setForm((f) => ({ ...f, coverId: isCover ? "" : p.id }))}
+                          onClick={() => setForm((f) => ({ ...f, coverId: isCover ? "" : id }))}
                           title={isCover ? "Đang là ảnh bìa" : "Đặt làm ảnh bìa"}
                           style={{
                             position: "absolute",
@@ -275,10 +301,18 @@ export default function AlbumManager({ photos, albums, setAlbums, isMobile }) {
           </div>
 
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={handleSave} style={{ ...btn("gold"), flex: 1, padding: "10px 0", fontSize: 13, fontWeight: 700 }}>
-              {mode === "edit" ? "💾 Lưu thay đổi" : "✓ Tạo album"}
+            <button
+              onClick={handleSave}
+              disabled={savingAlbum}
+              style={{ ...btn("gold"), flex: 1, padding: "10px 0", fontSize: 13, fontWeight: 700, opacity: savingAlbum ? 0.65 : 1, cursor: savingAlbum ? "not-allowed" : "pointer" }}
+            >
+              {savingAlbum ? "⏳ Đang lưu..." : mode === "edit" ? "💾 Lưu thay đổi" : "✓ Tạo album"}
             </button>
-            <button onClick={() => setMode("list")} style={{ ...btn("ghost"), padding: "10px 20px", fontSize: 13 }}>
+            <button
+              onClick={() => setMode("list")}
+              disabled={savingAlbum}
+              style={{ ...btn("ghost"), padding: "10px 20px", fontSize: 13, opacity: savingAlbum ? 0.55 : 1, cursor: savingAlbum ? "not-allowed" : "pointer" }}
+            >
               Huỷ
             </button>
           </div>
@@ -348,6 +382,7 @@ export default function AlbumManager({ photos, albums, setAlbums, isMobile }) {
                     </button>
                     <button
                       onClick={() => startEdit(alb)}
+                      disabled={deletingAlbumId === alb.id}
                       style={{
                         flex: 1,
                         padding: "6px 0",
@@ -355,27 +390,30 @@ export default function AlbumManager({ photos, albums, setAlbums, isMobile }) {
                         border: `1px solid ${BR}`,
                         color: TXT,
                         borderRadius: 8,
-                        cursor: "pointer",
+                        cursor: deletingAlbumId === alb.id ? "not-allowed" : "pointer",
                         fontSize: 11,
                         fontFamily: "system-ui,sans-serif",
+                        opacity: deletingAlbumId === alb.id ? 0.55 : 1,
                       }}
                     >
                       ✏️ Sửa
                     </button>
                     <button
                       onClick={() => handleDelete(alb)}
+                      disabled={deletingAlbumId === alb.id}
                       style={{
                         padding: "6px 10px",
                         background: "#FEF0F0",
                         border: "1px solid #ef444433",
                         color: "#ef4444",
                         borderRadius: 8,
-                        cursor: "pointer",
+                        cursor: deletingAlbumId === alb.id ? "not-allowed" : "pointer",
                         fontSize: 11,
                         fontFamily: "system-ui,sans-serif",
+                        opacity: deletingAlbumId === alb.id ? 0.65 : 1,
                       }}
                     >
-                      🗑
+                      {deletingAlbumId === alb.id ? "Đang xoá..." : "🗑"}
                     </button>
                   </div>
                 </div>
@@ -386,7 +424,7 @@ export default function AlbumManager({ photos, albums, setAlbums, isMobile }) {
 
       {/* Album Lightbox trong admin */}
       {openAlbum && <AlbumLightbox album={openAlbum} onClose={() => setOpenAlbum(null)} />}
-      <ConfirmDialog message={confirmCfg?.message} onOk={confirmCfg?.onOk} onCancel={() => setConfirmCfg(null)} />
+      <ConfirmDialog message={confirmCfg?.message} onOk={confirmCfg?.onOk} onCancel={() => setConfirmCfg(null)} loading={!!deletingAlbumId} />
     </div>
   );
 }
