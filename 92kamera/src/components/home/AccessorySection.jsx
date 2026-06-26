@@ -107,10 +107,10 @@ export default function AccessorySection({ accessories, onBook, isMobile }) {
         <div style={{ position: "absolute", width: 380, height: 380, borderRadius: "50%", background: "radial-gradient(circle,rgba(80,80,120,0.05) 0%,transparent 70%)", bottom: "5%", left: "8%", pointerEvents: "none", zIndex: 1 }} />
         <div style={{ position: "relative", zIndex: 2 }}>
           <div style={{ textAlign: "center", marginBottom: isMobile ? 36 : 56 }}>
-            <div style={{ fontSize: 9, letterSpacing: 7, color: G, opacity: 0.55, marginBottom: 16, fontFamily: "var(--font-ui)", fontWeight: 700 }}>
+            <div style={{ fontSize: isMobile ? 9 : 10.5, letterSpacing: 7, color: G, opacity: 0.55, marginBottom: 16, fontFamily: "var(--font-ui)", fontWeight: 700 }}>
               PHỤ KIỆN
             </div>
-            <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight: 700, letterSpacing: 1, margin: "0 0 10px", color: G, fontFamily: "var(--font-display)", lineHeight: 1.2, textShadow: "0 1px 3px rgba(13,27,42,0.10)" }}>
+            <h2 style={{ fontSize: isMobile ? 28 : 40, fontWeight: 700, letterSpacing: 1, margin: "0 0 10px", color: G, fontFamily: "var(--font-display)", lineHeight: 1.2, textShadow: "0 1px 3px rgba(13,27,42,0.10)" }}>
               Bổ sung trang thiết bị
             </h2>
             <div style={{ width: 52, height: 1, background: `linear-gradient(90deg,transparent,${G}55,transparent)`, margin: "0 auto" }} />
@@ -131,12 +131,12 @@ export default function AccessorySection({ accessories, onBook, isMobile }) {
                       icons[i % icons.length]
                     )}
                   </div>
-                  <div style={{ color: TXT, fontWeight: 500, fontSize: 12.5, marginBottom: 10, letterSpacing: 0.4, lineHeight: 1.5, fontFamily: "var(--font-display)" }}>
+                  <div style={{ color: TXT, fontWeight: 500, fontSize: isMobile ? 12.5 : 14, marginBottom: 10, letterSpacing: 0.4, lineHeight: 1.5, fontFamily: "var(--font-display)" }}>
                     {a.name}
                   </div>
-                  <div style={{ color: G, fontWeight: 800, fontSize: 15, fontFamily: "var(--font-ui)", textShadow: "0 1px 2px rgba(13,27,42,0.10)" }}>
+                  <div style={{ color: G, fontWeight: 800, fontSize: isMobile ? 15 : 16.5, fontFamily: "var(--font-ui)", textShadow: "0 1px 2px rgba(13,27,42,0.10)" }}>
                     {fmtVND(a.price)}
-                    <span style={{ color: MUT, fontSize: 10, marginLeft: 2, fontWeight: 500 }}>/ngày</span>
+                    <span style={{ color: MUT, fontSize: isMobile ? 10 : 11.5, marginLeft: 2, fontWeight: 500 }}>/ngày</span>
                   </div>
                 </div>
               );
@@ -144,7 +144,7 @@ export default function AccessorySection({ accessories, onBook, isMobile }) {
           </div>
 
           <div style={{ textAlign: "center", marginTop: isMobile ? 28 : 42 }}>
-            <span style={{ fontSize: 10, letterSpacing: 2.5, color: G, opacity: 0.3, fontFamily: "var(--font-ui)", fontWeight: 600 }}>
+            <span style={{ fontSize: isMobile ? 10 : 11.5, letterSpacing: 2.5, color: G, opacity: 0.3, fontFamily: "var(--font-ui)", fontWeight: 600 }}>
               👆 NHẤN VÀO PHỤ KIỆN ĐỂ ĐẶT THUÊ NGAY
             </span>
           </div>

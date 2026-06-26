@@ -391,16 +391,16 @@ export default function RoadmapSection({ isMobile }) {
     >
       <div style={{ position: "relative", zIndex: 2 }}>
         <div style={{ textAlign: "center", padding: isMobile ? "0 20px 36px" : "0 0 52px" }}>
-          <div style={{ fontSize: 9, letterSpacing: 7, color: G, opacity: 0.5, marginBottom: 14, fontFamily: "var(--font-ui)", fontWeight: 700 }}>
+          <div style={{ fontSize: isMobile ? 9 : 10.5, letterSpacing: 7, color: G, opacity: 0.5, marginBottom: 14, fontFamily: "var(--font-ui)", fontWeight: 700 }}>
             VỀ CHÚNG TÔI
           </div>
-          <h2 style={{ fontSize: isMobile ? 28 : 38, fontWeight: 800, margin: "0 0 6px", color: G, fontFamily: "var(--font-display)", letterSpacing: 0.5, lineHeight: 1.15 }}>
+          <h2 style={{ fontSize: isMobile ? 28 : 42, fontWeight: 800, margin: "0 0 6px", color: G, fontFamily: "var(--font-display)", letterSpacing: 0.5, lineHeight: 1.15 }}>
             LỘ TRÌNH PHÁT TRIỂN
           </h2>
-          <div style={{ fontSize: isMobile ? 15 : 18, fontWeight: 700, color: MUT, fontFamily: "var(--font-display)", letterSpacing: 3, marginBottom: 16 }}>
+          <div style={{ fontSize: isMobile ? 15 : 20, fontWeight: 700, color: MUT, fontFamily: "var(--font-display)", letterSpacing: 3, marginBottom: 16 }}>
             92 KA MÊ RA
           </div>
-          <p style={{ color: TXT, fontSize: isMobile ? 13 : 14, fontWeight: 500, lineHeight: 1.85, maxWidth: isMobile ? 300 : 560, margin: "0 auto", fontFamily: "var(--font-ui)", opacity: 0.75, textAlign: "center" }}>
+          <p style={{ color: TXT, fontSize: isMobile ? 13 : 16, fontWeight: 500, lineHeight: 1.85, maxWidth: isMobile ? 300 : 560, margin: "0 auto", fontFamily: "var(--font-ui)", opacity: 0.75, textAlign: "center" }}>
             Hành trình xây dựng nền tảng thuê máy ảnh hiện đại, minh bạch và kết nối cộng đồng sáng tạo tại <span style={{ color: MUT, fontWeight: 700 }}>Đà Nẵng</span>.
           </p>
         </div>
@@ -450,11 +450,11 @@ export default function RoadmapSection({ isMobile }) {
                   e.currentTarget.style.background = "rgba(255,255,255,0.18)";
                 }}
               >
-                <div style={{ fontSize: isMobile ? 22 : 26 }}>{v.icon}</div>
-                <div style={{ fontSize: 9, fontWeight: 800, color: G, fontFamily: "var(--font-ui)", letterSpacing: 1.5, lineHeight: 1.3 }}>
+                <div style={{ fontSize: isMobile ? 22 : 28 }}>{v.icon}</div>
+                <div style={{ fontSize: isMobile ? 9 : 11.5, fontWeight: 800, color: G, fontFamily: "var(--font-ui)", letterSpacing: 1.5, lineHeight: 1.3 }}>
                   {v.title}
                 </div>
-                <div style={{ fontSize: isMobile ? 10 : 11, color: TXT, fontFamily: "var(--font-ui)", lineHeight: 1.6, opacity: 0.72 }}>
+                <div style={{ fontSize: isMobile ? 10 : 12.5, color: TXT, fontFamily: "var(--font-ui)", lineHeight: 1.6, opacity: 0.72 }}>
                   {v.desc}
                 </div>
               </div>

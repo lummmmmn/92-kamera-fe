@@ -103,16 +103,16 @@ export default function ProcessSection({ isMobile }) {
   };
 
   const renderContent = (c, i) => {
-    if (c.type === "label") return <div key={i} style={{ fontSize: 11, color: "rgba(255,255,255,0.70)", fontFamily: "system-ui,sans-serif", marginBottom: 2 }}>{c.text}</div>;
-    if (c.type === "link") return <div key={i} style={{ fontSize: 12, color: "#fff", fontWeight: 700, fontFamily: "system-ui,sans-serif", marginBottom: 8 }}>{c.text}</div>;
-    if (c.type === "btn") return <div key={i} style={{ display: "inline-block", background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.30)", borderRadius: 8, padding: "5px 14px", fontSize: 11, color: "#fff", fontWeight: 700, fontFamily: "system-ui,sans-serif", marginBottom: 10 }}>{c.text}</div>;
-    if (c.type === "heading") return <div key={i} style={{ fontSize: 11, color: "#fff", fontWeight: 800, fontFamily: "system-ui,sans-serif", marginTop: 10, marginBottom: 4, letterSpacing: 0.3 }}>{c.text}</div>;
-    if (c.type === "italic") return <div key={i} style={{ fontSize: 10.5, color: "rgba(255,255,255,0.80)", fontStyle: "italic", fontFamily: "system-ui,sans-serif", marginTop: 8, lineHeight: 1.6 }}>{c.text}</div>;
-    if (c.type === "tip") return <div key={i} style={{ marginTop: 10, padding: "8px 11px", background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 9, fontSize: 11, color: "#fff", fontFamily: "system-ui,sans-serif", lineHeight: 1.6, fontStyle: "italic" }}>{c.text}</div>;
+    if (c.type === "label") return <div key={i} style={{ fontSize: 12.5, color: "rgba(255,255,255,0.70)", fontFamily: "system-ui,sans-serif", marginBottom: 2 }}>{c.text}</div>;
+    if (c.type === "link") return <div key={i} style={{ fontSize: 13.5, color: "#fff", fontWeight: 700, fontFamily: "system-ui,sans-serif", marginBottom: 8 }}>{c.text}</div>;
+    if (c.type === "btn") return <div key={i} style={{ display: "inline-block", background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.30)", borderRadius: 8, padding: "5px 14px", fontSize: 12.5, color: "#fff", fontWeight: 700, fontFamily: "system-ui,sans-serif", marginBottom: 10 }}>{c.text}</div>;
+    if (c.type === "heading") return <div key={i} style={{ fontSize: 12.5, color: "#fff", fontWeight: 800, fontFamily: "system-ui,sans-serif", marginTop: 10, marginBottom: 4, letterSpacing: 0.3 }}>{c.text}</div>;
+    if (c.type === "italic") return <div key={i} style={{ fontSize: 12, color: "rgba(255,255,255,0.80)", fontStyle: "italic", fontFamily: "system-ui,sans-serif", marginTop: 8, lineHeight: 1.6 }}>{c.text}</div>;
+    if (c.type === "tip") return <div key={i} style={{ marginTop: 10, padding: "8px 11px", background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 9, fontSize: 12.5, color: "#fff", fontFamily: "system-ui,sans-serif", lineHeight: 1.6, fontStyle: "italic" }}>{c.text}</div>;
     if (c.type === "list") return (
       <div key={i} style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 4 }}>
         {c.items.map((item, j) => (
-          <div key={j} style={{ fontSize: 11, color: "rgba(255,255,255,0.90)", fontFamily: "system-ui,sans-serif", lineHeight: 1.55, display: "flex", gap: 6 }}>
+          <div key={j} style={{ fontSize: 12.5, color: "rgba(255,255,255,0.90)", fontFamily: "system-ui,sans-serif", lineHeight: 1.55, display: "flex", gap: 6 }}>
             <span style={{ flexShrink: 0, color: "rgba(255,255,255,0.60)" }}>→</span>
             <span>{item}</span>
           </div>
@@ -125,9 +125,9 @@ export default function ProcessSection({ isMobile }) {
   return (
     <div id="quy-trinh" style={{ margin: isMobile ? "20px 0" : "32px 0", padding: isMobile ? "40px 0 32px" : "60px 0 44px" }}>
       <div style={{ textAlign: "center", marginBottom: isMobile ? 28 : 36, padding: "0 20px" }}>
-        <div style={{ fontSize: 9, letterSpacing: 7, color: "#2a4a6a", opacity: 0.6, marginBottom: 12, fontFamily: "system-ui,sans-serif", fontWeight: 700 }}>HƯỚNG DẪN CHI TIẾT</div>
-        <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight: 700, margin: "0 0 12px", color: "#0d1b2a", fontFamily: "var(--font-display)", letterSpacing: 1 }}>Quy trình 6 bước</h2>
-        <p style={{ fontSize: isMobile ? 14 : 15, color: "#3a5a7a", fontFamily: "var(--font-ui)", lineHeight: 1.75, maxWidth: isMobile ? 280 : 460, margin: "0 auto", fontWeight: 500 }}>
+        <div style={{ fontSize: isMobile ? 9 : 11, letterSpacing: 7, color: "#2a4a6a", opacity: 0.6, marginBottom: 12, fontFamily: "system-ui,sans-serif", fontWeight: 700 }}>HƯỚNG DẪN CHI TIẾT</div>
+        <h2 style={{ fontSize: isMobile ? 28 : 40, fontWeight: 700, margin: "0 0 12px", color: "#0d1b2a", fontFamily: "var(--font-display)", letterSpacing: 1 }}>Quy trình 6 bước</h2>
+        <p style={{ fontSize: isMobile ? 14 : 16, color: "#3a5a7a", fontFamily: "var(--font-ui)", lineHeight: 1.75, maxWidth: isMobile ? 280 : 460, margin: "0 auto", fontWeight: 500 }}>
           {isMobile ? <>Hướng dẫn từng bước<br />thuê máy nhanh &amp; an toàn</> : <>Hướng dẫn chi tiết từng bước để thuê máy ảnh<br />một cách nhanh chóng và an toàn</>}
         </p>
       </div>
@@ -178,15 +178,15 @@ export default function ProcessSection({ isMobile }) {
             <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.08)", pointerEvents: "none" }} />
 
             <div style={{ width: 46, height: 46, borderRadius: "50%", background: "rgba(0,0,0,0.30)", border: "none", boxShadow: "0 1px 0 rgba(255,255,255,0.30) inset, 0 -1px 0 rgba(0,0,0,0.25) inset, 0 4px 12px rgba(0,0,0,0.30)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
-              <span style={{ fontSize: 16, fontWeight: 900, color: "#fff", fontFamily: "system-ui,sans-serif", textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}>{s.num}</span>
+              <span style={{ fontSize: 18, fontWeight: 900, color: "#fff", fontFamily: "system-ui,sans-serif", textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}>{s.num}</span>
             </div>
 
-            <div style={{ fontSize: 13, fontWeight: 900, color: "#fff", fontFamily: "system-ui,sans-serif", letterSpacing: 0.5, marginBottom: 14, lineHeight: 1.4 }}>{s.title}</div>
+            <div style={{ fontSize: 14.5, fontWeight: 900, color: "#fff", fontFamily: "system-ui,sans-serif", letterSpacing: 0.5, marginBottom: 14, lineHeight: 1.4 }}>{s.title}</div>
 
             <div style={{ flex: 1 }}>{s.content.map((c, i) => renderContent(c, i))}</div>
 
             {s.footer && (
-              <div style={{ marginTop: 14, padding: "8px 12px", background: "rgba(0,0,0,0.28)", borderRadius: 10, fontSize: 11, color: "rgba(255,255,255,0.90)", fontFamily: "system-ui,sans-serif", lineHeight: 1.5, textAlign: "center", boxShadow: "0 1px 0 rgba(255,255,255,0.15) inset, 0 -1px 0 rgba(0,0,0,0.20) inset, 0 2px 8px rgba(0,0,0,0.18)" }}>
+              <div style={{ marginTop: 14, padding: "8px 12px", background: "rgba(0,0,0,0.28)", borderRadius: 10, fontSize: 12.5, color: "rgba(255,255,255,0.90)", fontFamily: "system-ui,sans-serif", lineHeight: 1.5, textAlign: "center", boxShadow: "0 1px 0 rgba(255,255,255,0.15) inset, 0 -1px 0 rgba(0,0,0,0.20) inset, 0 2px 8px rgba(0,0,0,0.18)" }}>
                 {s.footer}
               </div>
             )}

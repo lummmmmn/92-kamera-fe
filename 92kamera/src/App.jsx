@@ -266,7 +266,7 @@ function AppRoot() {
         }
         @media (min-width: 1024px) {
           .app-shell-92 {
-            zoom: 1.08;
+            zoom: 1.12;
           }
         }
         .home-section {

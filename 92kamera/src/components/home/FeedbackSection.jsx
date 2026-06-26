@@ -170,20 +170,20 @@ export default function FeedbackSection({ photos, albums, feedbacks, isMobile })
       {/* Header */}
       {total > 0 && (
         <div style={{ textAlign: "center", marginBottom: isMobile ? 28 : 36, padding: "0 20px" }}>
-          <div style={{ fontSize: 9, letterSpacing: 7, color: G, opacity: 0.5, marginBottom: 12, fontFamily: "var(--font-ui)", fontWeight: 700 }}>
+          <div style={{ fontSize: isMobile ? 9 : 10.5, letterSpacing: 7, color: G, opacity: 0.5, marginBottom: 12, fontFamily: "var(--font-ui)", fontWeight: 700 }}>
             ĐÁNH GIÁ / FEEDBACK
           </div>
-          <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight: 700, letterSpacing: 1, margin: "0 0 10px", color: G, fontFamily: "var(--font-display)", textShadow: "0 1px 3px rgba(13,27,42,0.10)" }}>
+          <h2 style={{ fontSize: isMobile ? 28 : 40, fontWeight: 700, letterSpacing: 1, margin: "0 0 10px", color: G, fontFamily: "var(--font-display)", textShadow: "0 1px 3px rgba(13,27,42,0.10)" }}>
             Feedback khách hàng
           </h2>
-          <p style={{ fontSize: isMobile ? 14 : 15, color: MUT, fontFamily: "var(--font-ui)", lineHeight: 1.75, maxWidth: isMobile ? 260 : 400, margin: "0 auto 14px", fontWeight: 500 }}>
+          <p style={{ fontSize: isMobile ? 14 : 16, color: MUT, fontFamily: "var(--font-ui)", lineHeight: 1.75, maxWidth: isMobile ? 260 : 430, margin: "0 auto 14px", fontWeight: 500 }}>
             {isMobile ? <>Trải nghiệm thật<br />từ khách đã thuê máy</> : <>Trải nghiệm thật từ những khách hàng<br />đã tin tưởng dịch vụ 92 Ka Mê Ra</>}
           </p>
           <div style={{ width: 52, height: 1, background: `linear-gradient(90deg,transparent,${G}55,transparent)`, margin: "0 auto 16px" }} />
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.22)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 99, padding: "5px 18px", backdropFilter: "blur(24px) saturate(160%)" }}>
-            <span style={{ color: "#c9a84c", fontSize: 14 }}>{"★".repeat(Math.round(parseFloat(avgRating)))}</span>
-            <span style={{ color: "#c9a84c", fontWeight: 800, fontSize: 13, fontFamily: "var(--font-ui)" }}>{avgRating}</span>
-            <span style={{ color: MUT, fontSize: 11, fontFamily: "var(--font-ui)", fontWeight: 500 }}>· {total} đánh giá</span>
+            <span style={{ color: "#c9a84c", fontSize: 15 }}>{"★".repeat(Math.round(parseFloat(avgRating)))}</span>
+            <span style={{ color: "#c9a84c", fontWeight: 800, fontSize: 14, fontFamily: "var(--font-ui)" }}>{avgRating}</span>
+            <span style={{ color: MUT, fontSize: 12, fontFamily: "var(--font-ui)", fontWeight: 500 }}>· {total} đánh giá</span>
           </div>
         </div>
       )}
@@ -277,13 +277,13 @@ export default function FeedbackSection({ photos, albums, feedbacks, isMobile })
       {(hasAlbums || hasPhotos) && (
         <div style={{ padding: isMobile ? "48px 16px 0" : "60px 40px 0" }}>
           <div style={{ textAlign: "center", marginBottom: isMobile ? 28 : 36 }}>
-            <div style={{ fontSize: isMobile ? 9 : 10, letterSpacing: 7, color: G, opacity: 0.5, marginBottom: 10, fontFamily: "var(--font-ui)", fontWeight: 700 }}>
+            <div style={{ fontSize: isMobile ? 9 : 11, letterSpacing: 7, color: G, opacity: 0.5, marginBottom: 10, fontFamily: "var(--font-ui)", fontWeight: 700 }}>
               PHÂN LOẠI THEO MÁY ẢNH · XEM ALBUM ĐẦY ĐỦ
             </div>
-            <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight: 700, letterSpacing: 1, margin: "0 0 10px", color: G, fontFamily: "var(--font-display)", textShadow: "0 2px 8px rgba(13,27,42,0.12)" }}>
+            <h2 style={{ fontSize: isMobile ? 28 : 40, fontWeight: 700, letterSpacing: 1, margin: "0 0 10px", color: G, fontFamily: "var(--font-display)", textShadow: "0 2px 8px rgba(13,27,42,0.12)" }}>
               Ảnh thực tế
             </h2>
-            <p style={{ fontSize: isMobile ? 14 : 15, color: MUT, fontFamily: "var(--font-ui)", lineHeight: 1.75, maxWidth: isMobile ? 260 : 400, margin: "0 auto", fontWeight: 500 }}>
+            <p style={{ fontSize: isMobile ? 14 : 16, color: MUT, fontFamily: "var(--font-ui)", lineHeight: 1.75, maxWidth: isMobile ? 260 : 430, margin: "0 auto", fontWeight: 500 }}>
               {isMobile ? <>Khoảnh khắc từ khách hàng<br />đã thuê máy tại 92 Ka Mê Ra</> : <>Những khoảnh khắc thực tế được ghi lại<br />bởi khách hàng đã thuê máy tại 92 Ka Mê Ra</>}
             </p>
           </div>
@@ -308,10 +308,10 @@ export default function FeedbackSection({ photos, albums, feedbacks, isMobile })
                 }}
               >
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ color: G, fontSize: isMobile ? 18 : 22, fontFamily: "var(--font-display)", fontWeight: 800, lineHeight: 1.25, marginBottom: 4 }}>
+                  <div style={{ color: G, fontSize: isMobile ? 18 : 24, fontFamily: "var(--font-display)", fontWeight: 800, lineHeight: 1.25, marginBottom: 4 }}>
                     {openAlbum.cameraTag || openAlbum.name}
                   </div>
-                  <div style={{ color: MUT, fontSize: isMobile ? 12 : 13, fontFamily: "var(--font-ui)", fontWeight: 650, lineHeight: 1.5 }}>
+                  <div style={{ color: MUT, fontSize: isMobile ? 12 : 14.5, fontFamily: "var(--font-ui)", fontWeight: 650, lineHeight: 1.5 }}>
                     {openAlbum.cameraTag && openAlbum.name !== openAlbum.cameraTag ? openAlbum.name + " · " : ""}{openAlbumPhotos.length} ảnh
                   </div>
                 </div>
@@ -332,7 +332,7 @@ export default function FeedbackSection({ photos, albums, feedbacks, isMobile })
                     border: "1px solid rgba(13,27,42,0.14)",
                     color: G,
                     cursor: "pointer",
-                    fontSize: isMobile ? 11 : 12,
+                    fontSize: isMobile ? 11 : 13,
                     fontFamily: "var(--font-ui)",
                     fontWeight: 850,
                     letterSpacing: 1.4,
@@ -475,11 +475,11 @@ export default function FeedbackSection({ photos, albums, feedbacks, isMobile })
                                 <rect x="1" y="5" width="22" height="16" rx="2" />
                                 <circle cx="12" cy="15" r="3" />
                               </svg>
-                              <span style={{ color: "rgba(255,255,255,0.95)", fontSize: 12, fontFamily: "var(--font-ui)", fontWeight: 700 }}>{alb.cameraTag || alb.name}</span>
+                              <span style={{ color: "rgba(255,255,255,0.95)", fontSize: 13.5, fontFamily: "var(--font-ui)", fontWeight: 700 }}>{alb.cameraTag || alb.name}</span>
                             </div>
                           </div>
-                          <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontFamily: "var(--font-ui)", fontWeight: 500, marginBottom: 2 }}>{alb.name !== alb.cameraTag ? alb.name : ""}</div>
-                          <div style={{ color: "rgba(255,255,255,0.60)", fontSize: 11, fontFamily: "var(--font-ui)" }}>{(alb.photos || []).length} ảnh</div>
+                          <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 13.5, fontFamily: "var(--font-ui)", fontWeight: 500, marginBottom: 2 }}>{alb.name !== alb.cameraTag ? alb.name : ""}</div>
+                          <div style={{ color: "rgba(255,255,255,0.60)", fontSize: 12.5, fontFamily: "var(--font-ui)" }}>{(alb.photos || []).length} ảnh</div>
                         </div>
                       </div>
                     ))}
@@ -521,11 +521,11 @@ export default function FeedbackSection({ photos, albums, feedbacks, isMobile })
                               <rect x="1" y="5" width="22" height="16" rx="2" />
                               <circle cx="12" cy="15" r="3" />
                             </svg>
-                            <span style={{ color: "rgba(255,255,255,0.95)", fontSize: 13, fontFamily: "var(--font-ui)", fontWeight: 700 }}>{alb.cameraTag || alb.name}</span>
+                            <span style={{ color: "rgba(255,255,255,0.95)", fontSize: 14.5, fontFamily: "var(--font-ui)", fontWeight: 700 }}>{alb.cameraTag || alb.name}</span>
                           </div>
                         </div>
-                        <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 13, fontFamily: "var(--font-ui)", fontWeight: 500, marginBottom: 2 }}>{alb.name !== alb.cameraTag ? alb.name : ""}</div>
-                        <div style={{ color: "rgba(255,255,255,0.60)", fontSize: 12, fontFamily: "var(--font-ui)" }}>{(alb.photos || []).length} ảnh</div>
+                        <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 14.5, fontFamily: "var(--font-ui)", fontWeight: 500, marginBottom: 2 }}>{alb.name !== alb.cameraTag ? alb.name : ""}</div>
+                        <div style={{ color: "rgba(255,255,255,0.60)", fontSize: 13, fontFamily: "var(--font-ui)" }}>{(alb.photos || []).length} ảnh</div>
                       </div>
                     </div>
                   ))}
@@ -607,12 +607,12 @@ export default function FeedbackSection({ photos, albums, feedbacks, isMobile })
                   </div>
                   {!isMobile && i === 7 && photosArr.length > 8 && (
                     <div style={{ position: "absolute", inset: 0, background: "rgba(5,17,31,0.60)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <span style={{ color: "#fff", fontSize: 22, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>+{photosArr.length - 8}</span>
+                      <span style={{ color: "#fff", fontSize: 24, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>+{photosArr.length - 8}</span>
                     </div>
                   )}
                   {isMobile && i === 3 && photosArr.length > 4 && (
                     <div style={{ position: "absolute", inset: 0, background: "rgba(5,17,31,0.60)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <span style={{ color: "#fff", fontSize: 22, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>+{photosArr.length - 4}</span>
+                      <span style={{ color: "#fff", fontSize: 24, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>+{photosArr.length - 4}</span>
                     </div>
                   )}
                 </div>

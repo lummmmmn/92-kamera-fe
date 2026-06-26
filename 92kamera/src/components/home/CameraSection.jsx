@@ -193,10 +193,10 @@ export default function CameraSection({ id, cameras, onBook, isMobile }) {
         <style>{`.cam-scroll::-webkit-scrollbar{display:none}.cam-scroll{-ms-overflow-style:none;scrollbar-width:none;}`}</style>
         <div style={{ padding: "0 16px 40px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <div style={{ fontSize: 9, letterSpacing: 7, color: G, fontFamily: "var(--font-ui)", marginBottom: 6, fontWeight: 700, opacity: 0.55 }}>
+            <div style={{ fontSize: isMobile ? 9 : 10.5, letterSpacing: 7, color: G, fontFamily: "var(--font-ui)", marginBottom: 6, fontWeight: 700, opacity: 0.55 }}>
               BỘ SƯU TẬP
             </div>
-            <h2 style={{ fontSize: 28, fontWeight: 700, letterSpacing: 1, margin: 0, color: G, fontFamily: "var(--font-display)", textShadow: "0 1px 3px rgba(13,27,42,0.10)" }}>
+            <h2 style={{ fontSize: isMobile ? 28 : 40, fontWeight: 700, letterSpacing: 1, margin: 0, color: G, fontFamily: "var(--font-display)", textShadow: "0 1px 3px rgba(13,27,42,0.10)" }}>
               Máy ảnh cho thuê
             </h2>
           </div>
@@ -230,28 +230,28 @@ export default function CameraSection({ id, cameras, onBook, isMobile }) {
                 </div>
                 <div style={{ position: "absolute", inset: 0, zIndex: 1, background: "linear-gradient(to top,rgba(6,6,6,0.92) 0%,rgba(6,6,6,0.3) 60%,transparent 100%)", pointerEvents: "none" }} />
                 <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 2, padding: "0 20px 20px" }}>
-                  <div style={{ fontSize: 8, letterSpacing: 4, color: "rgba(255,255,255,0.5)", fontFamily: "system-ui,sans-serif", marginBottom: 4, fontWeight: 600 }}>
+                  <div style={{ fontSize: isMobile ? 8 : 9.5, letterSpacing: 4, color: "rgba(255,255,255,0.5)", fontFamily: "system-ui,sans-serif", marginBottom: 4, fontWeight: 600 }}>
                     {brand}
                   </div>
-                  <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: 0.5, color: "#fff", lineHeight: 1, marginBottom: 5, fontFamily: "system-ui,sans-serif", textShadow: "0 2px 12px rgba(0,0,0,0.8)" }}>
+                  <div style={{ fontSize: isMobile ? 28 : 31, fontWeight: 700, letterSpacing: 0.5, color: "#fff", lineHeight: 1, marginBottom: 5, fontFamily: "system-ui,sans-serif", textShadow: "0 2px 12px rgba(0,0,0,0.8)" }}>
                     {model}
                   </div>
-                  <div style={{ fontSize: 8, letterSpacing: 3, color: "rgba(255,255,255,0.45)", fontFamily: "system-ui,sans-serif", marginBottom: 14 }}>
+                  <div style={{ fontSize: isMobile ? 8 : 9.5, letterSpacing: 3, color: "rgba(255,255,255,0.45)", fontFamily: "system-ui,sans-serif", marginBottom: 14 }}>
                     {shortDesc(cam.desc)}
                   </div>
                   <div style={{ width: 28, height: 1, background: G + "88", marginBottom: 14 }} />
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                     <div style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
-                      <span style={{ color: "#fff", fontSize: 15, fontWeight: 700, fontFamily: "system-ui,sans-serif", textShadow: "0 1px 6px rgba(0,0,0,0.7)" }}>
+                      <span style={{ color: "#fff", fontSize: isMobile ? 15 : 16.5, fontWeight: 700, fontFamily: "system-ui,sans-serif", textShadow: "0 1px 6px rgba(0,0,0,0.7)" }}>
                         {fmtVND(cam.price)}
                       </span>
-                      <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 9, marginTop: 3, fontFamily: "system-ui,sans-serif" }}>/ngày</span>
+                      <span style={{ color: "rgba(255,255,255,0.45)", fontSize: isMobile ? 9 : 10.5, marginTop: 3, fontFamily: "system-ui,sans-serif" }}>/ngày</span>
                     </div>
                     <div className="btn-3d-wrap" style={{ borderRadius: 10 }}>
                       <button
                         onClick={() => onBook(cam)}
                         className="btn-3d"
-                        style={{ borderRadius: 9, fontSize: 8, letterSpacing: 1.5, padding: "6px 10px", whiteSpace: "nowrap" }}
+                        style={{ borderRadius: 9, fontSize: isMobile ? 8 : 9.5, letterSpacing: 1.5, padding: "6px 10px", whiteSpace: "nowrap" }}
                       >
                         THUÊ NGAY
                       </button>
@@ -302,10 +302,10 @@ export default function CameraSection({ id, cameras, onBook, isMobile }) {
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 600, height: 300, background: `radial-gradient(ellipse,${G}06,transparent 70%)`, pointerEvents: "none" }} />
 
       <div style={{ textAlign: "center", marginBottom: 32, position: "relative", zIndex: 2 }}>
-        <div style={{ fontSize: 9, letterSpacing: 7, color: G, fontFamily: "var(--font-ui)", marginBottom: 14, fontWeight: 700, opacity: 0.55 }}>
+        <div style={{ fontSize: 10.5, letterSpacing: 7, color: G, fontFamily: "var(--font-ui)", marginBottom: 14, fontWeight: 700, opacity: 0.55 }}>
           BỘ SƯU TẬP
         </div>
-        <h2 style={{ fontSize: 36, fontWeight: 700, letterSpacing: 1, margin: "0 0 10px", color: G, fontFamily: "var(--font-display)", textShadow: "0 1px 3px rgba(13,27,42,0.10)" }}>
+        <h2 style={{ fontSize: 40, fontWeight: 700, letterSpacing: 1, margin: "0 0 10px", color: G, fontFamily: "var(--font-display)", textShadow: "0 1px 3px rgba(13,27,42,0.10)" }}>
           Máy ảnh cho thuê
         </h2>
         <div style={{ width: 36, height: 1, background: G, margin: "0 auto 18px" }} />
@@ -317,7 +317,7 @@ export default function CameraSection({ id, cameras, onBook, isMobile }) {
             color: cfPaused ? G : MUT,
             padding: "6px 22px",
             borderRadius: 99,
-            fontSize: 10,
+            fontSize: 11.5,
             cursor: "pointer",
             fontFamily: "system-ui,sans-serif",
             letterSpacing: 1.5,
@@ -369,19 +369,19 @@ export default function CameraSection({ id, cameras, onBook, isMobile }) {
                 </div>
                 <div style={{ position: "absolute", inset: 0, zIndex: 1, background: "linear-gradient(to top,rgba(6,6,6,0.92) 0%,rgba(6,6,6,0.4) 50%,rgba(6,6,6,0.1) 100%)", pointerEvents: "none" }} />
                 <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 2, padding: "0 20px 20px" }}>
-                  <div style={{ fontSize: 8, letterSpacing: 4, color: "rgba(255,255,255,0.45)", fontFamily: "system-ui,sans-serif", marginBottom: 4, fontWeight: 600 }}>
+                  <div style={{ fontSize: 9.5, letterSpacing: 4, color: "rgba(255,255,255,0.45)", fontFamily: "system-ui,sans-serif", marginBottom: 4, fontWeight: 600 }}>
                     {b}
                   </div>
-                  <div style={{ fontSize: 26, fontWeight: 700, color: "#fff", lineHeight: 1, marginBottom: 6, fontFamily: "system-ui,sans-serif", textShadow: "0 2px 12px rgba(0,0,0,0.8)" }}>
+                  <div style={{ fontSize: 30, fontWeight: 700, color: "#fff", lineHeight: 1, marginBottom: 6, fontFamily: "system-ui,sans-serif", textShadow: "0 2px 12px rgba(0,0,0,0.8)" }}>
                     {m}
                   </div>
                   <div style={{ width: 24, height: 1, background: G + "88", marginBottom: 12 }} />
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                     <div style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
-                      <span style={{ color: "#fff", fontSize: 14, fontWeight: 700, fontFamily: "system-ui,sans-serif", textShadow: "0 1px 6px rgba(0,0,0,0.7)" }}>
+                      <span style={{ color: "#fff", fontSize: 16, fontWeight: 700, fontFamily: "system-ui,sans-serif", textShadow: "0 1px 6px rgba(0,0,0,0.7)" }}>
                         {fmtVND(cam.price)}
                       </span>
-                      <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 9, marginTop: 3, fontFamily: "system-ui,sans-serif" }}>/ngày</span>
+                      <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 10.5, marginTop: 3, fontFamily: "system-ui,sans-serif" }}>/ngày</span>
                     </div>
                     <div className="btn-3d-wrap" style={{ borderRadius: 10 }}>
                       <button
@@ -390,7 +390,7 @@ export default function CameraSection({ id, cameras, onBook, isMobile }) {
                           onBook(cam);
                         }}
                         className="btn-3d"
-                        style={{ borderRadius: 9, fontSize: 8, letterSpacing: 1.5, padding: "6px 10px", whiteSpace: "nowrap" }}
+                        style={{ borderRadius: 9, fontSize: 9.5, letterSpacing: 1.5, padding: "6px 10px", whiteSpace: "nowrap" }}
                       >
                         THUÊ NGAY
                       </button>
