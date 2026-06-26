@@ -7,7 +7,7 @@ import { G, MUT, TXT, BG, CARD, BR, ADMIN_PW_DEFAULT_HASH } from "../../lib/cons
 import { getOrders, googleLogin } from "../../api/index.js";
 import { todayStr } from "../../utils/format.js";
 
-const GOOGLE_CLIENT_ID = "80405419117-8srlsmskud8ndikp55026ngfmfobtcen.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = "338403275162-fa55lm8g53eu1h6ursqpd714ce1qre8m.apps.googleusercontent.com";
 let _gsiInitialized = false;
 
 function decodeGoogleJWT(token) {

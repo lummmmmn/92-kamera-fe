@@ -94,7 +94,7 @@ export const CLOUDINARY_TAG = "92kamera";
 
 // ── GOOGLE OAUTH ──
 export const GOOGLE_CLIENT_ID =
-  "80405419117-8srlsmskud8ndikp55026ngfmfobtcen.apps.googleusercontent.com";
+  "338403275162-fa55lm8g53eu1h6ursqpd714ce1qre8m.apps.googleusercontent.com";
 
 // ── ADMIN ──
 export const ADMIN_PW_DEFAULT_HASH =
