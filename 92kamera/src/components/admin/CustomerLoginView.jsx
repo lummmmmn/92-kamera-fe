@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Badge from "../common/Badge.jsx";
-import { G, MUT, TXT, CARD, CARD2, BR } from "../../lib/constants.js";
+import { G, BG, MUT, TXT, CARD, CARD2, BR } from "../../lib/constants.js";
 import { fmtVND, fmtDays, dateAddDays } from "../../utils/format.js";
 
 // CopyOrderBtn inline helper

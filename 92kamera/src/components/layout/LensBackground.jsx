@@ -1,6 +1,16 @@
-export default function LensBackground() {
+export default function LensBackground({ isMob = false }) {
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", overflow: "hidden" }}>
+    <div
+      className="lens-bg-92k"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 0,
+        pointerEvents: "none",
+        overflow: "hidden",
+        transform: "translateZ(0)",
+      }}
+    >
       <div style={{ position: "absolute", inset: 0, background: "#8fc8d4" }} />
       <div
         style={{
@@ -18,7 +28,6 @@ export default function LensBackground() {
         }}
       />
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(186,206,220,0.30) 0%, transparent 50%)" }} />
-      {/* Vintage: phủ tone ấm lạnh xen nhau nhẹ */}
       <div
         style={{
           position: "absolute",
@@ -26,7 +35,6 @@ export default function LensBackground() {
           background: "linear-gradient(135deg, rgba(200,220,210,0.10) 0%, transparent 50%, rgba(180,200,225,0.08) 100%)",
         }}
       />
-      {/* Vintage: rìa tối nhẹ tạo depth */}
       <div
         style={{
           position: "absolute",
@@ -34,14 +42,22 @@ export default function LensBackground() {
           background: "radial-gradient(ellipse 100% 100% at 50% 50%, transparent 55%, rgba(20,50,75,0.14) 100%)",
         }}
       />
-      {/* Film grain đậm hơn chút */}
-      <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.22 }} xmlns="http://www.w3.org/2000/svg">
-        <filter id="grain-bg">
-          <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="5" stitchTiles="stitch" />
-          <feColorMatrix type="saturate" values="0" />
-        </filter>
-        <rect width="100%" height="100%" filter="url(#grain-bg)" />
-      </svg>
+      {!isMob && (
+        <div
+          className="lens-grain-92k"
+          style={{
+            position: "absolute",
+            inset: 0,
+            opacity: 0.08,
+            backgroundImage:
+              "radial-gradient(circle at 20% 30%, rgba(255,255,255,0.35) 0 1px, transparent 1px), radial-gradient(circle at 70% 60%, rgba(13,27,42,0.20) 0 1px, transparent 1px)",
+            backgroundSize: "34px 34px, 46px 46px",
+          }}
+        />
+      )}
+      <style>{`
+        body.is-scrolling .lens-grain-92k { opacity: 0; }
+      `}</style>
     </div>
   );
 }
