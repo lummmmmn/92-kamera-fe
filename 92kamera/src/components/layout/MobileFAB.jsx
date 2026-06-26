@@ -74,7 +74,7 @@ export default function MobileFAB({ siteContent, onBook, loggedUser, onOpenLogin
 
   return (
     <>
-      {/* FAB button — Lens Cap 3D */}
+      {/* FAB button — Modern Glassmorphic Menu */}
       <div
         ref={fabRef}
         onPointerDown={onPointerDown}
@@ -88,117 +88,83 @@ export default function MobileFAB({ siteContent, onBook, loggedUser, onOpenLogin
           left: pos.x,
           top: pos.y,
           zIndex: 300,
-          width: 37,
-          height: 37,
-          cursor: "grab",
+          width: 40,
+          height: 40,
+          cursor: dragRef.current.dragging ? "grabbing" : "grab",
           touchAction: "none",
           userSelect: "none",
           WebkitUserSelect: "none",
-          filter: open
-            ? `drop-shadow(0 0 10px ${G}66) drop-shadow(0 6px 18px rgba(0,0,0,0.85))`
-            : "drop-shadow(0 6px 18px rgba(0,0,0,0.8)) drop-shadow(0 2px 6px rgba(0,0,0,0.5))",
-          transition: "filter .25s",
+          borderRadius: "50%",
+          background: open
+            ? "linear-gradient(135deg, #17324B 0%, #204162 100%)"
+            : "linear-gradient(135deg, #0D1B2A 0%, #17324B 100%)",
+          border: "1px solid rgba(255, 255, 255, 0.28)",
+          boxShadow: "0 1px 0 rgba(255,255,255,0.18) inset, 0 6px 16px rgba(13,27,42,0.24)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          transition: "background 0.25s, box-shadow 0.25s, transform 0.2s",
         }}
       >
-        <svg viewBox="0 0 62 62" width="37" height="37" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
-          <defs>
-            <radialGradient id="fab-body" cx="38%" cy="30%" r="68%">
-              <stop offset="0%" stopColor={open ? "#3a3020" : "#383838"} />
-              <stop offset="35%" stopColor={open ? "#201c0e" : "#252525"} />
-              <stop offset="70%" stopColor={open ? "#131008" : "#181818"} />
-              <stop offset="100%" stopColor="#080808" />
-            </radialGradient>
-            <linearGradient id="fab-chrome" x1="20%" y1="0%" x2="80%" y2="100%">
-              <stop offset="0%" stopColor="#d0d0d0" />
-              <stop offset="18%" stopColor="#a8a8a8" />
-              <stop offset="35%" stopColor="#e8e8e8" />
-              <stop offset="52%" stopColor="#888" />
-              <stop offset="68%" stopColor="#c8c8c8" />
-              <stop offset="85%" stopColor="#606060" />
-              <stop offset="100%" stopColor="#b0b0b0" />
-            </linearGradient>
-            <radialGradient id="fab-knurl-bg" cx="50%" cy="50%" r="50%">
-              <stop offset="80%" stopColor="#0a0a0a" />
-              <stop offset="100%" stopColor="#1a1a1a" />
-            </radialGradient>
-            <radialGradient id="fab-center" cx="42%" cy="35%" r="60%">
-              <stop offset="0%" stopColor={open ? "#2a2415" : "#2a2a2a"} />
-              <stop offset="50%" stopColor={open ? "#16120a" : "#191919"} />
-              <stop offset="100%" stopColor="#080808" />
-            </radialGradient>
-            <radialGradient id="fab-gloss" cx="35%" cy="20%" r="55%">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.18)" />
-              <stop offset="60%" stopColor="rgba(255,255,255,0.04)" />
-              <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-            </radialGradient>
-            <radialGradient id="fab-gold" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor={G + "55"} />
-              <stop offset="100%" stopColor={G + "00"} />
-            </radialGradient>
-          </defs>
-
-          <circle cx="31" cy="32.5" r="29" fill="rgba(0,0,0,0.45)" />
-          <circle cx="31" cy="31" r="29" fill="url(#fab-knurl-bg)" />
-          {Array.from({ length: 36 }).map((_, i) => {
-            const ang = (i * 10 * Math.PI) / 180;
-            const r1 = 26.5, r2 = 29;
-            const x1 = 31 + Math.cos(ang) * r1, y1 = 31 + Math.sin(ang) * r1;
-            const x2 = 31 + Math.cos(ang) * r2, y2 = 31 + Math.sin(ang) * r2;
-            const bAng = ang + (5 * Math.PI / 180);
-            const bx1 = 31 + Math.cos(bAng) * r1, by1 = 31 + Math.sin(bAng) * r1;
-            const bx2 = 31 + Math.cos(bAng) * r2, by2 = 31 + Math.sin(bAng) * r2;
-            const bright = (Math.cos(ang - 0.8) + 1) / 2;
-            const col = `rgb(${Math.round(55 + bright * 55)},${Math.round(55 + bright * 55)},${Math.round(55 + bright * 55)})`;
-            return (
-              <path
-                key={i}
-                d={`M ${x1.toFixed(2)} ${y1.toFixed(2)} L ${x2.toFixed(2)} ${y2.toFixed(2)} L ${bx2.toFixed(2)} ${by2.toFixed(2)} L ${bx1.toFixed(2)} ${by1.toFixed(2)} Z`}
-                fill={col}
-                stroke="rgba(0,0,0,0.55)"
-                strokeWidth="0.3"
-              />
-            );
-          })}
-
-          <circle cx="31" cy="31" r="26" fill="url(#fab-chrome)" />
-          <circle cx="31" cy="31" r="26" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="0.6" />
-          <circle cx="31" cy="31" r="25.2" fill="none" stroke="rgba(0,0,0,0.5)" strokeWidth="0.8" />
-          <circle cx="31" cy="31" r="24" fill="url(#fab-body)" />
-          {open && <circle cx="31" cy="31" r="24" fill="url(#fab-gold)" />}
-          <circle cx="31" cy="31" r="24" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="1" />
-          <circle cx="31" cy="31" r="23.2" fill="none" stroke="rgba(0,0,0,0.6)" strokeWidth="1.2" />
-          <circle cx="31" cy="31" r="13" fill="url(#fab-center)" />
-          <circle cx="31" cy="31" r="13" fill="none" stroke="rgba(0,0,0,0.7)" strokeWidth="1.5" />
-          <circle cx="31" cy="31" r="12.2" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.7" />
-
+        <svg viewBox="0 0 40 40" width="40" height="40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
           {open ? (
-            <g transform="translate(31,31)">
-              <line x1="-5" y1="-5" x2="5" y2="5" stroke={G} strokeWidth="2" strokeLinecap="round" />
-              <line x1="5" y1="-5" x2="-5" y2="5" stroke={G} strokeWidth="2" strokeLinecap="round" />
-            </g>
+            <>
+              <line
+                x1="13"
+                y1="13"
+                x2="27"
+                y2="27"
+                stroke="#ffffff"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                style={{ transition: "all 0.25s ease" }}
+              />
+              <line
+                x1="27"
+                y1="13"
+                x2="13"
+                y2="27"
+                stroke="#ffffff"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                style={{ transition: "all 0.25s ease" }}
+              />
+            </>
           ) : (
-            <g transform="translate(31,31)">
-              <line x1="-6" y1="-4" x2="6" y2="-4" stroke="rgba(201,168,76,0.9)" strokeWidth="1.6" strokeLinecap="round" />
-              <line x1="-6" y1="0" x2="6" y2="0" stroke="rgba(201,168,76,0.9)" strokeWidth="1.6" strokeLinecap="round" />
-              <line x1="-6" y1="4" x2="6" y2="4" stroke="rgba(201,168,76,0.9)" strokeWidth="1.6" strokeLinecap="round" />
-            </g>
+            <>
+              <line
+                x1="12"
+                y1="15"
+                x2="28"
+                y2="15"
+                stroke="#ffffff"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                style={{ transition: "all 0.25s ease" }}
+              />
+              <line
+                x1="12"
+                y1="20"
+                x2="28"
+                y2="20"
+                stroke="#ffffff"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                style={{ transition: "all 0.25s ease" }}
+              />
+              <line
+                x1="12"
+                y1="25"
+                x2="28"
+                y2="25"
+                stroke="#ffffff"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                style={{ transition: "all 0.25s ease" }}
+              />
+            </>
           )}
-
-          <ellipse cx="26" cy="22" rx="10" ry="6" fill="url(#fab-gloss)" opacity="0.7" />
         </svg>
-
-        {!open && (
-          <div
-            style={{
-              position: "absolute",
-              inset: -5,
-              borderRadius: "50%",
-              border: `1px solid rgba(201,168,76,0.2)`,
-              animation: "fabPulse 2.4s ease-in-out infinite",
-              pointerEvents: "none",
-            }}
-          />
-        )}
       </div>
 
       {/* Popup menu */}
@@ -467,13 +433,6 @@ export default function MobileFAB({ siteContent, onBook, loggedUser, onOpenLogin
           </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes fabPulse {
-          0%, 100% { transform: scale(1); opacity: 0.6; }
-          50% { transform: scale(1.35); opacity: 0; }
-        }
-      `}</style>
     </>
   );
 }

@@ -354,11 +354,9 @@ export default function HeroSection({
             <div
               className="btn-hero-wrap"
               onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = "0 16px 34px rgba(13,27,42,0.28)";
                 e.currentTarget.style.transform = "translateY(-2px)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = "0 10px 26px rgba(13,27,42,0.18)";
                 e.currentTarget.style.transform = "translateY(0)";
               }}
               style={{
@@ -367,6 +365,8 @@ export default function HeroSection({
                 width: isMobile ? 132 : 143,
                 height: isMobile ? 34 : 34,
                 boxSizing: "border-box",
+                background: "transparent",
+                boxShadow: "none",
               }}
             >
               <button
@@ -377,7 +377,7 @@ export default function HeroSection({
                   justifyContent: "center",
                   background: "linear-gradient(135deg, #0D1B2A 0%, #17324B 100%)",
                   color: "#f4fbff",
-                  border: "1px solid rgba(255,255,255,0.28)",
+                  border: "none",
                   padding: isMobile ? "0 14px" : "0 32px",
                   width: "100%",
                   height: "100%",
@@ -390,7 +390,7 @@ export default function HeroSection({
                   transition: "filter .2s",
                   whiteSpace: "nowrap",
                   lineHeight: 1,
-                  boxShadow: "0 1px 0 rgba(255,255,255,0.18) inset, 0 10px 24px rgba(13,27,42,0.24)",
+                  boxShadow: "none",
                   boxSizing: "border-box",
                 }}
                 onMouseEnter={(e) => {
