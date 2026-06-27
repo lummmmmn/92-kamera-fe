@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { TXT, MUT, CARD, CARD2, BR, G, btn } from "../../lib/constants.js";
 import { cdnUrl } from "../../utils/format.js";
+import api from "../../lib/axios.js";
 import { uploadImage } from "../../api/upload.js";
 import {
   usePhotos,
@@ -106,13 +107,6 @@ export default function GalleryPanel({ isMobile }) {
     };
   };
 
-  const resetGalleryPaging = () => {
-    setPhotoPage(0);
-    setAlbumPage(0);
-    setPhotoPages({});
-    setAlbumPages({});
-  };
-
   useEffect(() => {
     setDraft((prev) => {
       const loaded = new Map();
@@ -180,10 +174,19 @@ export default function GalleryPanel({ isMobile }) {
           },
         });
 
+        await api.post("/photos/upload", {
+          photo: {
+            public_id: r.public_id,
+            url: r.secure_url || r.url,
+            uploadedAt: new Date().toISOString(),
+            uploaded_by: "admin",
+          },
+        });
+
         newOnes.push({
           id: r.public_id,
           public_id: r.public_id,
-          url: r.url,
+          url: r.secure_url || r.url,
           uploadedAt: new Date().toISOString(),
           _new: true,
         });
@@ -284,7 +287,6 @@ export default function GalleryPanel({ isMobile }) {
         qc.invalidateQueries({ queryKey: ["photos"] }),
         qc.invalidateQueries({ queryKey: ["albums"] }),
       ]);
-      resetGalleryPaging();
 
       setRemovedIds([]);
       setUploadMsg({
@@ -346,7 +348,6 @@ export default function GalleryPanel({ isMobile }) {
       }
     }
     await refetchAlbums();
-    resetGalleryPaging();
   };
 
   const pct = uploadProgress.total > 0 ? Math.round((uploadProgress.done / uploadProgress.total) * 100) : 0;
@@ -578,3 +579,4 @@ export default function GalleryPanel({ isMobile }) {
     </>
   );
 }
+
