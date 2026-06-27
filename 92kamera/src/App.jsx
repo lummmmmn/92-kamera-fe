@@ -77,9 +77,15 @@ function AppRoot() {
   const accessoriesQuery = useAccessories();
   const siteContentQuery = useSiteContent();
   const ordersQuery = useOrders();
-  const feedbacksQuery = useFeedbacks();
-  const albumsQuery = useAlbums();
-  const photosQuery = usePhotos();
+  const homeMediaQueryOptions = {
+    enabled: page === "home",
+    staleTime: 15000,
+    refetchInterval: page === "home" ? 15000 : false,
+    refetchOnWindowFocus: true,
+  };
+  const feedbacksQuery = useFeedbacks(homeMediaQueryOptions);
+  const albumsQuery = useAlbums(homeMediaQueryOptions);
+  const photosQuery = usePhotos(homeMediaQueryOptions);
   const discountsQuery = useDiscounts();
   const deliveryFeesQuery = useDeliveryFees();
   const usersQuery = useUsers();

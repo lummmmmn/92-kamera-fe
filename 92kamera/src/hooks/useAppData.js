@@ -170,13 +170,14 @@ export function useUpdateDeliveryFees() {
 // ─────────────────────────────────────────────
 // ⭐ FEEDBACKS
 // ─────────────────────────────────────────────
-export function useFeedbacks() {
+export function useFeedbacks(options = {}) {
   return useQuery({
     queryKey: ["feedbacks"],
     queryFn:  getFeedbacks,
     staleTime: CATALOG_STALE,
     placeholderData: [],
     select: (data) => data ?? [],
+    ...options,
   });
 }
 
@@ -207,13 +208,14 @@ export function useDeleteFeedback() {
 // ─────────────────────────────────────────────
 // 🖼️ ALBUMS
 // ─────────────────────────────────────────────
-export function useAlbums() {
+export function useAlbums(options = {}) {
   return useQuery({
     queryKey: ["albums"],
     queryFn:  getAlbums,
     staleTime: CATALOG_STALE,
     placeholderData: [],
     select: (data) => data ?? [],
+    ...options,
   });
 }
 
@@ -244,13 +246,14 @@ export function useDeleteAlbum() {
 // ─────────────────────────────────────────────
 // 📷 PHOTOS
 // ─────────────────────────────────────────────
-export function usePhotos() {
+export function usePhotos(options = {}) {
   return useQuery({
     queryKey: ["photos"],
     queryFn:  getPhotos,
     staleTime: CATALOG_STALE,
     placeholderData: [],
     select: (data) => (data?.photos || data) ?? [],
+    ...options,
   });
 }
 
@@ -332,4 +335,6 @@ export function useUpsertUser() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
   });
 }
+
+
 

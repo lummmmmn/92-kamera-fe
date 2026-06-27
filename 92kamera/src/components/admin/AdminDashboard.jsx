@@ -43,7 +43,11 @@ export default function AdminDashboard({ onBack, isMobile }) {
   const [exporting, setExporting] = useState(false);
 
   // Queries
-  const { data: orders = [], refetch: refetchOrders, isLoading: isLoadingOrders } = useOrders();
+  const { data: orders = [], refetch: refetchOrders, isLoading: isLoadingOrders } = useOrders({
+    refetchInterval: 10000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+  });
   const { data: cameras = [], isLoading: isLoadingCameras } = useCameras();
   const { data: feedbacks = [], isLoading: isLoadingFeedbacks } = useFeedbacks();
   const { data: discounts = [], refetch: refetchDiscounts, isLoading: isLoadingDiscounts } = useDiscounts();

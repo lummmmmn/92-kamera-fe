@@ -8,7 +8,7 @@ import { ORDERS_INIT } from "../lib/constants.js";
 export const ORDERS_QK = ["orders"];
 
 // ── READ ──
-export function useOrders() {
+export function useOrders(options = {}) {
   return useQuery({
     queryKey: ORDERS_QK,
     queryFn:  getOrders,
@@ -16,6 +16,7 @@ export function useOrders() {
     gcTime: 2 * 60 * 1000,
     placeholderData: ORDERS_INIT,
     select: (data) => (Array.isArray(data) ? data : ORDERS_INIT),
+    ...options,
   });
 }
 
@@ -91,3 +92,4 @@ export function useMarkOrderSeen() {
     onSettled: () => qc.invalidateQueries({ queryKey: ORDERS_QK }),
   });
 }
+

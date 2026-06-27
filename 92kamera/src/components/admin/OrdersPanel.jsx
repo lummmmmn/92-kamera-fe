@@ -122,6 +122,7 @@ export default function OrdersPanel({
 }) {
   const [search, setSearch] = useState("");
   const [orderFilter, setOrderFilter] = useState("all");
+  const [showAllMonths, setShowAllMonths] = useState(false);
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [editOrder, setEditOrder] = useState(null);
   const [editOrderMsg, setEditOrderMsg] = useState(null);
@@ -129,6 +130,7 @@ export default function OrdersPanel({
   const [savingEditId, setSavingEditId] = useState(null);
   const [statusSaving, setStatusSaving] = useState(null);
   const [deletingOrderId, setDeletingOrderId] = useState(null);
+  const [lookupResetToken, setLookupResetToken] = useState(0);
   const toastTimerRef = useRef(null);
 
   const showToast = (text, type = "ok") => {
@@ -137,10 +139,33 @@ export default function OrdersPanel({
     toastTimerRef.current = window.setTimeout(() => setToast(null), 2600);
   };
 
+  const clearOrderSearch = () => {
+    setSearch("");
+    setOrderFilter("all");
+    setShowAllMonths(true);
+    setExpandedOrder(null);
+    setLookupResetToken((value) => value + 1);
+  };
+
+  const handleSearchChange = (value) => {
+    if (!value.trim()) {
+      clearOrderSearch();
+      return;
+    }
+    setSearch(value);
+  };
+
+  const searchTerm = search.trim().toLowerCase();
+
   const filteredOrders = orders.filter((o) => {
     if (orderFilter !== "all" && o.status !== orderFilter) return false;
-    if (search && !`${o.id} ${o.name} ${o.cameraName}`.toLowerCase().includes(search.toLowerCase())) return false;
-    if (!search && exportMonth && o.date) {
+    if (
+      searchTerm &&
+      !`${o.id || ""} ${o.name || ""} ${o.cameraName || ""} ${o.phone || ""} ${o.userPhone || ""}`
+        .toLowerCase()
+        .includes(searchTerm)
+    ) return false;
+    if (!showAllMonths && exportMonth && o.date) {
       const [ey, em] = exportMonth.split("-").map(Number);
       const d = new Date(o.date + "T00:00:00");
       if (d.getFullYear() !== ey || d.getMonth() + 1 !== em) return false;
@@ -251,7 +276,7 @@ export default function OrdersPanel({
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div>
           <h2 style={{ margin: 0, color: TXT, fontWeight: 600, fontSize: 18, fontFamily: "system-ui,sans-serif" }}>
-            Đơn tháng {exportMonth ? exportMonth.split("-")[1] + "/" + exportMonth.split("-")[0] : ""} ({filteredOrders.length})
+            {showAllMonths ? "Tất cả đơn" : `Đơn tháng ${exportMonth ? exportMonth.split("-")[1] + "/" + exportMonth.split("-")[0] : ""}`} ({filteredOrders.length})
           </h2>
           <div style={{ width: 30, height: 2, background: G, marginTop: 6 }} />
         </div>
@@ -279,6 +304,7 @@ export default function OrdersPanel({
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
           <button
             onClick={() => {
+              setShowAllMonths(false);
               const [y, m] = exportMonth.split("-").map(Number);
               const d = new Date(y, m - 2);
               setExportMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
@@ -303,7 +329,10 @@ export default function OrdersPanel({
           <input
             type="month"
             value={exportMonth}
-            onChange={(e) => setExportMonth(e.target.value)}
+            onChange={(e) => {
+              setShowAllMonths(false);
+              setExportMonth(e.target.value);
+            }}
             style={{
               padding: "6px 10px",
               background: CARD2,
@@ -320,6 +349,7 @@ export default function OrdersPanel({
           />
           <button
             onClick={() => {
+              setShowAllMonths(false);
               const [y, m] = exportMonth.split("-").map(Number);
               const d = new Date(y, m);
               setExportMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
@@ -408,10 +438,30 @@ export default function OrdersPanel({
       <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
         <input
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => handleSearchChange(e.target.value)}
           placeholder="🔍 Tìm theo tên, mã đơn, máy..."
           style={{ ...inp2, width: 280 }}
         />
+        {search && (
+          <button
+            type="button"
+            onClick={clearOrderSearch}
+            style={{
+              padding: "8px 12px",
+              background: "rgba(13,27,42,0.08)",
+              color: MUT,
+              border: `1px solid ${BR2}`,
+              borderRadius: 10,
+              cursor: "pointer",
+              fontSize: 11,
+              fontFamily: "system-ui,sans-serif",
+              fontWeight: 700,
+              transition: "all .2s",
+            }}
+          >
+            Xoá tìm kiếm
+          </button>
+        )}
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {["all", "pending", "confirmed", "active", "completed", "cancelled"].map((s) => (
             <button
@@ -430,9 +480,27 @@ export default function OrdersPanel({
                 transition: "all .2s",
               }}
             >
-              {s === "all" ? "Tất cả" : STATUS_CFG[s]?.label || s}
+              {s === "all" ? "Tất cả trạng thái" : STATUS_CFG[s]?.label || s}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => setShowAllMonths((value) => !value)}
+            style={{
+              padding: "8px 12px",
+              background: showAllMonths ? "#FFF8ED" : CARD,
+              color: showAllMonths ? G : MUT,
+              border: `1px solid ${showAllMonths ? G : BR2}`,
+              borderRadius: 10,
+              cursor: "pointer",
+              fontSize: 11,
+              fontFamily: "system-ui,sans-serif",
+              fontWeight: showAllMonths ? 700 : 400,
+              transition: "all .2s",
+            }}
+          >
+            {showAllMonths ? "Đang xem mọi tháng" : "Tất cả tháng"}
+          </button>
         </div>
       </div>
 
@@ -442,6 +510,10 @@ export default function OrdersPanel({
         setExpandedOrder={setExpandedOrder}
         setSearch={setSearch}
         setOrderFilter={setOrderFilter}
+        setExportMonth={setExportMonth}
+        setShowAllMonths={setShowAllMonths}
+        onClearSearch={clearOrderSearch}
+        resetToken={lookupResetToken}
       />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

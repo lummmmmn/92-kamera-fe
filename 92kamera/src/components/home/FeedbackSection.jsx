@@ -26,7 +26,30 @@ export default function FeedbackSection({ photos, albums, feedbacks, isMobile })
   const avgRating = total ? (cards.reduce((s, c) => s + c.rating, 0) / total).toFixed(1) : "5.0";
 
   const photosArr = photos || [];
-  const albumsArr = (albums || []).filter((a) => (a.photos || []).length > 0);
+  const getTime = (value) => {
+    const time = value ? new Date(value).getTime() : NaN;
+    return Number.isFinite(time) ? time : 0;
+  };
+  const getAlbumTime = (album) => {
+    const photosInAlbum = album.photos || [];
+    const newestPhotoTime = Math.max(
+      0,
+      ...photosInAlbum.map((photo) =>
+        Math.max(
+          getTime(photo.updatedAt),
+          getTime(photo.createdAt),
+          getTime(photo.uploadedAt),
+          getTime(photo.date)
+        )
+      )
+    );
+    return Math.max(getTime(album.updatedAt), getTime(album.createdAt), getTime(album.date), newestPhotoTime);
+  };
+  const albumsArr = (albums || [])
+    .filter((a) => (a.photos || []).length > 0)
+    .map((album, index) => ({ album, index, time: getAlbumTime(album) }))
+    .sort((a, b) => b.time - a.time || a.index - b.index)
+    .map(({ album }) => album);
   const hasAlbums = albumsArr.length > 0;
   const hasPhotos = photosArr.length > 0;
   const openAlbumPhotos = openAlbum?.photos || [];
@@ -383,6 +406,9 @@ export default function FeedbackSection({ photos, albums, feedbacks, isMobile })
           {hasAlbums && (() => {
             const displayed = showAllAlbums ? albumsArr : albumsArr.slice(0, 3);
             const [big, ...smalls] = displayed;
+            const expandedCardSizing = showAllAlbums && !isMobile
+              ? { aspectRatio: "4 / 3", minHeight: 220 }
+              : {};
             return (
               <div
                 style={{
@@ -406,7 +432,8 @@ export default function FeedbackSection({ photos, albums, feedbacks, isMobile })
                       cursor: "pointer",
                       background: "rgba(13,27,42,0.08)",
                       boxShadow: "0 4px 28px rgba(5,17,31,0.18)",
-                      minHeight: isMobile ? 280 : "unset",
+                      minHeight: isMobile ? 280 : showAllAlbums ? 220 : "unset",
+                      ...expandedCardSizing,
                     }}
                   >
                     {big.coverUrl ? (
@@ -499,6 +526,7 @@ export default function FeedbackSection({ photos, albums, feedbacks, isMobile })
                         cursor: "pointer",
                         background: "rgba(13,27,42,0.08)",
                         boxShadow: "0 4px 20px rgba(5,17,31,0.15)",
+                        ...expandedCardSizing,
                       }}
                     >
                       {alb.coverUrl ? (
@@ -635,3 +663,4 @@ export default function FeedbackSection({ photos, albums, feedbacks, isMobile })
     </div>
   );
 }
+

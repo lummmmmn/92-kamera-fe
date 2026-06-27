@@ -1,12 +1,32 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Badge from "../common/Badge.jsx";
 import { G, CARD, BR2, MUT } from "../../lib/constants.js";
 import { fmtVND } from "../../utils/format.js";
 
-export default function QuickOrderLookup({ orders, inp2, setExpandedOrder, setSearch, setOrderFilter }) {
+export default function QuickOrderLookup({ orders, inp2, setExpandedOrder, setSearch, setOrderFilter, setExportMonth, setShowAllMonths, onClearSearch, resetToken }) {
   const [quickId, setQuickId] = useState("");
   const [quickResult, setQuickResult] = useState(null);
   const [quickErr, setQuickErr] = useState(false);
+
+  useEffect(() => {
+    setQuickId("");
+    setQuickErr(false);
+    setQuickResult(null);
+  }, [resetToken]);
+
+  const clearLookup = () => {
+    setQuickId("");
+    setQuickErr(false);
+    setQuickResult(null);
+    if (onClearSearch) {
+      onClearSearch();
+    } else {
+      setSearch?.("");
+      setOrderFilter?.("all");
+      setShowAllMonths?.(true);
+      setExpandedOrder?.(null);
+    }
+  };
 
   const lookup = () => {
     const q = quickId.trim().toUpperCase();
@@ -15,6 +35,15 @@ export default function QuickOrderLookup({ orders, inp2, setExpandedOrder, setSe
     if (found) {
       setQuickResult(found);
       setQuickErr(false);
+      setOrderFilter?.("all");
+      setSearch?.(found.id);
+      setShowAllMonths?.(false);
+      if (found.date && setExportMonth) {
+        const d = new Date(found.date + "T00:00:00");
+        if (!Number.isNaN(d.getTime())) {
+          setExportMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+        }
+      }
       setExpandedOrder(found.id);
     } else {
       setQuickResult(null);
@@ -29,14 +58,39 @@ export default function QuickOrderLookup({ orders, inp2, setExpandedOrder, setSe
         <input
           value={quickId}
           onChange={(e) => {
-            setQuickId(e.target.value);
+            const value = e.target.value;
+            setQuickId(value);
             setQuickErr(false);
             setQuickResult(null);
+            if (!value.trim()) clearLookup();
           }}
-          onKeyDown={(e) => e.key === "Enter" && lookup()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") lookup();
+            if (e.key === "Escape") clearLookup();
+          }}
           placeholder="#92K0001 hoặc nhập một phần mã..."
           style={{ ...inp2, flex: 1, fontFamily: "monospace", letterSpacing: 1 }}
         />
+        {quickId && (
+          <button
+            type="button"
+            onClick={clearLookup}
+            style={{
+              padding: "10px 14px",
+              background: "rgba(13,27,42,0.08)",
+              color: MUT,
+              border: `1px solid ${BR2}`,
+              borderRadius: 12,
+              cursor: "pointer",
+              fontWeight: 700,
+              fontSize: 12,
+              fontFamily: "system-ui,sans-serif",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Xoá
+          </button>
+        )}
         <button
           onClick={lookup}
           style={{
@@ -67,6 +121,11 @@ export default function QuickOrderLookup({ orders, inp2, setExpandedOrder, setSe
             </div>
             <span style={{ color: G, fontWeight: 700 }}>{fmtVND(quickResult.total)}</span>
           </div>
+          {quickResult.date && (
+            <div style={{ color: MUT, fontSize: 11, marginTop: 6 }}>
+              Đã mở đúng tháng của đơn để bạn xem trong danh sách bên dưới.
+            </div>
+          )}
         </div>
       )}
     </div>
