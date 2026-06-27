@@ -12,7 +12,7 @@ import CustomerPage from "./pages/CustomerPage.jsx";
 import BookingModal from "./components/booking/BookingModal.jsx";
 import AdminLogin from "./components/admin/AdminLogin.jsx";
 import LensBackground from "./components/layout/LensBackground.jsx";
-import Logo from "./components/common/Logo.jsx";
+import BackendWarmupOverlay from "./components/common/BackendWarmupOverlay.jsx";
 
 // Hooks
 import {
@@ -38,6 +38,7 @@ function AppRoot() {
   const [booking, setBooking] = useState(false); // false | camId | true (QuickSelect object)
   const [loginOpen, setLoginOpen] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
+  const [warmupDismissed, setWarmupDismissed] = useState(false);
   const isMobile = useMobile();
 
   // Shared state: session loggedUser (customer OR admin)
@@ -72,17 +73,42 @@ function AppRoot() {
   useScrollPerfClass();
 
   // React Query data queries
-  const { data: cameras = CAMS_INIT } = useCameras();
-  const { data: accessories = [] } = useAccessories();
-  const { data: siteContent } = useSiteContent();
-  const { data: orders = [] } = useOrders();
-  const { data: feedbacks = [] } = useFeedbacks();
-  const { data: albums = [] } = useAlbums();
-  const { data: photos = [] } = usePhotos();
-  const { data: discounts = [] } = useDiscounts();
-  const { data: deliveryFees = [] } = useDeliveryFees();
-  const { data: usersMap = {} } = useUsers();
+  const camerasQuery = useCameras();
+  const accessoriesQuery = useAccessories();
+  const siteContentQuery = useSiteContent();
+  const ordersQuery = useOrders();
+  const feedbacksQuery = useFeedbacks();
+  const albumsQuery = useAlbums();
+  const photosQuery = usePhotos();
+  const discountsQuery = useDiscounts();
+  const deliveryFeesQuery = useDeliveryFees();
+  const usersQuery = useUsers();
+  const cameras = camerasQuery.data ?? CAMS_INIT;
+  const accessories = accessoriesQuery.data ?? [];
+  const siteContent = siteContentQuery.data;
+  const orders = ordersQuery.data ?? [];
+  const feedbacks = feedbacksQuery.data ?? [];
+  const albums = albumsQuery.data ?? [];
+  const photos = photosQuery.data ?? [];
+  const discounts = discountsQuery.data ?? [];
+  const deliveryFees = deliveryFeesQuery.data ?? [];
+  const usersMap = usersQuery.data ?? {};
   const upsertUserMutation = useUpsertUser();
+
+  const initialBlockingQueries = [camerasQuery, accessoriesQuery, siteContentQuery, ordersQuery];
+  const isInitialQueryPending = (query) =>
+    !query.dataUpdatedAt &&
+    !query.isError &&
+    (query.isPending || query.isLoading || query.isFetching || query.isPlaceholderData);
+  const isInitialQueryError = (query) => !query.dataUpdatedAt && query.isError;
+  const pendingInitialCount = initialBlockingQueries.filter(isInitialQueryPending).length;
+  const hasInitialError = initialBlockingQueries.some(isInitialQueryError);
+  const showWarmupOverlay = !warmupDismissed && (pendingInitialCount > 0 || hasInitialError);
+
+  const retryInitialQueries = () => {
+    setWarmupDismissed(false);
+    initialBlockingQueries.forEach((query) => query.refetch());
+  };
 
   // Hash-based routing
   useEffect(() => {
@@ -131,6 +157,14 @@ function AppRoot() {
     <div className="app-shell-92" style={{ minHeight: "100vh", position: "relative" }}>
       {/* Background elements */}
       {page === "home" && <LensBackground isMob={isMobile} />}
+
+      <BackendWarmupOverlay
+        visible={showWarmupOverlay}
+        hasError={hasInitialError}
+        pendingCount={pendingInitialCount}
+        onRetry={retryInitialQueries}
+        onContinue={() => setWarmupDismissed(true)}
+      />
 
       {/* Pages Router */}
       {page === "home" && (
