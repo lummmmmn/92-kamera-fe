@@ -13,6 +13,7 @@ import { TXT } from "../lib/constants.js";
 
 export default function HomePage({
   cameras,
+  displayCameras,
   accessories,
   siteContent,
   orders,
@@ -22,6 +23,14 @@ export default function HomePage({
   photos,
   albums,
   feedbacks,
+  onLoadMoreCameras,
+  hasMoreCameras,
+  onLoadMoreFeedbacks,
+  hasMoreFeedbacks,
+  onLoadMorePhotos,
+  hasMorePhotos,
+  onLoadMoreAlbums,
+  hasMoreAlbums,
   loggedUser,
   onOpenLogin,
   onOpenCustomer,
@@ -64,9 +73,11 @@ export default function HomePage({
           {/* CAMERAS */}
           <CameraSection
             id="cameras"
-            cameras={cameras}
+            cameras={displayCameras || cameras}
             onBook={onBook}
             isMobile={isMobile}
+            onLoadMore={onLoadMoreCameras}
+            hasMore={hasMoreCameras}
           />
 
           {/* ACCESSORIES */}
@@ -85,6 +96,12 @@ export default function HomePage({
             albums={albums}
             feedbacks={feedbacks}
             isMobile={isMobile}
+            onLoadMorePhotos={onLoadMorePhotos}
+            hasMorePhotos={hasMorePhotos}
+            onLoadMoreAlbums={onLoadMoreAlbums}
+            hasMoreAlbums={hasMoreAlbums}
+            onLoadMoreFeedbacks={onLoadMoreFeedbacks}
+            hasMoreFeedbacks={hasMoreFeedbacks}
           />
 
           {/* ABOUT — Lộ Trình Phát Triển */}

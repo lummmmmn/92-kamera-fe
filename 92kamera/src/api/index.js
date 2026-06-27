@@ -15,12 +15,26 @@ import api from "../lib/axios.js";
 import { CAMS_INIT, ACC_INIT, SITE_INIT, ORDERS_INIT, DELIVERY_AREAS_DEFAULT } from "../lib/constants.js";
 
 const pathId = (id) => encodeURIComponent(String(id));
+const withPageParams = (options = {}) => ({
+  params: {
+    ...(typeof options.limit === "number" ? { limit: options.limit } : {}),
+    ...(typeof options.offset === "number" ? { offset: options.offset } : {}),
+  },
+});
 
 // ─────────────────────────────────────────────
 // 📷 CAMERAS
 // ─────────────────────────────────────────────
 export const getCameras = () =>
   api.get("/cameras").then((r) => r.data);
+
+export const getCamerasPage = (options = {}) =>
+  api.get("/cameras", {
+    params: {
+      ...(typeof options.limit === "number" ? { limit: options.limit } : {}),
+      ...(typeof options.offset === "number" ? { offset: options.offset } : {}),
+    },
+  }).then((r) => r.data);
 
 export const updateCamera = (id, data) =>
   api.put(`/cameras/${pathId(id)}`, data).then((r) => r.data);
@@ -103,6 +117,14 @@ export const applyDiscount = (code, orderTotal) =>
 export const getFeedbacks = () =>
   api.get("/feedbacks").then((r) => r.data);
 
+export const getFeedbacksPage = (options = {}) =>
+  api.get("/feedbacks", {
+    params: {
+      ...(typeof options.limit === "number" ? { limit: options.limit } : {}),
+      ...(typeof options.offset === "number" ? { offset: options.offset } : {}),
+    },
+  }).then((r) => r.data);
+
 export const createFeedback = (data) =>
   api.post("/feedbacks", data).then((r) => r.data);
 
@@ -118,11 +140,17 @@ export const deleteFeedback = (id) =>
 export const getPhotos = () =>
   api.get("/photos").then((r) => r.data);
 
+export const getPhotosPage = (options = {}) =>
+  api.get("/photos", withPageParams(options)).then((r) => r.data);
+
 export const deletePhoto = (id) =>
   api.delete(`/photos/${pathId(id)}`).then((r) => r.data);
 
 export const getAlbums = () =>
   api.get("/albums").then((r) => r.data);
+
+export const getAlbumsPage = (options = {}) =>
+  api.get("/albums", withPageParams(options)).then((r) => r.data);
 
 export const createAlbum = (data) =>
   api.post("/albums", data).then((r) => r.data);

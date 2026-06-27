@@ -92,4 +92,3 @@ export function useMarkOrderSeen() {
     onSettled: () => qc.invalidateQueries({ queryKey: ORDERS_QK }),
   });
 }
-

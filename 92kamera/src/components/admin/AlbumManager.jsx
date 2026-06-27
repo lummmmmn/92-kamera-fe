@@ -15,6 +15,15 @@ export default function AlbumManager({ photos, albums, setAlbums, isMobile }) {
   const [savingAlbum, setSavingAlbum] = useState(false);
   const [deletingAlbumId, setDeletingAlbumId] = useState(null);
   const photoId = (photo) => photo?.public_id || photo?.id || photo?._id;
+  const isDataImageUrl = (url) => typeof url === "string" && url.startsWith("data:image");
+  const toAlbumPhoto = (photo) => ({
+    id: photoId(photo),
+    public_id: photo?.public_id || photoId(photo),
+    url: photo?.url,
+    uploadedAt: photo?.uploadedAt || photo?.uploaded_at,
+    uploaded_at: photo?.uploaded_at || photo?.uploadedAt,
+    uploaded_by: photo?.uploaded_by,
+  });
 
   const showMsg = (type, text) => {
     setMsg({ type, text });
@@ -62,8 +71,18 @@ export default function AlbumManager({ photos, albums, setAlbums, isMobile }) {
       return;
     }
     const selectedPhotos = (photos || []).filter((p) => form.photoIds.includes(photoId(p)));
+    const invalidPhotos = selectedPhotos.filter((p) => isDataImageUrl(p?.url));
+    if (invalidPhotos.length > 0) {
+      showMsg("err", "Album chỉ lưu ảnh đã upload Cloudinary. Có ảnh đang là base64, hãy upload lại ảnh đó trước.");
+      return;
+    }
     const coverId = form.coverId || form.photoIds[0];
     const coverPhoto = selectedPhotos.find((p) => photoId(p) === coverId) || selectedPhotos[0];
+    if (isDataImageUrl(coverPhoto?.url)) {
+      showMsg("err", "Ảnh bìa đang là base64. Hãy chọn ảnh đã upload Cloudinary.");
+      return;
+    }
+    const albumPhotos = selectedPhotos.map(toAlbumPhoto);
     const now = new Date().toISOString();
     try {
       setSavingAlbum(true);
@@ -77,7 +96,7 @@ export default function AlbumManager({ photos, albums, setAlbums, isMobile }) {
                   cameraTag: form.cameraTag.trim(),
                   coverId,
                   coverUrl: coverPhoto?.url,
-                  photos: selectedPhotos,
+                  photos: albumPhotos,
                   updatedAt: now,
                 }
               : a
@@ -92,7 +111,7 @@ export default function AlbumManager({ photos, albums, setAlbums, isMobile }) {
             cameraTag: form.cameraTag.trim(),
             coverId,
             coverUrl: coverPhoto?.url,
-            photos: selectedPhotos,
+            photos: albumPhotos,
             createdAt: now,
             updatedAt: now,
           },

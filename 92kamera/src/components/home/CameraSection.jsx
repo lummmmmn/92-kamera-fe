@@ -103,7 +103,7 @@ function CamImage({ cam, height = 176 }) {
   );
 }
 
-export default function CameraSection({ id, cameras, onBook, isMobile }) {
+export default function CameraSection({ id, cameras, onBook, isMobile, onLoadMore, hasMore }) {
   const [active, setActive] = useState(0);
   const isPaused = useRef(false);
   const camScrollRef = useRef(null);
@@ -402,6 +402,30 @@ export default function CameraSection({ id, cameras, onBook, isMobile }) {
           })}
         </div>
       </div>
+
+      {(hasMore || typeof onLoadMore === "function") && (
+        <div style={{ display: "flex", justifyContent: "center", marginTop: 20 }}>
+          <button
+            type="button"
+            onClick={onLoadMore}
+            disabled={!hasMore || typeof onLoadMore !== "function"}
+            style={{
+              background: hasMore ? "rgba(255,255,255,0.70)" : "rgba(255,255,255,0.40)",
+              border: `1px solid ${hasMore ? BR : "rgba(13,27,42,0.10)"}`,
+              color: hasMore ? G : MUT,
+              padding: "10px 18px",
+              borderRadius: 999,
+              fontSize: 11,
+              cursor: hasMore ? "pointer" : "default",
+              fontFamily: "system-ui,sans-serif",
+              letterSpacing: 1.2,
+              fontWeight: 700,
+            }}
+          >
+            {hasMore ? "TẢI THÊM MÁY ẢNH" : "ĐÃ TẢI HẾT"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { TXT, MUT, CARD, CARD2, BR, G, btn } from "../../lib/constants.js";
 import { cdnUrl } from "../../utils/format.js";
-import { resizeImageFile } from "../../utils/image.js";
-import { uploadPhoto } from "../../api/index.js";
+import { uploadImage } from "../../api/upload.js";
 import {
   usePhotos,
   useDeletePhoto,
@@ -17,10 +16,50 @@ import PhotoLightbox from "../common/PhotoLightbox.jsx";
 import ConfirmDialog from "../common/ConfirmDialog.jsx";
 import AdminToast from "./AdminToast.jsx";
 
+const PHOTO_PAGE_SIZE = 48;
+const ALBUM_PAGE_SIZE = 12;
+
 export default function GalleryPanel({ isMobile }) {
   const qc = useQueryClient();
-  const { data: photos = [] } = usePhotos();
-  const { data: albums = [], refetch: refetchAlbums } = useAlbums();
+  const [photoPage, setPhotoPage] = useState(0);
+  const [albumPage, setAlbumPage] = useState(0);
+  const [photoPages, setPhotoPages] = useState({});
+  const [albumPages, setAlbumPages] = useState({});
+
+  const photoQuery = usePhotos({ limit: PHOTO_PAGE_SIZE, offset: photoPage * PHOTO_PAGE_SIZE });
+  const albumQuery = useAlbums({ limit: ALBUM_PAGE_SIZE, offset: albumPage * ALBUM_PAGE_SIZE });
+
+  useEffect(() => {
+    const pageItems = Array.isArray(photoQuery.data) ? photoQuery.data : [];
+    setPhotoPages((prev) => {
+      const current = prev[photoPage] || [];
+      if (current === pageItems) return prev;
+      return { ...prev, [photoPage]: pageItems };
+    });
+  }, [photoPage, photoQuery.data]);
+
+  useEffect(() => {
+    const pageItems = Array.isArray(albumQuery.data) ? albumQuery.data : [];
+    setAlbumPages((prev) => {
+      const current = prev[albumPage] || [];
+      if (current === pageItems) return prev;
+      return { ...prev, [albumPage]: pageItems };
+    });
+  }, [albumPage, albumQuery.data]);
+
+  const photos = Object.keys(photoPages)
+    .map(Number)
+    .sort((a, b) => a - b)
+    .flatMap((page) => photoPages[page] || []);
+  const albums = Object.keys(albumPages)
+    .map(Number)
+    .sort((a, b) => a - b)
+    .flatMap((page) => albumPages[page] || []);
+  const photoHasMore = (photoQuery.data?.length || 0) === PHOTO_PAGE_SIZE;
+  const albumHasMore = (albumQuery.data?.length || 0) === ALBUM_PAGE_SIZE;
+  const isLoadingPhotos = photoQuery.isFetching;
+  const isLoadingAlbums = albumQuery.isFetching;
+  const refetchAlbums = albumQuery.refetch;
 
   const deletePhotoMutation = useDeletePhoto();
   const createAlbumMutation = useCreateAlbum();
@@ -39,10 +78,78 @@ export default function GalleryPanel({ isMobile }) {
   const [removedIds, setRemovedIds] = useState([]);
   const dirty = removedIds.length > 0 || draft.some(p => p._new);
   const photoId = (photo) => photo?.public_id || photo?.id || photo?._id;
+  const isDataImageUrl = (url) => typeof url === "string" && url.startsWith("data:image");
+  const toAlbumPhoto = (photo) => ({
+    id: photoId(photo),
+    public_id: photo?.public_id || photoId(photo),
+    url: photo?.url,
+    uploadedAt: photo?.uploadedAt || photo?.uploaded_at,
+    uploaded_at: photo?.uploaded_at || photo?.uploadedAt,
+    uploaded_by: photo?.uploaded_by,
+  });
+  const sanitizeAlbumForSave = (album) => {
+    const albumPhotos = (album.photos || []).map(toAlbumPhoto).filter((p) => p.id && p.url);
+    const hasBase64Photo = albumPhotos.some((p) => isDataImageUrl(p.url));
+
+    if (hasBase64Photo || isDataImageUrl(album.coverUrl)) {
+      throw new Error(`Album "${album.name || album.id}" đang chứa ảnh base64. Hãy upload lại ảnh đó lên Cloudinary rồi lưu album.`);
+    }
+
+    const nextCoverId = album.coverId || photoId(albumPhotos[0]);
+    const nextCover = albumPhotos.find((p) => photoId(p) === nextCoverId) || albumPhotos[0];
+
+    return {
+      ...album,
+      photos: albumPhotos,
+      coverId: photoId(nextCover),
+      coverUrl: nextCover?.url,
+    };
+  };
+
+  const resetGalleryPaging = () => {
+    setPhotoPage(0);
+    setAlbumPage(0);
+    setPhotoPages({});
+    setAlbumPages({});
+  };
 
   useEffect(() => {
-    setDraft(photos || []);
-  }, [photos]);
+    setDraft((prev) => {
+      const loaded = new Map();
+      for (const photo of photos || []) {
+        const id = photoId(photo);
+        if (id && !removedIds.includes(id)) {
+          loaded.set(id, photo);
+        }
+      }
+
+      const next = [];
+      const seen = new Set();
+
+      for (const item of prev) {
+        const id = photoId(item);
+        if (!id) continue;
+        if (item._new) {
+          next.push(item);
+          seen.add(id);
+          continue;
+        }
+        const merged = loaded.get(id);
+        if (merged) {
+          next.push({ ...merged, ...item });
+          seen.add(id);
+        }
+      }
+
+      for (const photo of photos || []) {
+        const id = photoId(photo);
+        if (!id || seen.has(id) || removedIds.includes(id)) continue;
+        next.push(photo);
+      }
+
+      return next;
+    });
+  }, [photos, removedIds]);
 
   const handleUpload = async (files) => {
     if (!files || files.length === 0) return;
@@ -62,14 +169,17 @@ export default function GalleryPanel({ isMobile }) {
 
     for (let i = 0; i < batch.length; i++) {
       try {
-        setUploadStage(`Đang nén ảnh ${i + 1}/${batch.length}...`);
-        const resized = await resizeImageFile(batch[i], 2400, 0.88);
+        setUploadStage(`Đang nén & upload ảnh ${i + 1}/${batch.length}...`);
 
-        setUploadStage(`Đang gửi ảnh ${i + 1}/${batch.length} lên server...`);
-        const formData = new FormData();
-        formData.append("file", resized);
+        const r = await uploadImage(batch[i], {
+          folder: "92kamera_gallery",
+          maxPx: 2400,
+          quality: 0.88,
+          onProgress: (pct) => {
+            // optional: hiện progress network nếu cần
+          },
+        });
 
-        const r = await uploadPhoto(formData);
         newOnes.push({
           id: r.public_id,
           public_id: r.public_id,
@@ -154,15 +264,17 @@ export default function GalleryPanel({ isMobile }) {
           ? nextPhotos.find((p) => photoId(p) === album.coverId)
           : nextPhotos[0];
 
-        await updateAlbumMutation.mutateAsync({
-          id: album.id,
-          data: {
+        const nextAlbum = sanitizeAlbumForSave({
             ...album,
             photos: nextPhotos,
             coverId: photoId(nextCover),
             coverUrl: nextCover?.url,
             updatedAt: new Date().toISOString(),
-          },
+        });
+
+        await updateAlbumMutation.mutateAsync({
+          id: album.id,
+          data: nextAlbum,
         });
       });
 
@@ -172,6 +284,7 @@ export default function GalleryPanel({ isMobile }) {
         qc.invalidateQueries({ queryKey: ["photos"] }),
         qc.invalidateQueries({ queryKey: ["albums"] }),
       ]);
+      resetGalleryPaging();
 
       setRemovedIds([]);
       setUploadMsg({
@@ -210,7 +323,7 @@ export default function GalleryPanel({ isMobile }) {
     for (const alb of nextAlbums) {
       if (alb.id.startsWith("tmp_alb_")) {
         // ID tạm của FE -> tạo mới
-        const { id, ...data } = alb;
+        const { id, ...data } = sanitizeAlbumForSave(alb);
         await createAlbumMutation.mutateAsync(data);
       } else {
         // ID thật -> Chỉ gửi request cập nhật nếu có thay đổi thực sự để tránh spam request làm treo hệ thống
@@ -227,12 +340,13 @@ export default function GalleryPanel({ isMobile }) {
             origPhotoIds !== nextPhotoIds;
 
           if (hasChanged) {
-            await updateAlbumMutation.mutateAsync({ id: alb.id, data: alb });
+            await updateAlbumMutation.mutateAsync({ id: alb.id, data: sanitizeAlbumForSave(alb) });
           }
         }
       }
     }
     await refetchAlbums();
+    resetGalleryPaging();
   };
 
   const pct = uploadProgress.total > 0 ? Math.round((uploadProgress.done / uploadProgress.total) * 100) : 0;
@@ -352,7 +466,7 @@ export default function GalleryPanel({ isMobile }) {
 
       {draft.length === 0 ? (
         <div style={{ color: MUT, fontSize: 13, padding: "16px 0" }}>
-          Chưa có ảnh nào — upload ảnh khách lên để hiện ở trang chủ
+          {isLoadingPhotos ? "Đang tải ảnh..." : "Chưa có ảnh nào — upload ảnh khách lên để hiện ở trang chủ"}
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: 10, marginBottom: 16 }}>
@@ -410,6 +524,19 @@ export default function GalleryPanel({ isMobile }) {
         </div>
       )}
 
+      {(photoHasMore || isLoadingPhotos) && (
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
+          <button
+            type="button"
+            disabled={isLoadingPhotos}
+            onClick={() => setPhotoPage((p) => p + 1)}
+            style={{ ...btn("ghost"), fontSize: 12, padding: "8px 14px", opacity: isLoadingPhotos ? 0.6 : 1 }}
+          >
+            {isLoadingPhotos ? "Đang tải..." : "Tải thêm ảnh"}
+          </button>
+        </div>
+      )}
+
       {/* Lightbox to xem ảnh */}
       {previewIdx !== null && draft.length > 0 && (
         <PhotoLightbox photos={draft} startIndex={previewIdx} onClose={() => setPreviewIdx(null)} />
@@ -433,6 +560,18 @@ export default function GalleryPanel({ isMobile }) {
       <div style={{ width: "100%", height: 1, background: BR, marginBottom: 28, opacity: 0.4 }} />
 
       {/* Album Manager */}
+      {(albumHasMore || isLoadingAlbums) && (
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+          <button
+            type="button"
+            disabled={isLoadingAlbums}
+            onClick={() => setAlbumPage((p) => p + 1)}
+            style={{ ...btn("ghost"), fontSize: 12, padding: "8px 14px", opacity: isLoadingAlbums ? 0.6 : 1 }}
+          >
+            {isLoadingAlbums ? "Đang tải album..." : "Tải thêm album"}
+          </button>
+        </div>
+      )}
       <AlbumManager photos={draft} albums={albums} setAlbums={setAlbumsWrapper} isMobile={isMobile} />
 
       <ConfirmDialog message={confirmCfg?.message} onOk={confirmCfg?.onOk} onCancel={() => setConfirmCfg(null)} />

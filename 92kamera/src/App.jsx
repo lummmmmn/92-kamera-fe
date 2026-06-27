@@ -73,6 +73,20 @@ function AppRoot() {
   useScrollPerfClass();
 
   // React Query data queries
+  const HOME_CAMERA_PAGE_SIZE = 6;
+  const HOME_FEEDBACK_PAGE_SIZE = 6;
+  const HOME_ALBUM_PAGE_SIZE = 3;
+  const HOME_PHOTO_PAGE_SIZE = 8;
+
+  const [homeCameraPage, setHomeCameraPage] = useState(0);
+  const [homeFeedbackPage, setHomeFeedbackPage] = useState(0);
+  const [homeAlbumPage, setHomeAlbumPage] = useState(0);
+  const [homePhotoPage, setHomePhotoPage] = useState(0);
+  const [homeCameraPages, setHomeCameraPages] = useState({});
+  const [homeFeedbackPages, setHomeFeedbackPages] = useState({});
+  const [homeAlbumPages, setHomeAlbumPages] = useState({});
+  const [homePhotoPages, setHomePhotoPages] = useState({});
+
   const camerasQuery = useCameras();
   const accessoriesQuery = useAccessories();
   const siteContentQuery = useSiteContent();
@@ -80,12 +94,14 @@ function AppRoot() {
   const homeMediaQueryOptions = {
     enabled: page === "home",
     staleTime: 15000,
-    refetchInterval: page === "home" ? 15000 : false,
+    retry: 0,
+    refetchInterval: page === "home" ? 30000 : false,
     refetchOnWindowFocus: true,
   };
-  const feedbacksQuery = useFeedbacks(homeMediaQueryOptions);
-  const albumsQuery = useAlbums(homeMediaQueryOptions);
-  const photosQuery = usePhotos(homeMediaQueryOptions);
+  const homeCamerasQuery = useCameras({ ...homeMediaQueryOptions, limit: HOME_CAMERA_PAGE_SIZE, offset: homeCameraPage * HOME_CAMERA_PAGE_SIZE });
+  const homeFeedbacksQuery = useFeedbacks({ ...homeMediaQueryOptions, limit: HOME_FEEDBACK_PAGE_SIZE, offset: homeFeedbackPage * HOME_FEEDBACK_PAGE_SIZE });
+  const homeAlbumsQuery = useAlbums({ ...homeMediaQueryOptions, limit: HOME_ALBUM_PAGE_SIZE, offset: homeAlbumPage * HOME_ALBUM_PAGE_SIZE });
+  const homePhotosQuery = usePhotos({ ...homeMediaQueryOptions, limit: HOME_PHOTO_PAGE_SIZE, offset: homePhotoPage * HOME_PHOTO_PAGE_SIZE });
   const discountsQuery = useDiscounts();
   const deliveryFeesQuery = useDeliveryFees();
   const usersQuery = useUsers();
@@ -93,13 +109,34 @@ function AppRoot() {
   const accessories = accessoriesQuery.data ?? [];
   const siteContent = siteContentQuery.data;
   const orders = ordersQuery.data ?? [];
-  const feedbacks = feedbacksQuery.data ?? [];
-  const albums = albumsQuery.data ?? [];
-  const photos = photosQuery.data ?? [];
+  const feedbacks = Object.keys(homeFeedbackPages).map(Number).sort((a, b) => a - b).flatMap((p) => homeFeedbackPages[p] || []);
+  const albums = Object.keys(homeAlbumPages).map(Number).sort((a, b) => a - b).flatMap((p) => homeAlbumPages[p] || []);
+  const photos = Object.keys(homePhotoPages).map(Number).sort((a, b) => a - b).flatMap((p) => homePhotoPages[p] || []);
+  const homeCameras = Object.keys(homeCameraPages).map(Number).sort((a, b) => a - b).flatMap((p) => homeCameraPages[p] || []);
   const discounts = discountsQuery.data ?? [];
   const deliveryFees = deliveryFeesQuery.data ?? [];
   const usersMap = usersQuery.data ?? {};
   const upsertUserMutation = useUpsertUser();
+
+  useEffect(() => {
+    const pageItems = Array.isArray(homeCamerasQuery.data) ? homeCamerasQuery.data : [];
+    setHomeCameraPages((prev) => ({ ...prev, [homeCameraPage]: pageItems }));
+  }, [homeCameraPage, homeCamerasQuery.data]);
+
+  useEffect(() => {
+    const pageItems = Array.isArray(homeFeedbacksQuery.data) ? homeFeedbacksQuery.data : [];
+    setHomeFeedbackPages((prev) => ({ ...prev, [homeFeedbackPage]: pageItems }));
+  }, [homeFeedbackPage, homeFeedbacksQuery.data]);
+
+  useEffect(() => {
+    const pageItems = Array.isArray(homeAlbumsQuery.data) ? homeAlbumsQuery.data : [];
+    setHomeAlbumPages((prev) => ({ ...prev, [homeAlbumPage]: pageItems }));
+  }, [homeAlbumPage, homeAlbumsQuery.data]);
+
+  useEffect(() => {
+    const pageItems = Array.isArray(homePhotosQuery.data) ? homePhotosQuery.data : [];
+    setHomePhotoPages((prev) => ({ ...prev, [homePhotoPage]: pageItems }));
+  }, [homePhotoPage, homePhotosQuery.data]);
 
   const initialBlockingQueries = [camerasQuery, accessoriesQuery, siteContentQuery, ordersQuery];
   const isInitialQueryPending = (query) =>
@@ -193,6 +230,15 @@ function AppRoot() {
           photos={photos}
           albums={albums}
           feedbacks={feedbacks}
+          displayCameras={homeCameras}
+          onLoadMoreCameras={() => setHomeCameraPage((p) => p + 1)}
+          hasMoreCameras={(homeCamerasQuery.data?.length || 0) === HOME_CAMERA_PAGE_SIZE}
+          onLoadMoreFeedbacks={() => setHomeFeedbackPage((p) => p + 1)}
+          hasMoreFeedbacks={(homeFeedbacksQuery.data?.length || 0) === HOME_FEEDBACK_PAGE_SIZE}
+          onLoadMorePhotos={() => setHomePhotoPage((p) => p + 1)}
+          hasMorePhotos={(homePhotosQuery.data?.length || 0) === HOME_PHOTO_PAGE_SIZE}
+          onLoadMoreAlbums={() => setHomeAlbumPage((p) => p + 1)}
+          hasMoreAlbums={(homeAlbumsQuery.data?.length || 0) === HOME_ALBUM_PAGE_SIZE}
           loggedUser={loggedUser}
           onOpenLogin={() => setLoginOpen(true)}
           onOpenCustomer={() => {

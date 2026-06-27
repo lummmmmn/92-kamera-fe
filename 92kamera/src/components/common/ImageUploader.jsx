@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
-import { G, CARD, CARD2, BR, BR2, BG, TXT, MUT, RED } from "../../lib/constants.js";
-import { uploadCameraImage } from "../../api/index.js";
+import { G, CARD2, BR2, MUT, RED } from "../../lib/constants.js";
+import { uploadImage } from "../../api/upload.js";
+import { updateCamera } from "../../api/index.js";
 
 /**
  * Multi-image uploader for cameras/accessories
@@ -33,16 +34,25 @@ export default function ImageUploader({
     setUploadErr("");
     try {
       const results = await Promise.all(
-        toProcess.map((file) => {
-          const fd = new FormData();
-          fd.append("image", file);
-          return uploadCameraImage(cameraId, fd);
-        })
+        toProcess.map((file) =>
+          uploadImage(file, {
+            folder: "92kamera_cameras",
+            maxPx: 1200,
+            quality: 0.85,
+          })
+        )
       );
       const newUrls = results.map((r) => r.url);
       const newMeta = results.map((r) => ({ url: r.url, public_id: r.public_id }));
-      onChange([...images, ...newUrls]);
-      if (onChangeMeta) onChangeMeta([...imagesMeta, ...newMeta]);
+      const nextImages = [...images, ...newUrls];
+      const nextMeta   = [...imagesMeta, ...newMeta];
+      onChange(nextImages);
+      if (onChangeMeta) onChangeMeta(nextMeta);
+
+      // Persist lên BE: gửi mảng URL mới xuống endpoint update camera
+      if (cameraId && cameraId !== "undefined" && cameraId !== "null") {
+        await updateCamera(cameraId, { images: nextImages, imagesMeta: nextMeta });
+      }
     } catch {
       setUploadErr("❌ Upload thất bại — thử lại hoặc kiểm tra kết nối");
     }

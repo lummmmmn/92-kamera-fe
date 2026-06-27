@@ -4,12 +4,12 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  getCameras, updateCamera, createCamera, deleteCamera,
+  getCameras, getCamerasPage, updateCamera, createCamera, deleteCamera,
   getAccessories, updateAccessory, createAccessory, deleteAccessory,
   getSiteContent, updateSiteContent,
-  getFeedbacks, createFeedback, updateFeedback, deleteFeedback,
-  getAlbums, createAlbum, updateAlbum, deleteAlbum,
-  getPhotos, deletePhoto,
+  getFeedbacks, getFeedbacksPage, createFeedback, updateFeedback, deleteFeedback,
+  getAlbumsPage, createAlbum, updateAlbum, deleteAlbum,
+  getPhotosPage, deletePhoto,
   getDeliveryFees, updateDeliveryFees,
   getDiscounts, createDiscount, updateDiscount, deleteDiscount,
   getStaticCatalog,
@@ -20,16 +20,26 @@ import { CAMS_INIT, ACC_INIT, SITE_INIT, DELIVERY_AREAS_DEFAULT } from "../lib/c
 // ── STALE TIME ──
 const CATALOG_STALE = 5 * 60 * 1000; // 5 phút
 
+const asArray = (data, fallback = []) => {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data?.photos)) return data.photos;
+  return fallback;
+};
+
 // ─────────────────────────────────────────────
 // 📷 CAMERAS
 // ─────────────────────────────────────────────
-export function useCameras() {
+export function useCameras(options = {}) {
+  const { limit, offset, ...queryOptions } = options;
+  const hasPaging = typeof limit === "number" || typeof offset === "number";
   return useQuery({
-    queryKey: ["cameras"],
-    queryFn:  getCameras,
+    queryKey: hasPaging ? ["cameras", { limit, offset }] : ["cameras"],
+    queryFn: hasPaging ? () => getCamerasPage({ limit, offset }) : getCameras,
     staleTime: CATALOG_STALE,
     placeholderData: CAMS_INIT,
-    select: (data) => data ?? CAMS_INIT,
+    select: (data) => asArray(data, CAMS_INIT),
+    ...queryOptions,
   });
 }
 
@@ -80,7 +90,7 @@ export function useAccessories() {
     staleTime: CATALOG_STALE,
     placeholderData: ACC_INIT,
     select: (data) =>
-      (data ?? ACC_INIT).map((a) => ({
+      asArray(data, ACC_INIT).map((a) => ({
         qty: 1, active: true, priceShift: null, desc: "",
         ...a,
       })),
@@ -171,13 +181,15 @@ export function useUpdateDeliveryFees() {
 // ⭐ FEEDBACKS
 // ─────────────────────────────────────────────
 export function useFeedbacks(options = {}) {
+  const { limit, offset, ...queryOptions } = options;
+  const hasPaging = typeof limit === "number" || typeof offset === "number";
   return useQuery({
-    queryKey: ["feedbacks"],
-    queryFn:  getFeedbacks,
+    queryKey: hasPaging ? ["feedbacks", { limit, offset }] : ["feedbacks"],
+    queryFn: hasPaging ? () => getFeedbacksPage({ limit, offset }) : getFeedbacks,
     staleTime: CATALOG_STALE,
     placeholderData: [],
-    select: (data) => data ?? [],
-    ...options,
+    select: (data) => asArray(data, []),
+    ...queryOptions,
   });
 }
 
@@ -209,13 +221,14 @@ export function useDeleteFeedback() {
 // 🖼️ ALBUMS
 // ─────────────────────────────────────────────
 export function useAlbums(options = {}) {
+  const { limit = 20, offset = 0, ...queryOptions } = options;
   return useQuery({
-    queryKey: ["albums"],
-    queryFn:  getAlbums,
+    queryKey: ["albums", { limit, offset }],
+    queryFn:  () => getAlbumsPage({ limit, offset }),
     staleTime: CATALOG_STALE,
     placeholderData: [],
-    select: (data) => data ?? [],
-    ...options,
+    select: (data) => data?.items ?? data ?? [],
+    ...queryOptions,
   });
 }
 
@@ -247,13 +260,14 @@ export function useDeleteAlbum() {
 // 📷 PHOTOS
 // ─────────────────────────────────────────────
 export function usePhotos(options = {}) {
+  const { limit = 24, offset = 0, ...queryOptions } = options;
   return useQuery({
-    queryKey: ["photos"],
-    queryFn:  getPhotos,
+    queryKey: ["photos", { limit, offset }],
+    queryFn:  () => getPhotosPage({ limit, offset }),
     staleTime: CATALOG_STALE,
     placeholderData: [],
-    select: (data) => (data?.photos || data) ?? [],
-    ...options,
+    select: (data) => (data?.photos || data?.items || data) ?? [],
+    ...queryOptions,
   });
 }
 
@@ -274,7 +288,7 @@ export function useDiscounts() {
     queryFn:  getDiscounts,
     staleTime: CATALOG_STALE,
     placeholderData: [],
-    select: (data) => data ?? [],
+    select: (data) => asArray(data, []),
   });
 }
 
@@ -335,6 +349,4 @@ export function useUpsertUser() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
   });
 }
-
-
 

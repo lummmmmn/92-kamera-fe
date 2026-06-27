@@ -3,7 +3,18 @@ import { G, MUT, TXT } from "../../lib/constants.js";
 import { cdnUrl } from "../../utils/format.js";
 import PhotoLightbox from "../common/PhotoLightbox.jsx";
 
-export default function FeedbackSection({ photos, albums, feedbacks, isMobile }) {
+export default function FeedbackSection({
+  photos,
+  albums,
+  feedbacks,
+  isMobile,
+  onLoadMorePhotos,
+  hasMorePhotos,
+  onLoadMoreAlbums,
+  hasMoreAlbums,
+  onLoadMoreFeedbacks,
+  hasMoreFeedbacks,
+}) {
   const [paused, setPaused] = useState(false);
   const [lightbox, setLightbox] = useState(null); // index ảnh rời
   const [openAlbum, setOpenAlbum] = useState(null); // album object
@@ -293,6 +304,51 @@ export default function FeedbackSection({ photos, albums, feedbacks, isMobile })
               <FeedbackCard key={c.key + "_" + i} c={c} style={{ width: 280, flexShrink: 0, transition: "all .28s cubic-bezier(.34,1.56,.64,1)" }} />
             ))}
           </div>
+        </div>
+      )}
+
+      {(hasMoreFeedbacks || hasMorePhotos || hasMoreAlbums) && (
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 10, marginTop: 22, padding: "0 16px" }}>
+          {hasMoreFeedbacks && (
+            <button
+              type="button"
+              onClick={onLoadMoreFeedbacks}
+              style={{
+                background: "rgba(255,255,255,0.70)",
+                border: `1px solid rgba(13,27,42,0.12)`,
+                color: G,
+                padding: "10px 16px",
+                borderRadius: 999,
+                fontSize: 11,
+                cursor: "pointer",
+                fontFamily: "system-ui,sans-serif",
+                letterSpacing: 1.2,
+                fontWeight: 700,
+              }}
+            >
+              TẢI THÊM FEEDBACK
+            </button>
+          )}
+          {hasMorePhotos && (
+            <button
+              type="button"
+              onClick={onLoadMorePhotos}
+              style={{
+                background: "rgba(255,255,255,0.70)",
+                border: `1px solid rgba(13,27,42,0.12)`,
+                color: G,
+                padding: "10px 16px",
+                borderRadius: 999,
+                fontSize: 11,
+                cursor: "pointer",
+                fontFamily: "system-ui,sans-serif",
+                letterSpacing: 1.2,
+                fontWeight: 700,
+              }}
+            >
+              TẢI THÊM ẢNH
+            </button>
+          )}
         </div>
       )}
 
@@ -605,6 +661,32 @@ export default function FeedbackSection({ photos, albums, feedbacks, isMobile })
             </div>
           )}
 
+          {hasMoreAlbums && (
+            <div style={{ textAlign: "center", marginTop: isMobile ? 18 : 26 }}>
+              <button
+                type="button"
+                onClick={onLoadMoreAlbums}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 10,
+                  background: "rgba(255,255,255,0.70)",
+                  border: `1px solid rgba(13,27,42,0.12)`,
+                  color: G,
+                  padding: isMobile ? "10px 20px" : "11px 24px",
+                  borderRadius: 999,
+                  fontSize: 11,
+                  cursor: "pointer",
+                  fontFamily: "system-ui,sans-serif",
+                  letterSpacing: 1.2,
+                  fontWeight: 700,
+                }}
+              >
+                TẢI THÊM ALBUM
+              </button>
+            </div>
+          )}
+
           {!hasAlbums && hasPhotos && (
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: isMobile ? 8 : 10 }}>
               {photosArr.map((p, i) => (
@@ -663,4 +745,3 @@ export default function FeedbackSection({ photos, albums, feedbacks, isMobile })
     </div>
   );
 }
-

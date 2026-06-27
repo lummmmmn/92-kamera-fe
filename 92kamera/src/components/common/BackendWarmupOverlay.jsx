@@ -27,6 +27,7 @@ export default function BackendWarmupOverlay({
   if (!visible) return null;
 
   const slowServer = seconds >= 8;
+  const canContinue = hasError || seconds >= 10;
   const title = hasError
     ? "Chưa tải được thông tin mới nhất"
     : slowServer
@@ -209,7 +210,7 @@ export default function BackendWarmupOverlay({
           <span>{seconds}s</span>
         </div>
 
-        {hasError && (
+        {canContinue && (
           <div
             style={{
               display: "flex",
@@ -223,6 +224,7 @@ export default function BackendWarmupOverlay({
               type="button"
               onClick={onRetry}
               style={{
+                display: hasError ? "inline-flex" : "none",
                 border: "none",
                 borderRadius: 14,
                 padding: "11px 16px",
@@ -253,7 +255,7 @@ export default function BackendWarmupOverlay({
                 cursor: "pointer",
               }}
             >
-              VÀO TRANG
+              {hasError ? "VÀO TRANG" : "VÀO TRANG TRƯỚC"}
             </button>
           </div>
         )}

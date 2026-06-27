@@ -9,8 +9,12 @@
  */
 import axios from "axios";
 
+const DEFAULT_API_URL = import.meta.env.DEV
+  ? "http://localhost:3000/api"
+  : "https://nine2kamera-be.onrender.com/api";
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "https://nine2kamera-be.onrender.com/api",
+  baseURL: import.meta.env.VITE_API_URL || DEFAULT_API_URL,
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",
