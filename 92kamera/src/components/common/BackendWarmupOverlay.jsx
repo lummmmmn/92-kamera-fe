@@ -28,15 +28,15 @@ export default function BackendWarmupOverlay({
 
   const slowServer = seconds >= 8;
   const title = hasError
-    ? "Chưa kết nối được với máy chủ"
+    ? "Chưa tải được thông tin mới nhất"
     : slowServer
-    ? "Máy chủ đang khởi động lại"
-    : "Đang tải dữ liệu thật";
+    ? "Đang cập nhật tình trạng thiết bị"
+    : "Đang chuẩn bị dữ liệu cho bạn";
   const detail = hasError
-    ? "Render có thể đang ngủ đông hoặc mất nhiều thời gian hơn bình thường. Bấm thử lại để gọi API thêm lần nữa."
+    ? "Bạn có thể thử lại ngay, hoặc vào trang trước và quay lại sau ít phút."
     : slowServer
-    ? "Render free tier thường cần 20-60 giây sau một thời gian không có request."
-    : "Đang đánh thức backend trên Render và lấy catalog mới nhất.";
+    ? "Kết nối lần đầu có thể chậm hơn một chút. Vui lòng chờ để tình trạng máy và lịch thuê được cập nhật chính xác."
+    : "Tụi mình đang kiểm tra máy ảnh, phụ kiện và lịch thuê để hiển thị thông tin chính xác.";
 
   return (
     <div
@@ -108,7 +108,7 @@ export default function BackendWarmupOverlay({
               marginBottom: 10,
             }}
           >
-            SERVER WAKE UP
+            ĐANG CẬP NHẬT
           </div>
           <h2
             style={{
@@ -205,7 +205,7 @@ export default function BackendWarmupOverlay({
             letterSpacing: 1.3,
           }}
         >
-          <span>{pendingCount > 0 ? `${pendingCount} API đang chờ` : "Đang đồng bộ"}</span>
+          <span>{pendingCount > 0 ? "Đang cập nhật thông tin" : "Sắp xong"}</span>
           <span>{seconds}s</span>
         </div>
 
@@ -253,7 +253,7 @@ export default function BackendWarmupOverlay({
                 cursor: "pointer",
               }}
             >
-              XEM TẠM
+              VÀO TRANG
             </button>
           </div>
         )}
