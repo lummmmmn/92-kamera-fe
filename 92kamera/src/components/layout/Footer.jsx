@@ -48,7 +48,8 @@ export default function Footer({ isMobile, siteContent }) {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "auto 1fr",
+            gridTemplateColumns: isMobile ? "1fr" : "72px 1fr",
+            alignItems: "baseline",
             gap: isMobile ? 10 : "8px 16px",
             padding: isMobile ? "16px 0" : "0 0 0 24px",
             borderLeft: isMobile ? "none" : "1px solid rgba(13,27,42,0.12)",
