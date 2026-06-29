@@ -282,7 +282,7 @@ export default function AdminDashboard({ onBack, isMobile }) {
               </div>
             )}
             {tab === "users" && <UsersPanel />}
-            {tab === "discounts" && <DiscountsPanel isMobile={isMobile} />}
+            {tab === "discounts" && <DiscountsPanel isMobile={isMobile} orders={orders} />}
             {tab === "inventory" && <InventoryPanel isMobile={isMobile} />}
             {tab === "content" && <SitePanel isMobile={isMobile} />}
             {tab === "security" && <SecurityPanel />}
