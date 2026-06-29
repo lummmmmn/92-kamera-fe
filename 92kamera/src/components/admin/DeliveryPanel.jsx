@@ -9,8 +9,10 @@ export default function DeliveryPanel({ isMobile }) {
   const [localFees, setLocalFees] = useState([]);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [editingArea, setEditingArea] = useState(null);
+  const [editingIdx, setEditingIdx] = useState(null);
+  const [editDraft, setEditDraft] = useState({ name: "", fee: "" });
   const [savingArea, setSavingArea] = useState(null);
+  const [deletingArea, setDeletingArea] = useState(null);
   const [addingArea, setAddingArea] = useState(false);
   const [newArea, setNewArea] = useState({ name: "", fee: "" });
   const [savingNewArea, setSavingNewArea] = useState(false);
@@ -26,38 +28,50 @@ export default function DeliveryPanel({ isMobile }) {
     return isNaN(num) ? 0 : num;
   };
 
-  const handleFeeChange = (idx, val) => {
-    const num = parseFeeInput(val);
-    setLocalFees((prev) =>
-      prev.map((f, i) => (i === idx ? { ...f, fee: num } : f))
-    );
-    setSaved(false);
-  };
+  const anyBusy = saving || !!savingArea || savingNewArea || !!deletingArea;
 
-  const handleStartEdit = (areaName) => {
-    if (saving || savingArea || savingNewArea) return;
+  const handleStartEdit = (idx) => {
+    if (anyBusy) return;
     setAddingArea(false);
-    setEditingArea(areaName);
+    setEditingIdx(idx);
+    setEditDraft({ name: localFees[idx].name, fee: String(localFees[idx].fee) });
     setSaved(false);
   };
 
-  const handleCancelEdit = (idx, areaName) => {
-    const original = fees.find((f) => f.name === areaName);
-    if (original) {
-      setLocalFees((prev) => prev.map((f, i) => (i === idx ? { ...original } : f)));
-    }
-    setEditingArea(null);
+  const handleCancelEdit = () => {
+    setEditingIdx(null);
+    setEditDraft({ name: "", fee: "" });
   };
 
-  const handleSaveArea = async (areaName) => {
-    if (saving || savingArea || savingNewArea) return;
+  const handleSaveArea = async (idx) => {
+    if (anyBusy) return;
 
-    setSavingArea(areaName);
+    const name = editDraft.name.trim();
+    if (!name) {
+      alert("Tên khu vực không được để trống");
+      return;
+    }
+
+    const dup = localFees.some(
+      (f, i) => i !== idx && f.name.trim().toLowerCase() === name.toLowerCase()
+    );
+    if (dup) {
+      alert("Tên khu vực này đã tồn tại");
+      return;
+    }
+
+    const fee = parseFeeInput(editDraft.fee);
+    const nextFees = localFees.map((f, i) => (i === idx ? { ...f, name, fee } : f));
+    const originalName = localFees[idx].name;
+
+    setSavingArea(originalName);
     try {
-      await updateDeliveryMutation.mutateAsync(localFees);
+      await updateDeliveryMutation.mutateAsync(nextFees);
+      setLocalFees(nextFees);
       await refetch();
       setSaved(true);
-      setEditingArea(null);
+      setEditingIdx(null);
+      setEditDraft({ name: "", fee: "" });
       setTimeout(() => setSaved(false), 2500);
     } catch (err) {
       alert("Lưu phí giao nhận thất bại: " + err.message);
@@ -66,9 +80,40 @@ export default function DeliveryPanel({ isMobile }) {
     }
   };
 
+  const handleDeleteArea = async (idx) => {
+    if (anyBusy) return;
+
+    const area = localFees[idx];
+    const ok = window.confirm(`Xoá khu vực "${area.name}"? Hành động này không thể hoàn tác.`);
+    if (!ok) return;
+
+    const nextFees = localFees.filter((_, i) => i !== idx);
+
+    setDeletingArea(area.name);
+    try {
+      await updateDeliveryMutation.mutateAsync(nextFees);
+      setLocalFees(nextFees);
+      await refetch();
+      if (editingIdx === idx) {
+        // Đang sửa đúng dòng bị xoá -> đóng form sửa
+        setEditingIdx(null);
+        setEditDraft({ name: "", fee: "" });
+      } else if (editingIdx !== null && editingIdx > idx) {
+        // Đang sửa 1 dòng phía sau dòng bị xoá -> mảng dịch lùi 1, cập nhật lại index cho đúng
+        setEditingIdx(editingIdx - 1);
+      }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      alert("Xoá khu vực thất bại: " + err.message);
+    } finally {
+      setDeletingArea(null);
+    }
+  };
+
   const handleStartAdd = () => {
-    if (saving || savingArea || savingNewArea) return;
-    setEditingArea(null);
+    if (anyBusy) return;
+    setEditingIdx(null);
     setNewArea({ name: "", fee: "" });
     setAddingArea(true);
     setSaved(false);
@@ -81,7 +126,7 @@ export default function DeliveryPanel({ isMobile }) {
   };
 
   const handleSaveNewArea = async () => {
-    if (saving || savingArea || savingNewArea) return;
+    if (anyBusy) return;
 
     const name = newArea.name.trim();
     if (!name) {
@@ -114,14 +159,14 @@ export default function DeliveryPanel({ isMobile }) {
   };
 
   const handleSave = async () => {
-    if (savingArea || savingNewArea) return;
+    if (!!savingArea || savingNewArea || !!deletingArea) return;
 
     setSaving(true);
     try {
       await updateDeliveryMutation.mutateAsync(localFees);
       setSaved(true);
       await refetch();
-      setEditingArea(null);
+      setEditingIdx(null);
       setAddingArea(false);
       setTimeout(() => setSaved(false), 2500);
     } catch (err) {
@@ -155,36 +200,36 @@ export default function DeliveryPanel({ isMobile }) {
         <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" }}>
         <button
           onClick={handleStartAdd}
-          disabled={saving || !!savingArea || savingNewArea || addingArea}
+          disabled={anyBusy || addingArea}
           style={{
             padding: "9px 16px",
             background: "rgba(13,27,42,0.08)",
             color: TXT,
             border: `1px solid ${BR}`,
             borderRadius: 12,
-            cursor: saving || savingArea || savingNewArea || addingArea ? "not-allowed" : "pointer",
+            cursor: anyBusy || addingArea ? "not-allowed" : "pointer",
             fontSize: 13,
             fontWeight: 700,
             fontFamily: "system-ui,sans-serif",
-            opacity: saving || savingArea || savingNewArea || addingArea ? 0.6 : 1,
+            opacity: anyBusy || addingArea ? 0.6 : 1,
           }}
         >
           + Thêm khu vực
         </button>
         <button
           onClick={handleSave}
-          disabled={saving || !!savingArea || savingNewArea}
+          disabled={!!savingArea || savingNewArea || !!deletingArea}
           style={{
             padding: "9px 22px",
             background: saved ? "#22c55e" : `linear-gradient(135deg,${G},#1a3a5c)`,
             color: "#fff",
             border: "none",
             borderRadius: 12,
-            cursor: saving || savingArea || savingNewArea ? "not-allowed" : "pointer",
+            cursor: saving || savingArea || savingNewArea || deletingArea ? "not-allowed" : "pointer",
             fontSize: 13,
             fontWeight: 700,
             fontFamily: "system-ui,sans-serif",
-            opacity: saving || savingArea || savingNewArea ? 0.7 : 1,
+            opacity: saving || savingArea || savingNewArea || deletingArea ? 0.7 : 1,
             transition: "all .2s",
           }}
         >
@@ -211,7 +256,7 @@ export default function DeliveryPanel({ isMobile }) {
 
       <div style={{ background: "rgba(255,255,255,0.45)", border: `1px solid ${BR}`, borderRadius: 16, overflow: "hidden" }}>
         {/* Header bảng */}
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 180px 170px", gap: 0, background: "rgba(8,20,36,0.07)", padding: "10px 16px", borderBottom: `1px solid ${BR}` }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 180px 220px", gap: 0, background: "rgba(8,20,36,0.07)", padding: "10px 16px", borderBottom: `1px solid ${BR}` }}>
           <span style={{ color: MUT, fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", letterSpacing: 1 }}>KHU VỰC</span>
           {!isMobile && <span style={{ color: MUT, fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", letterSpacing: 1, textAlign: "right" }}>PHÍ 2 CHIỀU (đ)</span>}
           {!isMobile && <span style={{ color: MUT, fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", letterSpacing: 1, textAlign: "right" }}>THAO TÁC</span>}
@@ -221,7 +266,7 @@ export default function DeliveryPanel({ isMobile }) {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: isMobile ? "1fr" : "1fr 180px 170px",
+              gridTemplateColumns: isMobile ? "1fr" : "1fr 180px 220px",
               gap: isMobile ? 8 : 12,
               alignItems: "center",
               padding: "10px 16px",
@@ -270,16 +315,17 @@ export default function DeliveryPanel({ isMobile }) {
 
         {/* Rows */}
         {localFees.map((area, idx) => {
-          const isEditing = editingArea === area.name;
+          const isEditing = editingIdx === idx;
           const isSaving = savingArea === area.name;
-          const rowDisabled = saving || savingNewArea || (!!savingArea && !isSaving);
+          const isDeleting = deletingArea === area.name;
+          const rowDisabled = saving || savingNewArea || (!!savingArea && !isSaving) || (!!deletingArea && !isDeleting);
 
           return (
             <div
-              key={area.name}
+              key={`${area.name}-${idx}`}
               style={{
                 display: "grid",
-                gridTemplateColumns: isMobile ? "1fr" : "1fr 180px 170px",
+                gridTemplateColumns: isMobile ? "1fr" : "1fr 180px 220px",
                 gap: isMobile ? 8 : 12,
                 alignItems: "center",
                 padding: "10px 16px",
@@ -288,9 +334,22 @@ export default function DeliveryPanel({ isMobile }) {
               }}
             >
               <div>
-                <span style={{ color: TXT, fontSize: 13, fontFamily: "system-ui,sans-serif", fontWeight: 500 }}>{area.name}</span>
-                {area.fee === 0 && (
-                  <span style={{ marginLeft: 8, fontSize: 10, color: "#22c55e", fontFamily: "system-ui,sans-serif" }}>Miễn phí</span>
+                {isEditing ? (
+                  <input
+                    style={inp2}
+                    value={editDraft.name}
+                    disabled={isSaving}
+                    onChange={(e) => setEditDraft((p) => ({ ...p, name: e.target.value }))}
+                    placeholder="Tên khu vực"
+                    autoFocus
+                  />
+                ) : (
+                  <>
+                    <span style={{ color: TXT, fontSize: 13, fontFamily: "system-ui,sans-serif", fontWeight: 500 }}>{area.name}</span>
+                    {area.fee === 0 && (
+                      <span style={{ marginLeft: 8, fontSize: 10, color: "#22c55e", fontFamily: "system-ui,sans-serif" }}>Miễn phí</span>
+                    )}
+                  </>
                 )}
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: isMobile ? "flex-start" : "flex-end", gap: 6 }}>
@@ -300,9 +359,8 @@ export default function DeliveryPanel({ isMobile }) {
                     inputMode="numeric"
                     disabled={isSaving}
                     style={{ ...inp2, textAlign: "right", width: 120, opacity: isSaving ? 0.65 : 1 }}
-                    value={area.fee === 0 ? "0" : String(area.fee)}
-                    onChange={(e) => handleFeeChange(idx, e.target.value)}
-                    autoFocus
+                    value={editDraft.fee}
+                    onChange={(e) => setEditDraft((p) => ({ ...p, fee: e.target.value.replace(/\D/g, "") }))}
                   />
                 ) : (
                   <span style={{ color: TXT, fontSize: 15, fontFamily: "system-ui,sans-serif", fontWeight: 700 }}>
@@ -315,14 +373,14 @@ export default function DeliveryPanel({ isMobile }) {
                 {isEditing ? (
                   <>
                     <button
-                      onClick={() => handleSaveArea(area.name)}
+                      onClick={() => handleSaveArea(idx)}
                       disabled={isSaving}
                       style={{ padding: "7px 12px", background: "#0d1b2a", color: "#fff", border: "none", borderRadius: 10, cursor: isSaving ? "not-allowed" : "pointer", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", opacity: isSaving ? 0.7 : 1 }}
                     >
                       {isSaving ? "Đang lưu..." : "Lưu"}
                     </button>
                     <button
-                      onClick={() => handleCancelEdit(idx, area.name)}
+                      onClick={handleCancelEdit}
                       disabled={isSaving}
                       style={{ padding: "7px 12px", background: CARD2, color: MUT, border: `1px solid ${BR}`, borderRadius: 10, cursor: isSaving ? "not-allowed" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", opacity: isSaving ? 0.55 : 1 }}
                     >
@@ -330,13 +388,22 @@ export default function DeliveryPanel({ isMobile }) {
                     </button>
                   </>
                 ) : (
-                  <button
-                    onClick={() => handleStartEdit(area.name)}
-                    disabled={rowDisabled}
-                    style={{ padding: "7px 14px", background: "rgba(13,27,42,0.08)", color: TXT, border: `1px solid ${BR}`, borderRadius: 10, cursor: rowDisabled ? "not-allowed" : "pointer", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", opacity: rowDisabled ? 0.55 : 1 }}
-                  >
-                    Sửa
-                  </button>
+                  <>
+                    <button
+                      onClick={() => handleStartEdit(idx)}
+                      disabled={rowDisabled}
+                      style={{ padding: "7px 14px", background: "rgba(13,27,42,0.08)", color: TXT, border: `1px solid ${BR}`, borderRadius: 10, cursor: rowDisabled ? "not-allowed" : "pointer", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", opacity: rowDisabled ? 0.55 : 1 }}
+                    >
+                      Sửa
+                    </button>
+                    <button
+                      onClick={() => handleDeleteArea(idx)}
+                      disabled={rowDisabled}
+                      style={{ padding: "7px 14px", background: "rgba(220,38,38,0.08)", color: "#dc2626", border: "1px solid rgba(220,38,38,0.3)", borderRadius: 10, cursor: rowDisabled ? "not-allowed" : "pointer", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", opacity: rowDisabled ? 0.55 : 1 }}
+                    >
+                      {isDeleting ? "Đang xoá..." : "Xoá"}
+                    </button>
+                  </>
                 )}
               </div>
             </div>
