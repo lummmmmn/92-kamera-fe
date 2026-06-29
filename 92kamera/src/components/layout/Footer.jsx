@@ -41,7 +41,7 @@ export default function Footer({ isMobile, siteContent }) {
               textAlign: isMobile ? "center" : "left",
             }}
           >
-            Thuê máy ảnh · Núi Thành · Tam Kỳ
+            Cho thuê máy ảnh · Núi Thành · Tam Kỳ
           </div>
         </div>
 
