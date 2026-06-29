@@ -16,7 +16,84 @@ function STitle({ c }) {
   );
 }
 
-export default function DiscountsPanel({ isMobile }) {
+// Lấy mã giảm giá đã dùng trên 1 đơn (hỗ trợ cả appliedDiscounts mới và discountCode cũ)
+function getOrderDiscountCodes(o) {
+  if (Array.isArray(o.appliedDiscounts) && o.appliedDiscounts.length > 0) {
+    return o.appliedDiscounts.map((ad) => ad.code).filter(Boolean);
+  }
+  if (o.discountCode) return [o.discountCode];
+  return [];
+}
+
+// Bảng hoa hồng đối tác cho 1 mã cụ thể
+function PartnerCommissionTable({ discount, orders }) {
+  const code = (discount.code || "").toUpperCase();
+  const commissionPct = parseFloat(discount.partnerCommissionPercent) || 0;
+
+  const matchedOrders = (orders || []).filter((o) => {
+    if (o.status === "cancelled") return false;
+    const codes = getOrderDiscountCodes(o).map((c) => (c || "").toUpperCase());
+    return codes.includes(code);
+  });
+
+  const totalRevenue = matchedOrders.reduce((s, o) => s + (o.total || 0), 0);
+  const totalCommission = Math.round((totalRevenue * commissionPct) / 100);
+
+  return (
+    <div style={{ marginTop: 10, background: "#0a1810", border: "1px solid #22c55e2a", borderRadius: 12, padding: "12px 14px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: matchedOrders.length > 0 ? 10 : 0, flexWrap: "wrap", gap: 8 }}>
+        <div style={{ color: "#22c55e", fontSize: 11, fontWeight: 700 }}>
+          🤝 Hoa hồng đối tác {discount.partnerName ? `· ${discount.partnerName}` : ""} ({commissionPct}%)
+        </div>
+        <div style={{ display: "flex", gap: 14, fontSize: 11 }}>
+          <span style={{ color: MUT }}>
+            Đơn đã dùng: <span style={{ color: TXT, fontWeight: 700 }}>{matchedOrders.length}</span>
+          </span>
+          <span style={{ color: MUT }}>
+            Tổng khách trả: <span style={{ color: TXT, fontWeight: 700 }}>{fmtVND(totalRevenue)}</span>
+          </span>
+          <span style={{ color: MUT }}>
+            Hoa hồng phải trả: <span style={{ color: "#22c55e", fontWeight: 800 }}>{fmtVND(totalCommission)}</span>
+          </span>
+        </div>
+      </div>
+      {matchedOrders.length === 0 ? (
+        <div style={{ color: MUT, fontSize: 11 }}>Chưa có đơn nào dùng mã này.</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {matchedOrders.map((o) => {
+            const orderCommission = Math.round(((o.total || 0) * commissionPct) / 100);
+            return (
+              <div
+                key={o.id}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: 8,
+                  padding: "6px 10px",
+                  background: CARD,
+                  border: `1px solid ${BR2}`,
+                  borderRadius: 8,
+                  fontSize: 11,
+                }}
+              >
+                <span style={{ color: TXT, fontFamily: "monospace", fontWeight: 700 }}>{o.id}</span>
+                <span style={{ color: MUT }}>{o.name}</span>
+                <span style={{ color: MUT }}>{o.date}</span>
+                <span style={{ color: TXT }}>Khách trả: {fmtVND(o.total)}</span>
+                <span style={{ color: "#22c55e", fontWeight: 700 }}>Hoa hồng: {fmtVND(orderCommission)}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function DiscountsPanel({ isMobile, orders = [] }) {
   const { data: discounts = [], refetch } = useDiscounts();
   const createDiscountMutation = useCreateDiscount();
   const updateDiscountMutation = useUpdateDiscount();
@@ -28,8 +105,10 @@ export default function DiscountsPanel({ isMobile }) {
   const [savingDisc, setSavingDisc] = useState(false);
   const [deletingDiscId, setDeletingDiscId] = useState(null);
   const [togglingDiscId, setTogglingDiscId] = useState(null);
+  const [expandedPartnerId, setExpandedPartnerId] = useState(null);
   const [toast, setToast] = useState(null);
   const toastTimerRef = useRef(null);
+  const deletingDiscRef = useRef(false); // chặn double-click xoá ngay lập tức, không phụ thuộc state bất đồng bộ
 
   const showToast = (text, type = "ok") => {
     if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
@@ -37,7 +116,7 @@ export default function DiscountsPanel({ isMobile }) {
     toastTimerRef.current = window.setTimeout(() => setToast(null), 2600);
   };
 
-  const [discForm, setDiscForm] = useState({
+  const emptyForm = {
     code: "",
     type: "percent",
     value: "",
@@ -46,7 +125,11 @@ export default function DiscountsPanel({ isMobile }) {
     active: true,
     requiredBadge: "none",
     voucherScope: "rental",
-  });
+    partnerName: "",
+    partnerCommissionPercent: "",
+  };
+
+  const [discForm, setDiscForm] = useState(emptyForm);
 
   const saveDisc = async () => {
     if (savingDisc) return;
@@ -66,6 +149,11 @@ export default function DiscountsPanel({ isMobile }) {
       setDiscMsg({ type: "err", text: "Phần trăm tối đa 100%" });
       return;
     }
+    const partnerCommissionPercent = parseFloat(discForm.partnerCommissionPercent) || 0;
+    if (partnerCommissionPercent < 0 || partnerCommissionPercent > 100) {
+      setDiscMsg({ type: "err", text: "Hoa hồng đối tác phải từ 0 đến 100%" });
+      return;
+    }
     const duplicate = discounts.find(d => d.code.toUpperCase() === code && d.id !== editDiscId);
     if (duplicate) {
       setDiscMsg({ type: "err", text: "Mã này đã tồn tại" });
@@ -81,6 +169,8 @@ export default function DiscountsPanel({ isMobile }) {
       active: discForm.active,
       requiredBadge: discForm.requiredBadge || "none",
       voucherScope: discForm.voucherScope || "rental",
+      partnerName: (discForm.partnerName || "").trim(),
+      partnerCommissionPercent,
     };
 
     try {
@@ -92,7 +182,7 @@ export default function DiscountsPanel({ isMobile }) {
         await createDiscountMutation.mutateAsync({ ...payload, usedCount: 0, createdAt: todayStr() });
         showToast("Đã tạo mã giảm giá mới");
       }
-      setDiscForm({ code: "", type: "percent", value: "", minOrder: "", maxUse: "", active: true, requiredBadge: "none", voucherScope: "rental" });
+      setDiscForm(emptyForm);
       setEditDiscId(null);
       refetch();
     } catch (e) {
@@ -113,23 +203,37 @@ export default function DiscountsPanel({ isMobile }) {
       active: d.active,
       requiredBadge: d.requiredBadge || "none",
       voucherScope: d.voucherScope || "rental",
+      partnerName: d.partnerName || "",
+      partnerCommissionPercent: d.partnerCommissionPercent ? String(d.partnerCommissionPercent) : "",
     });
     setDiscMsg(null);
   };
 
   const deleteDisc = async (id) => {
-    if (deletingDiscId) return;
+    if (deletingDiscRef.current) return;
+    deletingDiscRef.current = true;
 
     try {
       setDeletingDiscId(id);
       await deleteDiscountMutation.mutateAsync(id);
       await refetch();
       setPendingDeleteDiscId(null);
+      setExpandedPartnerId((prev) => (prev === id ? null : prev));
       showToast("Đã xoá mã giảm giá");
     } catch (e) {
-      setDiscMsg({ type: "err", text: `Xóa mã thất bại: ${e.message || "Không xóa được"}` });
+      const isNotFound = e?.response?.status === 404;
+      if (isNotFound) {
+        // Mã đã được xoá thành công ở lượt gọi trước (double-click/race condition) — không phải lỗi thật
+        await refetch();
+        setPendingDeleteDiscId(null);
+        setExpandedPartnerId((prev) => (prev === id ? null : prev));
+        showToast("Đã xoá mã giảm giá");
+      } else {
+        setDiscMsg({ type: "err", text: `Xóa mã thất bại: ${e.message || "Không xóa được"}` });
+      }
     } finally {
       setDeletingDiscId(null);
+      deletingDiscRef.current = false;
     }
   };
 
@@ -160,6 +264,8 @@ export default function DiscountsPanel({ isMobile }) {
     boxSizing: "border-box",
     fontFamily: "system-ui,sans-serif",
   };
+
+  const isPartnerForm = parseFloat(discForm.partnerCommissionPercent) > 0;
 
   return (
     <div>
@@ -221,25 +327,34 @@ export default function DiscountsPanel({ isMobile }) {
             <input style={inp2} type="number" min="0"
               value={discForm.maxUse} onChange={e => setDiscForm(p => ({ ...p, maxUse: e.target.value }))} placeholder="VD: 10" />
           </div>
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ color: MUT, fontSize: 10, marginBottom: 6, letterSpacing: 1 }}>🏅 YÊU CẦU HUY HIỆU</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-              {[
-                { v: "none", label: "🔓 Không yêu cầu", col: MUT },
-                { v: "dong", label: "🥉 Khách Đồng", col: "#cd7f32" },
-                { v: "bac", label: "🥈 Khách Bạc", col: "#aaa" },
-                { v: "vang", label: "🥇 Khách Vàng", col: G },
-                { v: "daigiadagia", label: "👑 Đại Gia", col: G },
-                { v: "vip", label: "💎 VIP (5tr+)", col: "#38bdf8" },
-                { v: "kimcuong", label: "💠 Kim Cương (10tr+)", col: "#e879f9" },
-              ].map(({ v, label, col }) => (
-                <button key={v} onClick={() => setDiscForm(p => ({ ...p, requiredBadge: v }))}
-                  style={{ padding: "8px 6px", background: discForm.requiredBadge === v ? "#FFF8ED" : CARD, color: discForm.requiredBadge === v ? col : MUT, border: `1px solid ${discForm.requiredBadge === v ? col + "88" : BR2}`, borderRadius: 10, cursor: "pointer", fontSize: 11, fontWeight: discForm.requiredBadge === v ? 700 : 400, fontFamily: "system-ui,sans-serif", transition: "all .15s", textAlign: "center" }}>
-                  {label}
-                </button>
-              ))}
+
+          {/* Khu vực Mã đối tác */}
+          <div style={{ marginBottom: 16, background: isPartnerForm ? "#0a1810" : "transparent", border: isPartnerForm ? "1px solid #22c55e33" : `1px dashed ${BR2}`, borderRadius: 12, padding: 12, transition: "all .15s" }}>
+            <div style={{ color: isPartnerForm ? "#22c55e" : MUT, fontSize: 10, marginBottom: 8, letterSpacing: 1, fontWeight: 700 }}>
+              🤝 MÃ ĐỐI TÁC (tuỳ chọn — để trống nếu là mã khách thường)
             </div>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
+              <div>
+                <div style={{ color: MUT, fontSize: 10, marginBottom: 4 }}>Tên đối tác</div>
+                <input style={inp2} value={discForm.partnerName}
+                  onChange={e => setDiscForm(p => ({ ...p, partnerName: e.target.value }))}
+                  placeholder="VD: Studio Lan Anh" />
+              </div>
+              <div>
+                <div style={{ color: MUT, fontSize: 10, marginBottom: 4 }}>% Hoa hồng / đơn</div>
+                <input style={inp2} type="number" min="0" max="100" step="0.5"
+                  value={discForm.partnerCommissionPercent}
+                  onChange={e => setDiscForm(p => ({ ...p, partnerCommissionPercent: e.target.value }))}
+                  placeholder="VD: 10" />
+              </div>
+            </div>
+            {isPartnerForm && (
+              <div style={{ color: "#22c55e", fontSize: 10, marginTop: 8 }}>
+                Mỗi đơn dùng mã này, đối tác nhận {discForm.partnerCommissionPercent || 0}% trên số tiền khách thực trả.
+              </div>
+            )}
           </div>
+
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
             <button onClick={() => setDiscForm(p => ({ ...p, active: !p.active }))}
               style={{ width: 36, height: 20, borderRadius: 14, background: discForm.active ? "#22c55e" : "#333", border: "none", cursor: "pointer", position: "relative", transition: "background .2s", flexShrink: 0 }}>
@@ -249,7 +364,7 @@ export default function DiscountsPanel({ isMobile }) {
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={saveDisc} disabled={savingDisc} style={{ ...btn("gold"), flex: 1, opacity: savingDisc ? 0.65 : 1, cursor: savingDisc ? "not-allowed" : "pointer" }}>{savingDisc ? "⏳ Đang lưu..." : editDiscId ? "💾 Lưu thay đổi" : "➕ Tạo mã"}</button>
-            {editDiscId && <button disabled={savingDisc} onClick={() => { setEditDiscId(null); setDiscForm({ code: "", type: "percent", value: "", minOrder: "", maxUse: "", active: true, requiredBadge: "none", voucherScope: "rental" }); setDiscMsg(null); }} style={{ ...btn("ghost"), opacity: savingDisc ? 0.55 : 1, cursor: savingDisc ? "not-allowed" : "pointer" }}>Huỷ</button>}
+            {editDiscId && <button disabled={savingDisc} onClick={() => { setEditDiscId(null); setDiscForm(emptyForm); setDiscMsg(null); }} style={{ ...btn("ghost"), opacity: savingDisc ? 0.55 : 1, cursor: savingDisc ? "not-allowed" : "pointer" }}>Huỷ</button>}
           </div>
         </div>
 
@@ -274,6 +389,7 @@ export default function DiscountsPanel({ isMobile }) {
               <div>• <span style={{ color: TXT }}>% Phần trăm:</span> VD: giá trị 20 → giảm 20% tổng đơn</div>
               <div>• <span style={{ color: TXT }}>đ Tiền mặt:</span> VD: giá trị 50000 → giảm 50.000đ</div>
               <div>• <span style={{ color: TXT }}>Hạn mức:</span> Đơn phải đạt X đồng mới được dùng</div>
+              <div>• <span style={{ color: TXT }}>Mã đối tác:</span> Nhập % hoa hồng để đối tác nhận tiền mỗi đơn dùng mã</div>
               <div>• Phát mã cho khách qua Zalo / Facebook</div>
             </div>
           </div>
@@ -284,48 +400,66 @@ export default function DiscountsPanel({ isMobile }) {
       <div style={{ color: TXT, fontWeight: 600, fontSize: 13, marginBottom: 12 }}>Danh sách mã ({discounts.length})</div>
       {discounts.length === 0 && <div style={{ color: MUT, textAlign: "center", padding: 40, fontSize: 13 }}>Chưa có mã giảm giá nào</div>}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {discounts.map(d => (
-          <div key={d.id} style={{ background: CARD2, border: `1px solid ${d.active ? G + "33" : BR2}`, borderRadius: 14, padding: "14px 16px", display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
-                <span style={{ color: G, fontWeight: 800, fontSize: 16, fontFamily: "monospace", letterSpacing: 2 }}>{d.code}</span>
-                <span style={{ padding: "2px 10px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: d.active ? "#022" : BR2, color: d.active ? "#22c55e" : MUT, border: `1px solid ${d.active ? "#22c55e44" : BR2}` }}>{d.active ? "ĐANG BẬT" : "TẮT"}</span>
-                <span style={{ padding: "2px 10px", borderRadius: 99, fontSize: 10, background: "#FFF8ED", color: G, border: `1px solid ${G}44` }}>
-                  {d.type === "percent" ? `Giảm ${d.value}%` : `Giảm ${fmtVND(d.value)}`}
-                </span>
-                <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, background: d.voucherScope === "delivery" ? "#0a1a2a" : "#1a1200", color: d.voucherScope === "delivery" ? "#60a5fa" : G, border: `1px solid ${d.voucherScope === "delivery" ? "#60a5fa44" : G + "44"}` }}>
-                  {d.voucherScope === "delivery" ? "🚗 Ship" : "🎞️ Thuê"}
-                </span>
-              </div>
-              <div style={{ color: MUT, fontSize: 11, display: "flex", gap: 12, flexWrap: "wrap" }}>
-                {d.minOrder > 0 && <span>Đơn tối thiểu: <span style={{ color: TXT }}>{fmtVND(d.minOrder)}</span></span>}
-                <span>Đã dùng: <span style={{ color: d.maxUse && d.usedCount >= d.maxUse ? "#ef4444" : "#60a5fa" }}>{d.usedCount || 0}{d.maxUse ? `/${d.maxUse}` : ""} lượt</span></span>
-                <span>Tạo: {d.createdAt}</span>
-                {d.requiredBadge && d.requiredBadge !== "none" && (
-                  <span style={{ color: d.requiredBadge === "kimcuong" ? "#e879f9" : d.requiredBadge === "vip" ? "#38bdf8" : d.requiredBadge === "vang" || d.requiredBadge === "daigiadagia" ? G : d.requiredBadge === "bac" ? "#aaa" : "#cd7f32", fontWeight: 700 }}>
-                    🏅 Cần: {d.requiredBadge === "dong" ? "🥉 Khách Đồng" : d.requiredBadge === "bac" ? "🥈 Khách Bạc" : d.requiredBadge === "vang" ? "🥇 Khách Vàng" : d.requiredBadge === "daigiadagia" ? "👑 Đại Gia" : d.requiredBadge === "vip" ? "💎 VIP (5tr+)" : "💠 Kim Cương (10tr+)"}
-                  </span>
-                )}
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-              <button disabled={!!togglingDiscId || deletingDiscId === d.id} onClick={() => toggleActive(d)}
-                style={{ padding: "6px 12px", background: d.active ? "#160505" : "#021a0a", color: d.active ? "#ef4444" : "#22c55e", border: `1px solid ${d.active ? "#ef444433" : "#22c55e33"}`, borderRadius: 10, cursor: togglingDiscId || deletingDiscId === d.id ? "not-allowed" : "pointer", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", opacity: togglingDiscId && togglingDiscId !== d.id ? 0.55 : 1 }}>
-                {togglingDiscId === d.id ? "Đang lưu..." : d.active ? "Tắt" : "Bật"}
-              </button>
-              <button disabled={deletingDiscId === d.id || togglingDiscId === d.id} onClick={() => startEdit(d)} style={{ padding: "6px 12px", background: CARD, color: TXT, border: `1px solid ${BR2}`, borderRadius: 10, cursor: deletingDiscId === d.id || togglingDiscId === d.id ? "not-allowed" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", opacity: deletingDiscId === d.id || togglingDiscId === d.id ? 0.55 : 1 }}>✏️</button>
-              {pendingDeleteDiscId === d.id ? (
-                <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                  <span style={{ fontSize: 10, color: "#ef4444", fontFamily: "system-ui,sans-serif" }}>Xoá?</span>
-                  <button disabled={deletingDiscId === d.id} onClick={() => deleteDisc(d.id)} style={{ padding: "6px 10px", background: "#ef4444", color: "#fff", border: "none", borderRadius: 10, cursor: deletingDiscId === d.id ? "not-allowed" : "pointer", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", opacity: deletingDiscId === d.id ? 0.7 : 1 }}>{deletingDiscId === d.id ? "..." : "✓"}</button>
-                  <button disabled={deletingDiscId === d.id} onClick={() => setPendingDeleteDiscId(null)} style={{ padding: "6px 10px", background: CARD, color: MUT, border: `1px solid ${BR2}`, borderRadius: 10, cursor: deletingDiscId === d.id ? "not-allowed" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", opacity: deletingDiscId === d.id ? 0.55 : 1 }}>✕</button>
+        {discounts.map(d => {
+          const isPartner = parseFloat(d.partnerCommissionPercent) > 0;
+          const isExpanded = expandedPartnerId === d.id;
+          return (
+            <div key={d.id} style={{ background: CARD2, border: `1px solid ${d.active ? G + "33" : BR2}`, borderRadius: 14, padding: "14px 16px" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
+                    <span style={{ color: G, fontWeight: 800, fontSize: 16, fontFamily: "monospace", letterSpacing: 2 }}>{d.code}</span>
+                    <span style={{ padding: "2px 10px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: d.active ? "#022" : BR2, color: d.active ? "#22c55e" : MUT, border: `1px solid ${d.active ? "#22c55e44" : BR2}` }}>{d.active ? "ĐANG BẬT" : "TẮT"}</span>
+                    <span style={{ padding: "2px 10px", borderRadius: 99, fontSize: 10, background: "#FFF8ED", color: G, border: `1px solid ${G}44` }}>
+                      {d.type === "percent" ? `Giảm ${d.value}%` : `Giảm ${fmtVND(d.value)}`}
+                    </span>
+                    <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, background: d.voucherScope === "delivery" ? "#0a1a2a" : "#1a1200", color: d.voucherScope === "delivery" ? "#60a5fa" : G, border: `1px solid ${d.voucherScope === "delivery" ? "#60a5fa44" : G + "44"}` }}>
+                      {d.voucherScope === "delivery" ? "🚗 Ship" : "🎞️ Thuê"}
+                    </span>
+                    {isPartner && (
+                      <span style={{ padding: "2px 10px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: "#0a1810", color: "#22c55e", border: "1px solid #22c55e44" }}>
+                        🤝 {d.partnerName ? `${d.partnerName} · ` : ""}Hoa hồng {d.partnerCommissionPercent}%
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ color: MUT, fontSize: 11, display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    {d.minOrder > 0 && <span>Đơn tối thiểu: <span style={{ color: TXT }}>{fmtVND(d.minOrder)}</span></span>}
+                    <span>Đã dùng: <span style={{ color: d.maxUse && d.usedCount >= d.maxUse ? "#ef4444" : "#60a5fa" }}>{d.usedCount || 0}{d.maxUse ? `/${d.maxUse}` : ""} lượt</span></span>
+                    <span>Tạo: {d.createdAt}</span>
+                    {d.requiredBadge && d.requiredBadge !== "none" && (
+                      <span style={{ color: d.requiredBadge === "kimcuong" ? "#e879f9" : d.requiredBadge === "vip" ? "#38bdf8" : d.requiredBadge === "vang" || d.requiredBadge === "daigiadagia" ? G : d.requiredBadge === "bac" ? "#aaa" : "#cd7f32", fontWeight: 700 }}>
+                        🏅 Cần: {d.requiredBadge === "dong" ? "🥉 Khách Đồng" : d.requiredBadge === "bac" ? "🥈 Khách Bạc" : d.requiredBadge === "vang" ? "🥇 Khách Vàng" : d.requiredBadge === "daigiadagia" ? "👑 Đại Gia" : d.requiredBadge === "vip" ? "💎 VIP (5tr+)" : "💠 Kim Cương (10tr+)"}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              ) : (
-                <button disabled={togglingDiscId === d.id} onClick={() => setPendingDeleteDiscId(d.id)} style={{ padding: "6px 12px", background: "#FEF0F0", color: "#ef4444", border: "1px solid #ef444430", borderRadius: 10, cursor: togglingDiscId === d.id ? "not-allowed" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", opacity: togglingDiscId === d.id ? 0.55 : 1 }}>🗑</button>
-              )}
+                <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                  {isPartner && (
+                    <button onClick={() => setExpandedPartnerId(isExpanded ? null : d.id)}
+                      style={{ padding: "6px 12px", background: isExpanded ? "#0a1810" : CARD, color: "#22c55e", border: "1px solid #22c55e44", borderRadius: 10, cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>
+                      {isExpanded ? "▲ Ẩn hoa hồng" : "▼ Xem hoa hồng"}
+                    </button>
+                  )}
+                  <button disabled={!!togglingDiscId || deletingDiscId === d.id} onClick={() => toggleActive(d)}
+                    style={{ padding: "6px 12px", background: d.active ? "#160505" : "#021a0a", color: d.active ? "#ef4444" : "#22c55e", border: `1px solid ${d.active ? "#ef444433" : "#22c55e33"}`, borderRadius: 10, cursor: togglingDiscId || deletingDiscId === d.id ? "not-allowed" : "pointer", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", opacity: togglingDiscId && togglingDiscId !== d.id ? 0.55 : 1 }}>
+                    {togglingDiscId === d.id ? "Đang lưu..." : d.active ? "Tắt" : "Bật"}
+                  </button>
+                  <button disabled={deletingDiscId === d.id || togglingDiscId === d.id} onClick={() => startEdit(d)} style={{ padding: "6px 12px", background: CARD, color: TXT, border: `1px solid ${BR2}`, borderRadius: 10, cursor: deletingDiscId === d.id || togglingDiscId === d.id ? "not-allowed" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", opacity: deletingDiscId === d.id || togglingDiscId === d.id ? 0.55 : 1 }}>✏️</button>
+                  {pendingDeleteDiscId === d.id ? (
+                    <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                      <span style={{ fontSize: 10, color: "#ef4444", fontFamily: "system-ui,sans-serif" }}>Xoá?</span>
+                      <button disabled={deletingDiscId === d.id} onClick={() => deleteDisc(d.id)} style={{ padding: "6px 10px", background: "#ef4444", color: "#fff", border: "none", borderRadius: 10, cursor: deletingDiscId === d.id ? "not-allowed" : "pointer", fontSize: 11, fontWeight: 700, fontFamily: "system-ui,sans-serif", opacity: deletingDiscId === d.id ? 0.7 : 1 }}>{deletingDiscId === d.id ? "..." : "✓"}</button>
+                      <button disabled={deletingDiscId === d.id} onClick={() => setPendingDeleteDiscId(null)} style={{ padding: "6px 10px", background: CARD, color: MUT, border: `1px solid ${BR2}`, borderRadius: 10, cursor: deletingDiscId === d.id ? "not-allowed" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", opacity: deletingDiscId === d.id ? 0.55 : 1 }}>✕</button>
+                    </div>
+                  ) : (
+                    <button disabled={togglingDiscId === d.id} onClick={() => setPendingDeleteDiscId(d.id)} style={{ padding: "6px 12px", background: "#FEF0F0", color: "#ef4444", border: "1px solid #ef444430", borderRadius: 10, cursor: togglingDiscId === d.id ? "not-allowed" : "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif", opacity: togglingDiscId === d.id ? 0.55 : 1 }}>🗑</button>
+                  )}
+                </div>
+              </div>
+              {isPartner && isExpanded && <PartnerCommissionTable discount={d} orders={orders} />}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
