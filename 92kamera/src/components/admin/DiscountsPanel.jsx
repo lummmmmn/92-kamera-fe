@@ -170,7 +170,11 @@ export default function DiscountsPanel({ isMobile, orders = [] }) {
       maxUse: parseInt(discForm.maxUse) || 0,
       active: discForm.active,
       requiredBadge: discForm.requiredBadge || "none",
-      voucherScope: discForm.voucherScope || "rental",
+      // Backend chỉ chấp nhận voucherScope = "rental"/"delivery" (validate cứng).
+      // Mã "Giảm tổng đơn" gửi voucherScope="rental" để qua được backend,
+      // và đánh dấu thật bằng field phụ totalScope (backend không validate field lạ nên lưu được).
+      voucherScope: discForm.voucherScope === "total" ? "rental" : (discForm.voucherScope || "rental"),
+      totalScope: discForm.voucherScope === "total",
       partnerName: (discForm.partnerName || "").trim(),
       partnerCommissionPercent,
     };
@@ -205,7 +209,7 @@ export default function DiscountsPanel({ isMobile, orders = [] }) {
       maxUse: d.maxUse ? String(d.maxUse) : "",
       active: d.active,
       requiredBadge: d.requiredBadge || "none",
-      voucherScope: d.voucherScope || "rental",
+      voucherScope: d.totalScope ? "total" : (d.voucherScope || "rental"),
       partnerName: d.partnerName || "",
       partnerCommissionPercent: d.partnerCommissionPercent ? String(d.partnerCommissionPercent) : "",
     });
@@ -422,8 +426,8 @@ export default function DiscountsPanel({ isMobile, orders = [] }) {
                     <span style={{ padding: "2px 10px", borderRadius: 99, fontSize: 10, background: "#FFF8ED", color: G, border: `1px solid ${G}44` }}>
                       {d.type === "percent" ? `Giảm ${d.value}%` : `Giảm ${fmtVND(d.value)}`}
                     </span>
-                    <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, background: d.voucherScope === "delivery" ? "#0a1a2a" : d.voucherScope === "total" ? "#1a0a1a" : "#1a1200", color: d.voucherScope === "delivery" ? "#60a5fa" : d.voucherScope === "total" ? "#e879f9" : G, border: `1px solid ${d.voucherScope === "delivery" ? "#60a5fa44" : d.voucherScope === "total" ? "#e879f944" : G + "44"}` }}>
-                      {d.voucherScope === "delivery" ? "🚗 Ship" : d.voucherScope === "total" ? "💰 Tổng đơn" : "🎞️ Thuê"}
+                    <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, background: d.totalScope ? "#1a0a1a" : d.voucherScope === "delivery" ? "#0a1a2a" : "#1a1200", color: d.totalScope ? "#e879f9" : d.voucherScope === "delivery" ? "#60a5fa" : G, border: `1px solid ${d.totalScope ? "#e879f944" : d.voucherScope === "delivery" ? "#60a5fa44" : G + "44"}` }}>
+                      {d.totalScope ? "💰 Tổng đơn" : d.voucherScope === "delivery" ? "🚗 Ship" : "🎞️ Thuê"}
                     </span>
                     {isPartner && (
                       <span style={{ padding: "2px 10px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: "#0a1810", color: "#22c55e", border: "1px solid #22c55e44" }}>
