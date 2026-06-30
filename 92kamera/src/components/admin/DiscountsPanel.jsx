@@ -303,10 +303,10 @@ export default function DiscountsPanel({ isMobile, orders = [] }) {
           </div>
           <div style={{ marginBottom: 12 }}>
             <div style={{ color: MUT, fontSize: 10, marginBottom: 6, letterSpacing: 1 }}>🎯 ÁP DỤNG CHO *</div>
-            <div style={{ display: "flex", gap: 8 }}>
-              {[["rental", "🎞️ Giảm tiền thuê"], ["delivery", "🚗 Giảm phí giao nhận"]].map(([v, l]) => (
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr", gap: 8 }}>
+              {[["rental", "🎞️ Giảm tiền thuê"], ["delivery", "🚗 Giảm phí giao nhận"], ["total", "💰 Giảm tổng đơn"]].map(([v, l]) => (
                 <button key={v} onClick={() => setDiscForm(p => ({ ...p, voucherScope: v }))}
-                  style={{ flex: 1, padding: "9px 6px", background: discForm.voucherScope === v ? "#FFF8ED" : CARD, color: discForm.voucherScope === v ? G : MUT, border: `1px solid ${discForm.voucherScope === v ? G : BR2}`, borderRadius: 10, cursor: "pointer", fontSize: 11, fontWeight: discForm.voucherScope === v ? 700 : 400, fontFamily: "system-ui,sans-serif", transition: "all .15s", textAlign: "center" }}>
+                  style={{ padding: "9px 6px", background: discForm.voucherScope === v ? "#FFF8ED" : CARD, color: discForm.voucherScope === v ? G : MUT, border: `1px solid ${discForm.voucherScope === v ? G : BR2}`, borderRadius: 10, cursor: "pointer", fontSize: 11, fontWeight: discForm.voucherScope === v ? 700 : 400, fontFamily: "system-ui,sans-serif", transition: "all .15s", textAlign: "center", lineHeight: 1.3 }}>
                   {l}
                 </button>
               ))}
@@ -396,6 +396,7 @@ export default function DiscountsPanel({ isMobile, orders = [] }) {
               <div style={{ color: G, fontWeight: 700, marginBottom: 6, fontSize: 12 }}>💡 Hướng dẫn</div>
               <div>• <span style={{ color: TXT }}>% Phần trăm:</span> VD: giá trị 20 → giảm 20% tổng đơn</div>
               <div>• <span style={{ color: TXT }}>đ Tiền mặt:</span> VD: giá trị 50000 → giảm 50.000đ</div>
+              <div>• <span style={{ color: TXT }}>💰 Giảm tổng đơn:</span> Tính trên cả tiền thuê + phí giao nhận cộng lại</div>
               <div>• <span style={{ color: TXT }}>Hạn mức:</span> Đơn phải đạt X đồng mới được dùng</div>
               <div>• <span style={{ color: TXT }}>Mã đối tác:</span> Nhập % hoa hồng để đối tác nhận tiền mỗi đơn dùng mã</div>
               <div>• Phát mã cho khách qua Zalo / Facebook</div>
@@ -421,8 +422,8 @@ export default function DiscountsPanel({ isMobile, orders = [] }) {
                     <span style={{ padding: "2px 10px", borderRadius: 99, fontSize: 10, background: "#FFF8ED", color: G, border: `1px solid ${G}44` }}>
                       {d.type === "percent" ? `Giảm ${d.value}%` : `Giảm ${fmtVND(d.value)}`}
                     </span>
-                    <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, background: d.voucherScope === "delivery" ? "#0a1a2a" : "#1a1200", color: d.voucherScope === "delivery" ? "#60a5fa" : G, border: `1px solid ${d.voucherScope === "delivery" ? "#60a5fa44" : G + "44"}` }}>
-                      {d.voucherScope === "delivery" ? "🚗 Ship" : "🎞️ Thuê"}
+                    <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, background: d.voucherScope === "delivery" ? "#0a1a2a" : d.voucherScope === "total" ? "#1a0a1a" : "#1a1200", color: d.voucherScope === "delivery" ? "#60a5fa" : d.voucherScope === "total" ? "#e879f9" : G, border: `1px solid ${d.voucherScope === "delivery" ? "#60a5fa44" : d.voucherScope === "total" ? "#e879f944" : G + "44"}` }}>
+                      {d.voucherScope === "delivery" ? "🚗 Ship" : d.voucherScope === "total" ? "💰 Tổng đơn" : "🎞️ Thuê"}
                     </span>
                     {isPartner && (
                       <span style={{ padding: "2px 10px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: "#0a1810", color: "#22c55e", border: "1px solid #22c55e44" }}>
