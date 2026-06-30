@@ -5,6 +5,7 @@ export default function BookingDiscount({
   appliedDiscounts,
   appliedRental,
   appliedDelivery,
+  appliedTotal,
   discountExpanded,
   setDiscountExpanded,
   discountCode,
@@ -18,8 +19,16 @@ export default function BookingDiscount({
   subtotal,
   rentalDiscountAmt,
   deliveryDiscountAmt,
+  totalDiscountAmt,
   BK_flatInp,
 }) {
+  const amtFor = (ad) =>
+    ad.scope === "delivery" ? deliveryDiscountAmt : ad.scope === "total" ? totalDiscountAmt : rentalDiscountAmt;
+  const iconFor = (ad) => (ad.scope === "delivery" ? "🚗" : ad.scope === "total" ? "💰" : "🎞️");
+
+  // Mã "giảm tổng đơn" loại trừ với các mã khác — nếu đã áp thì không cho thêm mã nào nữa
+  const canAddMore = appliedDiscounts.length < 2 && !appliedTotal;
+
   return (
     <div style={{ marginBottom: 18, paddingBottom: 18, borderBottom: "1px solid rgba(0,0,0,0.08)" }}>
       {/* Tags mã đã áp dụng */}
@@ -38,12 +47,12 @@ export default function BookingDiscount({
                 padding: "4px 10px",
               }}
             >
-              <span style={{ fontSize: 11 }}>{ad.scope === "delivery" ? "🚗" : "🎞️"}</span>
+              <span style={{ fontSize: 11 }}>{iconFor(ad)}</span>
               <span style={{ color: "#22c55e", fontSize: 11, fontFamily: "monospace", fontWeight: 700, letterSpacing: 1 }}>
                 {ad.code}
               </span>
               <span style={{ color: "#22c55e", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>
-                -{ad.scope === "delivery" ? fmtVND(deliveryDiscountAmt) : fmtVND(rentalDiscountAmt)}
+                -{fmtVND(amtFor(ad))}
               </span>
               <button
                 onClick={(e) => {
@@ -69,8 +78,8 @@ export default function BookingDiscount({
         </div>
       )}
 
-      {/* Header row — chỉ hiện khi chưa đủ 2 mã */}
-      {appliedDiscounts.length < 2 && (
+      {/* Header row — chỉ hiện khi chưa đủ 2 mã và chưa áp mã giảm tổng đơn (loại trừ) */}
+      {canAddMore && (
         <div
           onClick={() => setDiscountExpanded((p) => !p)}
           style={{ display: "flex", alignItems: "center", justifyDiscount: "space-between", cursor: "pointer", userSelect: "none" }}
@@ -103,14 +112,19 @@ export default function BookingDiscount({
           </div>
         </div>
       )}
-      {appliedDiscounts.length >= 2 && (
+      {!canAddMore && appliedTotal && (
+        <div style={{ color: "#22c55e", fontSize: 10, fontFamily: "system-ui,sans-serif", fontWeight: 700, textAlign: "center", letterSpacing: 0.5 }}>
+          💰 Đã áp dụng mã giảm tổng đơn
+        </div>
+      )}
+      {!canAddMore && !appliedTotal && appliedDiscounts.length >= 2 && (
         <div style={{ color: "#22c55e", fontSize: 10, fontFamily: "system-ui,sans-serif", fontWeight: 700, textAlign: "center", letterSpacing: 0.5 }}>
           ✅ Đã đủ 2 mã giảm giá
         </div>
       )}
 
       {/* Expand body */}
-      <div className={`bk-disc-body ${discountExpanded && appliedDiscounts.length < 2 ? "open" : "closed"}`}>
+      <div className={`bk-disc-body ${discountExpanded && canAddMore ? "open" : "closed"}`}>
         <div style={{ paddingTop: 12, display: "flex", gap: 8 }}>
           <input
             className="bk-inp"
