@@ -210,8 +210,10 @@ export default function BookingModal(props) {
             setCustomDays={b.setCustomDays}
             appliedRental={b.appliedRental}
             appliedDelivery={b.appliedDelivery}
+            appliedTotal={b.appliedTotal}
             rentalDiscountAmt={b.rentalDiscountAmt}
             deliveryDiscountAmt={b.deliveryDiscountAmt}
+            totalDiscountAmt={b.totalDiscountAmt}
             setStep={b.setStep}
             qtyBtn={qtyBtnHelper}
             inpS={inpSStyle}
