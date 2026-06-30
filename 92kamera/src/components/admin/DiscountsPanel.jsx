@@ -121,6 +121,7 @@ export default function DiscountsPanel({ isMobile, orders = [] }) {
     type: "percent",
     value: "",
     minOrder: "",
+    minDays: "",
     maxUse: "",
     active: true,
     requiredBadge: "none",
@@ -165,6 +166,7 @@ export default function DiscountsPanel({ isMobile, orders = [] }) {
       type: discForm.type,
       value: val,
       minOrder: parseFloat(discForm.minOrder) || 0,
+      minDays: parseFloat(discForm.minDays) || 0,
       maxUse: parseInt(discForm.maxUse) || 0,
       active: discForm.active,
       requiredBadge: discForm.requiredBadge || "none",
@@ -199,6 +201,7 @@ export default function DiscountsPanel({ isMobile, orders = [] }) {
       type: d.type,
       value: String(d.value),
       minOrder: d.minOrder ? String(d.minOrder) : "",
+      minDays: d.minDays ? String(d.minDays) : "",
       maxUse: d.maxUse ? String(d.maxUse) : "",
       active: d.active,
       requiredBadge: d.requiredBadge || "none",
@@ -322,6 +325,11 @@ export default function DiscountsPanel({ isMobile, orders = [] }) {
             <input style={inp2} type="number" min="0"
               value={discForm.minOrder} onChange={e => setDiscForm(p => ({ ...p, minOrder: e.target.value }))} placeholder="VD: 200000" />
           </div>
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ color: MUT, fontSize: 10, marginBottom: 4, letterSpacing: 1 }}>SỐ NGÀY THUÊ TỐI THIỂU (để trống = không giới hạn)</div>
+            <input style={inp2} type="number" min="0" step="0.5"
+              value={discForm.minDays} onChange={e => setDiscForm(p => ({ ...p, minDays: e.target.value }))} placeholder="VD: 3" />
+          </div>
           <div style={{ marginBottom: 16 }}>
             <div style={{ color: MUT, fontSize: 10, marginBottom: 4, letterSpacing: 1 }}>SỐ LẦN DÙNG TỐI ĐA (để trống = không giới hạn)</div>
             <input style={inp2} type="number" min="0"
@@ -424,6 +432,7 @@ export default function DiscountsPanel({ isMobile, orders = [] }) {
                   </div>
                   <div style={{ color: MUT, fontSize: 11, display: "flex", gap: 12, flexWrap: "wrap" }}>
                     {d.minOrder > 0 && <span>Đơn tối thiểu: <span style={{ color: TXT }}>{fmtVND(d.minOrder)}</span></span>}
+                    {d.minDays > 0 && <span>Thuê tối thiểu: <span style={{ color: TXT }}>{d.minDays} ngày</span></span>}
                     <span>Đã dùng: <span style={{ color: d.maxUse && d.usedCount >= d.maxUse ? "#ef4444" : "#60a5fa" }}>{d.usedCount || 0}{d.maxUse ? `/${d.maxUse}` : ""} lượt</span></span>
                     <span>Tạo: {d.createdAt}</span>
                     {d.requiredBadge && d.requiredBadge !== "none" && (
