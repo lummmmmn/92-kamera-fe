@@ -61,6 +61,8 @@ export default function BookingStep3({
   subtotal,
   rentalDiscountAmt,
   deliveryDiscountAmt,
+  appliedTotal,
+  totalDiscountAmt,
   deliveryFeeCalc,
   deliveryFee2Way,
   total,
@@ -196,6 +198,7 @@ export default function BookingStep3({
           appliedDiscounts={appliedDiscounts}
           appliedRental={appliedRental}
           appliedDelivery={appliedDelivery}
+          appliedTotal={appliedTotal}
           discountExpanded={discountExpanded}
           setDiscountExpanded={setDiscountExpanded}
           discountCode={discountCode}
@@ -209,6 +212,7 @@ export default function BookingStep3({
           subtotal={subtotal}
           rentalDiscountAmt={rentalDiscountAmt}
           deliveryDiscountAmt={deliveryDiscountAmt}
+          totalDiscountAmt={totalDiscountAmt}
           BK_flatInp={BK_flatInp}
         />
 
@@ -508,15 +512,20 @@ export default function BookingStep3({
                 🚗 -{new Intl.NumberFormat("vi-VN").format(deliveryDiscountAmt)}đ giảm ship
               </span>
             )}
+            {totalDiscountAmt > 0 && (
+              <span style={{ color: "#f59e0b", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>
+                💰 -{new Intl.NumberFormat("vi-VN").format(totalDiscountAmt)}đ giảm tổng đơn
+              </span>
+            )}
             <span
               style={{
                 color: G,
                 fontWeight: 900,
                 fontSize: 20,
                 fontFamily: "system-ui,sans-serif",
-                borderTop: rentalDiscountAmt > 0 || deliveryFeeCalc > 0 ? "1px solid rgba(0,0,0,0.10)" : "none",
-                paddingTop: rentalDiscountAmt > 0 || deliveryFeeCalc > 0 ? 4 : 0,
-                marginTop: rentalDiscountAmt > 0 || deliveryFeeCalc > 0 ? 2 : 0,
+                borderTop: rentalDiscountAmt > 0 || deliveryFeeCalc > 0 || totalDiscountAmt > 0 ? "1px solid rgba(0,0,0,0.10)" : "none",
+                paddingTop: rentalDiscountAmt > 0 || deliveryFeeCalc > 0 || totalDiscountAmt > 0 ? 4 : 0,
+                marginTop: rentalDiscountAmt > 0 || deliveryFeeCalc > 0 || totalDiscountAmt > 0 ? 2 : 0,
               }}
             >
               {new Intl.NumberFormat("vi-VN").format(total)} đ
