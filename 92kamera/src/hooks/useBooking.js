@@ -307,7 +307,9 @@ export function useBooking({
         return false;
       }
 
-      const scope = disc.voucherScope === "delivery" ? "delivery" : disc.voucherScope === "total" ? "total" : "rental";
+      // Backend chỉ lưu voucherScope = "rental"/"delivery"; mã "giảm tổng đơn" được đánh dấu
+      // bằng field phụ totalScope (xem ghi chú trong DiscountsPanel.jsx)
+      const scope = disc.totalScope ? "total" : disc.voucherScope === "delivery" ? "delivery" : "rental";
 
       if (appliedDiscounts.some((ad) => ad.scope === scope)) {
         const scopeLabel = scope === "delivery" ? "giảm phí giao nhận" : scope === "total" ? "giảm tổng đơn" : "giảm tiền thuê";
