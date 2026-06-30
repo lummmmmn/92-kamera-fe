@@ -232,6 +232,7 @@ export default function BookingModal(props) {
             appliedDiscounts={b.appliedDiscounts}
             appliedRental={b.appliedRental}
             appliedDelivery={b.appliedDelivery}
+            appliedTotal={b.appliedTotal}
             discountExpanded={b.discountExpanded}
             setDiscountExpanded={b.setDiscountExpanded}
             discountCode={b.discountCode}
@@ -244,6 +245,7 @@ export default function BookingModal(props) {
             subtotal={b.subtotal}
             rentalDiscountAmt={b.rentalDiscountAmt}
             deliveryDiscountAmt={b.deliveryDiscountAmt}
+            totalDiscountAmt={b.totalDiscountAmt}
             deliveryFeeCalc={b.deliveryFeeCalc}
             deliveryFee2Way={b.deliveryFee2Way}
             total={b.total}
@@ -279,9 +281,11 @@ export default function BookingModal(props) {
             days={b.days}
             selSession={b.selSession}
             appliedDiscounts={b.appliedDiscounts}
+            appliedTotal={b.appliedTotal}
             discountAmt={b.discountAmt}
             rentalDiscountAmt={b.rentalDiscountAmt}
             deliveryDiscountAmt={b.deliveryDiscountAmt}
+            totalDiscountAmt={b.totalDiscountAmt}
             deliveryFeeCalc={b.deliveryFeeCalc}
             total={b.total}
             info={b.info}
