@@ -207,7 +207,7 @@ export function useBooking({
   }, 0);
   const subtotal = camCost + accCost;
 
-  // Discount validation effect
+  // Discount validation effect — tự huỷ mã khi điều kiện không còn thoả
   useEffect(() => {
     if (appliedDiscounts.length === 0) return;
     const allDiscs = Array.isArray(discounts) ? discounts : [];
@@ -226,11 +226,17 @@ export function useBooking({
           changed = true;
           return false;
         }
+        // Auto-huỷ nếu số ngày thuê giảm xuống dưới minDays
+        if (disc.minDays && days < disc.minDays) {
+          setDiscountMsg({ type: "err", text: `Cần thuê tối thiểu ${disc.minDays} ngày — mã ${ad.code} đã bị huỷ` });
+          changed = true;
+          return false;
+        }
         return true;
       });
       return changed ? next : prev;
     });
-  }, [subtotal, deliveryFeeCalc, discounts, appliedDiscounts.length]);
+  }, [subtotal, deliveryFeeCalc, days, discounts, appliedDiscounts.length]);
 
   useEffect(() => {
     if (appliedDiscounts.length >= 2) {
@@ -314,6 +320,11 @@ export function useBooking({
         setDiscountMsg({ type: "err", text: `Đơn hàng tối thiểu ${new Intl.NumberFormat("vi-VN").format(disc.minOrder)}đ mới được áp dụng mã này` });
         return false;
       }
+      // Check số ngày thuê tối thiểu
+      if (disc.minDays && days < disc.minDays) {
+        setDiscountMsg({ type: "err", text: `Mã này yêu cầu thuê tối thiểu ${disc.minDays} ngày (hiện tại: ${days} ngày)` });
+        return false;
+      }
 
       if (scope === "delivery" && deliveryFeeCalc === 0) {
         setDiscountMsg({ type: "err", text: "Mã này dành cho phí giao nhận. Vui lòng chọn dịch vụ giao nhận trước." });
@@ -360,7 +371,7 @@ export function useBooking({
       const scopeLabel = scope === "delivery" ? "🚗 Giảm ship" : "🎞️ Giảm thuê";
       setAppliedDiscounts((prev) => [
         ...prev,
-        { code: disc.code.toUpperCase(), type: disc.type, value: disc.value, discountAmt: amt, id: disc.id, scope },
+        { code: disc.code.toUpperCase(), type: disc.type, value: disc.value, discountAmt: amt, id: disc.id, scope, minDays: disc.minDays || 0 },
       ]);
       setDiscountCode("");
       setDiscountMsg({
