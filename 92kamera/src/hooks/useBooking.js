@@ -130,6 +130,7 @@ export function useBooking({
 
   const appliedRental = appliedDiscounts.find((d) => d.scope === "rental") || null;
   const appliedDelivery = appliedDiscounts.find((d) => d.scope === "delivery") || null;
+  const appliedTotal = appliedDiscounts.find((d) => d.scope === "total") || null;
 
   const days = selDur ? selDur.days : parseFloat(customDays) || 0;
   const selSession = selDur ? selDur.session : days >= 1 ? "full" : null;
@@ -262,8 +263,17 @@ export function useBooking({
       )
     : 0;
 
-  const discountAmt = rentalDiscountAmt + deliveryDiscountAmt;
-  const total = Math.max(0, subtotal - rentalDiscountAmt + deliveryFeeCalc - deliveryDiscountAmt);
+  const totalDiscountAmt = appliedTotal
+    ? Math.min(
+        appliedTotal.type === "percent"
+          ? Math.round(((subtotal + deliveryFeeCalc) * appliedTotal.value) / 100)
+          : appliedTotal.discountAmt,
+        subtotal + deliveryFeeCalc
+      )
+    : 0;
+
+  const discountAmt = rentalDiscountAmt + deliveryDiscountAmt + totalDiscountAmt;
+  const total = Math.max(0, subtotal - rentalDiscountAmt + deliveryFeeCalc - deliveryDiscountAmt - totalDiscountAmt);
 
   const applyDiscount = async () => {
     if (discountInFlight.current) return false;
@@ -297,11 +307,21 @@ export function useBooking({
         return false;
       }
 
-      const scope = disc.voucherScope === "delivery" ? "delivery" : "rental";
+      const scope = disc.voucherScope === "delivery" ? "delivery" : disc.voucherScope === "total" ? "total" : "rental";
 
       if (appliedDiscounts.some((ad) => ad.scope === scope)) {
-        const scopeLabel = scope === "delivery" ? "giảm phí giao nhận" : "giảm tiền thuê";
+        const scopeLabel = scope === "delivery" ? "giảm phí giao nhận" : scope === "total" ? "giảm tổng đơn" : "giảm tiền thuê";
         setDiscountMsg({ type: "err", text: `Đã có mã ${scopeLabel} rồi. Mỗi loại chỉ dùng 1 mã.` });
+        return false;
+      }
+
+      // Mã giảm tổng đơn không dùng chung với mã giảm thuê/giảm ship — tránh giảm trùng trên cùng 1 khoản tiền
+      if (scope === "total" && appliedDiscounts.length > 0) {
+        setDiscountMsg({ type: "err", text: "Mã giảm tổng đơn không dùng chung với mã giảm thuê/giảm ship khác. Vui lòng gỡ mã hiện tại trước." });
+        return false;
+      }
+      if (scope !== "total" && appliedDiscounts.some((ad) => ad.scope === "total")) {
+        setDiscountMsg({ type: "err", text: "Đang dùng mã giảm tổng đơn — không thể áp dụng thêm mã giảm thuê/giảm ship." });
         return false;
       }
 
@@ -310,7 +330,7 @@ export function useBooking({
         return false;
       }
 
-      const base = scope === "delivery" ? deliveryFeeCalc : subtotal;
+      const base = scope === "delivery" ? deliveryFeeCalc : scope === "total" ? subtotal + deliveryFeeCalc : subtotal;
 
       if (disc.maxUse && disc.usedCount >= disc.maxUse) {
         setDiscountMsg({ type: "err", text: "Mã này đã dùng hết số lượt" });
@@ -368,7 +388,7 @@ export function useBooking({
       }
 
       const amt = disc.type === "percent" ? Math.round((base * disc.value) / 100) : disc.value;
-      const scopeLabel = scope === "delivery" ? "🚗 Giảm ship" : "🎞️ Giảm thuê";
+      const scopeLabel = scope === "delivery" ? "🚗 Giảm ship" : scope === "total" ? "💰 Giảm tổng đơn" : "🎞️ Giảm thuê";
       setAppliedDiscounts((prev) => [
         ...prev,
         { code: disc.code.toUpperCase(), type: disc.type, value: disc.value, discountAmt: amt, id: disc.id, scope, minDays: disc.minDays || 0 },
@@ -561,10 +581,11 @@ export function useBooking({
         accessoriesDetail: Object.entries(selAcc).map(([name, qty]) => ({ name, qty })),
         days,
         subtotal,
-        discountCode: appliedRental?.code || appliedDelivery?.code || null,
+        discountCode: appliedRental?.code || appliedDelivery?.code || appliedTotal?.code || null,
         discountAmt,
         rentalDiscountAmt,
         deliveryDiscountAmt,
+        totalDiscountAmt,
         appliedDiscounts: appliedDiscounts.map((x) => ({ code: x.code, scope: x.scope, amt: x.discountAmt })),
         total,
         session: selSession || "full",
@@ -651,6 +672,7 @@ export function useBooking({
     discountLoading,
     appliedRental,
     appliedDelivery,
+    appliedTotal,
     days,
     selSession,
     availCams,
@@ -662,6 +684,7 @@ export function useBooking({
     subtotal,
     rentalDiscountAmt,
     deliveryDiscountAmt,
+    totalDiscountAmt,
     discountAmt,
     total,
     applyDiscount,
