@@ -27,8 +27,10 @@ export default function BookingStep2({
   setCustomDays,
   appliedRental,
   appliedDelivery,
+  appliedTotal,
   rentalDiscountAmt,
   deliveryDiscountAmt,
+  totalDiscountAmt,
   setStep,
   qtyBtn,
   inpS,
@@ -466,6 +468,16 @@ export default function BookingStep2({
               </span>
               <span style={{ color: "#60a5fa", fontSize: 12, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>
                 -{fmtVND(deliveryDiscountAmt)}
+              </span>
+            </div>
+          )}
+          {appliedTotal && (
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span style={{ color: "#f59e0b", fontSize: 12, fontFamily: "system-ui,sans-serif" }}>
+                💰 {appliedTotal.code}
+              </span>
+              <span style={{ color: "#f59e0b", fontSize: 12, fontWeight: 700, fontFamily: "system-ui,sans-serif" }}>
+                -{fmtVND(totalDiscountAmt)}
               </span>
             </div>
           )}
