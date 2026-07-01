@@ -1,8 +1,8 @@
 import { useState } from "react";
 import BookingCalendar from "./BookingCalendar.jsx";
-import { G, MUT, TXT, CA_SHIFTS, PICKUP_HOUR_PRESETS, RETURN_HOUR_PRESETS, DAY_COUNT_PRESETS } from "../../lib/constants.js";
-import { todayStr, hourToCaIdx } from "../../utils/format.js";
-import { getAdjacentCaWarning } from "../../utils/availability.js";
+import { G, MUT, TXT, CA_SHIFTS, DAY_COUNT_PRESETS } from "../../lib/constants.js";
+import { todayStr, hourToCaIdx, dateAddDays } from "../../utils/format.js";
+import { getAdjacentCaWarning, getAvailQtyByCa } from "../../utils/availability.js";
 
 const sectionLabel = {
   color: "#555",
@@ -54,6 +54,21 @@ const caBadge = (caIdx) => {
   );
 };
 
+// Lấy giờ bắt đầu / kết thúc của 1 ca từ chuỗi c.time dạng "07:00–12:00"
+const parseCaHours = (c) => {
+  const parts = String(c.time).split(/[–-]/).map((s) => s.trim());
+  const startHour = parseInt(parts[0]) || 0;
+  const endHour = parseInt(parts[1]) || 0;
+  return { startHour, endHour };
+};
+
+// Bảng màu theo trạng thái (đồng bộ với legend của BookingCalendar)
+const CA_STATUS_STYLE = {
+  ok: { bg: "rgba(255,255,255,0.55)", border: "rgba(0,0,0,0.16)", color: TXT, label: "" },
+  low: { bg: "#fef3c7", border: "#f59e0b88", color: "#b45309", label: "Còn ít" },
+  full: { bg: "#fee2e2", border: "#ef444499", color: "#b91c1c", label: "Hết máy" },
+};
+
 export default function BookingCaScheduler({
   pickDate,
   setPickDate,
@@ -78,9 +93,118 @@ export default function BookingCaScheduler({
   const returnWarning =
     caSchedule && returnCaIdx ? getAdjacentCaWarning(camsList, activeOrds, caSchedule.returnDate, returnCaIdx) : null;
 
-  const [pickCustomOpen, setPickCustomOpen] = useState(false);
-  const [returnCustomOpen, setReturnCustomOpen] = useState(false);
   const [dayCustomOpen, setDayCustomOpen] = useState(false);
+  const [numDaysDraft, setNumDaysDraft] = useState(
+    DAY_COUNT_PRESETS.includes(numDays) ? "" : numDays != null ? String(numDays) : ""
+  );
+
+  // Ngày trả dự kiến (chỉ phụ thuộc ngày nhận + số ngày, KHÔNG phụ thuộc giờ trả
+  // → dùng để tô màu ca trả trước khi khách kịp chọn giờ trả)
+  const n = Math.max(1, Math.round(numDays || 1));
+  const provisionalReturnDate = pickDate ? dateAddDays(pickDate, n - 1) : null;
+  const sameDayReturn = provisionalReturnDate === pickDate;
+
+  // Trạng thái 1 ca (ok/low/full) cho 1 ngày cụ thể, dựa trên máy đã chọn
+  const getCaStatus = (date, caIdx) => {
+    if (!date || !camsList.length) return "ok";
+    const caKey = `ca${caIdx}`;
+    let anyFull = false;
+    let anyLow = false;
+    camsList.forEach(({ id, qty: need, camQty }) => {
+      const avail = getAvailQtyByCa(id, camQty, activeOrds, date, caKey);
+      if (avail < need) anyFull = true;
+      else if (avail <= 1 && camQty > 1) anyLow = true;
+    });
+    return anyFull ? "full" : anyLow ? "low" : "ok";
+  };
+
+  const handlePickCa = (caIdx) => {
+    const c = CA_SHIFTS[caIdx - 1];
+    const { startHour } = parseCaHours(c);
+    setPickHour(startHour);
+    // Nếu khách đã chọn ca trả mà giờ không còn hợp lệ (thuê trong ngày, trả trước lúc nhận) → reset để chọn lại
+    if (sameDayReturn && returnHour != null) {
+      const curReturnCa = hourToCaIdx(returnHour);
+      if (curReturnCa != null && curReturnCa < caIdx) {
+        setReturnHour(null);
+      }
+    }
+  };
+
+  const handleReturnCa = (caIdx) => {
+    const c = CA_SHIFTS[caIdx - 1];
+    const { endHour } = parseCaHours(c);
+    setReturnHour(endHour);
+  };
+
+  const renderCaBar = ({ caIdx, date, isSelectedIdx, isDisabledBeforeIdx, onSelect, disabledNoDate }) => {
+    const c = CA_SHIFTS[caIdx - 1];
+    const { startHour, endHour } = parseCaHours(c);
+    const status = date ? getCaStatus(date, caIdx) : "ok";
+    const isLockedByOrder = status === "full";
+    const isLockedByTime = isDisabledBeforeIdx != null && caIdx < isDisabledBeforeIdx;
+    const isDisabled = disabledNoDate || isLockedByOrder || isLockedByTime;
+    const isSelected = isSelectedIdx === caIdx;
+
+    let bg, border, color;
+    if (isSelected) {
+      bg = G + "2a";
+      border = G;
+      color = G;
+    } else if (isLockedByTime) {
+      bg = "rgba(0,0,0,0.05)";
+      border = "rgba(0,0,0,0.10)";
+      color = "#999";
+    } else {
+      const st = CA_STATUS_STYLE[status];
+      bg = st.bg;
+      border = st.border;
+      color = st.color;
+    }
+
+    return (
+      <button
+        key={caIdx}
+        disabled={isDisabled}
+        onClick={() => !isDisabled && onSelect(caIdx)}
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "12px 14px",
+          borderRadius: 12,
+          background: bg,
+          border: `1.5px solid ${border}`,
+          color,
+          cursor: isDisabled ? "not-allowed" : "pointer",
+          opacity: isDisabled && !isLockedByOrder ? 0.55 : 1,
+          fontFamily: "system-ui,sans-serif",
+          transition: "all .15s",
+          marginBottom: 8,
+          boxShadow: isSelected ? `0 0 0 2px ${G}33` : "none",
+        }}
+      >
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontWeight: 700, fontSize: 13 }}>{c.short}</span>
+          <span style={{ fontSize: 12, opacity: 0.85 }}>
+            {String(startHour).padStart(2, "0")}:00 – {String(endHour).padStart(2, "0")}:00
+          </span>
+        </span>
+        <span style={{ fontSize: 10.5, fontWeight: 600 }}>
+          {isSelected
+            ? "✓ Đang chọn"
+            : isLockedByOrder
+            ? "Hết máy"
+            : isLockedByTime
+            ? "Trước giờ nhận"
+            : status === "low"
+            ? "Còn ít"
+            : "Còn trống"}
+        </span>
+      </button>
+    );
+  };
 
   return (
     <div style={{ marginBottom: 16 }}>
@@ -96,53 +220,21 @@ export default function BookingCaScheduler({
         />
       </div>
 
-      {/* GIỜ NHẬN */}
+      {/* CHỌN CA NHẬN MÁY */}
       <div style={{ marginBottom: 14 }}>
-        <div style={sectionLabel}>GIỜ NHẬN (07:00 – 20:00)</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6, marginBottom: 6 }}>
-          {PICKUP_HOUR_PRESETS.map((h) => (
-            <button
-              key={h}
-              onClick={() => {
-                setPickHour(h);
-                setPickCustomOpen(false);
-              }}
-              style={hourBtnStyle(pickHour === h && !pickCustomOpen)}
-            >
-              {String(h).padStart(2, "0")}:00
-            </button>
-          ))}
-          <button
-            onClick={() => setPickCustomOpen(true)}
-            style={hourBtnStyle(pickCustomOpen)}
-          >
-            Khác
-          </button>
-        </div>
-        {pickCustomOpen && (
-          <input
-            type="number"
-            min={7}
-            max={20}
-            placeholder="Nhập giờ (7-20)"
-            value={PICKUP_HOUR_PRESETS.includes(pickHour) ? "" : pickHour ?? ""}
-            onChange={(e) => setPickHour(e.target.value === "" ? null : Math.min(20, Math.max(7, parseInt(e.target.value) || 7)))}
-            style={{
-              width: "100%",
-              padding: "9px 12px",
-              borderRadius: 10,
-              border: "1px solid rgba(255,255,255,0.62)",
-              background: "rgba(255,255,255,0.5)",
-              color: TXT,
-              fontSize: 12,
-              fontFamily: "system-ui,sans-serif",
-              outline: "none",
-            }}
-          />
+        <div style={sectionLabel}>CHỌN CA NHẬN MÁY{!pickDate ? " (chọn ngày trước)" : ""}</div>
+        {[1, 2, 3].map((caIdx) =>
+          renderCaBar({
+            caIdx,
+            date: pickDate,
+            isSelectedIdx: pickCaIdx,
+            isDisabledBeforeIdx: null,
+            onSelect: handlePickCa,
+            disabledNoDate: !pickDate,
+          })
         )}
-        {pickCaIdx && caBadge(pickCaIdx)}
         {pickWarning && (
-          <div style={{ marginTop: 8, padding: "9px 12px", background: "#FFF7E6", border: "1px solid #f59e0b55", borderRadius: 12, color: "#92600a", fontSize: 11, fontFamily: "system-ui,sans-serif", lineHeight: 1.5 }}>
+          <div style={{ marginTop: 4, padding: "9px 12px", background: "#FFF7E6", border: "1px solid #f59e0b55", borderRadius: 12, color: "#92600a", fontSize: 11, fontFamily: "system-ui,sans-serif", lineHeight: 1.5 }}>
             {pickWarning}
           </div>
         )}
@@ -157,6 +249,7 @@ export default function BookingCaScheduler({
               key={d}
               onClick={() => {
                 setNumDays(d);
+                setNumDaysDraft("");
                 setDayCustomOpen(false);
               }}
               style={hourBtnStyle(numDays === d && !dayCustomOpen)}
@@ -173,8 +266,20 @@ export default function BookingCaScheduler({
             type="number"
             min={1}
             placeholder="Nhập số ngày"
-            value={DAY_COUNT_PRESETS.includes(numDays) ? "" : numDays ?? ""}
-            onChange={(e) => setNumDays(Math.max(1, parseInt(e.target.value) || 1))}
+            value={numDaysDraft}
+            onChange={(e) => {
+              const raw = e.target.value;
+              setNumDaysDraft(raw);
+              if (raw !== "" && !isNaN(parseInt(raw))) {
+                setNumDays(parseInt(raw));
+              }
+            }}
+            onBlur={() => {
+              let val = parseInt(numDaysDraft);
+              if (isNaN(val) || val < 1) val = 1;
+              setNumDays(val);
+              setNumDaysDraft(String(val));
+            }}
             style={{
               width: "100%",
               marginTop: 6,
@@ -191,51 +296,29 @@ export default function BookingCaScheduler({
         )}
       </div>
 
-      {/* GIỜ TRẢ */}
+      {/* CHỌN CA TRẢ MÁY */}
       <div style={{ marginBottom: 14 }}>
-        <div style={sectionLabel}>GIỜ TRẢ</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6 }}>
-          {RETURN_HOUR_PRESETS.map((h) => (
-            <button
-              key={h}
-              onClick={() => {
-                setReturnHour(h);
-                setReturnCustomOpen(false);
-              }}
-              style={hourBtnStyle(returnHour === h && !returnCustomOpen)}
-            >
-              {String(h).padStart(2, "0")}:00
-            </button>
-          ))}
-          <button onClick={() => setReturnCustomOpen(true)} style={hourBtnStyle(returnCustomOpen)}>
-            Khác
-          </button>
+        <div style={sectionLabel}>
+          CHỌN CA TRẢ MÁY{!pickDate ? " (chọn ngày nhận trước)" : ""}
+          {pickDate && provisionalReturnDate && (
+            <span style={{ fontWeight: 400, color: MUT, textTransform: "none", letterSpacing: 0 }}>
+              {" "}
+              — ngày {provisionalReturnDate.split("-").reverse().join("/")}
+            </span>
+          )}
         </div>
-        {returnCustomOpen && (
-          <input
-            type="number"
-            min={7}
-            max={20}
-            placeholder="Nhập giờ (7-20)"
-            value={RETURN_HOUR_PRESETS.includes(returnHour) ? "" : returnHour ?? ""}
-            onChange={(e) => setReturnHour(e.target.value === "" ? null : Math.min(20, Math.max(7, parseInt(e.target.value) || 20)))}
-            style={{
-              width: "100%",
-              marginTop: 6,
-              padding: "9px 12px",
-              borderRadius: 10,
-              border: "1px solid rgba(255,255,255,0.62)",
-              background: "rgba(255,255,255,0.5)",
-              color: TXT,
-              fontSize: 12,
-              fontFamily: "system-ui,sans-serif",
-              outline: "none",
-            }}
-          />
+        {[1, 2, 3].map((caIdx) =>
+          renderCaBar({
+            caIdx,
+            date: provisionalReturnDate,
+            isSelectedIdx: returnCaIdx,
+            isDisabledBeforeIdx: sameDayReturn ? pickCaIdx : null,
+            onSelect: handleReturnCa,
+            disabledNoDate: !pickDate,
+          })
         )}
-        {returnCaIdx && caBadge(returnCaIdx)}
         {returnWarning && (
-          <div style={{ marginTop: 8, padding: "9px 12px", background: "#FFF7E6", border: "1px solid #f59e0b55", borderRadius: 12, color: "#92600a", fontSize: 11, fontFamily: "system-ui,sans-serif", lineHeight: 1.5 }}>
+          <div style={{ marginTop: 4, padding: "9px 12px", background: "#FFF7E6", border: "1px solid #f59e0b55", borderRadius: 12, color: "#92600a", fontSize: 11, fontFamily: "system-ui,sans-serif", lineHeight: 1.5 }}>
             {returnWarning}
           </div>
         )}
@@ -314,10 +397,9 @@ export default function BookingCaScheduler({
 
       {pickDate && numDays && pickHour != null && returnHour != null && (!caSchedule || caSchedule.totalCa === 0) && (
         <div style={{ marginBottom: 10, padding: "10px 14px", background: "rgba(255,220,220,0.80)", border: "1px solid #cc333366", borderRadius: 12, color: "#8B0000", fontSize: 12, fontFamily: "system-ui,sans-serif" }}>
-          🚫 Giờ trả phải sau giờ nhận (khi thuê 1 ngày). Vui lòng chọn lại giờ trả hoặc tăng số ngày thuê.
+          🚫 Giờ trả phải sau giờ nhận (khi thuê 1 ngày). Vui lòng chọn lại ca trả hoặc tăng số ngày thuê.
         </div>
       )}
     </div>
   );
 }
-
