@@ -1,9 +1,9 @@
 import { useState, useRef } from "react";
 import { G, TXT, MUT } from "../../lib/constants.js";
 import { todayStr, dateAddDays } from "../../utils/format.js";
-import { getAvailQty } from "../../utils/availability.js";
+import { getDayCaStatus } from "../../utils/availability.js";
 
-export default function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, days, selSession }) {
+export default function BookingCalendar({ selectedCams, orders, pickDate, setPickDate, numDays }) {
   const now = new Date();
   const [cur, setCur] = useState({ y: now.getFullYear(), m: now.getMonth() });
   const { y, m } = cur;
@@ -16,66 +16,35 @@ export default function BookingCalendar({ selectedCams, orders, pickDate, setPic
 
   const activeOrders = orders.filter((o) => !["cancelled", "completed"].includes(o.status));
 
-  // Tính trạng thái ngày theo spec 10 bước
+  // Trạng thái ngày = check cả 3 ca (vì chưa biết khách sẽ chọn giờ nhận nào)
   const getDayStatus = (day) => {
     const ds = `${y}-${String(m + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     if (ds < todayDate) return "past";
-
-    // Chưa chọn session (chưa chọn loại thuê): check cả 2 ca, full nếu cả 2 hết
-    if (!selSession) {
-      const results = ["morning", "afternoon"].map((sh) => {
-        let anyFull = false;
-        let anyLow = false;
-        selectedCams.forEach(({ id, qty: need, camQty }) => {
-          const avail = getAvailQty(id, camQty, activeOrders, ds, sh);
-          if (avail < need) anyFull = true;
-          else if (avail <= 1 && camQty > 1) anyLow = true;
-        });
-        return anyFull ? "full" : anyLow ? "low" : "ok";
-      });
-      if (results.every((r) => r === "full")) return "full";
-      if (results.some((r) => r === "full") || results.some((r) => r === "low")) return "low";
-      return "ok";
-    }
-
-    // Đã có session: check đúng theo session đó
-    let anyFull = false;
-    let anyLow = false;
-    selectedCams.forEach(({ id, qty: need, camQty }) => {
-      const avail = getAvailQty(id, camQty, activeOrders, ds, selSession);
-      if (avail < need) anyFull = true;
-      else if (avail <= 1 && camQty > 1) anyLow = true;
-    });
-    if (anyFull) return "full";
-    if (anyLow) return "low";
-    return "ok";
+    if (!selectedCams.length) return "ok";
+    return getDayCaStatus(selectedCams, activeOrders, ds);
   };
 
-  // Range highlight
-  const endDs = pickDate && days ? dateAddDays(pickDate, days) : null;
+  // Range highlight (theo số ngày thuê dự kiến)
+  const n = Math.max(1, Math.round(numDays || 1));
+  const endDs = pickDate ? dateAddDays(pickDate, n - 1) : null;
   const getInRange = (day) => {
-    if (!pickDate || !days) return false;
+    if (!pickDate || n <= 1) return false;
     const ds = `${y}-${String(m + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     return ds > pickDate && ds < endDs;
   };
   const getIsEnd = (day) => {
-    if (!endDs || days === 0.5) return false;
+    if (!endDs || n <= 1) return false;
     const ds = `${y}-${String(m + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     return ds === endDs;
   };
 
-  // Kiểm tra toàn bộ range có ngày nào bị "full" không (kể cả pickDate)
+  // Ngày nào trong khoảng bị full cả 3 ca (chắc chắn không thuê được, kể cả ngày giữa cần trọn ngày)
   const rangeConflictDates = (() => {
-    if (!pickDate || days <= 0) return [];
+    if (!pickDate || n <= 0 || !selectedCams.length) return [];
     const conflicts = [];
-    for (let i = 0; i < Math.ceil(days); i++) {
+    for (let i = 0; i < n; i++) {
       const ds = dateAddDays(pickDate, i);
-      let isFull = false;
-      selectedCams.forEach(({ id, qty: need, camQty }) => {
-        const avail = getAvailQty(id, camQty, activeOrders, ds, selSession || "full");
-        if (avail < need) isFull = true;
-      });
-      if (isFull) conflicts.push(ds);
+      if (getDayCaStatus(selectedCams, activeOrders, ds) === "full") conflicts.push(ds);
     }
     return conflicts;
   })();
@@ -196,9 +165,7 @@ export default function BookingCalendar({ selectedCams, orders, pickDate, setPic
         {cells.map((day, i) => {
           if (!day) return <div key={`e${i}`} />;
           const ds = `${y}-${String(m + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-          const st = selectedCams.length
-            ? getDayStatus(day)
-            : ((dateStr) => (dateStr < todayDate ? "past" : "ok"))(ds);
+          const st = getDayStatus(day);
           const isStart = ds === pickDate;
           const isEnd = getIsEnd(day);
           const isInRange = getInRange(day);
@@ -250,7 +217,7 @@ export default function BookingCalendar({ selectedCams, orders, pickDate, setPic
         <div style={{ marginTop: 10, padding: "9px 12px", background: "#FEF0F0", border: "1px solid #B0282844", borderRadius: 12, display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 14 }}>⚠️</span>
           <span style={{ color: "#ef4444", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>
-            Máy hết vào ngày <strong>{rangeConflictDates.map((d) => d.split("-")[2] + "/" + d.split("-")[1]).join(", ")}</strong> trong khoảng thuê này — vui lòng chọn ngày khác.
+            Máy hết cả ngày <strong>{rangeConflictDates.map((d) => d.split("-")[2] + "/" + d.split("-")[1]).join(", ")}</strong> trong khoảng thuê này — vui lòng chọn ngày khác.
           </span>
         </div>
       )}
