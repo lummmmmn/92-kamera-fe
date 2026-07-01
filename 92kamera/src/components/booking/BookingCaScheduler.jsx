@@ -1,7 +1,7 @@
 import { useState } from "react";
 import BookingCalendar from "./BookingCalendar.jsx";
-import { G, MUT, TXT, CA_SHIFTS, DAY_COUNT_PRESETS } from "../../lib/constants.js";
-import { todayStr, hourToCaIdx, dateAddDays } from "../../utils/format.js";
+import { G, MUT, TXT, CA_SHIFTS, PICKUP_HOUR_PRESETS, RETURN_HOUR_PRESETS, DAY_COUNT_PRESETS } from "../../lib/constants.js";
+import { todayStr, hourToCaIdx } from "../../utils/format.js";
 import { getAdjacentCaWarning, getAvailQtyByCa } from "../../utils/availability.js";
 
 const sectionLabel = {
@@ -62,12 +62,19 @@ const parseCaHours = (c) => {
   return { startHour, endHour };
 };
 
-// Bảng màu theo trạng thái (đồng bộ với legend của BookingCalendar)
-const CA_STATUS_STYLE = {
-  ok: { bg: "rgba(255,255,255,0.55)", border: "rgba(0,0,0,0.16)", color: TXT, label: "" },
-  low: { bg: "#fef3c7", border: "#f59e0b88", color: "#b45309", label: "Còn ít" },
-  full: { bg: "#fee2e2", border: "#ef444499", color: "#b91c1c", label: "Hết máy" },
+const addDaysLocal = (dateStr, n) => {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + n);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
+
+const diffDaysLocal = (d1, d2) => {
+  const t1 = new Date(d1 + "T00:00:00");
+  const t2 = new Date(d2 + "T00:00:00");
+  return Math.round((t2 - t1) / 86400000);
+};
+
+const WEEKDAY_SHORT = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
 export default function BookingCaScheduler({
   pickDate,
@@ -93,16 +100,7 @@ export default function BookingCaScheduler({
   const returnWarning =
     caSchedule && returnCaIdx ? getAdjacentCaWarning(camsList, activeOrds, caSchedule.returnDate, returnCaIdx) : null;
 
-  const [dayCustomOpen, setDayCustomOpen] = useState(false);
-  const [numDaysDraft, setNumDaysDraft] = useState(
-    DAY_COUNT_PRESETS.includes(numDays) ? "" : numDays != null ? String(numDays) : ""
-  );
-
-  // Ngày trả dự kiến (chỉ phụ thuộc ngày nhận + số ngày, KHÔNG phụ thuộc giờ trả
-  // → dùng để tô màu ca trả trước khi khách kịp chọn giờ trả)
-  const n = Math.max(1, Math.round(numDays || 1));
-  const provisionalReturnDate = pickDate ? dateAddDays(pickDate, n - 1) : null;
-  const sameDayReturn = provisionalReturnDate === pickDate;
+  const [mode, setMode] = useState("ca"); // "ca" | "hour"
 
   // Trạng thái 1 ca (ok/low/full) cho 1 ngày cụ thể, dựa trên máy đã chọn
   const getCaStatus = (date, caIdx) => {
@@ -118,211 +116,77 @@ export default function BookingCaScheduler({
     return anyFull ? "full" : anyLow ? "low" : "ok";
   };
 
-  const handlePickCa = (caIdx) => {
-    const c = CA_SHIFTS[caIdx - 1];
-    const { startHour } = parseCaHours(c);
-    setPickHour(startHour);
-    // Nếu khách đã chọn ca trả mà giờ không còn hợp lệ (thuê trong ngày, trả trước lúc nhận) → reset để chọn lại
-    if (sameDayReturn && returnHour != null) {
-      const curReturnCa = hourToCaIdx(returnHour);
-      if (curReturnCa != null && curReturnCa < caIdx) {
-        setReturnHour(null);
-      }
-    }
-  };
-
-  const handleReturnCa = (caIdx) => {
-    const c = CA_SHIFTS[caIdx - 1];
-    const { endHour } = parseCaHours(c);
-    setReturnHour(endHour);
-  };
-
-  const renderCaBar = ({ caIdx, date, isSelectedIdx, isDisabledBeforeIdx, onSelect, disabledNoDate }) => {
-    const c = CA_SHIFTS[caIdx - 1];
-    const { startHour, endHour } = parseCaHours(c);
-    const status = date ? getCaStatus(date, caIdx) : "ok";
-    const isLockedByOrder = status === "full";
-    const isLockedByTime = isDisabledBeforeIdx != null && caIdx < isDisabledBeforeIdx;
-    const isDisabled = disabledNoDate || isLockedByOrder || isLockedByTime;
-    const isSelected = isSelectedIdx === caIdx;
-
-    let bg, border, color;
-    if (isSelected) {
-      bg = G + "2a";
-      border = G;
-      color = G;
-    } else if (isLockedByTime) {
-      bg = "rgba(0,0,0,0.05)";
-      border = "rgba(0,0,0,0.10)";
-      color = "#999";
-    } else {
-      const st = CA_STATUS_STYLE[status];
-      bg = st.bg;
-      border = st.border;
-      color = st.color;
-    }
-
-    return (
-      <button
-        key={caIdx}
-        disabled={isDisabled}
-        onClick={() => !isDisabled && onSelect(caIdx)}
-        style={{
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "12px 14px",
-          borderRadius: 12,
-          background: bg,
-          border: `1.5px solid ${border}`,
-          color,
-          cursor: isDisabled ? "not-allowed" : "pointer",
-          opacity: isDisabled && !isLockedByOrder ? 0.55 : 1,
-          fontFamily: "system-ui,sans-serif",
-          transition: "all .15s",
-          marginBottom: 8,
-          boxShadow: isSelected ? `0 0 0 2px ${G}33` : "none",
-        }}
-      >
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontWeight: 700, fontSize: 13 }}>{c.short}</span>
-          <span style={{ fontSize: 12, opacity: 0.85 }}>
-            {String(startHour).padStart(2, "0")}:00 – {String(endHour).padStart(2, "0")}:00
-          </span>
-        </span>
-        <span style={{ fontSize: 10.5, fontWeight: 600 }}>
-          {isSelected
-            ? "✓ Đang chọn"
-            : isLockedByOrder
-            ? "Hết máy"
-            : isLockedByTime
-            ? "Trước giờ nhận"
-            : status === "low"
-            ? "Còn ít"
-            : "Còn trống"}
-        </span>
-      </button>
-    );
-  };
-
   return (
     <div style={{ marginBottom: 16 }}>
-      {/* NGÀY NHẬN */}
-      <div style={{ marginBottom: 14 }}>
-        <div style={sectionLabel}>NGÀY NHẬN</div>
-        <BookingCalendar
-          selectedCams={camsList}
-          orders={liveOrdersForCheck}
+      {/* CHUYỂN CHẾ ĐỘ */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+        <button
+          onClick={() => setMode("ca")}
+          style={{
+            flex: 1,
+            padding: "9px 10px",
+            borderRadius: 10,
+            border: `1px solid ${mode === "ca" ? G : "rgba(255,255,255,0.62)"}`,
+            background: mode === "ca" ? "rgba(255,248,237,0.85)" : "rgba(255,255,255,0.35)",
+            color: mode === "ca" ? G : MUT,
+            fontWeight: mode === "ca" ? 700 : 400,
+            fontSize: 12,
+            fontFamily: "system-ui,sans-serif",
+            cursor: "pointer",
+          }}
+        >
+          📋 Theo Ca (lưới)
+        </button>
+        <button
+          onClick={() => setMode("hour")}
+          style={{
+            flex: 1,
+            padding: "9px 10px",
+            borderRadius: 10,
+            border: `1px solid ${mode === "hour" ? G : "rgba(255,255,255,0.62)"}`,
+            background: mode === "hour" ? "rgba(255,248,237,0.85)" : "rgba(255,255,255,0.35)",
+            color: mode === "hour" ? G : MUT,
+            fontWeight: mode === "hour" ? 700 : 400,
+            fontSize: 12,
+            fontFamily: "system-ui,sans-serif",
+            cursor: "pointer",
+          }}
+        >
+          🕐 Giờ tự do
+        </button>
+      </div>
+
+      {mode === "ca" ? (
+        <CaGridMode
           pickDate={pickDate}
           setPickDate={setPickDate}
+          pickHour={pickHour}
+          setPickHour={setPickHour}
           numDays={numDays}
+          setNumDays={setNumDays}
+          returnHour={returnHour}
+          setReturnHour={setReturnHour}
+          getCaStatus={getCaStatus}
+          caSchedule={caSchedule}
         />
-      </div>
-
-      {/* CHỌN CA NHẬN MÁY */}
-      <div style={{ marginBottom: 14 }}>
-        <div style={sectionLabel}>CHỌN CA NHẬN MÁY{!pickDate ? " (chọn ngày trước)" : ""}</div>
-        {[1, 2, 3].map((caIdx) =>
-          renderCaBar({
-            caIdx,
-            date: pickDate,
-            isSelectedIdx: pickCaIdx,
-            isDisabledBeforeIdx: null,
-            onSelect: handlePickCa,
-            disabledNoDate: !pickDate,
-          })
-        )}
-        {pickWarning && (
-          <div style={{ marginTop: 4, padding: "9px 12px", background: "#FFF7E6", border: "1px solid #f59e0b55", borderRadius: 12, color: "#92600a", fontSize: 11, fontFamily: "system-ui,sans-serif", lineHeight: 1.5 }}>
-            {pickWarning}
-          </div>
-        )}
-      </div>
-
-      {/* SỐ NGÀY THUÊ */}
-      <div style={{ marginBottom: 14 }}>
-        <div style={sectionLabel}>SỐ NGÀY THUÊ</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 6 }}>
-          {DAY_COUNT_PRESETS.map((d) => (
-            <button
-              key={d}
-              onClick={() => {
-                setNumDays(d);
-                setNumDaysDraft("");
-                setDayCustomOpen(false);
-              }}
-              style={hourBtnStyle(numDays === d && !dayCustomOpen)}
-            >
-              {d} ngày
-            </button>
-          ))}
-          <button onClick={() => setDayCustomOpen(true)} style={hourBtnStyle(dayCustomOpen)}>
-            Khác
-          </button>
-        </div>
-        {dayCustomOpen && (
-          <input
-            type="number"
-            min={1}
-            placeholder="Nhập số ngày"
-            value={numDaysDraft}
-            onChange={(e) => {
-              const raw = e.target.value;
-              setNumDaysDraft(raw);
-              if (raw !== "" && !isNaN(parseInt(raw))) {
-                setNumDays(parseInt(raw));
-              }
-            }}
-            onBlur={() => {
-              let val = parseInt(numDaysDraft);
-              if (isNaN(val) || val < 1) val = 1;
-              setNumDays(val);
-              setNumDaysDraft(String(val));
-            }}
-            style={{
-              width: "100%",
-              marginTop: 6,
-              padding: "9px 12px",
-              borderRadius: 10,
-              border: "1px solid rgba(255,255,255,0.62)",
-              background: "rgba(255,255,255,0.5)",
-              color: TXT,
-              fontSize: 12,
-              fontFamily: "system-ui,sans-serif",
-              outline: "none",
-            }}
-          />
-        )}
-      </div>
-
-      {/* CHỌN CA TRẢ MÁY */}
-      <div style={{ marginBottom: 14 }}>
-        <div style={sectionLabel}>
-          CHỌN CA TRẢ MÁY{!pickDate ? " (chọn ngày nhận trước)" : ""}
-          {pickDate && provisionalReturnDate && (
-            <span style={{ fontWeight: 400, color: MUT, textTransform: "none", letterSpacing: 0 }}>
-              {" "}
-              — ngày {provisionalReturnDate.split("-").reverse().join("/")}
-            </span>
-          )}
-        </div>
-        {[1, 2, 3].map((caIdx) =>
-          renderCaBar({
-            caIdx,
-            date: provisionalReturnDate,
-            isSelectedIdx: returnCaIdx,
-            isDisabledBeforeIdx: sameDayReturn ? pickCaIdx : null,
-            onSelect: handleReturnCa,
-            disabledNoDate: !pickDate,
-          })
-        )}
-        {returnWarning && (
-          <div style={{ marginTop: 4, padding: "9px 12px", background: "#FFF7E6", border: "1px solid #f59e0b55", borderRadius: 12, color: "#92600a", fontSize: 11, fontFamily: "system-ui,sans-serif", lineHeight: 1.5 }}>
-            {returnWarning}
-          </div>
-        )}
-      </div>
+      ) : (
+        <HourFreeMode
+          pickDate={pickDate}
+          setPickDate={setPickDate}
+          pickHour={pickHour}
+          setPickHour={setPickHour}
+          numDays={numDays}
+          setNumDays={setNumDays}
+          returnHour={returnHour}
+          setReturnHour={setReturnHour}
+          camsList={camsList}
+          liveOrdersForCheck={liveOrdersForCheck}
+          pickWarning={pickWarning}
+          returnWarning={returnWarning}
+          pickCaIdx={pickCaIdx}
+          returnCaIdx={returnCaIdx}
+        />
+      )}
 
       {/* LỊCH CA ĐÃ CHỌN */}
       {caSchedule && caSchedule.totalCa > 0 && (
@@ -401,5 +265,428 @@ export default function BookingCaScheduler({
         </div>
       )}
     </div>
+  );
+}
+
+// ═══════════════════ CHẾ ĐỘ 1: LƯỚI NGÀY × CA (kiểu baylahome) ═══════════════════
+function CaGridMode({ pickDate, setPickDate, pickHour, setPickHour, numDays, setNumDays, returnHour, setReturnHour, getCaStatus, caSchedule }) {
+  const [daysToShow, setDaysToShow] = useState(14);
+  const today = todayStr();
+
+  const pickCaIdx = pickHour != null ? hourToCaIdx(pickHour) : null;
+  const returnDate = caSchedule?.returnDate || (pickDate ? addDaysLocal(pickDate, Math.max(1, Math.round(numDays || 1)) - 1) : null);
+  const returnCaIdx = returnHour != null ? hourToCaIdx(returnHour) : null;
+
+  // Set các {date,ca} nằm trong khoảng đang chọn (để tô "Đang chọn" toàn bộ dải, không chỉ 2 đầu)
+  const includedSet = new Set((caSchedule?.schedule || []).map((s) => `${s.date}_${s.ca}`));
+
+  const cellOrder = (date, caIdx) => `${date}_${String(caIdx).padStart(1, "0")}`;
+
+  const handleCellClick = (date, caIdx, status) => {
+    if (status === "full") return;
+    const c = CA_SHIFTS[caIdx - 1];
+    const { startHour, endHour } = parseCaHours(c);
+
+    // Chưa chọn gì → đây là điểm NHẬN
+    if (!pickDate || pickCaIdx == null) {
+      setPickDate(date);
+      setPickHour(startHour);
+      setNumDays(1);
+      setReturnHour(endHour);
+      return;
+    }
+
+    const clickedOrder = cellOrder(date, caIdx);
+    const pickOrder = cellOrder(pickDate, pickCaIdx);
+
+    // Bấm lại đúng ô đang là điểm nhận (và chưa có điểm trả khác) → bỏ chọn
+    if (clickedOrder === pickOrder && returnDate === pickDate && returnCaIdx === pickCaIdx) {
+      setPickDate("");
+      setPickHour(null);
+      setReturnHour(null);
+      setNumDays(1);
+      return;
+    }
+
+    if (clickedOrder < pickOrder) {
+      // Bấm ô trước điểm nhận hiện tại → coi như chọn lại điểm NHẬN mới
+      setPickDate(date);
+      setPickHour(startHour);
+      setNumDays(1);
+      setReturnHour(endHour);
+    } else {
+      // Bấm ô từ điểm nhận trở đi → đây là điểm TRẢ
+      const nDays = diffDaysLocal(pickDate, date) + 1;
+      setNumDays(nDays);
+      setReturnHour(endHour);
+    }
+  };
+
+  const dates = Array.from({ length: daysToShow }, (_, i) => addDaysLocal(today, i));
+
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={sectionLabel}>CHỌN NGÀY & CA — bấm ô để chọn NHẬN, bấm ô tiếp theo để chọn TRẢ</div>
+
+      <div
+        style={{
+          background: "rgba(255,255,255,0.40)",
+          border: "1px solid rgba(255,255,255,0.62)",
+          borderRadius: 14,
+          padding: "10px",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+        }}
+      >
+        {/* Header cột */}
+        <div style={{ display: "grid", gridTemplateColumns: "68px repeat(3,1fr)", gap: 4, marginBottom: 6, paddingLeft: 2 }}>
+          <div />
+          {CA_SHIFTS.map((c) => {
+            const { startHour, endHour } = parseCaHours(c);
+            return (
+              <div key={c.key} style={{ textAlign: "center", fontSize: 9.5, color: MUT, fontFamily: "system-ui,sans-serif", fontWeight: 600 }}>
+                {c.short}
+                <div style={{ fontSize: 8.5, fontWeight: 400, opacity: 0.8 }}>
+                  {String(startHour).padStart(2, "0")}:00-{String(endHour).padStart(2, "0")}:00
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Rows */}
+        <div style={{ maxHeight: 340, overflowY: "auto" }}>
+          {dates.map((ds) => {
+            const d = new Date(ds + "T00:00:00");
+            const wd = WEEKDAY_SHORT[d.getDay()];
+            const dm = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+            const isTodayRow = ds === today;
+
+            return (
+              <div key={ds} style={{ display: "grid", gridTemplateColumns: "68px repeat(3,1fr)", gap: 4, marginBottom: 4, alignItems: "center" }}>
+                <div style={{ fontSize: 10.5, color: isTodayRow ? G : TXT, fontWeight: isTodayRow ? 700 : 500, fontFamily: "system-ui,sans-serif" }}>
+                  {wd} {dm}
+                </div>
+                {[1, 2, 3].map((caIdx) => {
+                  const status = getCaStatus(ds, caIdx);
+                  const isIncluded = includedSet.has(`${ds}_ca${caIdx}`);
+                  const isPickCell = ds === pickDate && caIdx === pickCaIdx;
+                  const isReturnCell = ds === returnDate && caIdx === returnCaIdx;
+
+                  let bg, border;
+                  if (isIncluded || isPickCell || isReturnCell) {
+                    bg = G;
+                    border = G;
+                  } else if (status === "full") {
+                    bg = "#ef4444cc";
+                    border = "#ef4444";
+                  } else if (status === "low") {
+                    bg = "#fde68a";
+                    border = "#f59e0b";
+                  } else {
+                    bg = "rgba(255,255,255,0.55)";
+                    border = "rgba(0,0,0,0.12)";
+                  }
+
+                  return (
+                    <button
+                      key={caIdx}
+                      onClick={() => handleCellClick(ds, caIdx, status)}
+                      disabled={status === "full"}
+                      title={status === "full" ? "Hết máy" : ""}
+                      style={{
+                        height: 26,
+                        borderRadius: 7,
+                        background: bg,
+                        border: `1px solid ${border}`,
+                        cursor: status === "full" ? "not-allowed" : "pointer",
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+
+        {daysToShow < 60 && (
+          <button
+            onClick={() => setDaysToShow((n) => n + 14)}
+            style={{
+              width: "100%",
+              marginTop: 8,
+              padding: "8px",
+              borderRadius: 10,
+              border: "1px solid rgba(255,255,255,0.62)",
+              background: "rgba(255,255,255,0.35)",
+              color: MUT,
+              fontSize: 11,
+              fontFamily: "system-ui,sans-serif",
+              cursor: "pointer",
+            }}
+          >
+            Xem thêm ngày ▾
+          </button>
+        )}
+
+        {/* Legend */}
+        <div style={{ display: "flex", gap: 12, marginTop: 10, flexWrap: "wrap", paddingLeft: 2 }}>
+          {[
+            ["rgba(255,255,255,0.70)", "rgba(0,0,0,0.20)", "Còn trống"],
+            ["#fde68a", "#f59e0b", "Còn ít"],
+            ["#ef4444cc", "#ef4444", "Hết máy"],
+            [G, G, "Đang chọn"],
+          ].map(([bg, bd, lbl]) => (
+            <div key={lbl} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 3, background: bg, border: `1px solid ${bd}` }} />
+              <span style={{ color: MUT, fontSize: 9, fontFamily: "system-ui,sans-serif" }}>{lbl}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* SỐ NGÀY THUÊ — hiện lại để khách chỉnh nhanh nếu muốn, đồng bộ 2 chiều với lưới */}
+      {pickDate && (
+        <div style={{ marginTop: 10 }}>
+          <div style={sectionLabel}>SỐ NGÀY THUÊ</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 6 }}>
+            {DAY_COUNT_PRESETS.map((d) => (
+              <button
+                key={d}
+                onClick={() => setNumDays(d)}
+                style={hourBtnStyle(numDays === d)}
+              >
+                {d} ngày
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════ CHẾ ĐỘ 2: GIỜ TỰ DO (kiểu cũ) ═══════════════════
+function HourFreeMode({
+  pickDate,
+  setPickDate,
+  pickHour,
+  setPickHour,
+  numDays,
+  setNumDays,
+  returnHour,
+  setReturnHour,
+  camsList,
+  liveOrdersForCheck,
+  pickWarning,
+  returnWarning,
+  pickCaIdx,
+  returnCaIdx,
+}) {
+  const [pickCustomOpen, setPickCustomOpen] = useState(false);
+  const [returnCustomOpen, setReturnCustomOpen] = useState(false);
+  const [dayCustomOpen, setDayCustomOpen] = useState(false);
+
+  const [pickHourDraft, setPickHourDraft] = useState(
+    PICKUP_HOUR_PRESETS.includes(pickHour) ? "" : pickHour != null ? String(pickHour) : ""
+  );
+  const [returnHourDraft, setReturnHourDraft] = useState(
+    RETURN_HOUR_PRESETS.includes(returnHour) ? "" : returnHour != null ? String(returnHour) : ""
+  );
+  const [numDaysDraft, setNumDaysDraft] = useState(
+    DAY_COUNT_PRESETS.includes(numDays) ? "" : numDays != null ? String(numDays) : ""
+  );
+
+  return (
+    <>
+      {/* NGÀY NHẬN */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={sectionLabel}>NGÀY NHẬN</div>
+        <BookingCalendar
+          selectedCams={camsList}
+          orders={liveOrdersForCheck}
+          pickDate={pickDate}
+          setPickDate={setPickDate}
+          numDays={numDays}
+        />
+      </div>
+
+      {/* GIỜ NHẬN */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={sectionLabel}>GIỜ NHẬN (07:00 – 20:00)</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6, marginBottom: 6 }}>
+          {PICKUP_HOUR_PRESETS.map((h) => (
+            <button
+              key={h}
+              onClick={() => {
+                setPickHour(h);
+                setPickHourDraft("");
+                setPickCustomOpen(false);
+              }}
+              style={hourBtnStyle(pickHour === h && !pickCustomOpen)}
+            >
+              {String(h).padStart(2, "0")}:00
+            </button>
+          ))}
+          <button onClick={() => setPickCustomOpen(true)} style={hourBtnStyle(pickCustomOpen)}>
+            Khác
+          </button>
+        </div>
+        {pickCustomOpen && (
+          <input
+            type="number"
+            min={7}
+            max={20}
+            placeholder="Nhập giờ (7-20)"
+            value={pickHourDraft}
+            onChange={(e) => {
+              const raw = e.target.value;
+              setPickHourDraft(raw);
+              if (raw !== "" && !isNaN(parseInt(raw))) setPickHour(parseInt(raw));
+            }}
+            onBlur={() => {
+              let n = parseInt(pickHourDraft);
+              if (isNaN(n)) n = 7;
+              n = Math.min(20, Math.max(7, n));
+              setPickHour(n);
+              setPickHourDraft(String(n));
+            }}
+            style={{
+              width: "100%",
+              padding: "9px 12px",
+              borderRadius: 10,
+              border: "1px solid rgba(255,255,255,0.62)",
+              background: "rgba(255,255,255,0.5)",
+              color: TXT,
+              fontSize: 12,
+              fontFamily: "system-ui,sans-serif",
+              outline: "none",
+            }}
+          />
+        )}
+        {pickCaIdx && caBadge(pickCaIdx)}
+        {pickWarning && (
+          <div style={{ marginTop: 8, padding: "9px 12px", background: "#FFF7E6", border: "1px solid #f59e0b55", borderRadius: 12, color: "#92600a", fontSize: 11, fontFamily: "system-ui,sans-serif", lineHeight: 1.5 }}>
+            {pickWarning}
+          </div>
+        )}
+      </div>
+
+      {/* SỐ NGÀY THUÊ */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={sectionLabel}>SỐ NGÀY THUÊ</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 6 }}>
+          {DAY_COUNT_PRESETS.map((d) => (
+            <button
+              key={d}
+              onClick={() => {
+                setNumDays(d);
+                setNumDaysDraft("");
+                setDayCustomOpen(false);
+              }}
+              style={hourBtnStyle(numDays === d && !dayCustomOpen)}
+            >
+              {d} ngày
+            </button>
+          ))}
+          <button onClick={() => setDayCustomOpen(true)} style={hourBtnStyle(dayCustomOpen)}>
+            Khác
+          </button>
+        </div>
+        {dayCustomOpen && (
+          <input
+            type="number"
+            min={1}
+            placeholder="Nhập số ngày"
+            value={numDaysDraft}
+            onChange={(e) => {
+              const raw = e.target.value;
+              setNumDaysDraft(raw);
+              if (raw !== "" && !isNaN(parseInt(raw))) setNumDays(parseInt(raw));
+            }}
+            onBlur={() => {
+              let n = parseInt(numDaysDraft);
+              if (isNaN(n) || n < 1) n = 1;
+              setNumDays(n);
+              setNumDaysDraft(String(n));
+            }}
+            style={{
+              width: "100%",
+              marginTop: 6,
+              padding: "9px 12px",
+              borderRadius: 10,
+              border: "1px solid rgba(255,255,255,0.62)",
+              background: "rgba(255,255,255,0.5)",
+              color: TXT,
+              fontSize: 12,
+              fontFamily: "system-ui,sans-serif",
+              outline: "none",
+            }}
+          />
+        )}
+      </div>
+
+      {/* GIỜ TRẢ */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={sectionLabel}>GIỜ TRẢ</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6 }}>
+          {RETURN_HOUR_PRESETS.map((h) => (
+            <button
+              key={h}
+              onClick={() => {
+                setReturnHour(h);
+                setReturnHourDraft("");
+                setReturnCustomOpen(false);
+              }}
+              style={hourBtnStyle(returnHour === h && !returnCustomOpen)}
+            >
+              {String(h).padStart(2, "0")}:00
+            </button>
+          ))}
+          <button onClick={() => setReturnCustomOpen(true)} style={hourBtnStyle(returnCustomOpen)}>
+            Khác
+          </button>
+        </div>
+        {returnCustomOpen && (
+          <input
+            type="number"
+            min={7}
+            max={20}
+            placeholder="Nhập giờ (7-20)"
+            value={returnHourDraft}
+            onChange={(e) => {
+              const raw = e.target.value;
+              setReturnHourDraft(raw);
+              if (raw !== "" && !isNaN(parseInt(raw))) setReturnHour(parseInt(raw));
+            }}
+            onBlur={() => {
+              let n = parseInt(returnHourDraft);
+              if (isNaN(n)) n = 20;
+              n = Math.min(20, Math.max(7, n));
+              setReturnHour(n);
+              setReturnHourDraft(String(n));
+            }}
+            style={{
+              width: "100%",
+              marginTop: 6,
+              padding: "9px 12px",
+              borderRadius: 10,
+              border: "1px solid rgba(255,255,255,0.62)",
+              background: "rgba(255,255,255,0.5)",
+              color: TXT,
+              fontSize: 12,
+              fontFamily: "system-ui,sans-serif",
+              outline: "none",
+            }}
+          />
+        )}
+        {returnCaIdx && caBadge(returnCaIdx)}
+        {returnWarning && (
+          <div style={{ marginTop: 8, padding: "9px 12px", background: "#FFF7E6", border: "1px solid #f59e0b55", borderRadius: 12, color: "#92600a", fontSize: 11, fontFamily: "system-ui,sans-serif", lineHeight: 1.5 }}>
+            {returnWarning}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
