@@ -193,10 +193,16 @@ export default function BookingModal(props) {
             toggleAcc={b.toggleAcc}
             setAccQty={b.setAccQty}
             liveOrdersForCheck={b.liveOrdersForCheck}
-            selSession={b.selSession}
             pickDate={b.pickDate}
             setPickDate={b.setPickDate}
-            days={b.days}
+            pickHour={b.pickHour}
+            setPickHour={b.setPickHour}
+            numDays={b.numDays}
+            setNumDays={b.setNumDays}
+            returnHour={b.returnHour}
+            setReturnHour={b.setReturnHour}
+            caResult={b.caResult}
+            totalCa={b.totalCa}
             selectedCamList={b.selectedCamList}
             selCams={b.selCams}
             totalCamSelected={b.totalCamSelected}
@@ -204,10 +210,6 @@ export default function BookingModal(props) {
             camCost={b.camCost}
             subtotal={b.subtotal}
             total={b.total}
-            selDur={b.selDur}
-            setSelDur={b.setSelDur}
-            customDays={b.customDays}
-            setCustomDays={b.setCustomDays}
             appliedRental={b.appliedRental}
             appliedDelivery={b.appliedDelivery}
             appliedTotal={b.appliedTotal}
@@ -216,7 +218,6 @@ export default function BookingModal(props) {
             totalDiscountAmt={b.totalDiscountAmt}
             setStep={b.setStep}
             qtyBtn={qtyBtnHelper}
-            inpS={inpSStyle}
           />
         )}
 
