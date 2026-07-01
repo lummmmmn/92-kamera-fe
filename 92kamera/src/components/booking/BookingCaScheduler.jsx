@@ -535,9 +535,9 @@ function HourFreeMode({
         {pickCustomOpen && (
           <input
             type="number"
-            min={7}
-            max={20}
-            placeholder="Nhập giờ (7-20)"
+            min={0}
+            max={23}
+            placeholder="Nhập giờ (0-23)"
             value={pickHourDraft}
             onChange={(e) => {
               const raw = e.target.value;
@@ -547,7 +547,7 @@ function HourFreeMode({
             onBlur={() => {
               let n = parseInt(pickHourDraft);
               if (isNaN(n)) n = 7;
-              n = Math.min(20, Math.max(7, n));
+              n = Math.min(23, Math.max(0, n));
               setPickHour(n);
               setPickHourDraft(String(n));
             }}
@@ -650,9 +650,9 @@ function HourFreeMode({
         {returnCustomOpen && (
           <input
             type="number"
-            min={7}
-            max={20}
-            placeholder="Nhập giờ (7-20)"
+            min={0}
+            max={23}
+            placeholder="Nhập giờ (0-23) — quá 20h sẽ tính thêm ca ngày hôm sau"
             value={returnHourDraft}
             onChange={(e) => {
               const raw = e.target.value;
@@ -662,7 +662,7 @@ function HourFreeMode({
             onBlur={() => {
               let n = parseInt(returnHourDraft);
               if (isNaN(n)) n = 20;
-              n = Math.min(20, Math.max(7, n));
+              n = Math.min(23, Math.max(0, n));
               setReturnHour(n);
               setReturnHourDraft(String(n));
             }}
