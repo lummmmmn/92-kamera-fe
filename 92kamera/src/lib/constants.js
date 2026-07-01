@@ -100,7 +100,7 @@ export const GOOGLE_CLIENT_ID =
 export const ADMIN_PW_DEFAULT_HASH =
   "db08beaae1b06ae2e84f101f8e37a8c03e16eb8e514ec8c2274b5d89aa2f9d22";
 
-// ── DURATIONS ──
+// ── DURATIONS (giữ lại cho các nơi khác còn dùng - quick-select cũ, v.v.) ──
 export const DURATIONS = [
   { label: "🌅 Ca Sáng",  days: 0.5, session: "morning"   },
   { label: "🌇 Ca Chiều", days: 0.5, session: "afternoon" },
@@ -114,6 +114,17 @@ export const SHIFTS = [
   { key: "morning",   label: "🌅 Ca Sáng",  time: "6:00 – 12:00",  session: "morning"   },
   { key: "afternoon", label: "🌇 Ca Chiều", time: "14:00 – 20:00", session: "afternoon" },
 ];
+
+// ── CA MODEL MỚI: 3 CA/NGÀY, ĐỘC LẬP (07:00–20:00) ──
+export const CA_SHIFTS = [
+  { key: "ca1", idx: 1, label: "Ca 1 — Sáng", short: "Ca 1", time: "07:00–12:00", startH: 7,  endH: 12, color: "#22c55e" },
+  { key: "ca2", idx: 2, label: "Ca 2 — Trưa", short: "Ca 2", time: "12:00–17:00", startH: 12, endH: 17, color: "#3b82f6" },
+  { key: "ca3", idx: 3, label: "Ca 3 — Tối",  short: "Ca 3", time: "17:00–20:00", startH: 17, endH: 20, color: "#f59e0b" },
+];
+
+export const PICKUP_HOUR_PRESETS = [7, 8, 10, 12, 14, 17, 19];
+export const RETURN_HOUR_PRESETS = [12, 17, 20];
+export const DAY_COUNT_PRESETS = [1, 2, 3, 7];
 
 // ── INITIAL / FALLBACK DATA ──
 export const CAMS_INIT = [
