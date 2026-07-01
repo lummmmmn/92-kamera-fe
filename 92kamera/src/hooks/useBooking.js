@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { todayStr, dateAddDays } from "../utils/format.js";
-import { getAvailQty, getAccAvailQty } from "../utils/availability.js";
-import { STORE_KEYS, DURATIONS, DELIVERY_AREAS_DEFAULT } from "../lib/constants.js";
+import { todayStr, buildCaSchedule } from "../utils/format.js";
+import { getAvailQtyByCa, getAccAvailQtyByCa } from "../utils/availability.js";
+import { STORE_KEYS, DELIVERY_AREAS_DEFAULT } from "../lib/constants.js";
 import { getOrders, getDiscounts } from "../api/index.js";
 import { useCreateOrder } from "./useOrders.js";
 
@@ -64,14 +64,15 @@ export function useBooking({
     return { [preselectedCamId]: 1 };
   });
 
-  const [selDur, setSelDur] = useState(() => {
-    if (!preselectedDays) return null;
-    const found = DURATIONS.find((d) => d.days === preselectedDays && d.session === "full");
-    return found || { days: preselectedDays, session: "full", label: `${preselectedDays} ngày` };
-  });
-
-  const [customDays, setCustomDays] = useState("");
+  // ── CA MODEL: giờ nhận / số ngày / giờ trả (thay cho selDur/customDays/selSession) ──
   const [pickDate, setPickDate] = useState(preselectedDate || todayStr());
+  const [numDays, setNumDays] = useState(preselectedDays || 1);
+  const [pickHour, setPickHour] = useState(hasQuickSelect ? 7 : null);
+  const [returnHour, setReturnHour] = useState(hasQuickSelect ? 20 : null);
+
+  const caResult = buildCaSchedule(pickDate, pickHour, numDays, returnHour);
+  const days = numDays; // giữ tên "days" để tương thích chỗ khác (isDateInOrder, hiển thị số ngày)
+  const totalCa = caResult ? caResult.totalCa : 0;
 
   const [selAcc, setSelAcc] = useState(() => {
     if (preselectedAccs && Object.keys(preselectedAccs).length > 0) return { ...preselectedAccs };
@@ -132,20 +133,10 @@ export function useBooking({
   const appliedDelivery = appliedDiscounts.find((d) => d.scope === "delivery") || null;
   const appliedTotal = appliedDiscounts.find((d) => d.scope === "total") || null;
 
-  const days = selDur ? selDur.days : parseFloat(customDays) || 0;
-  const selSession = selDur ? selDur.session : days >= 1 ? "full" : null;
-
-  // Auto-clamp camera quantities
+  // ── Auto-clamp camera quantities theo lịch ca đã chọn ──
   useEffect(() => {
-    if (!pickDate || !days || !selSession) return;
+    if (!caResult || caResult.totalCa === 0) return;
     const activeOrds = liveOrdersForCheck.filter((o) => !["cancelled", "completed"].includes(o.status));
-    const sess = selSession || "full";
-    const dateRange = [];
-    if (days < 1) {
-      dateRange.push(pickDate);
-    } else {
-      for (let i = 0; i < Math.ceil(days); i++) dateRange.push(dateAddDays(pickDate, i));
-    }
 
     setSelCams((prev) => {
       const next = { ...prev };
@@ -153,7 +144,9 @@ export function useBooking({
       Object.keys(next).forEach((camId) => {
         const cam = cameras.find((c) => String(c.id) === String(camId));
         if (!cam) return;
-        const minAvail = Math.min(...dateRange.map((d) => getAvailQty(cam.id, cam.qty || 1, activeOrds, d, sess)));
+        const minAvail = Math.min(
+          ...caResult.schedule.map((s) => getAvailQtyByCa(cam.id, cam.qty || 1, activeOrds, s.date, s.ca))
+        );
         if (minAvail > 0 && next[camId] > minAvail) {
           next[camId] = minAvail;
           changed = true;
@@ -161,19 +154,12 @@ export function useBooking({
       });
       return changed ? next : prev;
     });
-  }, [pickDate, selSession, days, liveOrdersForCheck, cameras]);
+  }, [caResult?.totalCa, pickDate, pickHour, numDays, returnHour, liveOrdersForCheck, cameras]);
 
   // Auto-remove out-of-stock accessories
   useEffect(() => {
-    if (!pickDate || !days) return;
+    if (!caResult || caResult.totalCa === 0) return;
     const activeOrds = liveOrdersForCheck.filter((o) => !["cancelled", "completed"].includes(o.status));
-    const sess = selSession || "full";
-    const dateRange = [];
-    if (days < 1) {
-      dateRange.push(pickDate);
-    } else {
-      for (let i = 0; i < Math.ceil(days); i++) dateRange.push(dateAddDays(pickDate, i));
-    }
 
     setSelAcc((prev) => {
       const next = { ...prev };
@@ -181,7 +167,9 @@ export function useBooking({
       Object.keys(next).forEach((name) => {
         const acc = accessories.find((a) => a.name === name);
         if (!acc) return;
-        const minAvail = Math.min(...dateRange.map((d) => getAccAvailQty(name, acc.qty || 0, activeOrds, d, sess)));
+        const minAvail = Math.min(
+          ...caResult.schedule.map((s) => getAccAvailQtyByCa(name, acc.qty || 0, activeOrds, s.date, s.ca))
+        );
         if (minAvail > 0 && next[name] > minAvail) {
           next[name] = minAvail;
           changed = true;
@@ -189,7 +177,7 @@ export function useBooking({
       });
       return changed ? next : prev;
     });
-  }, [pickDate, selSession, days, liveOrdersForCheck, accessories]);
+  }, [caResult?.totalCa, pickDate, pickHour, numDays, returnHour, liveOrdersForCheck, accessories]);
 
   const availCams = cameras.filter((c) => c.status === "available");
   const selectedCamList = availCams.filter((c) => selCams[c.id] > 0);
@@ -198,13 +186,17 @@ export function useBooking({
     : false;
   const totalCamSelected = Object.values(selCams).reduce((s, q) => s + (q || 0), 0);
 
-  const camCost = selectedCamList.reduce((s, c) => s + c.price * (selCams[c.id] || 0) * days, 0);
+  // ── Tính tiền theo số ca (đơn giá/ca = giá thuê ngày ÷ 3) ──
+  const pricePerCa = (fullDayPrice) => Math.round(fullDayPrice / 3);
+
+  const camCost = selectedCamList.reduce(
+    (s, c) => s + pricePerCa(c.price) * (selCams[c.id] || 0) * totalCa,
+    0
+  );
   const accCost = Object.entries(selAcc).reduce((s, [name, qty]) => {
     const a = accessories.find((x) => x.name === name);
     if (!a) return s;
-    const unitPrice = days === 0.5 ? (a.priceShift != null ? a.priceShift : Math.round(a.price / 2)) : a.price;
-    const multiplier = days === 0.5 ? 1 : days;
-    return s + unitPrice * qty * multiplier;
+    return s + pricePerCa(a.price) * qty * totalCa;
   }, 0);
   const subtotal = camCost + accCost;
 
@@ -227,7 +219,6 @@ export function useBooking({
           changed = true;
           return false;
         }
-        // Auto-huỷ nếu số ngày thuê giảm xuống dưới minDays
         if (disc.minDays && days < disc.minDays) {
           setDiscountMsg({ type: "err", text: `Cần thuê tối thiểu ${disc.minDays} ngày — mã ${ad.code} đã bị huỷ` });
           changed = true;
@@ -307,8 +298,6 @@ export function useBooking({
         return false;
       }
 
-      // Backend chỉ lưu voucherScope = "rental"/"delivery"; mã "giảm tổng đơn" được đánh dấu
-      // bằng field phụ totalScope (xem ghi chú trong DiscountsPanel.jsx)
       const scope = disc.totalScope ? "total" : disc.voucherScope === "delivery" ? "delivery" : "rental";
 
       if (appliedDiscounts.some((ad) => ad.scope === scope)) {
@@ -317,7 +306,6 @@ export function useBooking({
         return false;
       }
 
-      // Mã giảm tổng đơn không dùng chung với mã giảm thuê/giảm ship — tránh giảm trùng trên cùng 1 khoản tiền
       if (scope === "total" && appliedDiscounts.length > 0) {
         setDiscountMsg({ type: "err", text: "Mã giảm tổng đơn không dùng chung với mã giảm thuê/giảm ship khác. Vui lòng gỡ mã hiện tại trước." });
         return false;
@@ -342,7 +330,6 @@ export function useBooking({
         setDiscountMsg({ type: "err", text: `Đơn hàng tối thiểu ${new Intl.NumberFormat("vi-VN").format(disc.minOrder)}đ mới được áp dụng mã này` });
         return false;
       }
-      // Check số ngày thuê tối thiểu
       if (disc.minDays && days < disc.minDays) {
         setDiscountMsg({ type: "err", text: `Mã này yêu cầu thuê tối thiểu ${disc.minDays} ngày (hiện tại: ${days} ngày)` });
         return false;
@@ -353,7 +340,6 @@ export function useBooking({
         return false;
       }
 
-      // Check required badge
       if (disc.requiredBadge && disc.requiredBadge !== "none") {
         const userOrders = (Array.isArray(liveOrdersForCheck) ? liveOrdersForCheck : []).filter(
           (o) =>
@@ -417,38 +403,6 @@ export function useBooking({
     setDiscountMsg(null);
   };
 
-  const returnInfo = () => {
-    if (!pickDate || !days) return null;
-    const fmtDate = (ds) => {
-      const d = new Date(ds + "T00:00:00");
-      return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-    };
-
-    if (days === 0.5) {
-      const isM = selSession === "morning";
-      const isA = selSession === "afternoon";
-      return {
-        pickTime: isM ? "06:00" : isA ? "14:00" : "--:--",
-        pickDate: fmtDate(pickDate),
-        dropTime: isM ? "12:00" : isA ? "20:00" : "--:--",
-        dropDate: fmtDate(pickDate),
-        totalH: 6,
-        totalLabel: "6 giờ (1 buổi)",
-      };
-    }
-
-    const totalH = Math.ceil(days) * 24;
-    const endDs = dateAddDays(pickDate, days);
-    return {
-      pickTime: "12:00",
-      pickDate: fmtDate(pickDate),
-      dropTime: "12:00",
-      dropDate: fmtDate(endDs),
-      totalH,
-      totalLabel: `${totalH} giờ (${Math.ceil(days)} ngày)`,
-    };
-  };
-
   const toggleCam = (cam) => {
     setSelCams((p) => {
       const cur = p[cam.id] || 0;
@@ -510,15 +464,15 @@ export function useBooking({
       return;
     }
     if (!pickDate) {
-      setSubmitError("❌ Vui lòng chọn ngày thuê ở bước 2.");
+      setSubmitError("❌ Vui lòng chọn ngày nhận ở bước 2.");
       return;
     }
-    if (!days || days <= 0) {
-      setSubmitError("❌ Vui lòng chọn thời lượng thuê ở bước 2.");
+    if (pickHour == null || returnHour == null) {
+      setSubmitError("❌ Vui lòng chọn giờ nhận và giờ trả ở bước 2.");
       return;
     }
-    if (!selDur && (days < 1 || Math.abs(days * 2 - Math.round(days * 2)) > 0.0001)) {
-      setSubmitError("❌ Số ngày tự nhập phải từ 1 ngày trở lên và theo bội số 0.5 (VD: 1, 1.5, 2).");
+    if (!caResult || caResult.totalCa === 0) {
+      setSubmitError("❌ Giờ trả phải sau giờ nhận (khi thuê 1 ngày). Vui lòng chọn lại.");
       return;
     }
     const phoneClean = info.phone.replace(/\s/g, "");
@@ -535,23 +489,17 @@ export function useBooking({
     setSubmitError(null);
 
     try {
-      const sess = selSession || "full";
-      const submitDateRange = [];
-      if (days < 1) {
-        submitDateRange.push(pickDate);
-      } else {
-        for (let i = 0; i < Math.ceil(days); i++) submitDateRange.push(dateAddDays(pickDate, i));
-      }
-
       // Re-fetch orders list for final stock validation
       const freshOrders = await getOrders();
       const activeOrds = (freshOrders || []).filter((o) => !["cancelled", "completed"].includes(o.status));
 
       for (const cam of selectedCamList) {
         const need = selCams[cam.id] || 1;
-        const minAvail = Math.min(...submitDateRange.map((d) => getAvailQty(cam.id, cam.qty || 1, activeOrds, d, sess)));
+        const minAvail = Math.min(
+          ...caResult.schedule.map((s) => getAvailQtyByCa(cam.id, cam.qty || 1, activeOrds, s.date, s.ca))
+        );
         if (minAvail < need) {
-          setSubmitError(`❌ "${cam.name}" vừa hết trong khoảng này (còn ${minAvail}). Vui lòng chọn ngày khác.`);
+          setSubmitError(`❌ "${cam.name}" vừa hết trong khoảng này (còn ${minAvail}). Vui lòng chọn lại giờ/ngày.`);
           setSubmitting(false);
           return;
         }
@@ -561,7 +509,9 @@ export function useBooking({
         if (!qty || qty <= 0) continue;
         const acc = accessories.find((a) => a.name === name);
         if (!acc) continue;
-        const minAvail = Math.min(...submitDateRange.map((d) => getAccAvailQty(name, acc.qty || 0, activeOrds, d, sess)));
+        const minAvail = Math.min(
+          ...caResult.schedule.map((s) => getAccAvailQtyByCa(name, acc.qty || 0, activeOrds, s.date, s.ca))
+        );
         if (minAvail < qty) {
           setSubmitError(`❌ Phụ kiện "${name}" vừa hết trong khoảng này (còn ${minAvail}). Vui lòng điều chỉnh.`);
           setSubmitting(false);
@@ -582,6 +532,12 @@ export function useBooking({
         accessories: accNames,
         accessoriesDetail: Object.entries(selAcc).map(([name, qty]) => ({ name, qty })),
         days,
+        // Lịch ca chi tiết dùng để check tồn kho độc lập theo từng ca
+        caSchedule: caResult.schedule,
+        totalCa: caResult.totalCa,
+        pickHour,
+        returnHour,
+        returnDate: caResult.returnDate,
         subtotal,
         discountCode: appliedRental?.code || appliedDelivery?.code || appliedTotal?.code || null,
         discountAmt,
@@ -590,8 +546,9 @@ export function useBooking({
         totalDiscountAmt,
         appliedDiscounts: appliedDiscounts.map((x) => ({ code: x.code, scope: x.scope, amt: x.discountAmt })),
         total,
-        session: selSession || "full",
-        shift: days === 0.5 ? selSession : null,
+        // Giữ field session = "full" để tương thích các nơi cũ hiển thị/lọc theo session
+        session: "full",
+        shift: null,
         createdAt: new Date().toISOString(),
         ...info,
         address: selfPickup
@@ -608,7 +565,6 @@ export function useBooking({
         userEmail: loggedUser?.email || "",
       };
 
-      // Call API mutation
       const finalOrder = await createOrderMutation.mutateAsync(orderData);
 
       setOrderId(finalOrder.id);
@@ -632,10 +588,15 @@ export function useBooking({
     setCamImgIdx,
     selCams,
     setSelCams,
-    selDur,
-    setSelDur,
-    customDays,
-    setCustomDays,
+    // ca model
+    pickHour,
+    setPickHour,
+    numDays,
+    setNumDays,
+    returnHour,
+    setReturnHour,
+    caResult,
+    totalCa,
     pickDate,
     setPickDate,
     selAcc,
@@ -676,7 +637,7 @@ export function useBooking({
     appliedDelivery,
     appliedTotal,
     days,
-    selSession,
+    selSession: "full",
     availCams,
     selectedCamList,
     preselectedUnavailable,
@@ -691,7 +652,6 @@ export function useBooking({
     total,
     applyDiscount,
     removeDiscount,
-    returnInfo,
     toggleCam,
     setCamQty,
     toggleAcc,
