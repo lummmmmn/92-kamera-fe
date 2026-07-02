@@ -268,17 +268,46 @@ export default function BookingCaScheduler({
   );
 }
 
+// Tính CHÍNH XÁC danh sách {date, ca} từ điểm nhận đến điểm trả — đi tuần tự ca1→ca2→ca3
+// rồi sang ca1 ngày tiếp theo, KHÔNG tự động tô kín cả ngày như hook cha đang làm.
+const buildExactCaRange = (pickDate, pickCaIdx, returnDate, returnCaIdx) => {
+  if (!pickDate || !pickCaIdx || !returnDate || !returnCaIdx) return [];
+  const out = [];
+  let curDate = pickDate;
+  let curCa = pickCaIdx;
+  let guard = 0;
+  while (guard < 366 * 3) {
+    out.push({ date: curDate, ca: `ca${curCa}` });
+    if (curDate === returnDate && curCa === returnCaIdx) break;
+    curCa += 1;
+    if (curCa > 3) {
+      curCa = 1;
+      curDate = addDaysLocal(curDate, 1);
+    }
+    guard += 1;
+    if (curDate > returnDate) break; // an toàn, tránh vòng lặp vô hạn nếu dữ liệu lệch
+  }
+  return out;
+};
+
 // ═══════════════════ CHẾ ĐỘ 1: LƯỚI NGÀY × CA (kiểu baylahome) ═══════════════════
 function CaGridMode({ pickDate, setPickDate, pickHour, setPickHour, numDays, setNumDays, returnHour, setReturnHour, getCaStatus, caSchedule }) {
   const [daysToShow, setDaysToShow] = useState(14);
+  const [fullDayMode, setFullDayMode] = useState(false); // true khi khách bấm preset "SỐ NGÀY THUÊ" → tô kín cả ngày
   const today = todayStr();
 
   const pickCaIdx = pickHour != null ? hourToCaIdx(pickHour) : null;
   const returnDate = caSchedule?.returnDate || (pickDate ? addDaysLocal(pickDate, Math.max(1, Math.round(numDays || 1)) - 1) : null);
   const returnCaIdx = returnHour != null ? hourToCaIdx(returnHour) : null;
 
-  // Set các {date,ca} nằm trong khoảng đang chọn (để tô "Đang chọn" toàn bộ dải, không chỉ 2 đầu)
-  const includedSet = new Set((caSchedule?.schedule || []).map((s) => `${s.date}_${s.ca}`));
+  // Tô "Đang chọn":
+  // - fullDayMode (khách bấm preset ngày) → dùng caSchedule.schedule của hook cha (tô kín cả ngày)
+  // - custom (khách tự bấm ô) → chỉ tô đúng dải ca khách đã bấm, KHÔNG tự tô kín ngày
+  const exactRange = buildExactCaRange(pickDate, pickCaIdx, returnDate, returnCaIdx);
+  const includedSet = fullDayMode
+    ? new Set((caSchedule?.schedule || []).map((s) => `${s.date}_${s.ca}`))
+    : new Set(exactRange.map((s) => `${s.date}_${s.ca}`));
+  const localTotalCa = exactRange.length;
 
   const cellOrder = (date, caIdx) => `${date}_${String(caIdx).padStart(1, "0")}`;
 
@@ -287,7 +316,10 @@ function CaGridMode({ pickDate, setPickDate, pickHour, setPickHour, numDays, set
     const c = CA_SHIFTS[caIdx - 1];
     const { startHour, endHour } = parseCaHours(c);
 
-    // Chưa chọn gì → đây là điểm NHẬN
+    // Bấm tay trực tiếp trên lưới → luôn là chế độ "tô đúng ca đã bấm", không tự tô kín ngày
+    setFullDayMode(false);
+
+    // Chưa chọn gì → đây là điểm NHẬN. Bấm 1 ô là XONG NGAY (1 ca), không bắt buộc bấm ô thứ 2.
     if (!pickDate || pickCaIdx == null) {
       setPickDate(date);
       setPickHour(startHour);
@@ -309,13 +341,13 @@ function CaGridMode({ pickDate, setPickDate, pickHour, setPickHour, numDays, set
     }
 
     if (clickedOrder < pickOrder) {
-      // Bấm ô trước điểm nhận hiện tại → coi như chọn lại điểm NHẬN mới
+      // Bấm ô trước điểm nhận hiện tại → coi như chọn lại điểm NHẬN mới (1 ca)
       setPickDate(date);
       setPickHour(startHour);
       setNumDays(1);
       setReturnHour(endHour);
     } else {
-      // Bấm ô từ điểm nhận trở đi → đây là điểm TRẢ
+      // Bấm ô từ điểm nhận trở đi → đây là điểm TRẢ, tính đúng số ngày bao trùm (để hook cha còn check tồn kho)
       const nDays = diffDaysLocal(pickDate, date) + 1;
       setNumDays(nDays);
       setReturnHour(endHour);
@@ -448,18 +480,30 @@ function CaGridMode({ pickDate, setPickDate, pickHour, setPickHour, numDays, set
       {/* SỐ NGÀY THUÊ — hiện lại để khách chỉnh nhanh nếu muốn, đồng bộ 2 chiều với lưới */}
       {pickDate && (
         <div style={{ marginTop: 10 }}>
-          <div style={sectionLabel}>SỐ NGÀY THUÊ</div>
+          <div style={sectionLabel}>SỐ NGÀY THUÊ (bấm để tô kín trọn ngày)</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 6 }}>
             {DAY_COUNT_PRESETS.map((d) => (
               <button
                 key={d}
-                onClick={() => setNumDays(d)}
-                style={hourBtnStyle(numDays === d)}
+                onClick={() => {
+                  const ca1 = parseCaHours(CA_SHIFTS[0]);
+                  const ca3 = parseCaHours(CA_SHIFTS[2]);
+                  setFullDayMode(true);
+                  setPickHour(ca1.startHour);
+                  setNumDays(d);
+                  setReturnHour(ca3.endHour);
+                }}
+                style={hourBtnStyle(numDays === d && fullDayMode)}
               >
                 {d} ngày
               </button>
             ))}
           </div>
+          {!fullDayMode && (
+            <div style={{ marginTop: 8, fontSize: 10.5, color: MUT, fontFamily: "system-ui,sans-serif" }}>
+              Đang ở chế độ tự chọn theo ca — tính đúng {localTotalCa} ca đã bấm trên lưới.
+            </div>
+          )}
         </div>
       )}
     </div>
