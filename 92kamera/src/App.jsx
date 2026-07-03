@@ -324,6 +324,8 @@ function AppRoot() {
           preselectedAccs={booking && typeof booking === "object" && booking.preselectedAccs ? booking.preselectedAccs : null}
           preselectedDate={booking && typeof booking === "object" ? booking.date : null}
           preselectedDays={booking && typeof booking === "object" ? booking.days : null}
+          preselectedPickHour={booking && typeof booking === "object" ? booking.pickHour : null}
+          preselectedReturnHour={booking && typeof booking === "object" ? booking.returnHour : null}
           noDate={booking && typeof booking === "object" ? !!booking.noDate : false}
           orders={orders}
           isMobile={isMobile}
