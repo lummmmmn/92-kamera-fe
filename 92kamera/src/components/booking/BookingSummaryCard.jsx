@@ -1,6 +1,5 @@
 import { G, MUT, TXT, BR, CARD } from "../../lib/constants.js";
 import { cdnUrl, fmtVND, fmtDays, dateAddDays } from "../../utils/format.js";
-import { useMobile } from "../../hooks/useMobile.js";
 
 export default function BookingSummaryCard({
   selectedCamList,
@@ -14,7 +13,6 @@ export default function BookingSummaryCard({
   returnHour,
   caResult,
 }) {
-  const isMobile = useMobile();
   const ri = returnInfoLocal();
 
   function returnInfoLocal() {
@@ -76,9 +74,9 @@ export default function BookingSummaryCard({
         boxShadow: "0 1px 0 rgba(255,255,255,0.70) inset, 0 4px 24px rgba(0,0,0,0.10)",
       }}
     >
-      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: "stretch", minHeight: isMobile ? "auto" : 160 }}>
+      <div style={{ display: "flex", alignItems: "stretch", minHeight: 160 }}>
         {/* CỘT TRÁI: danh sách thiết bị */}
-        <div style={{ flex: 1, minWidth: 0, borderRight: isMobile ? "none" : `1px solid rgba(0,0,0,0.08)`, borderBottom: isMobile ? `1px solid rgba(0,0,0,0.08)` : "none" }}>
+        <div style={{ flex: 1, minWidth: 0, borderRight: `1px solid rgba(0,0,0,0.08)` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "13px 16px", borderBottom: `1px solid rgba(0,0,0,0.08)` }}>
             <span style={{ fontSize: 15 }}>📦</span>
             <span style={{ color: G, fontSize: 9, letterSpacing: 1.5, fontFamily: "system-ui,sans-serif", fontWeight: 700 }}>
@@ -208,8 +206,29 @@ export default function BookingSummaryCard({
                 );
               } else {
                 return (
-                  <div key={name} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", background: "rgba(0,0,0,0.02)" }}>
-                    <span style={{ color: MUT, fontSize: 12 }}>🎒 {name}</span>
+                  <div key={name} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", background: "rgba(0,0,0,0.02)" }}>
+                    <div
+                      style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: 8,
+                        overflow: "hidden",
+                        flexShrink: 0,
+                        background: "rgba(201,168,76,0.12)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 15,
+                        border: "1px solid rgba(201,168,76,0.30)",
+                      }}
+                    >
+                      {accObj?.image ? (
+                        <img src={accObj.image} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : (
+                        "🎒"
+                      )}
+                    </div>
+                    <span style={{ color: MUT, fontSize: 12, flex: 1, minWidth: 0 }}>{name}</span>
                     <span
                       style={{
                         background: "rgba(255,255,255,0.60)",
@@ -218,6 +237,7 @@ export default function BookingSummaryCard({
                         fontSize: 10,
                         color: TXT,
                         fontWeight: 700,
+                        flexShrink: 0,
                       }}
                     >
                       x{qty}
@@ -229,7 +249,7 @@ export default function BookingSummaryCard({
         </div>
 
         {/* CỘT PHẢI: thời gian */}
-        <div style={{ width: isMobile ? "100%" : "42%", flexShrink: 0, padding: "14px 16px", display: "flex", flexDirection: "column" }}>
+        <div style={{ width: "42%", flexShrink: 0, padding: "14px 16px", display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 12 }}>
             <span style={{ fontSize: 14 }}>📅</span>
             <span style={{ color: G, fontSize: 9, letterSpacing: 1.5, fontFamily: "system-ui,sans-serif", fontWeight: 700 }}>
@@ -237,18 +257,18 @@ export default function BookingSummaryCard({
             </span>
           </div>
 
-          <div style={{ flex: 1, display: "flex", flexDirection: "row", gap: 10, flexWrap: "wrap" }}>
-            <div style={{ flex: "1 1 0", minWidth: 70 }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
+            <div>
               <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif", marginBottom: 3 }}>
                 Thời lượng thuê
               </div>
               <div style={{ color: G, fontWeight: 800, fontSize: 13, fontFamily: "system-ui,sans-serif" }}>
-                {days > 0 ? (ri?.totalLabel || fmtDays(days, selSession)) : "—"}
+                {pickHour != null && ri?.totalLabel ? ri.totalLabel : days > 0 ? fmtDays(days, selSession) : "—"}
               </div>
             </div>
             {ri && (
               <>
-                <div style={{ flex: "1 1 0", minWidth: 70 }}>
+                <div>
                   <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif", marginBottom: 3 }}>
                     Nhận thiết bị
                   </div>
@@ -259,7 +279,7 @@ export default function BookingSummaryCard({
                     {ri.pickDate}
                   </div>
                 </div>
-                <div style={{ flex: "1 1 0", minWidth: 70 }}>
+                <div>
                   <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif", marginBottom: 3 }}>
                     Trả trước giờ
                   </div>
