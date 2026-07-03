@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { useMobile } from "../../hooks/useMobile.js";
 import { G, BG, CARD, BR, BR2, TXT, MUT } from "../../lib/constants.js";
-import { todayStr, cdnUrl, fmtVND } from "../../utils/format.js";
-import { getAvailQty, getAccAvailQty } from "../../utils/availability.js";
+import { todayStr, cdnUrl, fmtVND, buildCaSchedule, hourToCaIdx, hourToCaIdxReturn } from "../../utils/format.js";
+import { getAvailQtyByCa, getAccAvailQtyByCa } from "../../utils/availability.js";
 
 export default function QuickSearchFloat({ cameras, accessories, orders, onBook, openTrigger = 0 }) {
   const isMobile = useMobile();
   const [open, setOpen] = useState(false);
   const [startDate, setStartDate] = useState(todayStr());
   const [endDate, setEndDate] = useState(todayStr());
+  const [pickHour, setPickHour] = useState(7);
+  const [returnHour, setReturnHour] = useState(20);
   const [results, setResults] = useState(null);
   const [searched, setSearched] = useState(false);
   const [selCams, setSelCams] = useState({}); // { camId: qty }
@@ -19,31 +21,19 @@ export default function QuickSearchFloat({ cameras, accessories, orders, onBook,
     if (openTrigger > 0) setOpen(true);
   }, [openTrigger]);
 
-  const genDates = (sd, ed) => {
-    const list = [];
-    let cur = new Date(sd + "T00:00:00");
-    const end = new Date(ed + "T00:00:00");
-    let n = 0;
-    while (cur <= end && n++ < 366) {
-      list.push(`${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, "0")}-${String(cur.getDate()).padStart(2, "0")}`);
-      cur.setDate(cur.getDate() + 1);
-    }
-    return list;
-  };
-
-  const camAvailRange = (camId, camQty, sd, ed) => {
+  const camAvailRange = (camId, camQty, schedule, orders) => {
     let min = camQty;
-    for (const d of genDates(sd, ed)) {
-      const a = getAvailQty(camId, camQty, orders, d, "full");
+    for (const s of schedule) {
+      const a = getAvailQtyByCa(camId, camQty, orders, s.date, s.ca);
       if (a < min) min = a;
     }
     return Math.max(0, min);
   };
 
-  const accAvailRange = (accName, accQty, sd, ed) => {
+  const accAvailRange = (accName, accQty, schedule, orders) => {
     let min = accQty;
-    for (const d of genDates(sd, ed)) {
-      const a = getAccAvailQty(accName, accQty, orders, d, "full");
+    for (const s of schedule) {
+      const a = getAccAvailQtyByCa(accName, accQty, orders, s.date, s.ca);
       if (a < min) min = a;
     }
     return Math.max(0, min);
@@ -51,9 +41,20 @@ export default function QuickSearchFloat({ cameras, accessories, orders, onBook,
 
   const handleSearch = () => {
     const ed = endDate >= startDate ? endDate : startDate;
+    const days = calcDays(startDate, ed);
+    const caResult = buildCaSchedule(startDate, pickHour, days, returnHour);
+    if (!caResult || caResult.totalCa === 0) {
+      setResults({ error: "Giờ trả phải sau giờ nhận" });
+      setSearched(true);
+      return;
+    }
     setResults({
       startDate,
       endDate: ed,
+      pickHour,
+      returnHour,
+      days,
+      caResult,
       cameras: cameras.map((c) => ({
         id: c.id,
         name: c.name,
@@ -61,7 +62,7 @@ export default function QuickSearchFloat({ cameras, accessories, orders, onBook,
         icon: c.icon,
         images: c.images || [],
         qty: c.qty || 1,
-        avail: camAvailRange(c.id, c.qty || 1, startDate, ed),
+        avail: camAvailRange(c.id, c.qty || 1, caResult.schedule, orders),
       })),
       accessories: accessories
         .filter((a) => a.active !== false)
@@ -69,7 +70,7 @@ export default function QuickSearchFloat({ cameras, accessories, orders, onBook,
           id: a.id,
           name: a.name,
           qty: a.qty || 1,
-          avail: accAvailRange(a.name, a.qty || 1, startDate, ed),
+          avail: accAvailRange(a.name, a.qty || 1, caResult.schedule, orders),
         })),
     });
     setSearched(true);
@@ -236,6 +237,57 @@ export default function QuickSearchFloat({ cameras, accessories, orders, onBook,
                 </div>
               ))}
             </div>
+
+            {/* Giờ nhận / giờ trả — cùng logic tính ca với lịch lưới */}
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(130px, 1fr))", gap: isMobile ? 8 : 10, marginBottom: 10 }}>
+              {[
+                ["🕐 GIỜ NHẬN", pickHour, setPickHour, hourToCaIdx],
+                ["🕐 GIỜ TRẢ", returnHour, setReturnHour, hourToCaIdxReturn],
+              ].map(([label, val, onChange, caFn]) => {
+                const caIdx = caFn(val);
+                const caLabel = caIdx === 1 ? "Ca 1 · 07:00–12:00" : caIdx === 2 ? "Ca 2 · 12:00–17:00" : "Ca 3 · 17:00–20:00";
+                return (
+                  <div key={label} style={{ minWidth: 0 }}>
+                    <div style={{ color: "#2a5070", fontSize: 8.5, letterSpacing: isMobile ? 1.6 : 2, marginBottom: 5, fontFamily: "system-ui,sans-serif", fontWeight: 700 }}>
+                      {label}
+                    </div>
+                    <input
+                      type="number"
+                      min={7}
+                      max={20}
+                      value={val}
+                      onChange={(e) => {
+                        let n = parseInt(e.target.value);
+                        if (isNaN(n)) n = val;
+                        n = Math.min(20, Math.max(7, n));
+                        onChange(n);
+                        setResults(null);
+                        setSearched(false);
+                        setSelCams({});
+                        setSelAccs({});
+                      }}
+                      style={{
+                        width: "100%",
+                        maxWidth: "100%",
+                        minWidth: 0,
+                        padding: isMobile ? "9px 12px" : "8px 10px",
+                        background: "linear-gradient(160deg, rgba(232,240,248,0.92) 0%, rgba(197,216,236,0.85) 100%)",
+                        border: "1px solid rgba(255,255,255,0.60)",
+                        borderRadius: 9,
+                        color: "#0d1b2a",
+                        fontSize: isMobile ? 16 : 13,
+                        fontFamily: "system-ui,sans-serif",
+                        boxSizing: "border-box",
+                        outline: "none",
+                        marginBottom: 4,
+                        boxShadow: "0 1px 0 rgba(255,255,255,0.80) inset",
+                      }}
+                    />
+                    <div style={{ fontSize: 9, color: "#4a6a8a", fontFamily: "system-ui,sans-serif" }}>{caLabel}</div>
+                  </div>
+                );
+              })}
+            </div>
             <button
               onClick={handleSearch}
               style={{
@@ -259,7 +311,15 @@ export default function QuickSearchFloat({ cameras, accessories, orders, onBook,
           </div>
 
           {/* Results */}
-          {searched && results && (
+          {searched && results && results.error && (
+            <div style={{ padding: isMobile ? "0 16px 16px" : "0 24px 16px" }}>
+              <div style={{ textAlign: "center", padding: "14px 0 6px", borderTop: "1px solid rgba(0,0,0,0.10)" }}>
+                <div style={{ fontSize: 22, marginBottom: 6 }}>⏰</div>
+                <div style={{ color: "#ef4444", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>{results.error}</div>
+              </div>
+            </div>
+          )}
+          {searched && results && !results.error && (
             <div style={{ padding: isMobile ? "0 16px 0" : "0 24px 0" }}>
               <div
                 style={{
@@ -273,7 +333,7 @@ export default function QuickSearchFloat({ cameras, accessories, orders, onBook,
                   lineHeight: 1.6,
                 }}
               >
-                MÁY ẢNH · {fmtD(results.startDate)} → {fmtD(results.endDate)} · <span style={{ color: "#c9a84c" }}>Nhấn để chọn nhiều máy</span>
+                MÁY ẢNH · {fmtD(results.startDate)} {String(results.pickHour).padStart(2, "0")}:00 → {fmtD(results.endDate)} {String(results.returnHour).padStart(2, "0")}:00 · <span style={{ color: "#c9a84c" }}>Nhấn để chọn nhiều máy</span>
               </div>
 
               {results.cameras.map((r) => {
@@ -466,7 +526,14 @@ export default function QuickSearchFloat({ cameras, accessories, orders, onBook,
                         const ed = results.endDate >= results.startDate ? results.endDate : results.startDate;
                         const days = calcDays(results.startDate, ed);
                         close();
-                        onBook?.({ preselectedCams: selCams, preselectedAccs: selAccs, date: results.startDate, days });
+                        onBook?.({
+                          preselectedCams: selCams,
+                          preselectedAccs: selAccs,
+                          date: results.startDate,
+                          days,
+                          pickHour: results.pickHour,
+                          returnHour: results.returnHour,
+                        });
                       }}
                       style={{
                         width: "100%",
