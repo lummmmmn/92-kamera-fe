@@ -241,7 +241,7 @@ export default function BookingSummaryCard({
                 Thời lượng thuê
               </div>
               <div style={{ color: G, fontWeight: 800, fontSize: 13, fontFamily: "system-ui,sans-serif" }}>
-                {days > 0 ? fmtDays(days, selSession) : "—"}
+                {days > 0 ? (ri?.totalLabel || fmtDays(days, selSession)) : "—"}
               </div>
             </div>
             {ri && (
