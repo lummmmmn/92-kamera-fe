@@ -103,12 +103,26 @@ export function cdnUrl(url, mode = "thumb") {
 /**
  * Chuyển giờ (0-23) sang chỉ số ca: 1 (07-12) | 2 (12-17) | 3 (17-20)
  * Giờ ngoài khung 07-20 sẽ bị kẹp về ca gần nhất.
+ * Dùng cho GIỜ NHẬN: 12h = bắt đầu ca2, 17h = bắt đầu ca3.
  */
 export const hourToCaIdx = (hour) => {
   const h = Number(hour);
   if (isNaN(h)) return null;
   if (h < 12) return 1;
   if (h < 17) return 2;
+  return 3;
+};
+
+/**
+ * Chuyển giờ sang chỉ số ca, dùng cho GIỜ TRẢ.
+ * Khác hourToCaIdx ở chỗ giờ biên tính về ca TRƯỚC đó (khách trả đúng lúc hết ca, không phải bắt đầu ca mới):
+ * 12h = hết ca1 (vẫn là ca1), 17h = hết ca2 (vẫn là ca2), 20h = hết ca3.
+ */
+export const hourToCaIdxReturn = (hour) => {
+  const h = Number(hour);
+  if (isNaN(h)) return null;
+  if (h <= 12) return 1;
+  if (h <= 17) return 2;
   return 3;
 };
 
@@ -127,7 +141,7 @@ export const buildCaSchedule = (pickDate, pickHour, numDays, returnHour) => {
   if (!pickDate || pickHour == null || !numDays || returnHour == null) return null;
   const n = Math.max(1, Math.round(numDays));
   const pickCaIdx = hourToCaIdx(pickHour);
-  const returnCaIdx = hourToCaIdx(returnHour);
+  const returnCaIdx = hourToCaIdxReturn(returnHour);
   if (!pickCaIdx || !returnCaIdx) return null;
 
   const schedule = [];
