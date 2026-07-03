@@ -45,6 +45,9 @@ export default function BookingStep3({
   days,
   selSession,
   pickDate,
+  pickHour,
+  returnHour,
+  caResult,
   hasQuickSelect,
   appliedDiscounts,
   appliedRental,
@@ -176,6 +179,9 @@ export default function BookingStep3({
         days={days}
         selSession={selSession}
         pickDate={pickDate}
+        pickHour={pickHour}
+        returnHour={returnHour}
+        caResult={caResult}
       />
 
       <div style={{ color: G, fontSize: 10, letterSpacing: 2, fontFamily: "system-ui,sans-serif", fontWeight: 700, marginBottom: 14 }}>
