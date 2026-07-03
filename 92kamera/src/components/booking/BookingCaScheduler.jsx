@@ -1,6 +1,5 @@
 import { useState } from "react";
-import BookingCalendar from "./BookingCalendar.jsx";
-import { G, MUT, TXT, CA_SHIFTS, PICKUP_HOUR_PRESETS, RETURN_HOUR_PRESETS, DAY_COUNT_PRESETS } from "../../lib/constants.js";
+import { G, MUT, TXT, CA_SHIFTS, DAY_COUNT_PRESETS } from "../../lib/constants.js";
 import { todayStr, hourToCaIdx } from "../../utils/format.js";
 import { getAdjacentCaWarning, getAvailQtyByCa } from "../../utils/availability.js";
 
@@ -100,7 +99,6 @@ export default function BookingCaScheduler({
   const returnWarning =
     caSchedule && returnCaIdx ? getAdjacentCaWarning(camsList, activeOrds, caSchedule.returnDate, returnCaIdx) : null;
 
-  const [mode, setMode] = useState("ca"); // "ca" | "hour"
   const [editingPick, setEditingPick] = useState(false);
   const [editingReturn, setEditingReturn] = useState(false);
   const [pickHourDraft, setPickHourDraft] = useState("");
@@ -109,15 +107,23 @@ export default function BookingCaScheduler({
   const commitPickHour = () => {
     let n = parseInt(pickHourDraft);
     if (isNaN(n)) n = pickHour ?? 7;
-    n = Math.min(23, Math.max(0, n));
+    // Shop chỉ mở cửa 07:00–20:00 → kẹp giờ nhận trong khung này
+    n = Math.min(20, Math.max(7, n));
     setPickHour(n);
     setEditingPick(false);
   };
   const commitReturnHour = () => {
     let n = parseInt(returnHourDraft);
     if (isNaN(n)) n = returnHour ?? 20;
-    n = Math.min(23, Math.max(0, n));
-    setReturnHour(n);
+    if (n > 20) {
+      // Vượt quá giờ đóng cửa (20:00, hết Ca 3) → tự động lùi sang Ca 1 (07:00) ngày hôm sau
+      setNumDays((numDays || 1) + 1);
+      setReturnHour(7);
+    } else if (n < 7) {
+      setReturnHour(7);
+    } else {
+      setReturnHour(n);
+    }
     setEditingReturn(false);
   };
 
@@ -137,74 +143,32 @@ export default function BookingCaScheduler({
 
   return (
     <div style={{ marginBottom: 16 }}>
-      {/* CHUYỂN CHẾ ĐỘ */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
-        <button
-          onClick={() => setMode("ca")}
-          style={{
-            flex: 1,
-            padding: "9px 10px",
-            borderRadius: 10,
-            border: `1px solid ${mode === "ca" ? G : "rgba(255,255,255,0.62)"}`,
-            background: mode === "ca" ? "rgba(255,248,237,0.85)" : "rgba(255,255,255,0.35)",
-            color: mode === "ca" ? G : MUT,
-            fontWeight: mode === "ca" ? 700 : 400,
-            fontSize: 12,
-            fontFamily: "system-ui,sans-serif",
-            cursor: "pointer",
-          }}
-        >
-          📋 Theo Ca (lưới)
-        </button>
-        <button
-          onClick={() => setMode("hour")}
-          style={{
-            flex: 1,
-            padding: "9px 10px",
-            borderRadius: 10,
-            border: `1px solid ${mode === "hour" ? G : "rgba(255,255,255,0.62)"}`,
-            background: mode === "hour" ? "rgba(255,248,237,0.85)" : "rgba(255,255,255,0.35)",
-            color: mode === "hour" ? G : MUT,
-            fontWeight: mode === "hour" ? 700 : 400,
-            fontSize: 12,
-            fontFamily: "system-ui,sans-serif",
-            cursor: "pointer",
-          }}
-        >
-          🕐 Giờ tự do
-        </button>
-      </div>
+      <CaGridMode
+        pickDate={pickDate}
+        setPickDate={setPickDate}
+        pickHour={pickHour}
+        setPickHour={setPickHour}
+        numDays={numDays}
+        setNumDays={setNumDays}
+        returnHour={returnHour}
+        setReturnHour={setReturnHour}
+        getCaStatus={getCaStatus}
+        caSchedule={caSchedule}
+      />
 
-      {mode === "ca" ? (
-        <CaGridMode
-          pickDate={pickDate}
-          setPickDate={setPickDate}
-          pickHour={pickHour}
-          setPickHour={setPickHour}
-          numDays={numDays}
-          setNumDays={setNumDays}
-          returnHour={returnHour}
-          setReturnHour={setReturnHour}
-          getCaStatus={getCaStatus}
-          caSchedule={caSchedule}
-        />
-      ) : (
-        <HourFreeMode
-          pickDate={pickDate}
-          setPickDate={setPickDate}
-          pickHour={pickHour}
-          setPickHour={setPickHour}
-          numDays={numDays}
-          setNumDays={setNumDays}
-          returnHour={returnHour}
-          setReturnHour={setReturnHour}
-          camsList={camsList}
-          liveOrdersForCheck={liveOrdersForCheck}
-          pickWarning={pickWarning}
-          returnWarning={returnWarning}
-          pickCaIdx={pickCaIdx}
-          returnCaIdx={returnCaIdx}
-        />
+      {(pickWarning || returnWarning) && (
+        <div style={{ marginBottom: 10 }}>
+          {pickWarning && (
+            <div style={{ marginBottom: 6, padding: "9px 12px", background: "#FFF7E6", border: "1px solid #f59e0b55", borderRadius: 12, color: "#92600a", fontSize: 11, fontFamily: "system-ui,sans-serif", lineHeight: 1.5 }}>
+              {pickWarning}
+            </div>
+          )}
+          {returnWarning && (
+            <div style={{ padding: "9px 12px", background: "#FFF7E6", border: "1px solid #f59e0b55", borderRadius: 12, color: "#92600a", fontSize: 11, fontFamily: "system-ui,sans-serif", lineHeight: 1.5 }}>
+              {returnWarning}
+            </div>
+          )}
+        </div>
       )}
 
       {/* LỊCH CA ĐÃ CHỌN */}
@@ -540,227 +504,3 @@ function CaGridMode({ pickDate, setPickDate, pickHour, setPickHour, numDays, set
   );
 }
 
-// ═══════════════════ CHẾ ĐỘ 2: GIỜ TỰ DO (kiểu cũ) ═══════════════════
-function HourFreeMode({
-  pickDate,
-  setPickDate,
-  pickHour,
-  setPickHour,
-  numDays,
-  setNumDays,
-  returnHour,
-  setReturnHour,
-  camsList,
-  liveOrdersForCheck,
-  pickWarning,
-  returnWarning,
-  pickCaIdx,
-  returnCaIdx,
-}) {
-  const [pickCustomOpen, setPickCustomOpen] = useState(false);
-  const [returnCustomOpen, setReturnCustomOpen] = useState(false);
-  const [dayCustomOpen, setDayCustomOpen] = useState(false);
-
-  const [pickHourDraft, setPickHourDraft] = useState(
-    PICKUP_HOUR_PRESETS.includes(pickHour) ? "" : pickHour != null ? String(pickHour) : ""
-  );
-  const [returnHourDraft, setReturnHourDraft] = useState(
-    RETURN_HOUR_PRESETS.includes(returnHour) ? "" : returnHour != null ? String(returnHour) : ""
-  );
-  const [numDaysDraft, setNumDaysDraft] = useState(
-    DAY_COUNT_PRESETS.includes(numDays) ? "" : numDays != null ? String(numDays) : ""
-  );
-
-  return (
-    <>
-      {/* NGÀY NHẬN */}
-      <div style={{ marginBottom: 14 }}>
-        <div style={sectionLabel}>NGÀY NHẬN</div>
-        <BookingCalendar
-          selectedCams={camsList}
-          orders={liveOrdersForCheck}
-          pickDate={pickDate}
-          setPickDate={setPickDate}
-          numDays={numDays}
-        />
-      </div>
-
-      {/* GIỜ NHẬN */}
-      <div style={{ marginBottom: 14 }}>
-        <div style={sectionLabel}>GIỜ NHẬN (07:00 – 20:00)</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6, marginBottom: 6 }}>
-          {PICKUP_HOUR_PRESETS.map((h) => (
-            <button
-              key={h}
-              onClick={() => {
-                setPickHour(h);
-                setPickHourDraft("");
-                setPickCustomOpen(false);
-              }}
-              style={hourBtnStyle(pickHour === h && !pickCustomOpen)}
-            >
-              {String(h).padStart(2, "0")}:00
-            </button>
-          ))}
-          <button onClick={() => setPickCustomOpen(true)} style={hourBtnStyle(pickCustomOpen)}>
-            Khác
-          </button>
-        </div>
-        {pickCustomOpen && (
-          <input
-            type="number"
-            min={0}
-            max={23}
-            placeholder="Nhập giờ (0-23)"
-            value={pickHourDraft}
-            onChange={(e) => {
-              const raw = e.target.value;
-              setPickHourDraft(raw);
-              if (raw !== "" && !isNaN(parseInt(raw))) setPickHour(parseInt(raw));
-            }}
-            onBlur={() => {
-              let n = parseInt(pickHourDraft);
-              if (isNaN(n)) n = 7;
-              n = Math.min(23, Math.max(0, n));
-              setPickHour(n);
-              setPickHourDraft(String(n));
-            }}
-            style={{
-              width: "100%",
-              padding: "9px 12px",
-              borderRadius: 10,
-              border: "1px solid rgba(255,255,255,0.62)",
-              background: "rgba(255,255,255,0.5)",
-              color: TXT,
-              fontSize: 12,
-              fontFamily: "system-ui,sans-serif",
-              outline: "none",
-            }}
-          />
-        )}
-        {pickCaIdx && caBadge(pickCaIdx)}
-        {pickWarning && (
-          <div style={{ marginTop: 8, padding: "9px 12px", background: "#FFF7E6", border: "1px solid #f59e0b55", borderRadius: 12, color: "#92600a", fontSize: 11, fontFamily: "system-ui,sans-serif", lineHeight: 1.5 }}>
-            {pickWarning}
-          </div>
-        )}
-      </div>
-
-      {/* SỐ NGÀY THUÊ */}
-      <div style={{ marginBottom: 14 }}>
-        <div style={sectionLabel}>SỐ NGÀY THUÊ</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 6 }}>
-          {DAY_COUNT_PRESETS.map((d) => (
-            <button
-              key={d}
-              onClick={() => {
-                setNumDays(d);
-                setNumDaysDraft("");
-                setDayCustomOpen(false);
-              }}
-              style={hourBtnStyle(numDays === d && !dayCustomOpen)}
-            >
-              {d} ngày
-            </button>
-          ))}
-          <button onClick={() => setDayCustomOpen(true)} style={hourBtnStyle(dayCustomOpen)}>
-            Khác
-          </button>
-        </div>
-        {dayCustomOpen && (
-          <input
-            type="number"
-            min={1}
-            placeholder="Nhập số ngày"
-            value={numDaysDraft}
-            onChange={(e) => {
-              const raw = e.target.value;
-              setNumDaysDraft(raw);
-              if (raw !== "" && !isNaN(parseInt(raw))) setNumDays(parseInt(raw));
-            }}
-            onBlur={() => {
-              let n = parseInt(numDaysDraft);
-              if (isNaN(n) || n < 1) n = 1;
-              setNumDays(n);
-              setNumDaysDraft(String(n));
-            }}
-            style={{
-              width: "100%",
-              marginTop: 6,
-              padding: "9px 12px",
-              borderRadius: 10,
-              border: "1px solid rgba(255,255,255,0.62)",
-              background: "rgba(255,255,255,0.5)",
-              color: TXT,
-              fontSize: 12,
-              fontFamily: "system-ui,sans-serif",
-              outline: "none",
-            }}
-          />
-        )}
-      </div>
-
-      {/* GIỜ TRẢ */}
-      <div style={{ marginBottom: 14 }}>
-        <div style={sectionLabel}>GIỜ TRẢ</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6 }}>
-          {RETURN_HOUR_PRESETS.map((h) => (
-            <button
-              key={h}
-              onClick={() => {
-                setReturnHour(h);
-                setReturnHourDraft("");
-                setReturnCustomOpen(false);
-              }}
-              style={hourBtnStyle(returnHour === h && !returnCustomOpen)}
-            >
-              {String(h).padStart(2, "0")}:00
-            </button>
-          ))}
-          <button onClick={() => setReturnCustomOpen(true)} style={hourBtnStyle(returnCustomOpen)}>
-            Khác
-          </button>
-        </div>
-        {returnCustomOpen && (
-          <input
-            type="number"
-            min={0}
-            max={23}
-            placeholder="Nhập giờ (0-23) — quá 20h sẽ tính thêm ca ngày hôm sau"
-            value={returnHourDraft}
-            onChange={(e) => {
-              const raw = e.target.value;
-              setReturnHourDraft(raw);
-              if (raw !== "" && !isNaN(parseInt(raw))) setReturnHour(parseInt(raw));
-            }}
-            onBlur={() => {
-              let n = parseInt(returnHourDraft);
-              if (isNaN(n)) n = 20;
-              n = Math.min(23, Math.max(0, n));
-              setReturnHour(n);
-              setReturnHourDraft(String(n));
-            }}
-            style={{
-              width: "100%",
-              marginTop: 6,
-              padding: "9px 12px",
-              borderRadius: 10,
-              border: "1px solid rgba(255,255,255,0.62)",
-              background: "rgba(255,255,255,0.5)",
-              color: TXT,
-              fontSize: 12,
-              fontFamily: "system-ui,sans-serif",
-              outline: "none",
-            }}
-          />
-        )}
-        {returnCaIdx && caBadge(returnCaIdx)}
-        {returnWarning && (
-          <div style={{ marginTop: 8, padding: "9px 12px", background: "#FFF7E6", border: "1px solid #f59e0b55", borderRadius: 12, color: "#92600a", fontSize: 11, fontFamily: "system-ui,sans-serif", lineHeight: 1.5 }}>
-            {returnWarning}
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
