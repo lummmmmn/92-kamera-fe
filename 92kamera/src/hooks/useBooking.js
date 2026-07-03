@@ -21,6 +21,8 @@ export function useBooking({
   preselectedAccs,
   preselectedDate,
   preselectedDays,
+  preselectedPickHour,
+  preselectedReturnHour,
   noDate,
 }) {
   const hasQuickSelect = preselectedDate && preselectedDays && (
@@ -67,8 +69,8 @@ export function useBooking({
   // ── CA MODEL: giờ nhận / số ngày / giờ trả (thay cho selDur/customDays/selSession) ──
   const [pickDate, setPickDate] = useState(preselectedDate || todayStr());
   const [numDays, setNumDays] = useState(preselectedDays || 1);
-  const [pickHour, setPickHour] = useState(hasQuickSelect ? 7 : null);
-  const [returnHour, setReturnHour] = useState(hasQuickSelect ? 20 : null);
+  const [pickHour, setPickHour] = useState(hasQuickSelect ? (preselectedPickHour ?? 7) : null);
+  const [returnHour, setReturnHour] = useState(hasQuickSelect ? (preselectedReturnHour ?? 20) : null);
 
   const caResult = buildCaSchedule(pickDate, pickHour, numDays, returnHour);
   const days = numDays; // giữ tên "days" để tương thích chỗ khác (isDateInOrder, hiển thị số ngày)
