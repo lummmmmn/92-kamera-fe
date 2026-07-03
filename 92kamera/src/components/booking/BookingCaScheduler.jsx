@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { G, MUT, TXT, CA_SHIFTS, DAY_COUNT_PRESETS } from "../../lib/constants.js";
-import { todayStr, hourToCaIdx } from "../../utils/format.js";
+import { todayStr, hourToCaIdx, hourToCaIdxReturn } from "../../utils/format.js";
 import { getAdjacentCaWarning, getAvailQtyByCa } from "../../utils/availability.js";
 
 const sectionLabel = {
@@ -93,7 +93,7 @@ export default function BookingCaScheduler({
   const activeOrds = (liveOrdersForCheck || []).filter((o) => !["cancelled", "completed"].includes(o.status));
 
   const pickCaIdx = pickHour != null ? hourToCaIdx(pickHour) : null;
-  const returnCaIdx = returnHour != null ? hourToCaIdx(returnHour) : null;
+  const returnCaIdx = returnHour != null ? hourToCaIdxReturn(returnHour) : null;
 
   const pickWarning = pickDate && pickCaIdx ? getAdjacentCaWarning(camsList, activeOrds, pickDate, pickCaIdx) : null;
   const returnWarning =
@@ -311,7 +311,7 @@ function CaGridMode({ pickDate, setPickDate, pickHour, setPickHour, numDays, set
 
   const pickCaIdx = pickHour != null ? hourToCaIdx(pickHour) : null;
   const returnDate = caSchedule?.returnDate || (pickDate ? addDaysLocal(pickDate, Math.max(1, Math.round(numDays || 1)) - 1) : null);
-  const returnCaIdx = returnHour != null ? hourToCaIdx(returnHour) : null;
+  const returnCaIdx = returnHour != null ? hourToCaIdxReturn(returnHour) : null;
 
   // Set các {date,ca} nằm trong khoảng đang chọn (để tô "Đang chọn" toàn bộ dải, không chỉ 2 đầu)
   const includedSet = new Set((caSchedule?.schedule || []).map((s) => `${s.date}_${s.ca}`));
