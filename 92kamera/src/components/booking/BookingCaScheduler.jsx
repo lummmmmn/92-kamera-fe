@@ -361,6 +361,16 @@ function CaGridMode({ pickDate, setPickDate, pickHour, setPickHour, numDays, set
   };
 
   const dates = Array.from({ length: daysToShow }, (_, i) => addDaysLocal(today, i));
+  const MAX_DAYS_SHOW = 365; // xem được xa tới 1 năm sau
+
+  const handleGridScroll = (e) => {
+    const el = e.target;
+    if (daysToShow >= MAX_DAYS_SHOW) return;
+    // Gần chạm đáy danh sách (còn ~80px) → tự động tải thêm 14 ngày, khách không cần bấm nút
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 80) {
+      setDaysToShow((n) => Math.min(MAX_DAYS_SHOW, n + 14));
+    }
+  };
 
   return (
     <div style={{ marginBottom: 14 }}>
@@ -393,7 +403,7 @@ function CaGridMode({ pickDate, setPickDate, pickHour, setPickHour, numDays, set
         </div>
 
         {/* Rows */}
-        <div style={{ maxHeight: 340, overflowY: "auto" }}>
+        <div style={{ maxHeight: 340, overflowY: "auto" }} onScroll={handleGridScroll}>
           {dates.map((ds) => {
             const d = new Date(ds + "T00:00:00");
             const wd = WEEKDAY_SHORT[d.getDay()];
@@ -447,9 +457,9 @@ function CaGridMode({ pickDate, setPickDate, pickHour, setPickHour, numDays, set
           })}
         </div>
 
-        {daysToShow < 60 && (
+        {daysToShow < MAX_DAYS_SHOW && (
           <button
-            onClick={() => setDaysToShow((n) => n + 14)}
+            onClick={() => setDaysToShow((n) => Math.min(MAX_DAYS_SHOW, n + 14))}
             style={{
               width: "100%",
               marginTop: 8,
