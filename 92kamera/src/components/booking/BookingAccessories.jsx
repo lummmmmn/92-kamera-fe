@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { G, BR, TXT, MUT } from "../../lib/constants.js";
 import { fmtVND, fmtDays, dateAddDays } from "../../utils/format.js";
 import { getAccAvailQty, getAvailQty } from "../../utils/availability.js";
+
+const DESC_LIMIT = 48;
 
 export default function BookingAccessories({
   accessories,
@@ -17,6 +20,7 @@ export default function BookingAccessories({
   accCost,
   qtyBtn,
 }) {
+  const [expandedDesc, setExpandedDesc] = useState({});
   return (
     <div style={{ marginBottom: 20 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
@@ -173,11 +177,27 @@ export default function BookingAccessories({
                           </span>
                         )}
                       </div>
-                      {a.desc && (
-                        <div style={{ color: MUT, fontSize: 10, marginTop: 1, fontFamily: "system-ui,sans-serif" }}>
-                          {a.desc}
-                        </div>
-                      )}
+                      {a.desc && (() => {
+                        const isLong = a.desc.length > DESC_LIMIT;
+                        const isExpanded = !!expandedDesc[a.id];
+                        const shownText = isLong && !isExpanded ? a.desc.slice(0, DESC_LIMIT).trim() + "…" : a.desc;
+                        return (
+                          <div style={{ color: MUT, fontSize: 10, marginTop: 1, fontFamily: "system-ui,sans-serif" }}>
+                            {shownText}
+                            {isLong && (
+                              <span
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setExpandedDesc((p) => ({ ...p, [a.id]: !p[a.id] }));
+                                }}
+                                style={{ color: "#2979CF", fontWeight: 700, marginLeft: 4, cursor: "pointer", whiteSpace: "nowrap" }}
+                              >
+                                {isExpanded ? "Thu gọn" : "Xem thêm"}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                       {isOutOfStock && pickDate && (
                         <div style={{ color: "#cc333388", fontSize: 9, marginTop: 2, fontFamily: "system-ui,sans-serif" }}>
                           {days >= 1 ? `Đã hết trong ${Math.ceil(days)} ngày đã chọn` : "Không còn trong ngày / ca này"}
