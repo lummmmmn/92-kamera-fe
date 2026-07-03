@@ -9,6 +9,9 @@ export default function BookingSummaryCard({
   days,
   selSession,
   pickDate,
+  pickHour,
+  returnHour,
+  caResult,
 }) {
   const ri = returnInfoLocal();
 
@@ -18,6 +21,20 @@ export default function BookingSummaryCard({
       const d = new Date(ds + "T00:00:00");
       return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
     };
+
+    // Đơn thuê theo hệ CA (có pickHour/returnHour) → lấy đúng giờ thật khách đã chọn
+    if (pickHour != null && returnHour != null) {
+      const returnDate = caResult?.returnDate || dateAddDays(pickDate, days);
+      const totalCa = caResult?.totalCa;
+      return {
+        pickTime: `${String(pickHour).padStart(2, "0")}:00`,
+        pickDate: fmtDate(pickDate),
+        dropTime: `${String(returnHour).padStart(2, "0")}:00`,
+        dropDate: fmtDate(returnDate),
+        totalCa,
+        totalLabel: totalCa ? `${totalCa} ca` : `${days} ngày`,
+      };
+    }
 
     if (days === 0.5) {
       const isM = selSession === "morning";
