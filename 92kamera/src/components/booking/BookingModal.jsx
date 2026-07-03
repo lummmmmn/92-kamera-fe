@@ -82,7 +82,6 @@ export default function BookingModal(props) {
     <div
       style={overlayStyle}
       className={props.isMobile ? "bk-modal-mobile" : ""}
-      onClick={(e) => e.target === e.currentTarget && !b.done && props.onClose()}
     >
       <div style={{ position: "fixed", inset: 0, background: "linear-gradient(to right, rgba(236,243,248,0.58) 0%, transparent 40%, rgba(220,235,244,0.27) 100%)", pointerEvents: "none" }} />
       <div style={{ position: "fixed", inset: 0, background: "linear-gradient(to top, rgba(186,206,220,0.30) 0%, transparent 50%)", pointerEvents: "none" }} />
