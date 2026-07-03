@@ -230,6 +230,9 @@ export default function BookingModal(props) {
             days={b.days}
             selSession={b.selSession}
             pickDate={b.pickDate}
+            pickHour={b.pickHour}
+            returnHour={b.returnHour}
+            caResult={b.caResult}
             hasQuickSelect={b.hasQuickSelect}
             appliedDiscounts={b.appliedDiscounts}
             appliedRental={b.appliedRental}
