@@ -11,6 +11,8 @@ export default function QuickSearchFloat({ cameras, accessories, orders, onBook,
   const [endDate, setEndDate] = useState(todayStr());
   const [pickHour, setPickHour] = useState(7);
   const [returnHour, setReturnHour] = useState(20);
+  const [pickHourDraft, setPickHourDraft] = useState("7");
+  const [returnHourDraft, setReturnHourDraft] = useState("20");
   const [results, setResults] = useState(null);
   const [searched, setSearched] = useState(false);
   const [selCams, setSelCams] = useState({}); // { camId: qty }
@@ -241,31 +243,36 @@ export default function QuickSearchFloat({ cameras, accessories, orders, onBook,
             {/* Giờ nhận / giờ trả — cùng logic tính ca với lịch lưới */}
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(130px, 1fr))", gap: isMobile ? 8 : 10, marginBottom: 10 }}>
               {[
-                ["🕐 GIỜ NHẬN", pickHour, setPickHour, hourToCaIdx],
-                ["🕐 GIỜ TRẢ", returnHour, setReturnHour, hourToCaIdxReturn],
-              ].map(([label, val, onChange, caFn]) => {
+                ["🕐 GIỜ NHẬN", pickHour, setPickHour, hourToCaIdx, pickHourDraft, setPickHourDraft],
+                ["🕐 GIỜ TRẢ", returnHour, setReturnHour, hourToCaIdxReturn, returnHourDraft, setReturnHourDraft],
+              ].map(([label, val, onChange, caFn, draft, setDraft]) => {
                 const caIdx = caFn(val);
                 const caLabel = caIdx === 1 ? "Ca 1 · 07:00–12:00" : caIdx === 2 ? "Ca 2 · 12:00–17:00" : "Ca 3 · 17:00–20:00";
+                const commit = (e) => {
+                  let n = parseInt(e.target.value);
+                  if (isNaN(n)) n = val;
+                  n = Math.min(20, Math.max(7, n));
+                  onChange(n);
+                  setDraft(String(n));
+                  setResults(null);
+                  setSearched(false);
+                  setSelCams({});
+                  setSelAccs({});
+                };
                 return (
                   <div key={label} style={{ minWidth: 0 }}>
                     <div style={{ color: "#2a5070", fontSize: 8.5, letterSpacing: isMobile ? 1.6 : 2, marginBottom: 5, fontFamily: "system-ui,sans-serif", fontWeight: 700 }}>
                       {label}
                     </div>
                     <input
+                      className="qs-hour-input"
                       type="number"
                       min={7}
                       max={20}
-                      value={val}
-                      onChange={(e) => {
-                        let n = parseInt(e.target.value);
-                        if (isNaN(n)) n = val;
-                        n = Math.min(20, Math.max(7, n));
-                        onChange(n);
-                        setResults(null);
-                        setSearched(false);
-                        setSelCams({});
-                        setSelAccs({});
-                      }}
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      onBlur={commit}
+                      onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
                       style={{
                         width: "100%",
                         maxWidth: "100%",
@@ -288,6 +295,16 @@ export default function QuickSearchFloat({ cameras, accessories, orders, onBook,
                 );
               })}
             </div>
+            <style>{`
+              .qs-hour-input::-webkit-outer-spin-button,
+              .qs-hour-input::-webkit-inner-spin-button {
+                -webkit-appearance: none;
+                margin: 0;
+              }
+              .qs-hour-input {
+                -moz-appearance: textfield;
+              }
+            `}</style>
             <button
               onClick={handleSearch}
               style={{
