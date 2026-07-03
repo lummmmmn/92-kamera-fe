@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { G, MUT, TXT, CA_SHIFTS, DAY_COUNT_PRESETS } from "../../lib/constants.js";
+import { G, MUT, TXT, CA_SHIFTS } from "../../lib/constants.js";
 import { todayStr, hourToCaIdx, hourToCaIdxReturn } from "../../utils/format.js";
 import { getAdjacentCaWarning, getAvailQtyByCa } from "../../utils/availability.js";
 
@@ -11,22 +11,6 @@ const sectionLabel = {
   fontFamily: "system-ui,sans-serif",
   fontWeight: 600,
 };
-
-const hourBtnStyle = (active) => ({
-  padding: "10px 4px",
-  background: active ? "rgba(255,248,237,0.85)" : "rgba(255,255,255,0.40)",
-  color: active ? G : MUT,
-  border: `1px solid ${active ? G : "rgba(255,255,255,0.62)"}`,
-  borderRadius: 12,
-  cursor: "pointer",
-  fontSize: 12,
-  fontFamily: "system-ui,sans-serif",
-  fontWeight: active ? 700 : 400,
-  transition: "all .2s",
-  textAlign: "center",
-  backdropFilter: "blur(8px)",
-  WebkitBackdropFilter: "blur(8px)",
-});
 
 const caBadge = (caIdx) => {
   const c = CA_SHIFTS[caIdx - 1];
@@ -493,23 +477,6 @@ function CaGridMode({ pickDate, setPickDate, pickHour, setPickHour, numDays, set
         </div>
       </div>
 
-      {/* SỐ NGÀY THUÊ — hiện lại để khách chỉnh nhanh nếu muốn, đồng bộ 2 chiều với lưới */}
-      {pickDate && (
-        <div style={{ marginTop: 10 }}>
-          <div style={sectionLabel}>SỐ NGÀY THUÊ</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 6 }}>
-            {DAY_COUNT_PRESETS.map((d) => (
-              <button
-                key={d}
-                onClick={() => setNumDays(d)}
-                style={hourBtnStyle(numDays === d)}
-              >
-                {d} ngày
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
