@@ -237,8 +237,8 @@ export default function BookingSummaryCard({
             </span>
           </div>
 
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
-            <div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "row", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ flex: "1 1 0", minWidth: 70 }}>
               <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif", marginBottom: 3 }}>
                 Thời lượng thuê
               </div>
@@ -248,7 +248,7 @@ export default function BookingSummaryCard({
             </div>
             {ri && (
               <>
-                <div>
+                <div style={{ flex: "1 1 0", minWidth: 70 }}>
                   <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif", marginBottom: 3 }}>
                     Nhận thiết bị
                   </div>
@@ -259,7 +259,7 @@ export default function BookingSummaryCard({
                     {ri.pickDate}
                   </div>
                 </div>
-                <div>
+                <div style={{ flex: "1 1 0", minWidth: 70 }}>
                   <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif", marginBottom: 3 }}>
                     Trả trước giờ
                   </div>
