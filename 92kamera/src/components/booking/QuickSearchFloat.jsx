@@ -219,6 +219,9 @@ export default function QuickSearchFloat({ cameras, accessories, orders, onBook,
                     value={val}
                     min={min}
                     onChange={(e) => onChange(e.target.value)}
+                    onClick={(e) => e.target.showPicker?.()}
+                    onFocus={(e) => e.target.showPicker?.()}
+                    readOnly
                     style={{
                       width: "100%",
                       maxWidth: "100%",
@@ -295,16 +298,6 @@ export default function QuickSearchFloat({ cameras, accessories, orders, onBook,
                 );
               })}
             </div>
-            <style>{`
-              .qs-hour-input::-webkit-outer-spin-button,
-              .qs-hour-input::-webkit-inner-spin-button {
-                -webkit-appearance: none;
-                margin: 0;
-              }
-              .qs-hour-input {
-                -moz-appearance: textfield;
-              }
-            `}</style>
             <button
               onClick={handleSearch}
               style={{
