@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const STEPS = [
   {
@@ -86,31 +86,42 @@ const STEPS = [
 export default function ProcessSection({ isMobile }) {
   const scrollRef = useRef(null);
   const [active, setActive] = useState(0);
+  const [containerW, setContainerW] = useState(0);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const update = () => setContainerW(el.clientWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const cardWidth = isMobile ? Math.max(containerW - 32, 0) : 340;
 
   const scrollTo = (idx) => {
     const el = scrollRef.current;
     if (!el) return;
-    const cardW = isMobile ? el.clientWidth - 32 : 340;
-    el.scrollTo({ left: idx * (cardW + 16), behavior: "smooth" });
+    el.scrollTo({ left: idx * (cardWidth + 16), behavior: "smooth" });
     setActive(idx);
   };
 
   const onScroll = () => {
     const el = scrollRef.current;
     if (!el) return;
-    const cardW = isMobile ? el.clientWidth - 32 : 340;
-    setActive(Math.round(el.scrollLeft / (cardW + 16)));
+    setActive(Math.round(el.scrollLeft / (cardWidth + 16)));
   };
 
   const renderContent = (c, i) => {
-    if (c.type === "label") return <div key={i} style={{ fontSize: 12.5, color: "rgba(255,255,255,0.70)", fontFamily: "system-ui,sans-serif", marginBottom: 2 }}>{c.text}</div>;
+    if (c.type === "label") return <div key={i} style={{ fontSize: 12.5, color: "rgba(255,255,255,0.70)", fontFamily: "system-ui,sans-serif", marginBottom: 2, lineHeight: 1.6 }}>{c.text}</div>;
     if (c.type === "link") return <div key={i} style={{ fontSize: 13.5, color: "#fff", fontWeight: 700, fontFamily: "system-ui,sans-serif", marginBottom: 8 }}>{c.text}</div>;
     if (c.type === "btn") return <div key={i} style={{ display: "inline-block", background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.30)", borderRadius: 8, padding: "5px 14px", fontSize: 12.5, color: "#fff", fontWeight: 700, fontFamily: "system-ui,sans-serif", marginBottom: 10 }}>{c.text}</div>;
     if (c.type === "heading") return <div key={i} style={{ fontSize: 12.5, color: "#fff", fontWeight: 800, fontFamily: "system-ui,sans-serif", marginTop: 10, marginBottom: 4, letterSpacing: 0.3 }}>{c.text}</div>;
     if (c.type === "italic") return <div key={i} style={{ fontSize: 12, color: "rgba(255,255,255,0.80)", fontStyle: "italic", fontFamily: "system-ui,sans-serif", marginTop: 8, lineHeight: 1.6 }}>{c.text}</div>;
     if (c.type === "tip") return <div key={i} style={{ marginTop: 10, padding: "8px 11px", background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 9, fontSize: 12.5, color: "#fff", fontFamily: "system-ui,sans-serif", lineHeight: 1.6, fontStyle: "italic" }}>{c.text}</div>;
     if (c.type === "list") return (
-      <div key={i} style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 4 }}>
+      <div key={i} style={{ display: "flex", flexDirection: "column", gap: 8, margin: "10px 0" }}>
         {c.items.map((item, j) => (
           <div key={j} style={{ fontSize: 12.5, color: "rgba(255,255,255,0.90)", fontFamily: "system-ui,sans-serif", lineHeight: 1.55, display: "flex", gap: 6 }}>
             <span style={{ flexShrink: 0, color: "rgba(255,255,255,0.60)" }}>→</span>
@@ -152,7 +163,7 @@ export default function ProcessSection({ isMobile }) {
             key={idx}
             style={{
               flexShrink: 0,
-              width: isMobile ? "100%" : 340,
+              width: isMobile ? (containerW ? cardWidth : "calc(100% - 32px)") : 340,
               scrollSnapAlign: isMobile ? "center" : "start",
               background: s.gradient,
               borderRadius: 20,
@@ -206,7 +217,7 @@ export default function ProcessSection({ isMobile }) {
         <button
           onClick={() => scrollTo(Math.max(0, active - 1))}
           disabled={active === 0}
-          style={{ width: 38, height: 38, borderRadius: "50%", border: "1.5px solid rgba(42,74,106,0.30)", background: active === 0 ? "rgba(42,74,106,0.08)" : "linear-gradient(135deg,rgba(232,240,248,0.95),rgba(197,216,236,0.90))", color: active === 0 ? "rgba(42,74,106,0.30)" : "#1a4a8a", cursor: active === 0 ? "default" : "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: active === 0 ? "none" : "0 2px 10px rgba(0,0,0,0.10), 0 1px 0 rgba(255,255,255,0.80) inset", transition: "all .2s", flexShrink: 0 }}
+          style={{ width: 52, height: 52, borderRadius: "50%", border: "none", background: active === 0 ? "rgba(255,255,255,0.55)" : "#fff", color: active === 0 ? "rgba(42,74,106,0.30)" : "#1a4a8a", cursor: active === 0 ? "default" : "pointer", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: active === 0 ? "none" : "0 4px 16px rgba(0,0,0,0.15)", transition: "all .2s", flexShrink: 0 }}
         >
           ‹
         </button>
@@ -220,7 +231,7 @@ export default function ProcessSection({ isMobile }) {
         <button
           onClick={() => scrollTo(Math.min(STEPS.length - 1, active + 1))}
           disabled={active === STEPS.length - 1}
-          style={{ width: 38, height: 38, borderRadius: "50%", border: "1.5px solid rgba(42,74,106,0.30)", background: active === STEPS.length - 1 ? "rgba(42,74,106,0.08)" : "linear-gradient(135deg,rgba(232,240,248,0.95),rgba(197,216,236,0.90))", color: active === STEPS.length - 1 ? "rgba(42,74,106,0.30)" : "#1a4a8a", cursor: active === STEPS.length - 1 ? "default" : "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: active === STEPS.length - 1 ? "none" : "0 2px 10px rgba(0,0,0,0.10), 0 1px 0 rgba(255,255,255,0.80) inset", transition: "all .2s", flexShrink: 0 }}
+          style={{ width: 52, height: 52, borderRadius: "50%", border: "none", background: active === STEPS.length - 1 ? "rgba(255,255,255,0.55)" : "#fff", color: active === STEPS.length - 1 ? "rgba(42,74,106,0.30)" : "#1a4a8a", cursor: active === STEPS.length - 1 ? "default" : "pointer", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: active === STEPS.length - 1 ? "none" : "0 4px 16px rgba(0,0,0,0.15)", transition: "all .2s", flexShrink: 0 }}
         >
           ›
         </button>
