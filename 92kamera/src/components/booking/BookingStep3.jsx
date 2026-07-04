@@ -131,7 +131,11 @@ export default function BookingStep3({
               Đã chọn từ Kiểm tra máy theo ngày
             </div>
             <div style={{ color: "#1a3a60", fontSize: 10.5, fontFamily: "system-ui,sans-serif", lineHeight: 1.6 }}>
-              Ngày: <strong>{pickDate}</strong> · {days} ngày · Có thể{" "}
+              Ngày: <strong>{pickDate}</strong> ·{" "}
+              {pickHour != null && returnHour != null && caResult?.totalCa
+                ? `${caResult.totalCa} ca`
+                : `${days} ngày`}{" "}
+              · Có thể{" "}
               <button
                 onClick={() => setStep(1)}
                 style={{
