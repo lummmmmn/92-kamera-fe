@@ -94,6 +94,9 @@ export default function MobileFAB({ siteContent, onBook, loggedUser, onOpenLogin
           touchAction: "none",
           userSelect: "none",
           WebkitUserSelect: "none",
+          WebkitTapHighlightColor: "transparent",
+          WebkitTouchCallout: "none",
+          outline: "none",
           borderRadius: "50%",
           background: open
             ? "linear-gradient(135deg, #17324B 0%, #204162 100%)"
