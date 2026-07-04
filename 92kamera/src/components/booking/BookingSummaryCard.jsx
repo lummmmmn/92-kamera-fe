@@ -108,8 +108,8 @@ export default function BookingSummaryCard({
                   c.icon
                 )}
               </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ color: TXT, fontWeight: 700, fontSize: 15, fontFamily: "system-ui,sans-serif", marginBottom: 8, lineHeight: 1.3 }}>
+              <div style={{ minWidth: 0, flex: 1, maxWidth: "100%", overflow: "hidden" }}>
+                <div style={{ color: TXT, fontWeight: 700, fontSize: 15, fontFamily: "system-ui,sans-serif", marginBottom: 8, lineHeight: 1.3, wordBreak: "break-word" }}>
                   {c.name}
                 </div>
                 <span
