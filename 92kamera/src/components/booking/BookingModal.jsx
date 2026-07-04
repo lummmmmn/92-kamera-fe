@@ -109,7 +109,7 @@ export default function BookingModal(props) {
                 const done_ = b.step > i + 1;
                 const GOLD = "#c9a84c";
                 return (
-                  <div key={i} style={{ display: "flex", alignItems: "center", flex: 1 }}>
+                  <div key={i} style={{ display: "flex", alignItems: "flex-start", flex: 1 }}>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
                       <div
                         style={{
@@ -155,7 +155,7 @@ export default function BookingModal(props) {
                           flexShrink: 0,
                           height: 1,
                           background: b.step > i + 1 ? "rgba(201,168,76,0.6)" : "rgba(255,255,255,0.3)",
-                          marginBottom: 22,
+                          marginTop: 15,
                           transition: "all .3s",
                         }}
                       />
