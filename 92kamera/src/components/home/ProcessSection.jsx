@@ -90,7 +90,7 @@ export default function ProcessSection({ isMobile }) {
   const scrollTo = (idx) => {
     const el = scrollRef.current;
     if (!el) return;
-    const cardW = isMobile ? el.clientWidth - 40 : 340;
+    const cardW = isMobile ? el.clientWidth - 32 : 340;
     el.scrollTo({ left: idx * (cardW + 16), behavior: "smooth" });
     setActive(idx);
   };
@@ -98,7 +98,7 @@ export default function ProcessSection({ isMobile }) {
   const onScroll = () => {
     const el = scrollRef.current;
     if (!el) return;
-    const cardW = isMobile ? el.clientWidth - 40 : 340;
+    const cardW = isMobile ? el.clientWidth - 32 : 340;
     setActive(Math.round(el.scrollLeft / (cardW + 16)));
   };
 
@@ -152,7 +152,7 @@ export default function ProcessSection({ isMobile }) {
             key={idx}
             style={{
               flexShrink: 0,
-              width: isMobile ? "calc(100vw - 40px)" : 340,
+              width: isMobile ? "100%" : 340,
               scrollSnapAlign: isMobile ? "center" : "start",
               background: s.gradient,
               borderRadius: 20,
