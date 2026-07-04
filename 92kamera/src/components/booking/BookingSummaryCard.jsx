@@ -80,7 +80,9 @@ export default function BookingSummaryCard({
           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "13px 16px", borderBottom: `1px solid rgba(0,0,0,0.08)` }}>
             <span style={{ fontSize: 15 }}>📦</span>
             <span style={{ color: G, fontSize: 9, letterSpacing: 1.5, fontFamily: "system-ui,sans-serif", fontWeight: 700 }}>
-              THIẾT BỊ ({selectedCamList.length + Object.values(selAcc).filter((q) => q > 0).length})
+              THIẾT BỊ ({selectedCamList.length})
+              {Object.values(selAcc).filter((q) => q > 0).length > 0 &&
+                ` · PHỤ KIỆN (${Object.values(selAcc).filter((q) => q > 0).length})`}
             </span>
           </div>
 
@@ -257,9 +259,9 @@ export default function BookingSummaryCard({
             </span>
           </div>
 
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 14 }}>
-            <div style={{ flex: "1 1 0", minWidth: 78 }}>
-              <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif", marginBottom: 3, whiteSpace: "nowrap" }}>
+          <div style={{ display: "flex", flexWrap: "nowrap", gap: 8 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ color: MUT, fontSize: 9.5, fontFamily: "system-ui,sans-serif", marginBottom: 3, lineHeight: 1.25 }}>
                 Thời lượng thuê
               </div>
               <div style={{ color: G, fontWeight: 800, fontSize: 13, fontFamily: "system-ui,sans-serif" }}>
@@ -268,30 +270,26 @@ export default function BookingSummaryCard({
             </div>
             {ri && (
               <>
-                <div style={{ flex: "1 1 0", minWidth: 92, borderLeft: "1px solid rgba(0,0,0,0.08)", paddingLeft: 14 }}>
-                  <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif", marginBottom: 3, whiteSpace: "nowrap" }}>
+                <div style={{ flex: 1, minWidth: 0, borderLeft: "1px solid rgba(0,0,0,0.08)", paddingLeft: 8 }}>
+                  <div style={{ color: MUT, fontSize: 9.5, fontFamily: "system-ui,sans-serif", marginBottom: 3, lineHeight: 1.25 }}>
                     Nhận thiết bị
                   </div>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
-                    <span style={{ color: TXT, fontWeight: 600, fontSize: 12, fontFamily: "system-ui,sans-serif" }}>
-                      {ri.pickTime}
-                    </span>
-                    <span style={{ color: MUT, fontSize: 11, fontFamily: "system-ui,sans-serif" }}>
-                      {ri.pickDate}
-                    </span>
+                  <div style={{ color: TXT, fontWeight: 700, fontSize: 12, fontFamily: "system-ui,sans-serif" }}>
+                    {ri.pickTime}
+                  </div>
+                  <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif", marginTop: 1 }}>
+                    {ri.pickDate}
                   </div>
                 </div>
-                <div style={{ flex: "1 1 0", minWidth: 92, borderLeft: "1px solid rgba(0,0,0,0.08)", paddingLeft: 14 }}>
-                  <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif", marginBottom: 3, whiteSpace: "nowrap" }}>
+                <div style={{ flex: 1, minWidth: 0, borderLeft: "1px solid rgba(0,0,0,0.08)", paddingLeft: 8 }}>
+                  <div style={{ color: MUT, fontSize: 9.5, fontFamily: "system-ui,sans-serif", marginBottom: 3, lineHeight: 1.25 }}>
                     Trả trước giờ
                   </div>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
-                    <span style={{ color: TXT, fontWeight: 600, fontSize: 12, fontFamily: "system-ui,sans-serif" }}>
-                      {ri.dropTime}
-                    </span>
-                    <span style={{ color: MUT, fontSize: 11, fontFamily: "system-ui,sans-serif" }}>
-                      {ri.dropDate}
-                    </span>
+                  <div style={{ color: TXT, fontWeight: 700, fontSize: 12, fontFamily: "system-ui,sans-serif" }}>
+                    {ri.dropTime}
+                  </div>
+                  <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif", marginTop: 1 }}>
+                    {ri.dropDate}
                   </div>
                 </div>
               </>
