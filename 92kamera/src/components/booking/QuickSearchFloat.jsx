@@ -221,7 +221,6 @@ export default function QuickSearchFloat({ cameras, accessories, orders, onBook,
                     onChange={(e) => onChange(e.target.value)}
                     onClick={(e) => e.target.showPicker?.()}
                     onFocus={(e) => e.target.showPicker?.()}
-                    readOnly
                     style={{
                       width: "100%",
                       maxWidth: "100%",
