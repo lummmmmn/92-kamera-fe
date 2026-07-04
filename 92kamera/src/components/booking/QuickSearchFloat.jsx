@@ -237,6 +237,9 @@ export default function QuickSearchFloat({ cameras, accessories, orders, onBook,
                       outline: "none",
                       cursor: "pointer",
                       boxShadow: "0 1px 0 rgba(255,255,255,0.80) inset",
+                      WebkitAppearance: "none",
+                      MozAppearance: "textfield",
+                      appearance: "none",
                     }}
                   />
                 </div>
