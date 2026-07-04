@@ -98,7 +98,11 @@ export default function ProcessSection({ isMobile }) {
     return () => ro.disconnect();
   }, []);
 
-  const cardWidth = isMobile ? Math.max(containerW - 32, 0) : 340;
+  const basePad = 16;
+  const idealWidth = Math.max(containerW - basePad * 2, 0);
+  const cardWidth = isMobile ? Math.round(idealWidth * 0.9) : 340;
+  const extraPad = isMobile ? Math.round((idealWidth - cardWidth) / 2) : 0;
+  const sidePad = basePad + extraPad;
 
   const scrollTo = (idx) => {
     const el = scrollRef.current;
@@ -151,8 +155,8 @@ export default function ProcessSection({ isMobile }) {
           gap: 16,
           overflowX: "auto",
           scrollSnapType: "x mandatory",
-          padding: isMobile ? "4px 16px 20px" : "4px 48px 20px",
-          scrollPaddingLeft: isMobile ? 16 : 48,
+          padding: isMobile ? `4px ${sidePad}px 20px` : "4px 48px 20px",
+          scrollPaddingLeft: isMobile ? sidePad : 48,
           scrollbarWidth: "none",
           msOverflowStyle: "none",
         }}
@@ -163,14 +167,14 @@ export default function ProcessSection({ isMobile }) {
             key={idx}
             style={{
               flexShrink: 0,
-              width: isMobile ? (containerW ? cardWidth : "calc(100% - 32px)") : 340,
-              scrollSnapAlign: isMobile ? "center" : "start",
+              width: isMobile ? (containerW ? cardWidth : "calc(90% - 32px)") : 340,
+              scrollSnapAlign: "start",
               background: s.gradient,
               borderRadius: 20,
-              padding: "24px 22px 20px",
+              padding: isMobile ? "20px 18px 16px" : "24px 22px 20px",
               display: "flex",
               flexDirection: "column",
-              minHeight: isMobile ? 440 : 480,
+              minHeight: isMobile ? 396 : 480,
               border: "none",
               boxShadow: isMobile
                 ? [
@@ -196,11 +200,11 @@ export default function ProcessSection({ isMobile }) {
             <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, background: "rgba(0,0,0,0.22)", borderRadius: "0 0 20px 20px", pointerEvents: "none", zIndex: 10 }} />
             <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.08)", pointerEvents: "none" }} />
 
-            <div style={{ width: 46, height: 46, borderRadius: "50%", background: "rgba(0,0,0,0.30)", border: "none", boxShadow: "0 1px 0 rgba(255,255,255,0.30) inset, 0 -1px 0 rgba(0,0,0,0.25) inset, 0 4px 12px rgba(0,0,0,0.30)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
-              <span style={{ fontSize: 18, fontWeight: 900, color: "#fff", fontFamily: "system-ui,sans-serif", textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}>{s.num}</span>
+            <div style={{ width: isMobile ? 42 : 46, height: isMobile ? 42 : 46, borderRadius: "50%", background: "rgba(0,0,0,0.30)", border: "none", boxShadow: "0 1px 0 rgba(255,255,255,0.30) inset, 0 -1px 0 rgba(0,0,0,0.25) inset, 0 4px 12px rgba(0,0,0,0.30)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+              <span style={{ fontSize: isMobile ? 16 : 18, fontWeight: 900, color: "#fff", fontFamily: "system-ui,sans-serif", textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}>{s.num}</span>
             </div>
 
-            <div style={{ fontSize: 14.5, fontWeight: 900, color: "#fff", fontFamily: "system-ui,sans-serif", letterSpacing: 0.5, marginBottom: 14, lineHeight: 1.4 }}>{s.title}</div>
+            <div style={{ fontSize: isMobile ? 13 : 14.5, fontWeight: 900, color: "#fff", fontFamily: "system-ui,sans-serif", letterSpacing: 0.5, marginBottom: 14, lineHeight: 1.4 }}>{s.title}</div>
 
             <div style={{ flex: 1 }}>{s.content.map((c, i) => renderContent(c, i))}</div>
 
