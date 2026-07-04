@@ -70,6 +70,20 @@ export default function HeroSection({
               fill: true,
             },
             { k: "instagram", label: "Instagram", glow: "#e1306c", glowShadow: "#e1306c", border: "#e1306c", stroke: true },
+            {
+              k: "gmap",
+              label: "Google Maps",
+              glow: "#34a853",
+              glowShadow: "#34a853",
+              border: "#34a853",
+              stroke: true,
+              path: (
+                <>
+                  <path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0118 0z" />
+                  <circle cx="12" cy="10" r="3" />
+                </>
+              ),
+            },
           ].map((s) => {
             const url = siteContent?.socialLinks?.[s.k];
             return (
