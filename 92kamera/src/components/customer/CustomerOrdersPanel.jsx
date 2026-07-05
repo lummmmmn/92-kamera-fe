@@ -193,7 +193,12 @@ export default function CustomerOrdersPanel({
                         pickDate = "",
                         dropTime = "",
                         dropDate = "";
-                      if (o.date && o.days) {
+                      if (o.pickHour != null && o.returnHour != null) {
+                        pickTime = `${String(o.pickHour).padStart(2, "0")}:00`;
+                        dropTime = `${String(o.returnHour).padStart(2, "0")}:00`;
+                        pickDate = fmtD(o.date);
+                        dropDate = fmtD(o.returnDate || dateAddDays(o.date, o.days));
+                      } else if (o.date && o.days) {
                         if (o.days === 0.5) {
                           pickTime =
                             (o.session || o.shift) === "morning"
