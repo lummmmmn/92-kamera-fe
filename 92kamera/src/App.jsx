@@ -354,7 +354,9 @@ function AppRoot() {
         }
         @media (min-width: 1024px) {
           .app-shell-92 {
-            zoom: 1.12;
+            width: calc(100% / 1.12);
+            transform: scale(1.12);
+            transform-origin: top center;
           }
         }
         .home-section {
