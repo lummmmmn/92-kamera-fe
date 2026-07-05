@@ -162,6 +162,10 @@ export const deleteAlbum = (id) =>
   api.delete(`/albums/${pathId(id)}`).then((r) => r.data);
 
 // Upload: multipart/form-data — BE xử lý Cloudinary
+// QUAN TRỌNG: Content-Type phải là `false`, KHÔNG hardcode
+// "multipart/form-data" — nếu set cứng, trình duyệt sẽ không tự thêm
+// boundary vào header, khiến BE parse multipart bị lỗi
+// "multipart boundary is missing".
 export const uploadPhoto = (formData) =>
   api.post("/photos/upload", formData, {
     headers: { "Content-Type": false },
