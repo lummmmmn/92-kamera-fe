@@ -607,7 +607,12 @@ export default function OrdersPanel({
                     return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
                   };
                   let pickTime, pickDate, dropTime, dropDate;
-                  if (o.days === 0.5) {
+                  if (o.pickHour != null && o.returnHour != null) {
+                    pickTime = `${String(o.pickHour).padStart(2, "0")}:00`;
+                    dropTime = `${String(o.returnHour).padStart(2, "0")}:00`;
+                    pickDate = fmtD(o.date);
+                    dropDate = fmtD(o.returnDate || dateAddDays(o.date, o.days));
+                  } else if (o.days === 0.5) {
                     const _sess = o.session || o.shift;
                     pickTime = _sess === "morning" ? "06:00" : _sess === "afternoon" ? "14:00" : "--:--";
                     dropTime = _sess === "morning" ? "12:00" : _sess === "afternoon" ? "20:00" : "--:--";
@@ -692,7 +697,13 @@ export default function OrdersPanel({
                         return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
                       };
                       let pickTime, pickDate, dropTime, dropDate;
-                      if (o.date && o.days) {
+                      if (o.pickHour != null && o.returnHour != null) {
+                        // Đơn thuê theo hệ CA (3 ca/ngày) → lấy đúng giờ thật khách đã chọn
+                        pickTime = `${String(o.pickHour).padStart(2, "0")}:00`;
+                        dropTime = `${String(o.returnHour).padStart(2, "0")}:00`;
+                        pickDate = fmtD(o.date);
+                        dropDate = fmtD(o.returnDate || dateAddDays(o.date, o.days));
+                      } else if (o.date && o.days) {
                         if (o.days === 0.5) {
                           pickTime = (o.session || o.shift) === "morning" ? "06:00" : (o.session || o.shift) === "afternoon" ? "14:00" : "--:--";
                           dropTime = (o.session || o.shift) === "morning" ? "12:00" : (o.session || o.shift) === "afternoon" ? "20:00" : "--:--";
