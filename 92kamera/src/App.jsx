@@ -334,6 +334,9 @@ function AppRoot() {
 
       {/* Styles Injection */}
       <style>{`
+        *, *::before, *::after {
+          box-sizing: border-box;
+        }
         input, select, textarea { font-size: 16px !important; }
         :root {
           --navy-92: #0D1B2A;
