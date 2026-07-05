@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { TXT, MUT, CARD, CARD2, BR, BR2, G, btn } from "../../lib/constants.js";
 import { fmtVND } from "../../utils/format.js";
-import { compressImage } from "../../utils/image.js";
+import { uploadImage } from "../../api/upload.js";
 import { useSiteContent, useUpdateSiteContent, useCameras, useAccessories } from "../../hooks/useAppData.js";
 import { useOrders } from "../../hooks/useOrders.js";
 
@@ -28,6 +28,7 @@ export default function SitePanel({ isMobile }) {
   const [localSite, setLocalSite] = useState(() => ({ ...siteContent }));
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [qrUploading, setQrUploading] = useState(null); // null | "zaloQR" | "cornerQR"
 
   useEffect(() => {
     if (siteContent) setLocalSite({ ...siteContent });
@@ -179,13 +180,20 @@ export default function SitePanel({ isMobile }) {
                 <div>
                   <label style={{ display: "block", border: `2px dashed ${G}44`, borderRadius: 12, padding: "18px 0", textAlign: "center", cursor: "pointer", background: CARD2, color: MUT, fontSize: 12 }}>
                     <div style={{ fontSize: 28, marginBottom: 6 }}>📷</div>
-                    <div>Nhấn để upload ảnh QR</div>
+                    <div>{qrUploading === "zaloQR" ? "⏳ Đang upload..." : "Nhấn để upload ảnh QR"}</div>
                     <div style={{ fontSize: 10, color: "#333", marginTop: 4 }}>PNG / JPG · Khuyên dùng QR vuông</div>
-                    <input type="file" accept="image/*" style={{ display: "none" }} onChange={async e => {
+                    <input type="file" accept="image/*" disabled={qrUploading === "zaloQR"} style={{ display: "none" }} onChange={async e => {
                       const file = e.target.files[0]; if (!file) return;
-                      const compressed = await compressImage(file, 600, 0.9);
-                      setLocalSite(p => ({ ...p, zaloQR: compressed }));
-                      e.target.value = "";
+                      setQrUploading("zaloQR");
+                      try {
+                        const { url } = await uploadImage(file, { folder: "92kamera_site", maxPx: 600, quality: 0.9 });
+                        setLocalSite(p => ({ ...p, zaloQR: url }));
+                      } catch {
+                        alert("Upload QR thất bại — thử lại");
+                      } finally {
+                        setQrUploading(null);
+                        e.target.value = "";
+                      }
                     }} />
                   </label>
                 </div>
@@ -216,13 +224,20 @@ export default function SitePanel({ isMobile }) {
                 <div>
                   <label style={{ display: "block", border: `2px dashed #a78bfa44`, borderRadius: 12, padding: "18px 0", textAlign: "center", cursor: "pointer", background: CARD2, color: MUT, fontSize: 12 }}>
                     <div style={{ fontSize: 28, marginBottom: 6 }}>📷</div>
-                    <div>Nhấn để upload ảnh QR góc trang</div>
+                    <div>{qrUploading === "cornerQR" ? "⏳ Đang upload..." : "Nhấn để upload ảnh QR góc trang"}</div>
                     <div style={{ fontSize: 10, color: "#333", marginTop: 4 }}>PNG / JPG · Khuyên dùng QR vuông</div>
-                    <input type="file" accept="image/*" style={{ display: "none" }} onChange={async e => {
+                    <input type="file" accept="image/*" disabled={qrUploading === "cornerQR"} style={{ display: "none" }} onChange={async e => {
                       const file = e.target.files[0]; if (!file) return;
-                      const compressed = await compressImage(file, 600, 0.9);
-                      setLocalSite(p => ({ ...p, cornerQR: compressed }));
-                      e.target.value = "";
+                      setQrUploading("cornerQR");
+                      try {
+                        const { url } = await uploadImage(file, { folder: "92kamera_site", maxPx: 600, quality: 0.9 });
+                        setLocalSite(p => ({ ...p, cornerQR: url }));
+                      } catch {
+                        alert("Upload QR thất bại — thử lại");
+                      } finally {
+                        setQrUploading(null);
+                        e.target.value = "";
+                      }
                     }} />
                   </label>
                 </div>
