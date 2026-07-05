@@ -8,6 +8,10 @@ export default function BookingDone({
   selAcc,
   days,
   selSession,
+  pickDate,
+  pickHour,
+  returnHour,
+  caResult,
   appliedDiscounts,
   discountAmt,
   rentalDiscountAmt,
@@ -112,6 +116,20 @@ export default function BookingDone({
       return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
     };
 
+    // Đơn thuê theo hệ CA (3 ca/ngày) → lấy đúng giờ thật khách đã chọn
+    if (pickHour != null && returnHour != null) {
+      const returnDate = caResult?.returnDate || dateAddDays(pickDate, days);
+      const totalCa = caResult?.totalCa;
+      return {
+        pickTime: `${String(pickHour).padStart(2, "0")}:00`,
+        pickDate: fmtDate(pickDate),
+        dropTime: `${String(returnHour).padStart(2, "0")}:00`,
+        dropDate: fmtDate(returnDate),
+        totalCa,
+        totalLabel: totalCa ? `${totalCa} ca` : `${days} ngày`,
+      };
+    }
+
     if (days === 0.5) {
       const isM = selSession === "morning";
       const isA = selSession === "afternoon";
@@ -136,11 +154,6 @@ export default function BookingDone({
       totalLabel: `${totalH} giờ (${Math.ceil(days)} ngày)`,
     };
   }
-
-  // pickDate is needed inside returnInfoLocal, which depends on days and pickDate from outer scope.
-  // We can grab pickDate from info/order metadata or select it from cameras if needed.
-  // Wait, let's pass pickDate as a prop to be simple and correct!
-  const pickDate = selectedCamList[0]?.date || new Date().toISOString().split("T")[0]; // safety fallback
 
   return (
     <div style={{ textAlign: "center", padding: "12px 8px 20px", position: "relative", overflow: "hidden" }}>
