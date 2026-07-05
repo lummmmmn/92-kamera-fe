@@ -28,7 +28,7 @@ export default function Footer({ isMobile, siteContent }) {
           gap: isMobile ? 20 : 28,
         }}
       >
-        <div style={{ display: "flex", flexDirection: "column", alignItems: isMobile ? "center" : "flex-start", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 10 }}>
           <Logo size={isMobile ? 0.66 : 0.72} />
           <div
             style={{
@@ -38,7 +38,8 @@ export default function Footer({ isMobile, siteContent }) {
               fontWeight: 800,
               letterSpacing: 2.6,
               textTransform: "uppercase",
-              textAlign: isMobile ? "center" : "left",
+              textAlign: "left",
+              whiteSpace: "nowrap",
             }}
           >
             Cho thuê máy ảnh · Núi Thành · Tam Kỳ
