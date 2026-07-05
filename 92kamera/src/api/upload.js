@@ -42,6 +42,10 @@ export async function uploadImage(file, options = {}) {
   if (public_id) formData.append("public_id", public_id);
 
   // 3. Gửi lên BE — BE upload lên Cloudinary và trả về URL
+  //    QUAN TRỌNG: Content-Type phải là `false`, KHÔNG hardcode
+  //    "multipart/form-data" — nếu set cứng, trình duyệt sẽ không tự
+  //    thêm boundary vào header, khiến BE parse multipart bị lỗi
+  //    "multipart boundary is missing".
   const response = await api.post("/upload", formData, {
     headers: { "Content-Type": false },
     onUploadProgress: onProgress
