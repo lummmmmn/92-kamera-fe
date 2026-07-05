@@ -3,7 +3,7 @@ import Logo from "../common/Logo.jsx";
 import CustomerLoginView from "./CustomerLoginView.jsx";
 import AdminLoginView from "./AdminLoginView.jsx";
 import { useAdminAuth } from "../../hooks/useAdminAuth.js";
-import { G, MUT, TXT, BG, CARD, BR, ADMIN_PW_DEFAULT_HASH } from "../../lib/constants.js";
+import { G, MUT, TXT, BG, CARD, BR } from "../../lib/constants.js";
 import { getOrders, googleLogin } from "../../api/index.js";
 import { todayStr } from "../../utils/format.js";
 
@@ -73,12 +73,6 @@ export default function AdminLogin({
 
   const [err, setErr] = useState(false);
   const [shake, setShake] = useState(false);
-  const [storedAdminHash, setStoredAdminHash] = useState(ADMIN_PW_DEFAULT_HASH);
-
-  useEffect(() => {
-    const hash = localStorage.getItem("k92_admin_pw_hash") || ADMIN_PW_DEFAULT_HASH;
-    setStoredAdminHash(hash);
-  }, []);
 
   // Google GSI script load
   const googleBtnRef = useRef();
@@ -352,7 +346,6 @@ export default function AdminLogin({
           <AdminLoginView
             onLogin={onLogin}
             loginAsync={loginAsync}
-            storedAdminHash={storedAdminHash}
             shake={shake}
             setShake={setShake}
             err={err}
