@@ -61,3 +61,23 @@ export async function uploadImage(file, options = {}) {
   return response.data;
   // { ok, url, secure_url, public_id, width, height, format, bytes }
 }
+
+/**
+ * Compress + upload avatar khách hàng lên Cloudinary qua BE /upload/avatar.
+ * Chỉ cần đăng nhập (không cần admin) — public_id do BE tự set theo googleId.
+ *
+ * @param {File} file
+ * @returns {Promise<{ url: string, secure_url: string, public_id: string }>}
+ */
+export async function uploadAvatar(file) {
+  const compressed = await compressImage(file, { maxPx: 300, quality: 0.72 });
+
+  const formData = new FormData();
+  formData.append("file", compressed, file.name || "avatar.jpg");
+
+  const response = await api.post("/upload/avatar", formData, {
+    headers: { "Content-Type": false },
+  });
+
+  return response.data;
+}
