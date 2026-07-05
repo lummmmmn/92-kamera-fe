@@ -136,12 +136,6 @@ export default function HomePage({
         .text-type__cursor--hidden { display:none; }
         @keyframes cursorBlink { 0%,100%{opacity:1} 50%{opacity:0} }
         input[type="date"]::-webkit-calendar-picker-indicator { opacity:0; width:0; padding:0; margin:0; position:absolute; }
-        @media (min-width: 1024px) {
-          .home-page-shell-92,
-          .home-lower-shell-92 {
-            zoom: 1;
-          }
-        }
         .qr-corner {
           position:fixed; bottom:20px; right:20px; z-index:999; cursor:pointer;
           transition: opacity .3s, transform .3s;
