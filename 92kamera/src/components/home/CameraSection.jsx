@@ -216,7 +216,7 @@ export default function CameraSection({ id, cameras, onBook, isMobile, onLoadMor
                 style={{
                   scrollSnapAlign: "center",
                   flexShrink: 0,
-                  width: "calc(100vw - 40px)",
+                  width: "calc(100% - 40px)",
                   height: 320,
                   borderRadius: 20,
                   overflow: "hidden",
