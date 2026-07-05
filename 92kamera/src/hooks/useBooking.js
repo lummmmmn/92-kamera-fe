@@ -486,6 +486,17 @@ export function useBooking({
       setSubmitError("❌ Ngày thuê đã qua. Vui lòng chọn lại từ hôm nay.");
       return;
     }
+    // Nếu nhận máy ngay hôm nay, giờ nhận cũng phải chưa qua so với giờ hiện tại
+    // (trước đây chỉ check pickDate < today, nên đặt hôm nay với giờ nhận đã
+    // trôi qua trong ngày vẫn lọt qua được).
+    if (pickDate === todayStr()) {
+      const now = new Date();
+      const nowHour = now.getHours() + now.getMinutes() / 60;
+      if (pickHour < nowHour) {
+        setSubmitError("❌ Giờ nhận đã qua trong hôm nay. Vui lòng chọn giờ nhận muộn hơn hoặc đổi sang ngày khác.");
+        return;
+      }
+    }
 
     setSubmitting(true);
     setSubmitError(null);
