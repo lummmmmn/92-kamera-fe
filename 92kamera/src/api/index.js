@@ -164,12 +164,12 @@ export const deleteAlbum = (id) =>
 // Upload: multipart/form-data — BE xử lý Cloudinary
 export const uploadPhoto = (formData) =>
   api.post("/photos/upload", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
+    headers: { "Content-Type": false },
   }).then((r) => r.data);
 
 export const uploadCameraImage = (id, formData) =>
   api.post(`/cameras/${pathId(id)}/images`, formData, {
-    headers: { "Content-Type": "multipart/form-data" },
+    headers: { "Content-Type": false },
   }).then((r) => r.data);
 
 // ─────────────────────────────────────────────
