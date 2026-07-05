@@ -63,7 +63,7 @@ export function useNewOrderChime(unseenCount) {
       osc.type = "sine";
       osc.frequency.value = BEEP_FREQ_HZ;
       gain.gain.setValueAtTime(0, startAt);
-      gain.gain.linearRampToValueAtTime(0.28, startAt + 0.01);
+      gain.gain.linearRampToValueAtTime(0.9, startAt + 0.01);
       gain.gain.linearRampToValueAtTime(0, startAt + BEEP_DURATION_S);
       osc.connect(gain);
       gain.connect(ctx.destination);
