@@ -324,6 +324,8 @@ export default function HeroSection({
               color: "#2a2825",
               fontWeight: 700,
               whiteSpace: "nowrap",
+              wordBreak: "keep-all",
+              display: "inline-block",
               lineHeight: 1,
               minHeight: 16,
             }}
