@@ -98,11 +98,8 @@ export default function ProcessSection({ isMobile }) {
     return () => ro.disconnect();
   }, []);
 
-  const basePad = 16;
-  const idealWidth = Math.max(containerW - basePad * 2, 0);
-  const cardWidth = isMobile ? Math.round(idealWidth * 0.9) : 340;
-  const extraPad = isMobile ? Math.round((idealWidth - cardWidth) / 2) : 0;
-  const sidePad = basePad + extraPad;
+  const cardWidth = isMobile ? Math.round(containerW * 0.86) : 340;
+  const sidePad = isMobile ? Math.round((containerW - cardWidth) / 2) : 48;
 
   const scrollTo = (idx) => {
     const el = scrollRef.current;
@@ -138,7 +135,7 @@ export default function ProcessSection({ isMobile }) {
   };
 
   return (
-    <div id="quy-trinh" style={{ margin: isMobile ? "20px 0" : "32px 0", padding: isMobile ? "40px 0 32px" : "60px 0 44px" }}>
+    <div id="quy-trinh" style={{ margin: isMobile ? "20px 0" : "32px 0", padding: isMobile ? "40px 0 32px" : "60px 0 44px", scrollMarginTop: isMobile ? 70 : 0 }}>
       <div style={{ textAlign: "center", marginBottom: isMobile ? 28 : 36, padding: "0 20px" }}>
         <div style={{ fontSize: isMobile ? 9 : 11, letterSpacing: 7, color: "#2a4a6a", opacity: 0.6, marginBottom: 12, fontFamily: "system-ui,sans-serif", fontWeight: 700 }}>HƯỚNG DẪN CHI TIẾT</div>
         <h2 style={{ fontSize: isMobile ? 28 : 40, fontWeight: 700, margin: "0 0 12px", color: "#0d1b2a", fontFamily: "var(--font-display)", letterSpacing: 1 }}>Quy trình 6 bước</h2>
@@ -156,7 +153,7 @@ export default function ProcessSection({ isMobile }) {
           overflowX: "auto",
           scrollSnapType: "x mandatory",
           padding: isMobile ? `4px ${sidePad}px 20px` : "4px 48px 20px",
-          scrollPaddingLeft: isMobile ? sidePad : 48,
+          scrollPaddingLeft: sidePad,
           scrollbarWidth: "none",
           msOverflowStyle: "none",
         }}
@@ -167,8 +164,8 @@ export default function ProcessSection({ isMobile }) {
             key={idx}
             style={{
               flexShrink: 0,
-              width: isMobile ? (containerW ? cardWidth : "calc(90% - 32px)") : 340,
-              scrollSnapAlign: "start",
+              width: isMobile ? (containerW ? cardWidth : "86%") : 340,
+              scrollSnapAlign: isMobile ? "center" : "start",
               background: s.gradient,
               borderRadius: 20,
               padding: isMobile ? "20px 18px 16px" : "24px 22px 20px",
