@@ -22,6 +22,7 @@ import {
 import OverviewPanel from "./OverviewPanel.jsx";
 import CamerasPanel from "./CamerasPanel.jsx";
 import AccessoriesPanel from "./AccessoriesPanel.jsx";
+import { useNewOrderChime } from "../../hooks/useNewOrderChime.js";
 import OrdersPanel from "./OrdersPanel.jsx";
 import RentalCalendar from "./RentalCalendar.jsx";
 import DeliveryPanel from "./DeliveryPanel.jsx";
@@ -66,6 +67,10 @@ export default function AdminDashboard({ onBack, isMobile }) {
 
   const unseenCount = orders.filter((o) => !o.seen).length;
   const unseenFeedbackCount = feedbacks.filter((f) => f.status === "pending").length;
+
+  // Kêu "ting ting ting" lặp lại khi còn đơn mới chưa xem — để mở dashboard
+  // treo máy vẫn nghe được, tự tắt ngay khi xem hết đơn.
+  useNewOrderChime(unseenCount);
 
   const TABS = [
     { k: "overview", l: "📊 Tổng quan" },
