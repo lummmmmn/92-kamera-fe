@@ -1,12 +1,11 @@
-import { useState, useEffect } from "react";
-import { sha256 } from "../../utils/hash.js";
+import { useState } from "react";
 import { G, MUT, TXT, CARD, BR } from "../../lib/constants.js";
 
 const BF_KEY = "k92_bf";
 const BF_MAX = 5;
 const BF_LOCK_MS = 15 * 60 * 1000;
 
-export default function AdminLoginView({ onLogin, loginAsync, storedAdminHash, shake, setShake, err, setErr }) {
+export default function AdminLoginView({ onLogin, loginAsync, shake, setShake, err, setErr }) {
   const [pw, setPw] = useState("");
 
   const getBfState = () => {
@@ -37,6 +36,25 @@ export default function AdminLoginView({ onLogin, loginAsync, storedAdminHash, s
   const isLocked = () => Date.now() < lockUntil;
   const lockRemainMin = () => Math.ceil((lockUntil - Date.now()) / 60000);
 
+  const registerFail = () => {
+    const newFails = failCount + 1;
+    if (newFails >= BF_MAX) {
+      const until = Date.now() + BF_LOCK_MS;
+      saveBfState({ fails: newFails, lockUntil: until });
+      setFailCount(newFails);
+      setLockUntil(until);
+    } else {
+      saveBfState({ fails: newFails, lockUntil: 0 });
+      setFailCount(newFails);
+    }
+    setErr(true);
+    setShake(true);
+    setTimeout(() => {
+      setErr(false);
+      setShake(false);
+    }, 2000);
+  };
+
   const checkAdmin = async () => {
     if (isLocked()) {
       setErr(true);
@@ -48,44 +66,19 @@ export default function AdminLoginView({ onLogin, loginAsync, storedAdminHash, s
       return;
     }
 
-    const inputHash = await sha256(pw);
-    if (inputHash === storedAdminHash) {
+    // Luôn gọi API thật lên server để xác thực — server (DB) mới là nơi
+    // lưu mật khẩu đúng, không còn check tạm ở client qua localStorage nữa
+    // (bản cũ hay bị lệch khi đổi mật khẩu ở thiết bị/trình duyệt khác).
+    try {
+      const result = await loginAsync({ username: "admin", password: pw });
+      const token = result?.token || localStorage.getItem("admin_token");
       saveBfState({ fails: 0, lockUntil: 0 });
       setFailCount(0);
       setLockUntil(0);
-
-      try {
-        // Call useAdminAuth login mutation
-        const result = await loginAsync({ username: "admin", password: pw });
-        const token = result?.token || localStorage.getItem("admin_token");
-        onLogin(token);
-      } catch (fbErr) {
-        console.error("[92K] Login auth error:", fbErr.message);
-        alert("Đăng nhập thất bại.\n\nChi tiết: " + fbErr.message);
-        setErr(true);
-        setShake(true);
-        setTimeout(() => {
-          setErr(false);
-          setShake(false);
-        }, 2000);
-      }
-    } else {
-      const newFails = failCount + 1;
-      if (newFails >= BF_MAX) {
-        const until = Date.now() + BF_LOCK_MS;
-        saveBfState({ fails: newFails, lockUntil: until });
-        setFailCount(newFails);
-        setLockUntil(until);
-      } else {
-        saveBfState({ fails: newFails, lockUntil: 0 });
-        setFailCount(newFails);
-      }
-      setErr(true);
-      setShake(true);
-      setTimeout(() => {
-        setErr(false);
-        setShake(false);
-      }, 2000);
+      onLogin(token);
+    } catch (fbErr) {
+      console.error("[92K] Login auth error:", fbErr.message);
+      registerFail();
     }
   };
 
