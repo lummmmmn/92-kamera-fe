@@ -43,7 +43,7 @@ export async function uploadImage(file, options = {}) {
 
   // 3. Gửi lên BE — BE upload lên Cloudinary và trả về URL
   const response = await api.post("/upload", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
+    headers: { "Content-Type": false },
     onUploadProgress: onProgress
       ? (evt) => {
           const percent = evt.total
