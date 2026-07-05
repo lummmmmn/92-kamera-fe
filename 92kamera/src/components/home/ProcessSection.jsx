@@ -98,7 +98,7 @@ export default function ProcessSection({ isMobile }) {
     return () => ro.disconnect();
   }, []);
 
-  const cardWidth = isMobile ? Math.round(containerW * 0.8) : 340;
+  const cardWidth = isMobile ? Math.round(containerW * 0.88) : 340;
   const sidePad = isMobile ? Math.round((containerW - cardWidth) / 2) : 48;
 
   const scrollTo = (idx) => {
@@ -164,7 +164,7 @@ export default function ProcessSection({ isMobile }) {
             key={idx}
             style={{
               flexShrink: 0,
-              width: isMobile ? (containerW ? cardWidth : "80%") : 340,
+              width: isMobile ? (containerW ? cardWidth : "88%") : 340,
               scrollSnapAlign: isMobile ? "center" : "start",
               background: s.gradient,
               borderRadius: 20,
@@ -191,9 +191,6 @@ export default function ProcessSection({ isMobile }) {
                   ].join(", "),
               position: "relative",
               overflow: "hidden",
-              opacity: isMobile ? (idx === active ? 1 : 0.45) : 1,
-              transform: isMobile ? (idx === active ? "scale(1)" : "scale(0.92)") : "none",
-              transition: "opacity .35s, transform .35s",
             }}
           >
             <div style={{ position: "absolute", top: 0, left: "8%", right: "8%", height: 1, background: "linear-gradient(90deg,transparent,rgba(255,255,255,0.65) 40%,rgba(255,255,255,0.80) 50%,rgba(255,255,255,0.65) 60%,transparent)", pointerEvents: "none", zIndex: 10 }} />
