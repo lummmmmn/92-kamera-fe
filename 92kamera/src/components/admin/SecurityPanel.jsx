@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { TXT, MUT, CARD2, BR2, ADMIN_PW_DEFAULT_HASH, btn, inp2 } from "../../lib/constants.js";
-import { sha256 } from "../../utils/hash.js";
+import { TXT, MUT, CARD2, BR2, btn, inp2 } from "../../lib/constants.js";
+import api from "../../lib/axios.js";
 
 // Section Title Helper
 function STitle({ c }) {
@@ -19,19 +19,12 @@ export default function SecurityPanel() {
   const [pwNew, setPwNew] = useState("");
   const [pwConfirm, setPwConfirm] = useState("");
   const [pwMsg, setPwMsg] = useState(null);
+  const [pwLoading, setPwLoading] = useState(false);
 
   const handleChangePw = async () => {
     setPwMsg(null);
     if (!pwOld || !pwNew || !pwConfirm) {
       setPwMsg({ type: "err", text: "Vui lòng điền đầy đủ" });
-      return;
-    }
-
-    const currentHash = localStorage.getItem("k92_admin_pw_hash") || ADMIN_PW_DEFAULT_HASH;
-    const oldHash = await sha256(pwOld);
-
-    if (oldHash !== currentHash) {
-      setPwMsg({ type: "err", text: "Mật khẩu hiện tại không đúng" });
       return;
     }
     if (pwNew.length < 6) {
@@ -43,14 +36,23 @@ export default function SecurityPanel() {
       return;
     }
 
-    const newHash = await sha256(pwNew);
-    localStorage.setItem("k92_admin_pw_hash", newHash);
+    setPwLoading(true);
+    try {
+      // Gọi API thật, lưu hash mới vào MongoDB (kv_store) — thay cho bản cũ
+      // chỉ lưu localStorage nên không có tác dụng thật với server.
+      await api.post("/auth/change-password", { oldPassword: pwOld, newPassword: pwNew });
 
-    setPwOld("");
-    setPwNew("");
-    setPwConfirm("");
-    setPwMsg({ type: "ok", text: "✓ Đổi mật khẩu thành công!" });
-    setTimeout(() => setPwMsg(null), 3000);
+      setPwOld("");
+      setPwNew("");
+      setPwConfirm("");
+      setPwMsg({ type: "ok", text: "✓ Đổi mật khẩu thành công!" });
+      setTimeout(() => setPwMsg(null), 3000);
+    } catch (err) {
+      const text = err?.response?.data?.message || err?.response?.data?.error || "Đổi mật khẩu thất bại";
+      setPwMsg({ type: "err", text });
+    } finally {
+      setPwLoading(false);
+    }
   };
 
   return (
@@ -60,7 +62,7 @@ export default function SecurityPanel() {
         <div style={{ background: CARD2, border: `1px solid ${BR2}`, borderRadius: 14, padding: 24 }}>
           <div style={{ color: TXT, fontWeight: 600, marginBottom: 6, fontSize: 13 }}>🔑 Đổi mật khẩu Admin</div>
           <div style={{ color: MUT, fontSize: 12, marginBottom: 20, lineHeight: 1.6 }}>
-            Mật khẩu được lưu riêng, chỉ có hiệu lực trên thiết bị này.
+            Mật khẩu được lưu trên server, có hiệu lực trên mọi thiết bị.
           </div>
           {pwMsg && (
             <div
@@ -108,8 +110,8 @@ export default function SecurityPanel() {
               onKeyDown={(e) => e.key === "Enter" && handleChangePw()}
             />
           </div>
-          <button onClick={handleChangePw} style={btn("gold")}>
-            Đổi mật khẩu
+          <button onClick={handleChangePw} disabled={pwLoading} style={btn("gold")}>
+            {pwLoading ? "Đang lưu..." : "Đổi mật khẩu"}
           </button>
         </div>
       </div>
