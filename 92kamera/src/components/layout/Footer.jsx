@@ -132,7 +132,7 @@ export default function Footer({ isMobile, siteContent }) {
               textAlign: isMobile ? "center" : "right",
             }}
           >
-            © 2026 92 KA MÊ RA / abc2z/v1.0
+            © 2026 92 KA MÊ RA | ABC2Z | v1.1
           </div>
         </div>
       </div>
