@@ -37,13 +37,10 @@ const caBadge = (caIdx) => {
   );
 };
 
-// Lấy giờ bắt đầu / kết thúc của 1 ca từ chuỗi c.time dạng "07:00–12:00"
-const parseCaHours = (c) => {
-  const parts = String(c.time).split(/[–-]/).map((s) => s.trim());
-  const startHour = parseInt(parts[0]) || 0;
-  const endHour = parseInt(parts[1]) || 0;
-  return { startHour, endHour };
-};
+// Giờ bắt đầu / kết thúc của 1 ca — lấy thẳng từ startH/endH đã định nghĩa sẵn
+// trong CA_SHIFTS (constants.js), không tự parse lại chuỗi c.time nữa để tránh
+// lệch nếu sau này đổi format hiển thị của c.time mà quên đồng bộ 2 chỗ.
+const parseCaHours = (c) => ({ startHour: c.startH, endHour: c.endH });
 
 const addDaysLocal = (dateStr, n) => {
   const d = new Date(dateStr + "T00:00:00");
