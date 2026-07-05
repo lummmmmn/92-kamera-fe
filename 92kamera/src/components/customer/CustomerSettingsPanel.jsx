@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { G, MUT, TXT, BR } from "../../lib/constants.js";
-import { compressImage } from "../../utils/image.js";
+import { uploadAvatar } from "../../api/upload.js";
 import { useUsers, useUpsertUser } from "../../hooks/useAppData.js";
 
 export default function CustomerSettingsPanel({ loggedUser, setLoggedUser }) {
@@ -48,19 +48,24 @@ export default function CustomerSettingsPanel({ loggedUser, setLoggedUser }) {
     setTimeout(() => setSettingsSaved(false), 2500);
   };
 
+  const [avatarErr, setAvatarErr] = useState("");
+
   const handleAvatarChange = async (file) => {
     if (!file || !file.type.startsWith("image/")) return;
     setAvatarLoading(true);
+    setAvatarErr("");
     try {
-      const compressed = await compressImage(file, 300, 0.65);
-      const updated = { ...loggedUser, avatar: compressed };
+      const { url } = await uploadAvatar(file);
+      const updated = { ...loggedUser, avatar: url };
       setLoggedUser(updated);
 
       const key = loggedUser.email || loggedUser.phone;
       const existingUserData = usersMap[key] || {};
       upsertUserMutation.mutate({
-        [key]: { ...existingUserData, avatar: compressed },
+        [key]: { ...existingUserData, avatar: url },
       });
+    } catch {
+      setAvatarErr("❌ Upload avatar thất bại — thử lại");
     } finally {
       setAvatarLoading(false);
     }
@@ -166,6 +171,7 @@ export default function CustomerSettingsPanel({ loggedUser, setLoggedUser }) {
           <div style={{ color: G, fontWeight: 600, fontSize: 12, fontFamily: "system-ui,sans-serif", marginBottom: 3 }}>Tải ảnh lên</div>
           <div style={{ color: MUT, fontSize: 10, fontFamily: "system-ui,sans-serif" }}>JPG, PNG – Tối đa 5MB</div>
         </div>
+        {avatarErr && <div style={{ color: "#ef4444", fontSize: 11, marginTop: 8, fontFamily: "system-ui,sans-serif" }}>{avatarErr}</div>}
       </div>
 
       {/* Form fields */}
