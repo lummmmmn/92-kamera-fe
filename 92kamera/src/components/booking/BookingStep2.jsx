@@ -88,6 +88,7 @@ export default function BookingStep2({
         pickDate={pickDate}
         days={numDays}
         selSession="full"
+        caSchedule={caResult?.schedule}
         selectedCamList={selectedCamList}
         selCams={selCams}
         totalCamSelected={totalCamSelected}
