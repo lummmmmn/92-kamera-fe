@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { G, BR, TXT, MUT } from "../../lib/constants.js";
-import { fmtVND, fmtDays, dateAddDays } from "../../utils/format.js";
-import { getAccAvailQty, getAvailQty } from "../../utils/availability.js";
+import { fmtVND, fmtDays } from "../../utils/format.js";
+import { getAccAvailQtyByCa } from "../../utils/availability.js";
 
 const DESC_LIMIT = 48;
 
@@ -12,6 +12,7 @@ export default function BookingAccessories({
   setAccQty,
   liveOrdersForCheck,
   selSession,
+  caSchedule,
   pickDate,
   days,
   selectedCamList,
@@ -37,14 +38,7 @@ export default function BookingAccessories({
       <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
         {(() => {
           const _activeOrds = liveOrdersForCheck.filter((o) => !["cancelled", "completed"].includes(o.status));
-          const _sess = selSession || "full";
-          const _accDateRange = (() => {
-            if (!pickDate || !days) return [];
-            if (days < 1) return [pickDate];
-            const arr = [];
-            for (let i = 0; i < Math.ceil(days); i++) arr.push(dateAddDays(pickDate, i));
-            return arr;
-          })();
+          const _schedule = caSchedule || [];
 
           return accessories
             .filter((a) => a.active !== false)
@@ -52,8 +46,8 @@ export default function BookingAccessories({
               const qty = selAcc[a.name] || 0;
               const isSel = qty > 0;
               const availStock =
-                _accDateRange.length > 0
-                  ? Math.min(..._accDateRange.map((d) => getAccAvailQty(a.name, a.qty || 0, _activeOrds, d, _sess)))
+                _schedule.length > 0
+                  ? Math.min(..._schedule.map((s) => getAccAvailQtyByCa(a.name, a.qty || 0, _activeOrds, s.date, s.ca)))
                   : a.qty || 0;
               const isOutOfStock = availStock <= 0;
               const isLowStock = !isOutOfStock && availStock <= 1 && (a.qty || 0) > 1;
