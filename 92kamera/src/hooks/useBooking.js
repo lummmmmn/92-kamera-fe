@@ -585,7 +585,7 @@ export function useBooking({
       setDone(true);
     } catch (e) {
       console.error("[92K] submit error:", e);
-      const msg = e.response?.data?.message || "❌ Lỗi kết nối. Vui lòng thử lại.";
+      const msg = e.response?.data?.message || e.response?.data?.error || "❌ Lỗi kết nối. Vui lòng thử lại.";
       setSubmitError(msg);
       setSubmitting(false);
     }
