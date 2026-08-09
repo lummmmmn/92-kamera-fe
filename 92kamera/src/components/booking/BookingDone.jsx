@@ -28,13 +28,14 @@ export default function BookingDone({
   deliveryPickup,
   deliveryReturn,
 }) {
+  const riTop = returnInfoLocal();
   const zaloMsg = encodeURIComponent(
     "Xin chào 92 KA MÊ RA! 📸\nMã đơn: " +
       orderId +
       "\nThiết bị: " +
       selectedCamList.map((c) => c.name + " x" + selCams[c.id]).join(", ") +
       "\nThời gian: " +
-      fmtDays(days, selSession) +
+      (riTop ? riTop.totalLabel : fmtDays(days, selSession)) +
       (appliedDiscounts.length > 0 ? "\nMã giảm giá: " + appliedDiscounts.map((ad) => ad.code).join(" + ") + " (-" + fmtVND(discountAmt) + ")" : "") +
       (deliveryFeeCalc > 0 ? "\nPhí giao nhận: " + fmtVND(deliveryFeeCalc) : "") +
       "\nTổng tiền: " +
@@ -71,7 +72,7 @@ export default function BookingDone({
       `Mã đơn : ${orderId}`,
       `📷 Máy  : ${selectedCamList.map((c) => `${c.name}${selCams[c.id] > 1 ? ` x${selCams[c.id]}` : ""}`).join(", ")}`,
       `🎒 Phụ kiện: ${accList}`,
-      `⏱ Thời gian: ${fmtDays(days, selSession)}`,
+      `⏱ Thời gian: ${ri2 ? ri2.totalLabel : fmtDays(days, selSession)}`,
       ri2 ? `📦 Giờ nhận : ${ri2.pickTime} · ${ri2.pickDate}` : null,
       ri2 ? `📅 Giờ trả  : ${ri2.dropTime} · ${ri2.dropDate}` : null,
       ...(appliedDiscounts.length > 0
