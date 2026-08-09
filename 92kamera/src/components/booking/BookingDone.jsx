@@ -79,7 +79,7 @@ export default function BookingDone({
         ? appliedDiscounts.map((ad) =>
             ad.scope === "delivery"
               ? `🚗 Mã ship: ${ad.code} (-${fmtVND(deliveryDiscountAmt)})`
-              : `🎞️ Mã thuê: ${ad.code} (-${fmtVND(rentalDiscountAmt)})`
+              : `🎞️ Mã giảm giá: ${ad.code} (-${fmtVND(rentalDiscountAmt)})`
           )
         : []),
       deliveryFeeCalc > 0 ? `🚗 Phí giao nhận: ${fmtVND(deliveryFeeCalc)}` : null,
