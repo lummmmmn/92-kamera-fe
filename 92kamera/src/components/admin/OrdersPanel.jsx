@@ -105,6 +105,17 @@ function CopyOrderBtn({ copyFn }) {
   );
 }
 
+// Nhãn thời gian thuê: đơn hệ CA (3 ca/ngày) → "X ca"; đơn hệ cũ → dùng fmtDays
+function orderTimeLabel(o) {
+  if (o.pickHour != null && o.returnHour != null) {
+    // Ưu tiên totalCa đã lưu sẵn lúc khách đặt (đúng số liệu gốc nhất)
+    if (o.totalCa != null) return `${o.totalCa} ca`;
+    const caSched = buildCaSchedule(o.date, o.pickHour, o.days, o.returnHour);
+    if (caSched) return `${caSched.totalCa} ca`;
+  }
+  return fmtDays(o.days, o.session || o.shift);
+}
+
 export default function OrdersPanel({
   orders,
   onUpdateOrder,
@@ -564,7 +575,7 @@ export default function OrdersPanel({
               </div>
               <div style={{ textAlign: "right" }}>
                 <div style={{ color: G, fontSize: 18, fontWeight: 800 }}>{fmtVND(o.total)}</div>
-                <div style={{ color: MUT, fontSize: 11 }}>{fmtDays(o.days, o.session || o.shift)}</div>
+                <div style={{ color: MUT, fontSize: 11 }}>{orderTimeLabel(o)}</div>
               </div>
             </div>
 
@@ -716,11 +727,7 @@ export default function OrdersPanel({
                       }
                       const statusLabels = { pending: "Chờ xác nhận", confirmed: "Đã xác nhận", active: "Đang thuê", completed: "Hoàn thành", cancelled: "Đã huỷ" };
                       // Đơn theo hệ CA (3 ca/ngày) → hiện "X ca" thay vì "X ngày"
-                      let timeLabel = fmtDays(o.days, o.session || o.shift);
-                      if (o.pickHour != null && o.returnHour != null) {
-                        const caSched = buildCaSchedule(o.date, o.pickHour, o.days, o.returnHour);
-                        if (caSched) timeLabel = `${caSched.totalCa} ca`;
-                      }
+                      const timeLabel = orderTimeLabel(o);
                       const lines = [
                         "📋 ĐƠN THUÊ MÁY ẢNH 92KAMERA",
                         "━━━━━━━━━━━━━━━━━━━━━━",
