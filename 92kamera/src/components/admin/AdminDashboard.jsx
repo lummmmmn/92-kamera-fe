@@ -110,7 +110,7 @@ export default function AdminDashboard({ onBack, isMobile }) {
         [
           "Mã đơn", "Ngày", "Khách", "SĐT", "Zalo", "Địa chỉ", "Máy",
           "Ca/Ngày", "Phụ kiện", "Mã giảm giá", "Loại mã",
-          "Giảm thuê (đ)", "Giảm ship (đ)", "Giảm (đ)", "Tổng (đ)",
+          "Giảm thuê (đ)", "Giảm ship (đ)", "Giảm tổng đơn (đ)", "Giảm (đ)", "Tổng (đ)",
           "Trạng thái", "Ghi chú KH", "Ghi chú nội bộ"
         ],
         ...rows.map((o) => [
@@ -124,9 +124,10 @@ export default function AdminDashboard({ onBack, isMobile }) {
           fmtDays(o.days, o.session || o.shift),
           (o.accessories || []).join(", "),
           o.appliedDiscounts ? o.appliedDiscounts.map((x) => x.code).join(" + ") : (o.discountCode || ""),
-          o.appliedDiscounts ? o.appliedDiscounts.map((x) => (x.scope === "delivery" ? "Ship" : "Thuê")).join(" + ") : (o.discountCode ? "Thuê" : ""),
+          o.appliedDiscounts ? o.appliedDiscounts.map((x) => (x.scope === "delivery" ? "Ship" : x.scope === "total" ? "Tổng đơn" : "Thuê")).join(" + ") : (o.discountCode ? "Thuê" : ""),
           o.rentalDiscountAmt || (o.discountCode && !o.deliveryDiscountAmt ? o.discountAmt || 0 : 0),
           o.deliveryDiscountAmt || 0,
+          o.totalDiscountAmt || 0,
           o.discountAmt || 0,
           o.total,
           o.status,
