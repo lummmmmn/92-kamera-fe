@@ -4,7 +4,7 @@ import QuickOrderLookup from "./QuickOrderLookup.jsx";
 import AdminNoteEditor from "./AdminNoteEditor.jsx";
 import AdminToast from "./AdminToast.jsx";
 import { G, MUT, TXT, BR2, CARD, CARD2, RED, ORDER_STATUSES, STATUS_CFG } from "../../lib/constants.js";
-import { fmtVND, fmtDays, dateAddDays } from "../../utils/format.js";
+import { fmtVND, fmtDays, dateAddDays, buildCaSchedule } from "../../utils/format.js";
 
 // Inner subcomponent DeleteOrderBtn
 function DeleteOrderBtn({ onDelete, loading }) {
@@ -715,6 +715,12 @@ export default function OrdersPanel({
                         }
                       }
                       const statusLabels = { pending: "Chờ xác nhận", confirmed: "Đã xác nhận", active: "Đang thuê", completed: "Hoàn thành", cancelled: "Đã huỷ" };
+                      // Đơn theo hệ CA (3 ca/ngày) → hiện "X ca" thay vì "X ngày"
+                      let timeLabel = fmtDays(o.days, o.session || o.shift);
+                      if (o.pickHour != null && o.returnHour != null) {
+                        const caSched = buildCaSchedule(o.date, o.pickHour, o.days, o.returnHour);
+                        if (caSched) timeLabel = `${caSched.totalCa} ca`;
+                      }
                       const lines = [
                         "📋 ĐƠN THUÊ MÁY ẢNH 92KAMERA",
                         "━━━━━━━━━━━━━━━━━━━━━━",
@@ -722,7 +728,7 @@ export default function OrdersPanel({
                         `📷 Máy  : ${o.cameraName}`,
                         `🎒 Phụ kiện: ${accList}`,
                         `📅 Ngày thuê: ${o.date}`,
-                        `⏱ Thời gian: ${fmtDays(o.days, o.session || o.shift)}`,
+                        `⏱ Thời gian: ${timeLabel}`,
                         pickDate ? `📦 Giờ nhận : ${pickTime} · ${pickDate}` : null,
                         dropDate ? `📅 Giờ trả  : ${dropTime} · ${dropDate}` : null,
                         ...(o.appliedDiscounts && o.appliedDiscounts.length > 0
