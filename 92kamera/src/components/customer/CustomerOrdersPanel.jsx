@@ -240,6 +240,8 @@ export default function CustomerOrdersPanel({
                           ? o.appliedDiscounts.map((ad) =>
                               ad.scope === "delivery"
                                 ? `🚗 Mã ship: ${ad.code} (-${fmtVND(ad.amt || 0)})`
+                                : ad.scope === "total"
+                                ? `💰 Mã giảm giá: ${ad.code} (-${fmtVND(ad.amt || 0)})`
                                 : `🎞️ Mã thuê: ${ad.code} (-${fmtVND(ad.amt || 0)})`
                             )
                           : o.discountCode
