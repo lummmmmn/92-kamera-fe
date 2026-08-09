@@ -16,6 +16,7 @@ export default function BookingDone({
   discountAmt,
   rentalDiscountAmt,
   deliveryDiscountAmt,
+  totalDiscountAmt,
   deliveryFeeCalc,
   total,
   info,
@@ -79,6 +80,8 @@ export default function BookingDone({
         ? appliedDiscounts.map((ad) =>
             ad.scope === "delivery"
               ? `🚗 Mã ship: ${ad.code} (-${fmtVND(deliveryDiscountAmt)})`
+              : ad.scope === "total"
+              ? `💰 Mã giảm giá: ${ad.code} (-${fmtVND(totalDiscountAmt)})`
               : `🎞️ Mã giảm giá: ${ad.code} (-${fmtVND(rentalDiscountAmt)})`
           )
         : []),
@@ -244,8 +247,8 @@ export default function BookingDone({
           <div style={{ color: "#22c55e", fontSize: 12, fontFamily: "system-ui,sans-serif", marginBottom: 4 }}>
             {appliedDiscounts.map((ad) => (
               <div key={ad.code}>
-                {ad.scope === "delivery" ? "🚗" : "🎞️"} Mã {ad.code} — Đã giảm{" "}
-                {fmtVND(ad.scope === "delivery" ? deliveryDiscountAmt : rentalDiscountAmt)}
+                {ad.scope === "delivery" ? "🚗" : ad.scope === "total" ? "💰" : "🎞️"} Mã {ad.code} — Đã giảm{" "}
+                {fmtVND(ad.scope === "delivery" ? deliveryDiscountAmt : ad.scope === "total" ? totalDiscountAmt : rentalDiscountAmt)}
               </div>
             ))}
           </div>
