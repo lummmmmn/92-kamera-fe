@@ -729,6 +729,8 @@ export default function OrdersPanel({
                           ? o.appliedDiscounts.map((ad) =>
                               ad.scope === "delivery"
                                 ? `🚗 Mã ship: ${ad.code} (-${fmtVND(ad.amt || 0)})`
+                                : ad.scope === "total"
+                                ? `💰 Mã giảm giá: ${ad.code} (-${fmtVND(ad.amt || 0)})`
                                 : `🎞️ Mã thuê: ${ad.code} (-${fmtVND(ad.amt || 0)})`
                             )
                           : o.discountCode
@@ -756,8 +758,8 @@ export default function OrdersPanel({
                   <div style={{ fontSize: 11, marginBottom: 8, background: "#EEF9F4", border: "1px solid #22c55e22", borderRadius: 10, padding: "6px 12px" }}>
                     {o.appliedDiscounts && o.appliedDiscounts.length > 0 ? (
                       o.appliedDiscounts.map((ad) => (
-                        <div key={ad.code} style={{ color: ad.scope === "delivery" ? "#60a5fa" : "#22c55e" }}>
-                          {ad.scope === "delivery" ? "🚗 Mã ship" : "🎞️ Mã thuê"}: <strong>{ad.code}</strong> — Giảm {fmtVND(ad.amt || 0)}
+                        <div key={ad.code} style={{ color: ad.scope === "delivery" ? "#60a5fa" : ad.scope === "total" ? "#f59e0b" : "#22c55e" }}>
+                          {ad.scope === "delivery" ? "🚗 Mã ship" : ad.scope === "total" ? "💰 Mã giảm giá" : "🎞️ Mã thuê"}: <strong>{ad.code}</strong> — Giảm {fmtVND(ad.amt || 0)}
                         </div>
                       ))
                     ) : (
