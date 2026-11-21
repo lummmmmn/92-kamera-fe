@@ -192,6 +192,7 @@ export default function BookingModal(props) {
     {/* DONE SCREEN */}
     {b.done && (
       <BookingDone
+        pixel={props.pixel}
         orderId={b.orderId}
         selectedCamList={b.selectedCamList}
         selCams={b.selCams}
