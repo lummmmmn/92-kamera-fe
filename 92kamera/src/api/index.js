@@ -96,8 +96,10 @@ export const updateSiteContent = (data) =>
 // ─────────────────────────────────────────────
 // 🏷️ DISCOUNTS
 // ─────────────────────────────────────────────
+// Backend trả { ok, items, page } → unwrap về mảng. (Trước đây trả nguyên object nên mọi chỗ
+// kiểm tra Array.isArray(...) đều âm thầm rơi về dữ liệu cache cũ.)
 export const getDiscounts = () =>
-  api.get("/discounts").then((r) => r.data);
+  api.get("/discounts").then((r) => (Array.isArray(r.data?.items) ? r.data.items : r.data));
 
 export const createDiscount = (data) =>
   api.post("/discounts", data).then((r) => r.data);
