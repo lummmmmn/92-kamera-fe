@@ -58,6 +58,7 @@ export default function CustomerLoginView({
           {/* Camera illustration with glow */}
           <div style={{ position: "relative", display: "inline-block", marginBottom: 18 }}>
             <div
+              className="pxl-glow"
               style={{
                 position: "absolute",
                 inset: 0,
@@ -67,15 +68,15 @@ export default function CustomerLoginView({
                 borderRadius: "50%",
               }}
             />
-            <div className="cam-float-92k" style={{ fontSize: 64, lineHeight: 1, position: "relative", filter: "drop-shadow(0 4px 24px rgba(201,168,76,0.3))" }}>
+            <div className="cam-float-92k pxl-cam" style={{ fontSize: 64, lineHeight: 1, position: "relative", filter: "drop-shadow(0 4px 24px rgba(201,168,76,0.3))" }}>
               📷
             </div>
           </div>
 
-          <div style={{ color: TXT, fontSize: 20, fontWeight: 700, fontFamily: "'Georgia', serif", letterSpacing: 0.3, marginBottom: 8 }}>
+          <div style={{ color: "#14181f", fontSize: 34, fontWeight: 400, fontFamily: "var(--px)", lineHeight: 1, marginBottom: 8 }}>
             Đăng nhập
           </div>
-          <div style={{ color: MUT, fontSize: 12.5, fontFamily: "system-ui,sans-serif", lineHeight: 1.75, marginBottom: 28 }}>
+          <div style={{ color: "#5a6573", fontSize: 13.5, fontFamily: "system-ui,sans-serif", lineHeight: 1.75, marginBottom: 28 }}>
             Đăng nhập ngay để nhận ưu đãi của thành viên
           </div>
 
@@ -141,19 +142,19 @@ export default function CustomerLoginView({
               </div>
             ) : (
               <div style={{ display: "flex", justifyContent: "center" }}>
-                <div ref={googleBtnRef} style={{ minHeight: 44 }} />
+                <div className="pxl-gbtn"><div ref={googleBtnRef} style={{ minHeight: 44 }} /></div>
               </div>
             )}
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "14px 0 12px" }}>
-            <div style={{ flex: 1, height: 1, background: `${BR}` }} />
-            <span style={{ color: "#666", fontSize: 10, fontFamily: "system-ui,sans-serif", letterSpacing: 2, fontWeight: 600 }}>
+            <div style={{ flex: 1, height: 2, background: "#14181f" }} />
+            <span style={{ color: "#14181f", fontSize: 18, fontFamily: "var(--px)", letterSpacing: 1.5, fontWeight: 400 }}>
               BẢO MẬT BỞI GOOGLE
             </span>
-            <div style={{ flex: 1, height: 1, background: `${BR}` }} />
+            <div style={{ flex: 1, height: 2, background: "#14181f" }} />
           </div>
-          <div style={{ color: "#555", fontSize: 11, fontFamily: "system-ui,sans-serif", lineHeight: 1.7, textAlign: "center" }}>
+          <div style={{ color: "#5a6573", fontSize: 12.5, fontFamily: "system-ui,sans-serif", lineHeight: 1.7, textAlign: "center" }}>
             92 KA MÊ RA chỉ nhận tên và email.
             <br />
             Không đọc dữ liệu Google Drive hay Gmail.
@@ -197,7 +198,7 @@ export default function CustomerLoginView({
                 )}
               </div>
             </div>
-            <div style={{ color: TXT, fontWeight: 700, fontSize: 16, fontFamily: "Georgia,serif" }}>
+            <div style={{ color: "#14181f", fontWeight: 400, fontSize: 26, fontFamily: "var(--px)" }}>
               {loggedUser.displayName || loggedUser.name}
             </div>
             <div style={{ color: MUT, fontSize: 11.5, marginTop: 4, display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
@@ -209,11 +210,11 @@ export default function CustomerLoginView({
           {/* Stats */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
             <div style={{ background: CARD, border: `1px solid ${BR}`, borderRadius: 16, padding: "14px 12px", textAlign: "center" }}>
-              <div style={{ color: G, fontWeight: 800, fontSize: 24, fontFamily: "Georgia,serif" }}>{myOrders.length}</div>
+              <div style={{ color: "#2f6bff", fontWeight: 400, fontSize: 34, fontFamily: "var(--px)" }}>{myOrders.length}</div>
               <div style={{ color: MUT, fontSize: 11, marginTop: 3, letterSpacing: 0.5 }}>Tổng đơn</div>
             </div>
             <div style={{ background: CARD, border: `1px solid ${BR}`, borderRadius: 16, padding: "14px 12px", textAlign: "center" }}>
-              <div style={{ color: G, fontWeight: 800, fontSize: 13, lineHeight: 1.6, fontFamily: "Georgia,serif" }}>
+              <div style={{ color: "#2f6bff", fontWeight: 400, fontSize: 22, lineHeight: 1.3, fontFamily: "var(--px)" }}>
                 {fmtVND(totalSpent)}
               </div>
               <div style={{ color: MUT, fontSize: 11, marginTop: 3, letterSpacing: 0.5 }}>Đã chi</div>
