@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import "../pixel/pixelIntro.css";
 
 // Điền link Zalo của tiệm (vd "https://zalo.me/0900000000"). Để trống thì ẩn nút NHẮN ZALO.
-const ZALO_LINK = "";
+const ZALO_LINK = "https://zalo.me/0855471202";
 const RETRY_SEC = 30; // tự kiểm tra lại sau bao nhiêu giây khi tiệm đang ngủ
 const LATE_MS = 1200; // chờ dữ liệu quá lâu mới hiện màn "đang dậy", tránh nháy màn mỗi lần tải nhanh
 
