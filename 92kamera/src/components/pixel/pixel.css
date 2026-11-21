@@ -21,7 +21,7 @@
 }
 .px92-hd { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .px92-hd h1 { font: 400 clamp(28px, 4.5vw, 44px)/.95 var(--px); margin: 0; }
-.px92-hd .in { font-size: 14px; margin: 4px 0 0; max-width: 52ch; }
+.px92-hd .in { font: 400 22px/1.15 var(--px); margin: 6px 0 0; max-width: 46ch; }
 .px92-hr { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; }
 .px92-hr .row { display: flex; gap: 8px; }
 .px92-adm { font: 400 18px/1 var(--px); background: none; border: 0; color: #5a6573; cursor: pointer; padding: 2px 4px; }
