@@ -216,3 +216,30 @@ export const upsertUser = (data) =>
 // ─────────────────────────────────────────────
 export const getStaticCatalog = () =>
   api.get("/catalog").then((r) => r.data);
+
+// ─────────────────────────────────────────────
+// 🧦 WISHES (điều ước trong tất)
+// ─────────────────────────────────────────────
+// Công khai: trạng thái bật/tắt của từng tất { "1": true, "2": false, ... }
+export const getWishSocks = () =>
+  api.get("/wishes/socks").then((r) => r.data?.socks || {});
+
+// Công khai: khách gửi điều ước (phone không bắt buộc)
+export const sendWish = (data) =>
+  api.post("/wishes", data).then((r) => r.data);
+
+// Admin
+export const getWishes = () =>
+  api.get("/wishes").then((r) => (Array.isArray(r.data?.items) ? r.data.items : []));
+
+export const markWishRead = (id, read = true) =>
+  api.patch(`/wishes/${pathId(id)}/read`, { read }).then((r) => r.data);
+
+export const deleteWish = (id) =>
+  api.delete(`/wishes/${pathId(id)}`).then((r) => r.data);
+
+export const deleteReadWishes = () =>
+  api.delete("/wishes/read").then((r) => r.data);
+
+export const updateWishSocks = (socks) =>
+  api.put("/wishes/socks", { socks }).then((r) => r.data?.socks || {});
