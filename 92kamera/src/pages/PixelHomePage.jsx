@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "../components/pixel/pixel.css";
 import { buildScene } from "../components/pixel/pixelScene.js";
@@ -79,7 +78,7 @@ export default function PixelHomePage({
         <header className="px92-hd">
           <div>
             <h1>Hi, mình là 92 KA MÊ RA</h1>
-            <p className="in">Tiệm cho thuê máy ảnh theo ca ở Núi Thành, Tam Kỳ. Bấm vào các màn hình xanh trong tiệm hoặc chọn chức năng bên dưới.</p>
+            <p className="in">Tiệm thuê máy ảnh theo ca ở Núi Thành, Tam Kỳ. Chọc vào màn hình xanh hoặc bấm nút bên dưới nha bro!</p>
           </div>
           <div className="px92-hr">
             <div className="row">
