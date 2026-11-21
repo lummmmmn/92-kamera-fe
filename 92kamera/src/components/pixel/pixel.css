@@ -1,0 +1,254 @@
+/* Giao diện pixel 92 KA MÊ RA — mọi style nằm trong .px92 / .px92-book để không đụng trang cũ */
+.px92, .px92-book {
+  --wall: #ffe9a8; --ink: #14181f; --bl: #2f6bff; --lt: #bcd0ff; --pk: #ff8fb1; --wd: #b98a5a;
+  --px: "VT323", "Courier New", monospace;
+  --bd: "Be Vietnam Pro", system-ui, sans-serif;
+}
+
+/* ───────── TRANG CHỦ MỘT MÀN HÌNH ───────── */
+.px92 {
+  position: fixed; inset: 0; z-index: 1;
+  background: var(--wall) radial-gradient(rgba(20,24,31,.09) 1.5px, transparent 1.6px) 0 0 / 16px 16px;
+  color: var(--ink); font: 400 16px/1.6 var(--bd);
+  overflow: hidden;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.px92 *, .px92 *::before, .px92 *::after { box-sizing: border-box; }
+.px92-w {
+  height: 100%; max-width: 1100px; margin: 0 auto; padding: 14px 16px 16px;
+  display: flex; flex-direction: column; gap: 12px; overflow: hidden;
+}
+.px92-hd { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.px92-hd h1 { font: 400 clamp(28px, 4.5vw, 44px)/.95 var(--px); margin: 0; }
+.px92-hd .in { font-size: 14px; margin: 4px 0 0; max-width: 52ch; }
+.px92-hr { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; }
+.px92-hr .row { display: flex; gap: 8px; }
+.px92-adm { font: 400 18px/1 var(--px); background: none; border: 0; color: #5a6573; cursor: pointer; padding: 2px 4px; }
+.px92-adm:hover { color: var(--ink); text-decoration: underline; }
+.px92-stage {
+  flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center;
+  padding: 0 8px 8px 0; container-type: size;
+}
+.px92-room {
+  position: relative; border: 4px solid var(--ink); box-shadow: 8px 8px 0 var(--ink); background: #fff;
+  width: min(100%, calc((100vh - 270px) * 1.7778));
+}
+/* co phòng theo đúng khoảng trống còn lại giữa tiêu đề và thanh nút */
+@supports (width: 1cqw) {
+  .px92-room { width: min(100cqw, calc((100cqh - 8px) * 1.7778 + 8px)); }
+}
+.px92-room svg { display: block; width: 100%; height: auto; shape-rendering: crispEdges; }
+.px92-room text { font-family: var(--px); }
+.px92-hit { position: absolute; background: none; border: 0; padding: 0; cursor: pointer; }
+.px92-hit:hover, .px92-hit:focus-visible { outline: 3px dashed var(--ink); outline-offset: 2px; }
+.px92 .scr { animation: px92on .6s steps(5) both; }
+@keyframes px92on { 0% { opacity: 0 } 40% { opacity: 1 } 55% { opacity: .2 } 100% { opacity: 1 } }
+.px92 .chr { animation: px92bob 1.2s steps(1) infinite; }
+@keyframes px92bob { 50% { transform: translateY(-1px) } }
+.px92 .wv { animation: px92wave .9s steps(1) infinite; }
+@keyframes px92wave { 0% { transform: rotate(-14deg) } 50% { transform: rotate(12deg) } }
+.px92 #sgb, .px92 #sgb:focus, .px92 #sgb:focus-visible { outline: none; -webkit-tap-highlight-color: transparent; }
+.px92 .rec, .px92 .tw { animation: px92rec 1.6s steps(1) infinite; }
+@keyframes px92rec { 50% { opacity: .2 } }
+@keyframes px92fall { from { transform: translateY(-2px) } to { transform: translateY(24px) } }
+.px92 .sf { animation: px92fall 4s steps(12) infinite; }
+
+/* khoá cuộn trang khi đang ở trang chủ pixel */
+html.px92-lock, html.px92-lock body { overflow: hidden !important; height: 100%; }
+html.px92-lock body { margin: 0; }
+@media (max-width: 560px) {
+  .px92-w { padding: 10px 10px 12px; gap: 8px; }
+  .px92-hd .in { display: none; }
+  .px92-hd h1 { font-size: 26px; }
+  .px92-hr .row { gap: 6px; }
+  .px92-hr .px-pb { font-size: 18px; padding: 4px 8px; }
+  .px92-bar { padding: 8px; gap: 6px; max-height: 38dvh; }
+  .px92-bar .px-pb { font-size: 19px; padding: 5px 9px; }
+}
+/* thanh chức năng */
+.px92-bar {
+  border: 3px solid var(--ink); background: #fff; padding: 10px; box-shadow: 4px 4px 0 var(--ink);
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+  max-height: 34dvh; overflow: auto; margin: 0 4px 4px 0; flex: none;
+}
+
+/* nút pixel dùng chung (trang chủ + hộp thoại) */
+.px-pb {
+  font: 400 21px/1 var(--px, "VT323", monospace); background: #fff; color: #14181f;
+  border: 3px solid #14181f; box-shadow: 3px 3px 0 #14181f; padding: 6px 12px;
+  cursor: pointer; text-decoration: none; display: inline-block;
+}
+.px-pb:hover:not(:disabled) { background: #2f6bff; color: #fff; }
+.px-pb:active:not(:disabled) { box-shadow: none; transform: translate(3px, 3px); }
+.px-pb.p { background: #ff8fb1; }
+.px-pb.p:hover:not(:disabled) { background: #2f6bff; }
+.px-pb:disabled { opacity: .45; cursor: not-allowed; }
+.px-pb.lg { font-size: 24px; padding: 8px 16px; box-shadow: 4px 4px 0 #14181f; }
+
+/* ───────── HỘP THOẠI ───────── */
+.px-ov {
+  position: fixed; inset: 0; z-index: 200; background: rgba(20,24,31,.45);
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+}
+.px-dg {
+  --px: "VT323", "Courier New", monospace; --bd: "Be Vietnam Pro", system-ui, sans-serif;
+  border: 4px solid #14181f; box-shadow: 8px 8px 0 #14181f; background: #fff; color: #14181f;
+  width: min(640px, calc(100vw - 32px)); max-height: calc(100dvh - 48px);
+  display: flex; flex-direction: column; font: 400 16px/1.6 var(--bd);
+}
+.px-dg *, .px-dg *::before, .px-dg *::after { box-sizing: border-box; }
+.px-tt {
+  display: flex; justify-content: space-between; align-items: center; flex: none;
+  background: #2f6bff; color: #fff; padding: 6px 8px 6px 14px; font: 400 26px/1 var(--px);
+}
+.px-tt button { font: 400 22px/1 var(--px); background: #fff; border: 3px solid #14181f; padding: 2px 10px; cursor: pointer; color: #14181f; }
+.px-bd { padding: 18px 18px 22px; overflow-y: auto; overscroll-behavior: contain; }
+.px-bd p { margin: 0 0 12px; }
+.px-note { color: #5a6573; font-size: 13px; }
+.px-empty { color: #5a6573; padding: 14px 0; text-align: center; }
+
+.px-it { display: grid; grid-template-columns: 1fr auto; gap: 2px 14px; padding: 12px 0; border-bottom: 2px dashed #c9d2df; align-items: center; }
+.px-it:last-child { border: 0; }
+.px-it b { font: 400 26px/1 var(--px); }
+.px-it small { color: #5a6573; display: block; font-size: 13px; line-height: 1.4; }
+.px-pr { text-align: right; font-size: 12px; color: #5a6573; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.px-pr em { display: block; font: 400 24px/1 var(--px); font-style: normal; color: #14181f; }
+.px-cm { grid-template-columns: 104px 1fr auto; }
+.px-ph {
+  border: 3px solid #14181f; aspect-ratio: 4 / 3; overflow: hidden; background: #bcd0ff;
+  display: grid; place-items: center; padding: 0; cursor: zoom-in;
+}
+.px-ph img, .px-ph svg { width: 100%; height: 100%; display: block; object-fit: cover; shape-rendering: crispEdges; }
+.px-tx { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.px-st { align-self: flex-start; font: 400 17px/1.3 var(--px); padding: 0 8px; border: 2px solid #14181f; background: #9fe0b4; }
+.px-st.rented { background: #ffd23f; }
+.px-st.unavailable { background: #ff8fb1; }
+@media (max-width: 560px) {
+  .px-cm { grid-template-columns: 88px 1fr; }
+  .px-cm .px-pr { grid-column: 1 / 3; flex-direction: row; justify-content: space-between; align-items: center; width: 100%; }
+}
+
+.px-steps { margin: 0 0 14px; padding: 0; list-style: none; display: grid; gap: 12px; }
+.px-steps li { display: grid; grid-template-columns: 36px 1fr; gap: 12px; }
+.px-steps i { font: 400 28px/36px var(--px); font-style: normal; background: #14181f; color: #fff; text-align: center; }
+.px-steps p { margin: 0; color: #5a6573; font-size: 14px; }
+.px-steps b { font-weight: 500; }
+.px-ca { display: flex; border: 3px solid #14181f; font-size: 13px; }
+.px-ca div { padding: 8px 10px; flex: 1; }
+.px-ca div + div { border-left: 3px solid #14181f; }
+.px-ca b { display: block; font-weight: 500; }
+.px-ca.v { flex-direction: column; }
+.px-ca.v div + div { border-left: 0; border-top: 3px solid #14181f; }
+@media (max-width: 560px) { .px-ca { flex-direction: column; } .px-ca div + div { border-left: 0; border-top: 3px solid #14181f; } }
+
+.px-links { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.px-albums { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.px-album { border: 3px solid #14181f; background: #fff; padding: 0; cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.px-album:hover { box-shadow: 4px 4px 0 #14181f; transform: translate(-2px, -2px); }
+.px-album .im { aspect-ratio: 1; background: #bcd0ff; overflow: hidden; }
+.px-album img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.px-album figcaption, .px-album .cap { padding: 4px 6px; font: 400 20px/1.15 var(--px); }
+.px-album .cap small { display: block; font: 400 12px/1.3 var(--bd); color: #5a6573; }
+.px-more { margin-top: 12px; text-align: center; }
+
+/* ───────── ĐẶT MÁY (BookingModal cũ, khoác áo pixel — chỉ đổi lớp ngoài, logic giữ nguyên) ───────── */
+.px92-book { font-family: var(--bd); --font-display: var(--px); --font-ui: var(--bd); }
+.px92-book .px92-hide { display: none !important; }
+.px92-book *, .px92-book *::before, .px92-book *::after { border-radius: 0 !important; }
+
+/* kính mờ -> thẻ trắng viền đậm */
+.px92-book [style*="backdrop-filter"], .px92-book [style*="blur("] {
+  backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+}
+.px92-book div[style*="blur(16px)"] {
+  background: #fff !important; border: 3px solid #14181f !important; box-shadow: 4px 4px 0 #14181f !important;
+}
+
+/* ô nhập */
+.px92-book input, .px92-book select, .px92-book textarea {
+  border: 3px solid #14181f !important; background: #fff !important; color: #14181f !important;
+  box-shadow: none !important;
+}
+.px92-book input:focus, .px92-book select:focus, .px92-book textarea:focus { outline: 3px dashed #2f6bff; outline-offset: 2px; }
+
+/* nút nhỏ có viền (+/-, xem thêm, sửa giờ...) */
+.px92-book button[style*="border: 1px"]:not([style*="height: 26px"]), .px92-book button[style*="border-width: 1px"]:not([style*="height: 26px"]) {
+  border: 3px solid #14181f !important; background: #fff !important; color: #14181f !important; box-shadow: 3px 3px 0 #14181f !important;
+}
+.px92-book button[style*="border: 1px"]:not([style*="height: 26px"]):active { box-shadow: none !important; transform: translate(3px, 3px); }
+
+/* nút chính (Tiếp theo / Tiếp tục / Xác nhận / Áp dụng...) */
+.px92-book button[style*="linear-gradient"], .px92-book button[style*="width: 100%"] {
+  background: #ff8fb1 !important; color: #14181f !important; border: 3px solid #14181f !important;
+  box-shadow: 4px 4px 0 #14181f !important; font-family: var(--px) !important; font-size: 22px !important;
+  font-weight: 400 !important; letter-spacing: .5px !important; text-shadow: none !important; opacity: 1 !important;
+}
+.px92-book button[style*="linear-gradient"]:hover:not(:disabled), .px92-book button[style*="width: 100%"]:hover:not(:disabled) {
+  background: #2f6bff !important; color: #fff !important;
+}
+.px92-book button[style*="linear-gradient"]:active:not(:disabled), .px92-book button[style*="width: 100%"]:active:not(:disabled) {
+  box-shadow: none !important; transform: translate(4px, 4px);
+}
+.px92-book button[style*="not-allowed"] {
+  background: #e6ebf2 !important; color: #7b8594 !important; box-shadow: none !important; border-style: dashed !important;
+}
+
+/* thanh tổng tiền dưới đáy */
+.px92-book div[style*="position: fixed"][style*="bottom: 0"] {
+  background: #fff !important; border-top: 4px solid #14181f !important; box-shadow: none !important;
+}
+.px92-book div[style*="position: fixed"][style*="bottom: 0"] * { color: inherit; }
+
+/* màu vàng cũ -> xanh/hồng pixel */
+.px92-book [style*="background: rgb(201, 168, 76)"] { background: #2f6bff !important; border-color: #14181f !important; }
+.px92-book [style*="background: rgb(201, 168, 76)"] * { color: #fff !important; }
+.px92-book [style*="background: rgba(201, 168, 76"] { background: #bcd0ff !important; border-color: #14181f !important; }
+.px92-book [style*="border: 2px solid rgb(201, 168, 76)"] { border: 3px solid #14181f !important; }
+.px92-book [style*="color: rgb(201, 168, 76)"] { color: #2f6bff !important; }
+.px92-book [style*="color: rgba(201, 168, 76"] { color: #2f6bff !important; }
+.px92-book svg [stroke="#c9a84c"] { stroke: #14181f; }
+/* chữ xanh thép -> xám đậm cho dễ đọc trên nền trắng */
+.px92-book [style*="color: rgb(74, 106, 138)"] { color: #3c4a5c !important; }
+.px92-book [style*="color: rgb(139, 174, 207)"] { color: #5a6573 !important; }
+
+/* ô lịch ca: mảnh, giữ màu trạng thái (trống/ít/hết/đang chọn) */
+.px92-book button[style*="height: 26px"] {
+  border: 2px solid #14181f !important; box-shadow: none !important; background-clip: padding-box;
+}
+.px92-book button[style*="height: 26px"]:active { transform: none; }
+.px92-book button[style*="height: 26px"][style*="rgb(13, 27, 42)"] { background: #2f6bff !important; }
+
+/* khung đặt máy giống hộp thoại demo: thanh tab 3 bước */
+.px92-bkdg { width: min(680px, calc(100vw - 32px)); }
+.px92-tabs { display: flex; border: 4px solid #14181f; margin: 0 0 16px; font: 400 22px/1 var(--px); }
+.px92-tabs > div { flex: 1; padding: 10px 12px; background: #fff; color: #14181f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.px92-tabs > div + div { border-left: 4px solid #14181f; }
+.px92-tabs > div.on { background: #2f6bff; color: #fff; }
+.px92-tabs > div.ok { background: #bcd0ff; }
+@media (max-width: 560px) { .px92-tabs { font-size: 17px; } .px92-tabs > div { padding: 6px 5px; white-space: normal; line-height: 1.1; } }
+/* thanh tổng tiền dính đáy hộp thoại thay vì cố định theo màn hình */
+.px92-book div[style*="position: fixed"][style*="bottom: 0"] {
+  position: sticky !important; left: auto !important; transform: none !important; width: auto !important;
+  margin: 12px -18px -22px !important; bottom: -22px !important; z-index: 2;
+}
+/* tiêu đề/ nhãn dùng font pixel như demo */
+.px92-book h1, .px92-book h2, .px92-book h3 { font-family: var(--px) !important; font-weight: 400 !important; letter-spacing: 0 !important; }
+
+
+/* ───────── LỊCH TRỐNG / TRA ĐƠN (component cũ, chỉ đổi lớp ngoài) ───────── */
+.px92-skin { background: rgba(20,24,31,.45) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; font-family: "Be Vietnam Pro", system-ui, sans-serif; }
+.px92-skin *, .px92-skin *::before { border-radius: 0 !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+.px92-skin > div > div { background: #fff !important; border: 4px solid #14181f !important; box-shadow: 8px 8px 0 #14181f !important; animation: none !important; }
+.px92-skin input, .px92-skin select { border: 3px solid #14181f !important; background: #fff !important; }
+.px92-skin button { border: 3px solid #14181f !important; box-shadow: 3px 3px 0 #14181f !important; }
+.px92-skin button:active { box-shadow: none !important; transform: translate(3px, 3px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .px92 .rec, .px92 .tw, .px92 .sf, .px92 .scr, .px92 .chr, .px92 .wv { animation: none; opacity: 1; }
+  .px-pb:active:not(:disabled), .px92-book button:active { transform: none; }
+}
+
+/* ô ca còn trống: xanh nhạt như lịch trong demo */
+.px92-book button[style*="height: 26px"][style*="rgba(255, 255, 255, 0.55)"] { background: #bcd0ff !important; }
+.px92-book button[style*="height: 26px"][style*="rgba(255, 255, 255, 0.55)"]:hover { background: #fff !important; }
