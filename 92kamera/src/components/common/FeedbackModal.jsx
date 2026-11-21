@@ -202,6 +202,7 @@ export default function FeedbackModal({ order, loggedUser, feedbacks = [], onClo
                 {[1, 2, 3, 4, 5].map((s) => (
                   <button
                     key={s}
+                    className="pxc-plain"
                     onClick={() => setRating(s)}
                     onMouseEnter={() => setHovStar(s)}
                     onMouseLeave={() => setHovStar(0)}
