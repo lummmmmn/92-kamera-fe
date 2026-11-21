@@ -7,6 +7,7 @@ import { setAuthToken, clearAuthToken } from "./lib/axios.js";
 // Components
 import SplashScreen from "./components/home/SplashScreen.jsx";
 import HomePage from "./pages/HomePage.jsx";
+import PixelHomePage from "./pages/PixelHomePage.jsx";
 import AdminPage from "./pages/AdminPage.jsx";
 import CustomerPage from "./pages/CustomerPage.jsx";
 import BookingModal from "./components/booking/BookingModal.jsx";
@@ -38,6 +39,8 @@ function AppRoot() {
   const [booking, setBooking] = useState(false); // false | camId | true (QuickSelect object)
   const [loginOpen, setLoginOpen] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
+  // Giao diện mặc định là pixel; vào #/classic để xem lại giao diện cũ
+  const [classic, setClassic] = useState(() => window.location.hash === "#/classic");
   const [warmupDismissed, setWarmupDismissed] = useState(false);
   const isMobile = useMobile();
 
@@ -117,6 +120,7 @@ function AppRoot() {
   const deliveryFees = deliveryFeesQuery.data ?? [];
   const usersMap = usersQuery.data ?? {};
   const upsertUserMutation = useUpsertUser();
+  const HomeComp = classic ? HomePage : PixelHomePage;
 
   useEffect(() => {
     const pageItems = Array.isArray(homeCamerasQuery.data) ? homeCamerasQuery.data : [];
@@ -157,6 +161,7 @@ function AppRoot() {
   useEffect(() => {
     const handleHash = () => {
       const h = window.location.hash;
+      setClassic(h === "#/classic");
       if (h === "#/admin") {
         setPage("admin");
       } else if (h === "#/customer" && loggedUser) {
@@ -197,9 +202,9 @@ function AppRoot() {
   }
 
   return (
-    <div className="app-shell-92" style={{ minHeight: "100vh", position: "relative" }}>
+    <div className={"app-shell-92" + (page === "home" && !classic ? " px92-shell" : "")} style={{ minHeight: "100vh", position: "relative" }}>
       {/* Background elements */}
-      {page === "home" && <LensBackground isMob={isMobile} />}
+      {page === "home" && classic && <LensBackground isMob={isMobile} />}
 
       <BackendWarmupOverlay
         visible={showWarmupOverlay}
@@ -211,7 +216,8 @@ function AppRoot() {
 
       {/* Pages Router */}
       {page === "home" && (
-        <HomePage
+        <HomeComp
+          deliveryFees={deliveryFees}
           cameras={cameras}
           accessories={accessories}
           siteContent={siteContent}
@@ -327,6 +333,7 @@ function AppRoot() {
           preselectedPickHour={booking && typeof booking === "object" ? booking.pickHour : null}
           preselectedReturnHour={booking && typeof booking === "object" ? booking.returnHour : null}
           noDate={booking && typeof booking === "object" ? !!booking.noDate : false}
+          pixel={!classic}
           orders={orders}
           isMobile={isMobile}
         />
@@ -358,6 +365,9 @@ function AppRoot() {
         @media (min-width: 1024px) {
           .app-shell-92 {
             zoom: 1.12;
+          }
+          .app-shell-92.px92-shell {
+            zoom: 1;
           }
         }
         .home-section {
