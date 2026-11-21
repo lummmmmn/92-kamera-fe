@@ -317,6 +317,7 @@ html.px92-lock body { margin: 0; }
 }
 .px92-chin { height: 36px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 4px; }
 .px92-chin .logo { font: 400 20px/1 var(--px); color: #5a6573; letter-spacing: 1px; }
+.px92-chin .ver { font: 400 16px/1 var(--px); color: #8a96a8; letter-spacing: 1px; white-space: nowrap; }
 .px92-chin .slots { display: flex; gap: 5px; flex: 1; justify-content: flex-end; }
 .px92-chin .slots i { display: block; width: 44px; height: 6px; background: #b3bfd0; border: 2px solid var(--ink); }
 .px92-chin .led { width: 12px; height: 12px; background: #3ddc84; border: 3px solid var(--ink); animation: px92rec 2.4s steps(1) infinite; }
