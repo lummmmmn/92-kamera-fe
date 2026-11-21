@@ -1,3 +1,4 @@
+import { WISH_SOCKS } from "./wishSocks.js";
 // Cảnh tiệm pixel (SVG). Tách từ bản demo giao diện, không phụ thuộc DOM.
 // Trả về { svg, screens, W, H } — screens là toạ độ 3 màn hình xanh để đặt nút bấm.
 export function buildScene() {
@@ -28,7 +29,7 @@ export function buildScene() {
   R(6,34,3,1,"#fff");R(5,38,2,1,"#fff");R(3,42,2,1,"#fff");R(10,46,2,1,"#fff");R(1,50,2,1,"#fff");
   s+='<g class="tw">';R(7,30,1,4,"#ffd23f");R(6,31,3,1,"#ffd23f");s+='</g>';
   [[7,38,"#ff2d2d",0],[5,42,"#ffd23f",1],[9,44,"#ff8fb1",0],[4,48,"#2f6bff",1],[8,47,"#ff2d2d",0],[11,50,"#ffd23f",1],[7,51,"#ff8fb1",0],[3,46,"#bcd0ff",1],[6,45,"#ffd23f",0]].forEach(function(o){R(o[0],o[1],1,1,o[2],' class="tw"'+(o[3]?' style="animation-delay:-.8s"':''))});
-  /* quầy */R(14,44,112,4,"#d1a574");R(14,48,112,12,"#b98a5a");R(14,54,112,1,"#9c7248");R(40,48,1,12,"#9c7248");R(70,48,1,12,"#9c7248");R(100,48,1,12,"#9c7248");
+  /* quầy */R(14,44,112,4,"#d1a574");R(14,48,112,12,"#b98a5a");R(14,54,112,1,"#9c7248");R(36,48,1,12,"#9c7248");R(58,48,1,12,"#9c7248");R(80,48,1,12,"#9c7248");R(102,48,1,12,"#9c7248");
   /* quà noel */
   function GF(x,y,w,h,b,r2){R(x,y,w,h,b);R(x+(w>>1),y,1,h,r2);R(x,y+(h>>1),w,1,r2);R(x+(w>>1)-1,y-1,3,1,r2)}
   GF(3,63,9,8,"#e8352f","#ffd23f");GF(13,65,7,6,"#2f6bff","#fff");GF(21,62,6,6,"#ffd23f","#e8352f");GF(7,72,6,5,"#5bbf7a","#fff");GF(104,64,8,7,"#ff8fb1","#fff");GF(113,67,6,6,"#2f6bff","#ffd23f");
@@ -59,7 +60,7 @@ export function buildScene() {
   /* đèn nháy chạy dọc mặt quầy */
   for(var i=0;i<28;i++)R(17+i*4,45,1,1,["#ff2d2d","#ffd23f","#2f6bff","#5bbf7a"][i%4],TWK(i%2?.8:0));
   /* tất treo trước quầy */
-  [[24,"#e8352f"],[52,"#2e8b57"],[84,"#e8352f"],[112,"#2e8b57"]].forEach(function(t){var x=t[0],c=t[1];R(x,49,5,2,"#fff");R(x,51,4,4,c);R(x,55,7,3,c);R(x,53,4,1,"#fff");R(x+5,56,2,2,c);R(x+4,48,1,1,"#ffd23f")});
+  WISH_SOCKS.map(function(k){return [k.x,k.color]}).forEach(function(t){var x=t[0],c=t[1];R(x,49,5,2,"#fff");R(x,51,4,4,c);R(x,55,7,3,c);R(x,53,4,1,"#fff");R(x+5,56,2,2,c);R(x+4,48,1,1,"#ffd23f")});
   /* người tuyết canh tiệm */
   [[84,82,6],[84,73,4],[84,66,3]].forEach(function(b){BL(b[0],b[1],b[2]+1,"#14181f");BL(b[0],b[1],b[2],"#fff")});
   R(86,80,3,5,"#c9d9f2");R(85,72,3,4,"#c9d9f2");
@@ -87,5 +88,5 @@ export function buildScene() {
   /* nón ông già Noel của chủ tiệm (cùng nhóm nên nhún theo) */
   R(137,33.5,9,1.5,"#e8352f");R(135.5,35,12,1.5,"#fff");R(146,33.5,3,1.5,"#e8352f");R(148.5,34,2.5,2.5,"#fff");s+='</g></g>';
 
-  return { svg: s, screens: M, W: W, H: H };
+  return { svg: s, screens: M, socks: WISH_SOCKS, W: W, H: H };
 }
