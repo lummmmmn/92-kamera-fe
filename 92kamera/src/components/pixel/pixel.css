@@ -428,3 +428,20 @@ html.px92-lock body { margin: 0; }
   .pxd-note { font-size: 19px; }
 }
 @media (prefers-reduced-motion: reduce) { .pxd-cf, .pxd-cam, .pxd-rec { animation: none; } }
+
+/* ───────── ĐIỀU ƯỚC (tất trên quầy) ───────── */
+.px-wish { display: grid; gap: 12px; position: relative; }
+.px-wish p { margin: 0; }
+.px-wish label { display: grid; gap: 4px; font: 400 22px/1.1 var(--px); }
+.px-wish label small { font: 400 13px/1.4 var(--bd); color: #5a6573; }
+.px-wish textarea, .px-wish input[type="tel"] {
+  width: 100%; font: 400 16px/1.5 var(--bd); color: #14181f; background: #fff;
+  border: 3px solid #14181f; border-radius: 0; padding: 8px 10px;
+}
+.px-wish textarea { min-height: 120px; resize: vertical; }
+.px-wish textarea:focus, .px-wish input:focus { outline: 3px dashed #2f6bff; outline-offset: 2px; }
+.px-wish .cnt { text-align: right; font: 400 12px/1 var(--bd); color: #5a6573; }
+.px-wish .err { background: #ff8fb1; border: 3px solid #14181f; padding: 6px 10px; font-size: 14px; }
+.px-wish .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.px-wish-ok { text-align: center; padding: 10px 0 4px; }
+.px-wish-ok b { display: block; font: 400 30px/1.1 var(--px); margin-bottom: 8px; }
