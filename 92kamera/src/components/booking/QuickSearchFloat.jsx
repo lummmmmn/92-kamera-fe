@@ -4,7 +4,7 @@ import { G, BG, CARD, BR, BR2, TXT, MUT } from "../../lib/constants.js";
 import { todayStr, cdnUrl, fmtVND, buildCaSchedule, hourToCaIdx, hourToCaIdxReturn } from "../../utils/format.js";
 import { getAvailQtyByCa, getAccAvailQtyByCa } from "../../utils/availability.js";
 
-export default function QuickSearchFloat({ cameras, accessories, orders, onBook, openTrigger = 0 }) {
+export default function QuickSearchFloat({ cameras, accessories, orders, onBook, openTrigger = 0, pixel = false }) {
   const isMobile = useMobile();
   const [open, setOpen] = useState(false);
   const [startDate, setStartDate] = useState(todayStr());
@@ -96,6 +96,16 @@ export default function QuickSearchFloat({ cameras, accessories, orders, onBook,
     setSelAccs({});
   };
 
+  // Esc để đóng
+  const closeRef = useRef(close);
+  closeRef.current = close;
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => { if (e.key === "Escape") closeRef.current(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
   const calcDays = (sd, ed) => {
     const diff = (new Date(ed + "T00:00:00") - new Date(sd + "T00:00:00")) / 86400000;
     return Math.max(1, Math.round(diff) + 1);
@@ -133,6 +143,7 @@ export default function QuickSearchFloat({ cameras, accessories, orders, onBook,
 
   return (
     <div
+      className={pixel ? "px92-skin" : undefined}
       style={{
         position: "fixed",
         inset: 0,
