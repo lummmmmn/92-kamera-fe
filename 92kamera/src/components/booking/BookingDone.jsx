@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { G, MUT, TXT, CARD } from "../../lib/constants.js";
 import { fmtVND, fmtDays, dateAddDays } from "../../utils/format.js";
 
@@ -28,7 +29,9 @@ export default function BookingDone({
   deliveryDistrict,
   deliveryPickup,
   deliveryReturn,
+  pixel,
 }) {
+  const [copied, setCopied] = useState(null);
   const riTop = returnInfoLocal();
   const zaloMsg = encodeURIComponent(
     "Xin chào 92 KA MÊ RA! 📸\nMã đơn: " +
@@ -110,7 +113,10 @@ export default function BookingDone({
       .filter(Boolean)
       .join("\n");
 
-    navigator.clipboard?.writeText(lines).catch(() => {});
+    // Trả về Promise<boolean> để bản pixel báo "đã sao chép" đúng sự thật; bản cũ bỏ qua giá trị trả về như trước
+    return navigator.clipboard
+      ? navigator.clipboard.writeText(lines).then(() => true).catch(() => false)
+      : Promise.resolve(false);
   };
 
   function returnInfoLocal() {
@@ -157,6 +163,108 @@ export default function BookingDone({
       totalH,
       totalLabel: `${totalH} giờ (${Math.ceil(days)} ngày)`,
     };
+  }
+
+  if (pixel) {
+    const showTel = info.phone || (siteContent.phone || "").replace(/\s/g, "");
+    const hasZalo = siteContent.zaloLink || (siteContent.zalo || "").replace(/\s/g, "");
+    const confetti = ["#e8352f", "#ffd23f", "#2f6bff", "#ff8fb1", "#2e8b57", "#bcd0ff"];
+    const doCopy = () => {
+      copyFn().then((ok) => {
+        setCopied(ok ? "ok" : "fail");
+        setTimeout(() => setCopied(null), 2000);
+      });
+    };
+    return (
+      <div className="pxd">
+        {[...Array(16)].map((_, i) => (
+          <i
+            key={i}
+            className="pxd-cf"
+            aria-hidden="true"
+            style={{
+              left: `${4 + ((i * 17) % 92)}%`,
+              animationDelay: `-${((i * 0.37) % 3.2).toFixed(2)}s`,
+              background: confetti[i % confetti.length],
+              width: 6 + (i % 3) * 2,
+              height: 6 + (i % 3) * 2,
+            }}
+          />
+        ))}
+
+        <svg className="pxd-cam" viewBox="0 0 40 32" role="img" aria-label="Máy ảnh">
+          <rect x="3" y="12" width="34" height="17" fill="#14181f" />
+          <rect x="15" y="7" width="10" height="6" fill="#14181f" />
+          <rect x="5" y="9" width="5" height="3" fill="#14181f" />
+          <rect x="5" y="14" width="4" height="2" fill="#ff8fb1" />
+          <rect x="13" y="15" width="14" height="12" fill="#2f6bff" />
+          <rect x="15" y="17" width="10" height="8" fill="#1c46b8" />
+          <rect x="17" y="19" width="4" height="4" fill="#bcd0ff" />
+          <rect className="pxd-rec" x="30" y="14" width="4" height="3" fill="#ff2d2d" />
+          <rect x="3" y="27" width="34" height="2" fill="#2b3340" />
+          <rect x="16" y="4" width="8" height="3" fill="#e8352f" />
+          <rect x="18" y="2" width="5" height="2" fill="#e8352f" />
+          <rect x="14" y="6" width="12" height="2" fill="#fff" />
+          <rect x="22" y="0" width="3" height="3" fill="#fff" />
+        </svg>
+
+        <div className="pxd-ttl">ĐẶT ĐƠN THÀNH CÔNG!</div>
+
+        <div className="pxd-tk">
+          <div className="lb">MÃ ĐƠN CỦA BẠN</div>
+          <div className="cd">{orderId}</div>
+        </div>
+
+        {appliedDiscounts.length > 0 && (
+          <div className="pxd-ds">
+            {appliedDiscounts.map((ad) => (
+              <span key={ad.code} className="px-st">
+                {ad.scope === "delivery" ? "MÃ SHIP" : "MÃ GIẢM GIÁ"} {ad.code} — ĐÃ GIẢM{" "}
+                {fmtVND(ad.scope === "delivery" ? deliveryDiscountAmt : ad.scope === "total" ? totalDiscountAmt : rentalDiscountAmt)}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="pxd-tot">
+          <span>TỔNG TIỀN</span>
+          <i />
+          <b>{new Intl.NumberFormat("vi-VN").format(total)} đ</b>
+        </div>
+
+        {siteContent.zaloQR && (
+          <div className="pxd-qr">
+            <div className="pxd-lb">QUÉT QR ĐỂ LIÊN HỆ</div>
+            <div className="box">
+              <img src={siteContent.zaloQR} alt="Zalo QR" />
+            </div>
+          </div>
+        )}
+
+        {hasZalo ? (
+          <a className="px-pb p lg pxd-btn" href={zaloHref} target="_blank" rel="noopener noreferrer">
+            NHẮN ZALO CHỐT ĐƠN
+          </a>
+        ) : showTel ? (
+          <a className="px-pb lg pxd-btn pxd-tel" href={`tel:${(info.phone || siteContent.phone || "").replace(/\s/g, "")}`}>
+            GỌI {info.phone || siteContent.phone} CHỐT ĐƠN
+          </a>
+        ) : null}
+
+        <div className="pxd-note">
+          Đơn đã được tạo! Liên hệ tiệm qua Zalo để được xác nhận và xử lý đơn nhanh hơn nha bro.
+        </div>
+
+        <div className="pxd-hr" />
+        <div className="pxd-lb">SAO CHÉP ĐƠN ĐỂ GỬI / LƯU LẠI</div>
+        <button type="button" className="px-pb lg pxd-btn" onClick={doCopy}>
+          {copied === "ok" ? "ĐÃ SAO CHÉP!" : copied === "fail" ? "KHÔNG SAO CHÉP ĐƯỢC" : "SAO CHÉP ĐƠN"}
+        </button>
+        <button type="button" className="px-pb lg pxd-btn pxd-close" onClick={onClose}>
+          ĐÓNG
+        </button>
+      </div>
+    );
   }
 
   return (
