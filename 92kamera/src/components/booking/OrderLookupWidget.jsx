@@ -26,7 +26,7 @@ function Badge({ status }) {
   );
 }
 
-export default function OrderLookupWidget({ orders = [], compact, forceOpen, onForceClose }) {
+export default function OrderLookupWidget({ orders = [], compact, forceOpen, onForceClose, pixel = false }) {
   const [openInternal, setOpenInternal] = useState(false);
   const open = forceOpen !== undefined ? forceOpen : openInternal;
   const [val, setVal] = useState("");
@@ -185,6 +185,7 @@ export default function OrderLookupWidget({ orders = [], compact, forceOpen, onF
 
       {open && (
         <div
+          className={pixel ? "px92-skin" : undefined}
           ref={overlayRef}
           onClick={(e) => {
             if (e.target === overlayRef.current) close();
