@@ -297,7 +297,7 @@ export function useCreateDiscount() {
   return useMutation({
     mutationFn: createDiscount,
     onSuccess: (newDiscount) => {
-      qc.setQueryData(["discounts"], (old) => [newDiscount, ...(old ?? [])]);
+      qc.setQueryData(["discounts"], (old) => [newDiscount, ...asArray(old, [])]);
       qc.invalidateQueries({ queryKey: ["discounts"] });
     },
   });
@@ -309,7 +309,7 @@ export function useUpdateDiscount() {
     mutationFn: ({ id, data }) => updateDiscount(id, data),
     onSuccess: (updatedDiscount, variables) => {
       qc.setQueryData(["discounts"], (old) =>
-        (old ?? []).map((d) => d.id === variables.id ? { ...d, ...updatedDiscount } : d)
+        asArray(old, []).map((d) => d.id === variables.id ? { ...d, ...updatedDiscount } : d)
       );
       qc.invalidateQueries({ queryKey: ["discounts"] });
     },
@@ -322,7 +322,7 @@ export function useDeleteDiscount() {
     mutationFn: deleteDiscount,
     onSuccess: (deletedDiscount, deletedId) => {
       qc.setQueryData(["discounts"], (old) =>
-        (old ?? []).filter((d) => d.id !== deletedId)
+        asArray(old, []).filter((d) => d.id !== deletedId)
       );
       qc.invalidateQueries({ queryKey: ["discounts"] });
     },
