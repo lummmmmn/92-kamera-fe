@@ -237,27 +237,7 @@ export default function OrdersPanel({
       setStatusSaving({ orderId: o.id, status: newStatus });
       await onUpdateOrderStatus({ id: o.id, status: newStatus, adminNote: o.adminNote || "" });
 
-      // Rollback discount usage count locally if status changed to cancelled
-      if (newStatus === "cancelled" && o.status !== "cancelled") {
-        const discIds = [];
-        if (Array.isArray(o.appliedDiscounts) && o.appliedDiscounts.length > 0) {
-          o.appliedDiscounts.forEach((ad) => {
-            if (ad.code) {
-              const found = (discounts || []).find((d) => d.code.toUpperCase() === ad.code.toUpperCase());
-              if (found?.id) discIds.push(found.id);
-            }
-          });
-        } else if (o.discountCode) {
-          const found = (discounts || []).find((d) => d.code.toUpperCase() === o.discountCode.toUpperCase());
-          if (found?.id) discIds.push(found.id);
-        }
-
-        if (discIds.length > 0 && setDiscounts) {
-          setDiscounts((prev) =>
-            (prev || []).map((d) => (discIds.includes(d.id) ? { ...d, usedCount: Math.max(0, (d.usedCount || 0) - 1) } : d))
-          );
-        }
-      }
+      // usedCount do server tự hoàn/trừ khi huỷ/mở lại đơn; useUpdateOrderStatus sẽ refetch danh sách mã.
       showToast(`Đã đổi trạng thái: ${ORDER_STATUSES[newStatus] || newStatus}`);
     } catch (err) {
       alert("Đổi trạng thái thất bại: " + err.message);
