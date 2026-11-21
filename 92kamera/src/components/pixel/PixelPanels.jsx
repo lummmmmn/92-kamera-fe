@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useLayoutEffect, useRef, useState } from "react";
 import PhotoLightbox from "../common/PhotoLightbox.jsx";
 import { CA_SHIFTS, DELIVERY_AREAS_DEFAULT, STATUS_CFG } from "../../lib/constants.js";
 import { cdnUrl, fmtVND } from "../../utils/format.js";
@@ -20,6 +20,28 @@ function PixelCam({ seed = 0 }) {
       <rect x="19" y="16" width="2" height="2" fill="#14181f" />
       <rect x="31" y="12" width="3" height="2" fill="#ff8fb1" />
     </svg>
+  );
+}
+
+/* Mô tả thu gọn 2 dòng, bấm XEM THÊM mới bung ra */
+function Desc({ text }) {
+  const [open, setOpen] = useState(false);
+  const [clamped, setClamped] = useState(false);
+  const ref = useRef(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (el && !open) setClamped(el.scrollHeight > el.clientHeight + 1);
+  }, [text, open]);
+  if (!text) return null;
+  return (
+    <>
+      <small ref={ref} className={`px-desc${open ? " open" : ""}`}>{text}</small>
+      {(clamped || open) && (
+        <button type="button" className="px-tg" onClick={() => setOpen((o) => !o)}>
+          {open ? "THU GỌN ▲" : "XEM THÊM ▼"}
+        </button>
+      )}
+    </>
   );
 }
 
@@ -48,7 +70,7 @@ export function DevicesPanel({ cameras = [], onPick }) {
             </button>
             <div className="px-tx">
               <b>{cam.name}</b>
-              {cam.desc ? <small>{cam.desc}</small> : null}
+              <Desc text={cam.desc} />
               {st ? <span className={`px-st ${cam.status}`}>{st.label}</span> : null}
             </div>
             <div className="px-pr">
@@ -78,7 +100,7 @@ export function AccessoriesPanel({ accessories = [], onBook }) {
           </div>
           <div className="px-tx">
             <b>{a.name}</b>
-            {a.desc ? <small>{a.desc}</small> : null}
+            <Desc text={a.desc} />
           </div>
           <div className="px-pr">
             <span><em>{fmtVND(a.price)}</em>/ngày</span>
