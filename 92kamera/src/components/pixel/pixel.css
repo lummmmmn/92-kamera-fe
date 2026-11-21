@@ -259,3 +259,16 @@ html.px92-lock body { margin: 0; }
 /* ô ca còn trống: xanh nhạt như lịch trong demo */
 .px92-book button[style*="height: 26px"][style*="rgba(255, 255, 255, 0.55)"] { background: #bcd0ff !important; }
 .px92-book button[style*="height: 26px"][style*="rgba(255, 255, 255, 0.55)"]:hover { background: #fff !important; }
+
+
+/* ═══ LỊCH CA: màu theo data-ca (khớp legend), ghi đè các rule cũ phía trên ═══ */
+.px92-book button[style*="height: 26px"][data-ca="ok"]   { background: #bcd0ff !important; }
+.px92-book button[style*="height: 26px"][data-ca="ok"]:hover { background: #fff !important; }
+.px92-book button[style*="height: 26px"][data-ca="low"]  { background: #fde68a !important; }
+.px92-book button[style*="height: 26px"][data-ca="sel"]  { background: #2f6bff !important; }
+.px92-book button[style*="height: 26px"][data-ca="full"] {
+  background: #e5484d repeating-linear-gradient(135deg, rgba(20,24,31,.22) 0 4px, transparent 4px 8px) !important;
+  color: #fff !important; border-style: solid !important; cursor: not-allowed;
+  font: 400 18px/1 var(--px) !important; letter-spacing: 2px; text-shadow: 1px 1px 0 #14181f;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
