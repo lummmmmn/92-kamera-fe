@@ -5,6 +5,7 @@ import { useMobile } from "../hooks/useMobile.js";
 import { G, MUT, BR } from "../lib/constants.js";
 import { useOrders } from "../hooks/useOrders.js";
 import { useFeedbacks } from "../hooks/useAppData.js";
+import "./customerPixel.css";
 
 // Import Panels
 import DashboardPanel from "../components/customer/DashboardPanel.jsx";
@@ -95,7 +96,7 @@ export default function CustomerPage({ loggedUser, setLoggedUser, onBack, onOpen
   });
 
   return (
-    <div style={{ minHeight: "100vh", background: "transparent", fontFamily: "system-ui,sans-serif", position: "relative", zIndex: 1 }}>
+    <div className="px92-cust" style={{ minHeight: "100vh", background: "transparent", fontFamily: "system-ui,sans-serif", position: "relative", zIndex: 1 }}>
       <style>{`
         * { box-sizing: border-box; }
         @keyframes pulseIn { 0%{transform:scale(0.7);opacity:0} 100%{transform:scale(1);opacity:1} }
@@ -262,7 +263,7 @@ export default function CustomerPage({ loggedUser, setLoggedUser, onBack, onOpen
         >
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             {TABS.map(([k, ico, label]) => (
-              <button key={k} onClick={() => setTab(k)} style={tabStyle(k)}>
+              <button key={k} className={`pxc-tab${tab === k ? " on" : ""}`} onClick={() => setTab(k)} style={tabStyle(k)}>
                 <span style={{ fontSize: 14, opacity: tab === k ? 1 : 0.6, marginRight: 7 }}>{ico}</span>
                 <span>{label}</span>
               </button>
