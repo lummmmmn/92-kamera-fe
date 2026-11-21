@@ -154,6 +154,7 @@ export function PerksPanel({ onBook }) {
 export function GalleryPanel({ albums = [], photos = [], onUpload, onLoadMoreAlbums, hasMoreAlbums, onLoadMorePhotos, hasMorePhotos }) {
   const [open, setOpen] = useState(null);
   const [lb, setLb] = useState(null);
+  const [showAll, setShowAll] = useState(false);
   const albumPhotos = (a) => (a.photos || []).filter((p) => p?.url);
   const openLb = (arr, idx) => setLb({ photos: arr.map((p, i) => ({ id: p.id || p.public_id || i, url: p.url })), idx });
 
@@ -177,12 +178,13 @@ export function GalleryPanel({ albums = [], photos = [], onUpload, onLoadMoreAlb
       </>
     );
   } else {
-    const loose = photos.filter((p) => p?.url);
+    const all = albums.filter((a) => albumPhotos(a).length > 0);
+    const shown = showAll ? all : all.slice(0, 4);
     body = (
       <>
-        {albums.length ? (
-          <div className="px-albums">
-            {albums.map((a) => {
+        {shown.length ? (
+          <div className="px-albums" style={{ gridTemplateColumns: "repeat(2, 1fr)" }}>
+            {shown.map((a) => {
               const n = albumPhotos(a).length;
               const cover = a.coverUrl || albumPhotos(a)[0]?.url;
               return (
@@ -194,21 +196,10 @@ export function GalleryPanel({ albums = [], photos = [], onUpload, onLoadMoreAlb
             })}
           </div>
         ) : null}
-        {hasMoreAlbums ? <p className="px-more"><button type="button" className="px-pb" onClick={onLoadMoreAlbums}>XEM THÊM ALBUM</button></p> : null}
-        {loose.length ? (
-          <>
-            <p style={{ margin: "16px 0 8px" }}><b>Ảnh mới</b></p>
-            <div className="px-albums">
-              {loose.map((p, i) => (
-                <button type="button" className="px-album" key={p.id || p.url || i} onClick={() => openLb(loose, i)} aria-label={`Xem ảnh ${i + 1}`}>
-                  <div className="im"><img src={cdnUrl(p.url, "thumb")} alt="" loading="lazy" /></div>
-                </button>
-              ))}
-            </div>
-          </>
-        ) : null}
-        {hasMorePhotos ? <p className="px-more"><button type="button" className="px-pb" onClick={onLoadMorePhotos}>XEM THÊM ẢNH</button></p> : null}
-        {!albums.length && !loose.length ? <p className="px-empty">Chưa có ảnh nào. Thuê máy xong, đăng ảnh của bạn lên đây nhé.</p> : null}
+        {!showAll && all.length > 4 ? <p className="px-more"><button type="button" className="px-pb" onClick={() => setShowAll(true)}>XEM THÊM ALBUM</button></p> : null}
+        {showAll && hasMoreAlbums ? <p className="px-more"><button type="button" className="px-pb" onClick={onLoadMoreAlbums}>XEM THÊM ALBUM</button></p> : null}
+        {showAll && all.length > 4 ? <p className="px-more"><button type="button" className="px-pb" onClick={() => setShowAll(false)}>THU GỌN</button></p> : null}
+        {!shown.length ? <p className="px-empty">Chưa có album nào.</p> : null}
       </>
     );
   }
@@ -216,10 +207,6 @@ export function GalleryPanel({ albums = [], photos = [], onUpload, onLoadMoreAlb
   return (
     <>
       {body}
-      <div className="px-links">
-        <button type="button" className="px-pb p lg" onClick={onUpload}>ĐĂNG ẢNH CỦA BẠN</button>
-      </div>
-      <p className="px-note" style={{ marginTop: 12 }}>Đăng nhập để đăng ảnh bạn chụp từ máy thuê.</p>
       {lb && <PhotoLightbox photos={lb.photos} startIndex={lb.idx} onClose={() => setLb(null)} />}
     </>
   );
