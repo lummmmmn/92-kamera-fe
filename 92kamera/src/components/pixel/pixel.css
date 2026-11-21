@@ -114,13 +114,18 @@ html.px92-lock body { margin: 0; }
 .px-it small { color: #5a6573; display: block; font-size: 13px; line-height: 1.4; }
 .px-pr { text-align: right; font-size: 12px; color: #5a6573; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 .px-pr em { display: block; font: 400 24px/1 var(--px); font-style: normal; color: #14181f; }
-.px-cm { grid-template-columns: 104px 1fr auto; align-items: start; }
+.px-cm { grid-template-columns: 120px 1fr auto; align-items: start; }
 .px-ph {
   border: 3px solid #14181f; aspect-ratio: 4 / 3; overflow: hidden; background: #bcd0ff;
   display: grid; place-items: center; padding: 0; cursor: zoom-in;
 }
 .px-ph img, .px-ph svg { width: 100%; height: 100%; display: block; object-fit: cover; shape-rendering: crispEdges; }
+.px-ph img { object-fit: contain; background: #fff; }
 .px-tx { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.px-it .px-desc { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.px-it .px-desc.open { display: block; overflow: visible; -webkit-line-clamp: unset; }
+.px-tg { align-self: flex-start; font: 400 17px/1 var(--px); background: none; border: 0; padding: 2px 0; color: #2f6bff; cursor: pointer; }
+.px-tg:hover { text-decoration: underline; }
 .px-st { align-self: flex-start; font: 400 17px/1.3 var(--px); padding: 0 8px; border: 2px solid #14181f; background: #9fe0b4; }
 .px-st.rented { background: #ffd23f; }
 .px-st.unavailable { background: #ff8fb1; }
