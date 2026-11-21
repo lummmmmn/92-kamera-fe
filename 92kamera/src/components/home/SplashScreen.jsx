@@ -1,77 +1,84 @@
-import { useState, useRef, useEffect } from "react";
-import { useMobile } from "../../hooks/useMobile.js";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import "../pixel/pixelIntro.css";
 
-/**
- * Iris-wipe splash screen on first load
- * phase: 0=invisible → 1=logo fade-in → 2=tagline → 3=iris-close → done
- */
+const TEXT = "92 KA MÊ RA";
+const BLOCKS = 12;
+const MSG = ["Đang bật đèn tiệm...", "Đang lau ống kính...", "Đang sạc pin cho máy...", "Sắp xong rồi bro!"];
+
+/** Intro mở tiệm: gõ tên tiệm, thanh tải 12 ô, loé flash rồi vào trang. Chạm / Enter để bỏ qua. */
 export default function SplashScreen({ onDone }) {
-  const [phase, setPhase] = useState(0);
-  const isMob    = useMobile();
-  const onDoneRef = useRef(onDone);
-  useEffect(() => { onDoneRef.current = onDone; }, [onDone]);
+  const [typed, setTyped] = useState(0);
+  const [filled, setFilled] = useState(0);
+  const [flash, setFlash] = useState(false);
+  const doneRef = useRef(false);
+  const cbRef = useRef(onDone);
+  useEffect(() => { cbRef.current = onDone; }, [onDone]);
 
-  useEffect(() => {
-    const t1 = setTimeout(() => setPhase(1), 60);
-    const t2 = setTimeout(() => setPhase(2), 900);
-    const t3 = setTimeout(() => setPhase(3), 1700);
-    const t4 = setTimeout(() => onDoneRef.current?.(), 2300);
-    return () => [t1, t2, t3, t4].forEach(clearTimeout);
+  const finish = useCallback(() => {
+    if (doneRef.current) return;
+    doneRef.current = true;
+    cbRef.current?.();
   }, []);
 
-  const sz  = isMob ? 1.45 : 2.2;
-  const s   = (n) => n * sz;
-  const bw  = 4;
-  const col = "#141414";
-  const sp  = phase === 0 ? (isMob ? 48 : 65) : 0;
-  const brTr = "transform 0.85s cubic-bezier(.16,1,.3,1), opacity 0.7s ease";
-  const bracketColor = "rgba(20,20,20,0.78)";
+  useEffect(() => {
+    const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) {
+      const t = setTimeout(finish, 500);
+      return () => clearTimeout(t);
+    }
+    let k = 0;
+    let bar;
+    let end;
+    const type = setInterval(() => setTyped((n) => Math.min(n + 1, TEXT.length)), 80);
+    const start = setTimeout(() => {
+      bar = setInterval(() => {
+        k += 1;
+        setFilled(k);
+        if (k >= BLOCKS) {
+          clearInterval(bar);
+          setFlash(true);
+          end = setTimeout(finish, 450);
+        }
+      }, 140);
+    }, 700);
+    return () => { clearInterval(type); clearTimeout(start); clearInterval(bar); clearTimeout(end); };
+  }, [finish]);
 
-  const irisStyle =
-    phase >= 3
-      ? { clipPath: "circle(0% at 50% 50%)", transition: "clip-path 0.55s cubic-bezier(.7,0,.3,1) 0.05s" }
-      : { clipPath: "circle(150% at 50% 50%)", transition: "none" };
+  const ready = filled >= BLOCKS;
+  const status = ready ? "Tiệm đã mở cửa!" : `${MSG[Math.min(3, Math.floor(filled / 4))]} ${Math.round((filled / BLOCKS) * 100)}%`;
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none", overflow: "hidden", ...irisStyle }}>
-      {/* Background layers */}
-      <div style={{ position: "absolute", inset: 0, background: "#8fc8d4" }} />
-      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 130% 85% at 50% 22%, #5fccdd 0%, transparent 70%), radial-gradient(ellipse 55% 40% at 15% 55%, rgba(77,193,213,0.7) 0%, transparent 60%), linear-gradient(180deg, #8fc8d4 0%, #a9b8bc 100%)" }} />
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(236,243,248,0.58) 0%, transparent 40%, rgba(220,235,244,0.27) 100%)" }} />
-      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 100% 100% at 50% 50%, transparent 55%, rgba(20,50,75,0.14) 100%)" }} />
-      {/* Film grain */}
-      <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.22 }} xmlns="http://www.w3.org/2000/svg">
-        <filter id="grain-splash"><feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="5" stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
-        <rect width="100%" height="100%" filter="url(#grain-splash)" />
+    <div
+      className="pxi" role="button" tabIndex={0} aria-label="Bỏ qua intro"
+      onClick={finish}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " " || e.key === "Escape") { e.preventDefault(); finish(); } }}
+    >
+      <svg className="pxi-cam" viewBox="0 0 40 30" role="img" aria-label="Máy ảnh pixel">
+        <rect x="4" y="27" width="32" height="1" fill="#14181f" />
+        <rect x="3" y="10" width="34" height="16" fill="#14181f" />
+        <rect x="15" y="5" width="10" height="6" fill="#14181f" />
+        <rect x="5" y="7" width="5" height="3" fill="#14181f" />
+        <rect x="13" y="10" width="14" height="14" fill="#14181f" />
+        <rect x="14" y="11" width="12" height="12" fill="#2f6bff" />
+        <rect x="17" y="14" width="6" height="6" fill="#bcd0ff" />
+        <rect x="19" y="16" width="2" height="2" fill="#14181f" />
+        <rect x="31" y="12" width="3" height="2" fill="#ffe9a8" />
       </svg>
-
-      {/* Logo with bracket animation */}
-      <div style={{ display: "inline-flex", alignItems: "center", fontFamily: '"Palatino Linotype","Book Antiqua","Palatino",Georgia,"Times New Roman",serif', color: col, userSelect: "none", position: "relative", opacity: phase >= 1 ? 1 : 0, transform: phase >= 1 ? "scale(1)" : "scale(0.94)", transition: "opacity 0.6s ease, transform 0.6s cubic-bezier(.2,.8,.3,1)", filter: "drop-shadow(0 4px 24px rgba(0,0,0,0.08))" }}>
-        {/* Bracket left */}
-        <div style={{ position: "relative", width: s(13), height: s(32), marginRight: s(9), flexShrink: 0 }}>
-          <span style={{ position: "absolute", top: 0, left: 0, width: s(13), height: s(16), borderLeft: `${bw}px solid ${bracketColor}`, borderTop: `${bw}px solid ${bracketColor}`, transform: `translate(${-sp}px,${-sp}px)`, opacity: phase === 0 ? 0 : 1, transition: brTr }} />
-          <span style={{ position: "absolute", bottom: 0, left: 0, width: s(13), height: s(16), borderLeft: `${bw}px solid ${bracketColor}`, borderBottom: `${bw}px solid ${bracketColor}`, transform: `translate(${-sp}px,${sp}px)`, opacity: phase === 0 ? 0 : 1, transition: brTr }} />
+      <div className="pxi-logo">
+        <span className="pxi-br l" />
+        <div className="pxi-tw">
+          <h1 className={typed < TEXT.length ? "t" : ""} aria-label={TEXT}>{TEXT.slice(0, typed)}</h1>
+          <i className={"pxi-rec" + (typed >= TEXT.length ? " on" : "")} />
         </div>
-        {/* Text */}
-        <span style={{ fontSize: s(20), fontWeight: 400, letterSpacing: s(1.5), whiteSpace: "nowrap", display: "inline-flex", alignItems: "center" }}>
-          <span>92</span>
-          <span style={{ marginLeft: s(10) }}>KA</span>
-          <span style={{ marginLeft: s(10) }}>MÊ</span>
-          <span style={{ marginLeft: s(10) }}>RA</span>
-          <span style={{ display: "inline-block", width: s(7), height: s(7), borderRadius: "50%", background: "radial-gradient(circle at 38% 34%, #ff5050 0%, #cc0000 52%, #820000 100%)", boxShadow: "0 0 7px rgba(210,0,0,0.72), 0 0 14px rgba(210,0,0,0.32), inset 0 1px 0 rgba(255,155,155,0.5)", marginLeft: s(3), flexShrink: 0, position: "relative", top: s(-6) }} />
-        </span>
-        {/* Bracket right */}
-        <div style={{ position: "relative", width: s(13), height: s(32), marginLeft: s(9), flexShrink: 0 }}>
-          <span style={{ position: "absolute", top: 0, right: 0, width: s(13), height: s(16), borderRight: `${bw}px solid ${bracketColor}`, borderTop: `${bw}px solid ${bracketColor}`, transform: `translate(${sp}px,${-sp}px)`, opacity: phase === 0 ? 0 : 1, transition: brTr }} />
-          <span style={{ position: "absolute", bottom: 0, right: 0, width: s(13), height: s(16), borderRight: `${bw}px solid ${bracketColor}`, borderBottom: `${bw}px solid ${bracketColor}`, transform: `translate(${sp}px,${sp}px)`, opacity: phase === 0 ? 0 : 1, transition: brTr }} />
-        </div>
+        <span className="pxi-br r" />
       </div>
-
-      {/* Tagline */}
-      <div style={{ color: "#484644", fontSize: isMob ? 9 : 10, letterSpacing: isMob ? 4 : 6, fontFamily: "var(--font-ui)", textTransform: "uppercase", fontWeight: 700, marginTop: isMob ? 18 : 26, opacity: phase >= 2 ? 1 : 0, transform: phase >= 2 ? "translateY(0)" : "translateY(6px)", transition: "opacity 0.5s ease, transform 0.5s ease", textAlign: "center", padding: "0 16px" }}>
-        Dịch vụ cho thuê máy ảnh
+      <p className="pxi-sub">Cho thuê máy ảnh khu vực Núi Thành, Tam Kỳ</p>
+      <div className="pxi-load" aria-hidden="true">
+        {Array.from({ length: BLOCKS }, (_, i) => <i key={i} className={i < filled ? "f" : ""} />)}
       </div>
-      <div style={{ width: phase >= 2 ? (isMob ? 90 : 130) : 0, height: 1, background: "linear-gradient(to right, transparent, rgba(20,20,20,0.35), transparent)", marginTop: isMob ? 10 : 14, transition: "width 0.5s cubic-bezier(.4,0,.2,1) 0.1s" }} />
+      <div className="pxi-st" role="status">{status}</div>
+      <p className="pxi-skip">Chạm để bỏ qua</p>
+      {flash && <div className="pxi-flash" />}
     </div>
   );
 }
