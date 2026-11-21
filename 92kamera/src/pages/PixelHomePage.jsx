@@ -4,20 +4,21 @@ import { buildScene } from "../components/pixel/pixelScene.js";
 import PixelDialog from "../components/pixel/PixelDialog.jsx";
 import {
   AccessoriesPanel, ContactPanel, DeliveryPanel, DevicesPanel,
-  GalleryPanel, GuidePanel, PerksPanel, zaloHref,
+  GalleryPanel, GuidePanel, PerksPanel, RoadmapPanel, zaloHref,
 } from "../components/pixel/PixelPanels.jsx";
 import QuickSearchFloat from "../components/booking/QuickSearchFloat.jsx";
 import OrderLookupWidget from "../components/booking/OrderLookupWidget.jsx";
 
-// Thứ tự nút ở thanh dưới. "book" mở thẳng BookingModal có sẵn (giữ nguyên logic đặt máy).
-const BAR = [
-  ["ĐẶT MÁY", "book"], ["THIẾT BỊ", "devices"], ["LỊCH TRỐNG", "avail"], ["PHỤ KIỆN", "acc"],
-  ["GIAO NHẬN", "delivery"], ["ƯU ĐÃI", "perks"], ["ẢNH KHÁCH", "gallery"], ["TRA ĐƠN", "lookup"],
-  ["HƯỚNG DẪN", "guide"], ["LIÊN HỆ", "contact"],
+// Bàn phím: mỗi chức năng là 1 phím. { l, k, f, s, c } = nhãn, hành động, nhãn F, số cột (12 cột/hàng), class; { d } = phím trang trí.
+// "book" mở thẳng BookingModal có sẵn (giữ nguyên logic đặt máy).
+const KB = [
+  [{ d: "ESC", c: "r", s: 1 }, { l: "THIẾT BỊ", k: "devices", f: "F1" }, { l: "LỊCH TRỐNG", k: "avail", f: "F2" }, { l: "PHỤ KIỆN", k: "acc", f: "F3" }, { l: "GIAO NHẬN", k: "delivery", f: "F4" }, { l: "ƯU ĐÃI", k: "perks", f: "F5" }, { d: "*", c: "g", s: 1 }],
+  [{ d: "TAB", s: 2 }, { l: "ẢNH KHÁCH", k: "gallery", f: "F6" }, { l: "TRA ĐƠN", k: "lookup", f: "F7" }, { l: "HƯỚNG DẪN", k: "guide", f: "F8" }, { l: "LIÊN HỆ", k: "contact", f: "F9" }, { l: "LỘ TRÌNH", k: "roadmap", f: "F10" }],
+  [{ d: "CTRL", s: 2 }, { d: "ALT", c: "y", s: 1 }, { l: "ĐẶT MÁY", k: "book", f: "SPACE", s: 6, c: "p sp" }, { d: "ALT", c: "y", s: 1 }, { d: "FN", s: 2 }],
 ];
 const TITLES = {
   devices: "Thiết bị", acc: "Phụ kiện", delivery: "Giao nhận", perks: "Ưu đãi",
-  gallery: "Ảnh khách", guide: "Hướng dẫn thuê", contact: "Liên hệ",
+  gallery: "Ảnh khách", guide: "Hướng dẫn thuê", roadmap: "Lộ trình phát triển", contact: "Liên hệ",
 };
 // 3 màn hình xanh trong tiệm: máy ảnh → danh sách thiết bị, đặt máy → đặt luôn, liên hệ → liên hệ
 const SCREEN_ACTIONS = ["devices", "book", "contact"];
@@ -74,11 +75,12 @@ export default function PixelHomePage({
 
   return (
     <div className="px92">
+      <div className="px92-snow" aria-hidden="true" />
       <div className="px92-w">
         <header className="px92-hd">
           <div>
             <h1>Hi, mình là 92 KA MÊ RA</h1>
-            <p className="in">Tiệm thuê máy ảnh theo ca ở Núi Thành, Tam Kỳ. Chọc vào màn hình xanh hoặc bấm nút bên dưới nha bro!</p>
+            <p className="in">Tiệm thuê máy ảnh theo ca ở Núi Thành, Tam Kỳ. Chọc vào màn hình xanh hoặc gõ phím bên dưới nha bro!</p>
           </div>
           <div className="px92-hr">
             <div className="row">
@@ -90,6 +92,7 @@ export default function PixelHomePage({
         </header>
 
         <div className="px92-stage">
+          <div className="px92-mon">
           <div className="px92-room" ref={roomRef}>
             <div dangerouslySetInnerHTML={{
               __html: `<svg viewBox="0 0 ${scene.W} ${scene.H}" role="img" aria-label="Tiệm 92 KA MÊ RA với ba màn hình xanh">${scene.svg}</svg>`,
@@ -105,11 +108,20 @@ export default function PixelHomePage({
               />
             ))}
           </div>
+        <div className="px92-chin"><span className="logo">92 KA MÊ RA</span><span className="slots"><i /><i /></span><span className="led" /></div>
+          </div>
         </div>
-
-        <nav className="px92-bar" aria-label="Chức năng">
-          {BAR.map(([label, key]) => (
-            <button key={key} type="button" className={`px-pb${key === "book" ? " p" : ""}`} onClick={() => run(key)}>{label}</button>
+        <nav className="px92-kb" aria-label="Chức năng">
+          {KB.map((row, i) => (
+            <div className="row" key={i}>
+              {row.map((c, j) => (c.d ? (
+                <div key={j} className={`px92-key d${c.c ? " " + c.c : ""}`} style={{ gridColumn: `span ${c.s || 1}` }} aria-hidden="true">{c.d}</div>
+              ) : (
+                <button key={c.k} type="button" className={`px92-key${c.c ? " " + c.c : ""}`} style={{ gridColumn: `span ${c.s || 2}` }} onClick={() => run(c.k)}>
+                  {c.f ? <small>{c.f}</small> : null}{c.l}
+                </button>
+              )))}
+            </div>
           ))}
         </nav>
       </div>
@@ -129,6 +141,7 @@ export default function PixelHomePage({
             />
           )}
           {panel === "guide" && <GuidePanel onBook={() => book(undefined)} />}
+          {panel === "roadmap" && <RoadmapPanel />}
           {panel === "contact" && <ContactPanel site={site} />}
         </PixelDialog>
       )}
