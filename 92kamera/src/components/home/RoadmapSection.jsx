@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { G, MUT, TXT } from "../../lib/constants.js";
 
-const ROADMAP_PHASES = [
+export const ROADMAP_PHASES = [
   {
     num: "01",
     icon: "🚀",
