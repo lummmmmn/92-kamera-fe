@@ -391,3 +391,40 @@ html.px92-lock body { margin: 0; }
 .px-acc li { padding-left: 16px; position: relative; line-height: 1.5; }
 .px-acc li::before { content: "▸"; position: absolute; left: 0; color: #2f6bff; }
 .px-acc .ft { margin-top: 10px; padding: 6px 8px; border: 2px dashed #14181f; background: #ffe9a8; font-size: 13px; line-height: 1.5; }
+
+/* ═══ MÀN HÌNH "ĐẶT ĐƠN THÀNH CÔNG" (bản pixel của BookingDone) ═══ */
+.pxd { position: relative; overflow: hidden; text-align: center; padding: 4px 0 6px; color: #14181f; }
+.pxd > * { position: relative; z-index: 1; }
+.pxd > .pxd-cf { position: absolute; z-index: 0; top: -12px; pointer-events: none; opacity: .9; animation: pxdfall 3.2s steps(16) infinite; }
+@keyframes pxdfall { from { transform: translateY(0); } to { transform: translateY(460px); } }
+@keyframes pxdbob { 50% { transform: translateY(-3px); } }
+.pxd-cam { display: block; width: 128px; height: auto; margin: 4px auto 8px; shape-rendering: crispEdges; animation: pxdbob 1.2s steps(1) infinite; }
+.pxd-rec { animation: px92rec 1.6s steps(1) infinite; }
+.pxd-ttl { font: 400 42px/1 var(--px); letter-spacing: 1px; text-shadow: 3px 3px 0 #bcd0ff; margin: 0 0 12px; }
+.pxd-tk { max-width: 440px; margin: 0 auto 14px; padding: 8px 12px 12px; background: #ffe9a8; border: 4px solid #14181f; box-shadow: 5px 5px 0 #14181f; }
+.pxd-tk .lb { font: 400 20px/1 var(--px); color: #5a6573; letter-spacing: 2px; padding-bottom: 6px; margin-bottom: 8px; border-bottom: 3px dashed #14181f; }
+.pxd-tk .cd { font: 400 48px/1 var(--px); letter-spacing: 3px; word-break: break-all; }
+.pxd-ds { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 0 0 10px; }
+.pxd-ds .px-st { align-self: center; }
+.pxd-tot { display: flex; align-items: baseline; gap: 8px; max-width: 440px; margin: 0 auto 14px; font: 400 26px/1 var(--px); }
+.pxd-tot i { flex: 1; min-width: 12px; border-bottom: 3px dotted #14181f; transform: translateY(-4px); }
+.pxd-tot b { font: 400 38px/1 var(--px); color: #2f6bff; }
+.pxd-lb { font: 400 19px/1 var(--px); color: #5a6573; letter-spacing: 1px; margin: 0 0 8px; }
+.pxd-qr { margin: 0 auto 14px; }
+.pxd-qr .box { display: inline-block; background: #fff; border: 4px solid #14181f; box-shadow: 4px 4px 0 #14181f; padding: 6px; }
+.pxd-qr img { display: block; width: 156px; height: 156px; object-fit: contain; }
+.pxd-btn { display: block; width: 100%; max-width: 440px; margin: 0 auto 12px; text-align: center; font-size: 28px; padding: 10px 14px; box-shadow: 5px 5px 0 #14181f; }
+.pxd-btn:active:not(:disabled) { transform: translate(5px, 5px); }
+.pxd-tel { background: #2f6bff; color: #fff; }
+.pxd-tel:hover:not(:disabled) { background: #ff8fb1; color: #14181f; }
+.pxd-note { position: relative; max-width: 440px; margin: 2px auto 14px; padding: 8px 10px 8px 46px; text-align: left; background: #fff; border: 3px dashed #14181f; font: 400 21px/1.15 var(--px); }
+.pxd-note::before { content: "!"; position: absolute; left: 8px; top: 50%; margin-top: -14px; width: 28px; height: 28px; line-height: 24px; text-align: center; background: #ffd23f; border: 3px solid #14181f; font: 400 24px/22px var(--px); }
+.pxd-hr { max-width: 440px; margin: 4px auto 12px; border-top: 3px dashed #14181f; }
+@media (max-width: 560px) {
+  .pxd-ttl { font-size: 32px; }
+  .pxd-tk .cd { font-size: 34px; letter-spacing: 2px; }
+  .pxd-tot { font-size: 22px; } .pxd-tot b { font-size: 30px; }
+  .pxd-btn { font-size: 24px; }
+  .pxd-note { font-size: 19px; }
+}
+@media (prefers-reduced-motion: reduce) { .pxd-cf, .pxd-cam, .pxd-rec { animation: none; } }
