@@ -6,6 +6,7 @@ import { useAdminAuth } from "../../hooks/useAdminAuth.js";
 import { G, MUT, TXT, BG, CARD, BR } from "../../lib/constants.js";
 import { getOrders, googleLogin } from "../../api/index.js";
 import { todayStr } from "../../utils/format.js";
+import "./loginPixel.css";
 
 const GOOGLE_CLIENT_ID = "338403275162-fa55lm8g53eu1h6ursqpd714ce1qre8m.apps.googleusercontent.com";
 let _gsiInitialized = false;
@@ -235,6 +236,7 @@ export default function AdminLogin({
 
   const tabBtn = (k, icon, label) => (
     <button
+      className={`pxl-tab${tab === k ? " on" : ""}`}
       onClick={() => setTab(k)}
       style={{
         flex: 1,
@@ -269,34 +271,10 @@ export default function AdminLogin({
   );
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 200,
-        background:
-          "radial-gradient(ellipse 130% 85% at 50% 22%, #5fccdd 0%, transparent 70%), radial-gradient(ellipse 55% 40% at 15% 55%, rgba(77,193,213,0.7) 0%, transparent 60%), linear-gradient(180deg, #8fc8d4 0%, #a9b8bc 100%)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(236,243,248,0.58) 0%, transparent 40%, rgba(220,235,244,0.27) 100%)", pointerEvents: "none" }} />
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(186,206,220,0.30) 0%, transparent 50%)", pointerEvents: "none" }} />
-      <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.16, pointerEvents: "none" }} xmlns="http://www.w3.org/2000/svg">
-        <filter id="grain-login">
-          <feTurbulence type="fractalNoise" baseFrequency="0.78" numOctaves="5" stitchTiles="stitch" />
-          <feColorMatrix type="saturate" values="0" />
-        </filter>
-        <rect width="100%" height="100%" filter="url(#grain-login)" />
-      </svg>
-
+    <div className="px92-login">
       <div
-        className="login-card-92k"
+        className="login-card-92k px92-login-card"
         style={{
-          background: "linear-gradient(160deg, rgba(232,240,248,0.88) 0%, rgba(197,216,236,0.80) 60%, rgba(181,206,230,0.76) 100%)",
-          border: "1px solid rgba(255,255,255,0.60)",
-          borderRadius: 28,
           padding: "32px 36px 36px",
           width: "min(520px,93vw)",
           textAlign: "center",
@@ -306,17 +284,13 @@ export default function AdminLogin({
           overflowY: "auto",
           position: "relative",
           scrollbarWidth: "none",
-          backdropFilter: "blur(28px) saturate(160%) brightness(1.04)",
-          WebkitBackdropFilter: "blur(28px) saturate(160%) brightness(1.04)",
-          boxShadow:
-            "0 1px 0 rgba(255,255,255,0.80) inset, 0 -1px 0 rgba(0,0,0,0.06) inset, 0 12px 48px rgba(0,0,0,0.30), 0 2px 16px rgba(0,0,0,0.16)",
         }}
       >
-        <div style={{ position: "absolute", top: 14, left: 14, width: 18, height: 18, borderTop: `1.5px solid ${G}55`, borderLeft: `1.5px solid ${G}55`, borderRadius: "2px 0 0 0" }} />
-        <div style={{ position: "absolute", top: 14, right: 14, width: 18, height: 18, borderTop: `1.5px solid ${G}55`, borderRight: `1.5px solid ${G}55`, borderRadius: "0 2px 0 0" }} />
+        <div style={{ position: "absolute", top: 14, left: 14, width: 18, height: 18, borderTop: `3px solid #14181f`, borderLeft: `3px solid #14181f`, borderRadius: "2px 0 0 0" }} />
+        <div style={{ position: "absolute", top: 14, right: 14, width: 18, height: 18, borderTop: `3px solid #14181f`, borderRight: `3px solid #14181f`, borderRadius: "0 2px 0 0" }} />
 
         <div style={{ marginBottom: 6 }}>
-          <Logo size={0.88} />
+          <Logo size={1.2} />
         </div>
 
         <div style={{ display: "flex", borderBottom: `1px solid ${BR}`, margin: "20px -36px 0", padding: "0 36px" }}>
@@ -355,6 +329,7 @@ export default function AdminLogin({
 
         <button
           onClick={onBack}
+          className="pxl-btn"
           style={{
             width: "100%",
             padding: "13px 0",
