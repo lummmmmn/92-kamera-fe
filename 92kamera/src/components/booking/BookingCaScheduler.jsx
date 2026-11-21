@@ -402,6 +402,9 @@ function CaGridMode({ pickDate, setPickDate, pickHour, setPickHour, numDays, set
                   const isPickCell = ds === pickDate && caIdx === pickCaIdx;
                   const isReturnCell = ds === returnDate && caIdx === returnCaIdx;
 
+                  const isSel = isIncluded || isPickCell || isReturnCell;
+                  const cellState = isSel ? "sel" : status === "full" ? "full" : status === "low" ? "low" : "ok";
+
                   let bg, border;
                   if (isIncluded || isPickCell || isReturnCell) {
                     bg = G;
@@ -422,7 +425,8 @@ function CaGridMode({ pickDate, setPickDate, pickHour, setPickHour, numDays, set
                       key={caIdx}
                       onClick={() => handleCellClick(ds, caIdx, status)}
                       disabled={status === "full"}
-                      title={status === "full" ? "Hết máy" : ""}
+                      title={cellState === "full" ? "Kín — ca này đã có khách đặt" : ""}
+                      data-ca={cellState}
                       style={{
                         height: 26,
                         borderRadius: 7,
@@ -430,7 +434,9 @@ function CaGridMode({ pickDate, setPickDate, pickHour, setPickHour, numDays, set
                         border: `1px solid ${border}`,
                         cursor: status === "full" ? "not-allowed" : "pointer",
                       }}
-                    />
+                    >
+                      {cellState === "full" ? "KÍN" : ""}
+                    </button>
                   );
                 })}
               </div>
@@ -461,10 +467,10 @@ function CaGridMode({ pickDate, setPickDate, pickHour, setPickHour, numDays, set
         {/* Legend */}
         <div style={{ display: "flex", gap: 12, marginTop: 10, flexWrap: "wrap", paddingLeft: 2 }}>
           {[
-            ["rgba(255,255,255,0.70)", "rgba(0,0,0,0.20)", "Còn trống"],
-            ["#fde68a", "#f59e0b", "Còn ít"],
-            ["#ef4444cc", "#ef4444", "Hết máy"],
-            [G, G, "Đang chọn"],
+            ["#bcd0ff", "#14181f", "Còn trống"],
+            ["#fde68a", "#14181f", "Còn ít"],
+            ["#e5484d", "#14181f", "Kín (hết máy)"],
+            ["#2f6bff", "#14181f", "Đang chọn"],
           ].map(([bg, bd, lbl]) => (
             <div key={lbl} style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <div style={{ width: 10, height: 10, borderRadius: 3, background: bg, border: `1px solid ${bd}` }} />
