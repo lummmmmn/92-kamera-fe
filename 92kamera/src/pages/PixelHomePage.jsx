@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import "../components/pixel/pixel.css";
 import { buildScene } from "../components/pixel/pixelScene.js";
 import PixelDialog from "../components/pixel/PixelDialog.jsx";
+import WishPanel from "../components/pixel/WishPanel.jsx";
+import { useWishSocks } from "../hooks/useWishes.js";
 import {
   AccessoriesPanel, ContactPanel, DeliveryPanel, DevicesPanel,
   GalleryPanel, GuidePanel, PerksPanel, RoadmapPanel, zaloHref,
@@ -32,6 +34,8 @@ export default function PixelHomePage({
   const [panel, setPanel] = useState(null);
   const [qsTrigger, setQsTrigger] = useState(0);
   const [lookupOpen, setLookupOpen] = useState(false);
+  const [wishSock, setWishSock] = useState(null);
+  const { data: wishSocks } = useWishSocks();
   const roomRef = useRef(null);
   const scene = useMemo(() => buildScene(), []);
   const site = siteContent || {};
@@ -107,6 +111,18 @@ export default function PixelHomePage({
                 }}
               />
             ))}
+            {/* Tất điều ước: chỉ tất đang MỞ mới bấm được, tất đang tắt chỉ là đồ trang trí */}
+            {(scene.socks || []).filter((k) => wishSocks?.[k.id]).map((k) => (
+              <button
+                key={`sock${k.id}`} type="button" className="px92-hit"
+                aria-label={`Tất điều ước màu ${k.name}`} title="Gửi điều ước"
+                onClick={() => setWishSock(k)}
+                style={{
+                  left: `${((k.x - 2) / scene.W) * 100}%`, top: `${(46 / scene.H) * 100}%`,
+                  width: `${(12 / scene.W) * 100}%`, height: `${(14 / scene.H) * 100}%`,
+                }}
+              />
+            ))}
           </div>
         <div className="px92-chin"><span className="logo">92 KA MÊ RA</span><span className="slots"><i /><i /></span><span className="led" /></div>
           </div>
@@ -143,6 +159,12 @@ export default function PixelHomePage({
           {panel === "guide" && <GuidePanel onBook={() => book(undefined)} />}
           {panel === "roadmap" && <RoadmapPanel />}
           {panel === "contact" && <ContactPanel site={site} />}
+        </PixelDialog>
+      )}
+
+      {wishSock && (
+        <PixelDialog title="Tất điều ước" onClose={() => setWishSock(null)}>
+          <WishPanel sock={wishSock} onClose={() => setWishSock(null)} />
         </PixelDialog>
       )}
 
