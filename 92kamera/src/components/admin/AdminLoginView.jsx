@@ -89,18 +89,18 @@ export default function AdminLoginView({ onLogin, loginAsync, shake, setShake, e
         <div style={{ fontSize: 40, filter: "drop-shadow(0 0 18px rgba(201,168,76,0.25))", marginBottom: 10 }}>🔐</div>
         <h3
           style={{
-            color: TXT,
-            fontWeight: 700,
+            color: "#14181f",
+            fontWeight: 400,
             marginBottom: 4,
-            fontFamily: "Georgia,serif",
-            fontSize: 19,
-            letterSpacing: 0.5,
+            fontFamily: "var(--px)",
+            fontSize: 32,
+            letterSpacing: 0,
             margin: "0 0 6px",
           }}
         >
           Quản trị viên
         </h3>
-        <p style={{ color: MUT, fontSize: 12, marginBottom: 24, letterSpacing: 0.3, fontFamily: "system-ui,sans-serif", margin: "0 0 24px" }}>
+        <p style={{ color: "#5a6573", fontSize: 13, marginBottom: 24, letterSpacing: 0.3, fontFamily: "system-ui,sans-serif", margin: "0 0 24px" }}>
           Nhập mật khẩu để truy cập dashboard
         </p>
       </div>
@@ -143,6 +143,7 @@ export default function AdminLoginView({ onLogin, loginAsync, shake, setShake, e
       ) : null}
 
       <button
+        className="pxl-primary"
         onClick={checkAdmin}
         disabled={isLocked()}
         style={{
