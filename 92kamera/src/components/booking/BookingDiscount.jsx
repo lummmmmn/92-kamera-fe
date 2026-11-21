@@ -82,7 +82,7 @@ export default function BookingDiscount({
       {canAddMore && (
         <div
           onClick={() => setDiscountExpanded((p) => !p)}
-          style={{ display: "flex", alignItems: "center", justifyDiscount: "space-between", cursor: "pointer", userSelect: "none" }}
+          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", userSelect: "none" }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 7, width: "100%", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
