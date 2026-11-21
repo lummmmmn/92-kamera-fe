@@ -116,11 +116,13 @@ html.px92-lock body { margin: 0; }
 .px-pr em { display: block; font: 400 24px/1 var(--px); font-style: normal; color: #14181f; }
 .px-cm { grid-template-columns: 120px 1fr auto; align-items: start; }
 .px-ph {
-  border: 3px solid #14181f; aspect-ratio: 4 / 3; overflow: hidden; background: #bcd0ff;
-  display: grid; place-items: center; padding: 0; cursor: zoom-in;
+  position: relative; width: 100%; aspect-ratio: 4 / 3; overflow: hidden;
+  border: 3px solid #14181f; background: #fff; padding: 0; cursor: zoom-in; display: block;
 }
-.px-ph img, .px-ph svg { width: 100%; height: 100%; display: block; object-fit: cover; shape-rendering: crispEdges; }
-.px-ph img { object-fit: contain; background: #fff; }
+.px-ph img, .px-ph svg {
+  position: absolute; inset: 0; width: 100%; height: 100%; display: block;
+  object-fit: contain; shape-rendering: crispEdges;
+}
 .px-tx { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .px-it .px-desc { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .px-it .px-desc.open { display: block; overflow: visible; -webkit-line-clamp: unset; }
