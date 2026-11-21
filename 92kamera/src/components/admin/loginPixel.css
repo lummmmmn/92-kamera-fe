@@ -1,0 +1,65 @@
+/* Màn đăng nhập — phong cách pixel 92 KA MÊ RA. Chỉ áp trong .px92-login, không đụng trang khác. */
+.px92-login {
+  --ink: #14181f; --bl: #2f6bff; --lt: #bcd0ff; --pk: #ff8fb1; --wall: #ffe9a8; --mut: #5a6573;
+  --px: "VT323", "Courier New", monospace;
+  --bd: "Be Vietnam Pro", system-ui, sans-serif;
+  --font-display: var(--px);
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--wall) radial-gradient(rgba(20,24,31,.09) 1.5px, transparent 1.6px) 0 0 / 16px 16px;
+  font-family: var(--bd); color: var(--ink);
+  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+}
+.px92-login *, .px92-login *::before, .px92-login *::after { box-sizing: border-box; }
+.px92-login div, .px92-login span, .px92-login button, .px92-login input, .px92-login img { border-radius: 0 !important; }
+.px92-login [style*="system-ui"] { font-family: var(--bd) !important; }
+
+.px92-login .px92-login-card.login-card-92k {
+  background: #fff; border: 4px solid var(--ink); box-shadow: 8px 8px 0 var(--ink);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  animation: pxlOn .5s steps(5) both;
+}
+@keyframes pxlOn { 0% { opacity: 0 } 40% { opacity: 1 } 55% { opacity: .2 } 100% { opacity: 1 } }
+@keyframes pxlBob { 50% { transform: translateY(-3px) } }
+
+/* tab */
+.px92-login .pxl-tab {
+  font: 400 22px/1 var(--px) !important; letter-spacing: 0 !important; color: var(--mut) !important;
+  border: 0 !important; border-bottom: 4px solid transparent !important; background: none !important; padding: 12px 0 8px !important;
+}
+.px92-login .pxl-tab:hover { color: var(--ink) !important; }
+.px92-login .pxl-tab.on { color: var(--ink) !important; border-bottom-color: var(--bl) !important; background: var(--lt) !important; font-weight: 400 !important; }
+.px92-login .pxl-tab span { font-size: inherit !important; }
+
+/* nút */
+.px92-login button:not(.pxl-tab) {
+  font: 400 22px/1.1 var(--px) !important; letter-spacing: .5px !important;
+  background: #fff !important; color: var(--ink) !important;
+  border: 3px solid var(--ink) !important; box-shadow: 3px 3px 0 var(--ink) !important; cursor: pointer;
+}
+.px92-login button:not(.pxl-tab):hover:not(:disabled) { background: var(--bl) !important; color: #fff !important; opacity: 1 !important; }
+.px92-login button:not(.pxl-tab):active:not(:disabled) { box-shadow: none !important; transform: translate(3px, 3px); }
+.px92-login button.pxl-primary { background: var(--pk) !important; font-size: 26px !important; box-shadow: 4px 4px 0 var(--ink) !important; }
+.px92-login button:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ô nhập */
+.px92-login input {
+  background: #fff !important; border: 3px solid var(--ink) !important; color: var(--ink) !important;
+  font: 400 26px/1.2 var(--px) !important; box-shadow: inset 3px 3px 0 rgba(20,24,31,.12) !important;
+}
+.px92-login input:focus { outline: 3px dashed var(--bl); outline-offset: 2px; }
+
+/* máy ảnh */
+.px92-login .pxl-glow { display: none !important; }
+.px92-login .pxl-cam {
+  animation: pxlBob 1.2s steps(1) infinite !important; filter: none !important;
+  font-size: 48px !important; padding: 8px 16px 6px; background: var(--lt); border: 4px solid var(--ink); box-shadow: 4px 4px 0 var(--ink);
+}
+
+/* nút Google (GSI vẽ iframe bên trong) */
+.px92-login .pxl-gbtn { display: inline-block; line-height: 0; border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); background: #fff; max-width: 100%; overflow: hidden; }
+
+/* khối thẻ khi đã đăng nhập */
+.px92-login-card div[style*="border: 1px"] { border: 3px solid var(--ink) !important; background: #fff !important; }
+.px92-login-card div[style*="border: 1px"] > div { color: var(--ink) !important; }
+@media (prefers-reduced-motion: reduce) { .px92-login *, .px92-login-card { animation: none !important; } }
