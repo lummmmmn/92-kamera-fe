@@ -78,7 +78,7 @@ function AppRoot() {
   // React Query data queries
   const HOME_CAMERA_PAGE_SIZE = 6;
   const HOME_FEEDBACK_PAGE_SIZE = 6;
-  const HOME_ALBUM_PAGE_SIZE = 3;
+  const HOME_ALBUM_PAGE_SIZE = 24;
   const HOME_PHOTO_PAGE_SIZE = 8;
 
   const [homeCameraPage, setHomeCameraPage] = useState(0);
