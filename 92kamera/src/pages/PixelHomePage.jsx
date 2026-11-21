@@ -124,7 +124,7 @@ export default function PixelHomePage({
               />
             ))}
           </div>
-        <div className="px92-chin"><span className="logo">92 KA MÊ RA</span><span className="slots"><i /><i /></span><span className="led" /></div>
+        <div className="px92-chin"><span className="logo">92 KA MÊ RA</span><span className="ver">v2.0/abc2z</span><span className="slots"><i /><i /></span><span className="led" /></div>
           </div>
         </div>
         <nav className="px92-kb" aria-label="Chức năng">
