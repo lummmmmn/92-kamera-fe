@@ -2,6 +2,9 @@ import React, { useLayoutEffect, useRef, useState } from "react";
 import PhotoLightbox from "../common/PhotoLightbox.jsx";
 import { CA_SHIFTS, DELIVERY_AREAS_DEFAULT, STATUS_CFG } from "../../lib/constants.js";
 import { cdnUrl, fmtVND } from "../../utils/format.js";
+// Dữ liệu quy trình thuê + lộ trình lấy từ đúng nguồn của giao diện cũ, không chép lại nội dung
+import { STEPS as PROCESS_STEPS } from "../home/ProcessSection.jsx";
+import { ROADMAP_PHASES } from "../home/RoadmapSection.jsx";
 
 /* ── Ảnh giữ chỗ bằng pixel khi máy/phụ kiện chưa có ảnh thật ── */
 const BG = ["#bcd0ff", "#ff8fb1", "#9fe0b4", "#ffd23f"];
@@ -213,6 +216,14 @@ export function GalleryPanel({ albums = [], photos = [], onUpload, onLoadMoreAlb
 }
 
 /* ── HƯỚNG DẪN ── */
+function ProcessBlock({ c, i }) {
+  if (c.type === "heading") return <h4 key={i}>{c.text}</h4>;
+  if (c.type === "list") return <ul key={i}>{c.items.map((t, j) => <li key={j}>{t}</li>)}</ul>;
+  if (c.type === "italic" || c.type === "tip") return <p key={i} className="px-note"><i>{c.text}</i></p>;
+  if (c.type === "label" || c.type === "link") return <p key={i}>{c.text}</p>;
+  return null;
+}
+
 export function GuidePanel({ onBook }) {
   return (
     <>
@@ -224,9 +235,37 @@ export function GuidePanel({ onBook }) {
       <div className="px-ca">
         {CA_SHIFTS.map((c) => (<div key={c.key}><b>{c.label}</b>{c.time}</div>))}
       </div>
+      <h3 className="px-sec">QUY TRÌNH THUÊ MÁY CHI TIẾT</h3>
+      {PROCESS_STEPS.map((st, k) => (
+        <details className="px-acc" key={st.num} open={k === 0}>
+          <summary><span className="num">{st.num}</span><span>{st.icon} {st.title}</span></summary>
+          <div className="bd">
+            {st.content.map((c, i) => <ProcessBlock key={i} c={c} i={i} />)}
+            {st.footer ? <div className="ft">{st.footer}</div> : null}
+          </div>
+        </details>
+      ))}
       <div className="px-links">
         <button type="button" className="px-pb p lg" onClick={() => onBook?.()}>ĐẶT MÁY</button>
       </div>
+    </>
+  );
+}
+
+/* ── LỘ TRÌNH PHÁT TRIỂN ── */
+export function RoadmapPanel() {
+  return (
+    <>
+      <p>Hành trình phát triển của 92 KA MÊ RA qua từng giai đoạn.</p>
+      {ROADMAP_PHASES.map((ph, k) => (
+        <details className="px-acc" key={ph.num} open={k === 0}>
+          <summary><span className="num">{ph.num}</span><span>{ph.icon} {ph.title}</span><em className="bdg">{ph.badge}</em></summary>
+          <div className="bd">
+            <ul>{ph.items.map((t, j) => <li key={j}>{t}</li>)}</ul>
+            {ph.goal ? <div className="ft">🎯 {ph.goal}</div> : null}
+          </div>
+        </details>
+      ))}
     </>
   );
 }
