@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 
-const STEPS = [
+export const STEPS = [
   {
     num: "01",
     title: "ĐẶT LỊCH ONLINE",
