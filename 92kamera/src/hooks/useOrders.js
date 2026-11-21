@@ -6,6 +6,7 @@ import {
 import { ORDERS_INIT } from "../lib/constants.js";
 
 export const ORDERS_QK = ["orders"];
+const DISCOUNTS_QK = ["discounts"];
 
 // ── READ ──
 export function useOrders(options = {}) {
@@ -25,7 +26,10 @@ export function useCreateOrder() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: createOrder,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ORDERS_QK }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ORDERS_QK });
+      qc.invalidateQueries({ queryKey: DISCOUNTS_QK }); // server vừa tăng usedCount
+    },
   });
 }
 
@@ -39,6 +43,7 @@ export function useUpdateOrder() {
         (old ?? []).map((o) => o.id === variables.id ? { ...o, ...updatedOrder } : o)
       );
       qc.invalidateQueries({ queryKey: ORDERS_QK });
+      qc.invalidateQueries({ queryKey: DISCOUNTS_QK });
     },
   });
 }
@@ -54,6 +59,7 @@ export function useUpdateOrderStatus() {
         (old ?? []).map((o) => o.id === variables.id ? { ...o, ...updatedOrder } : o)
       );
       qc.invalidateQueries({ queryKey: ORDERS_QK });
+      qc.invalidateQueries({ queryKey: DISCOUNTS_QK }); // huỷ/mở lại đơn → server hoàn/trừ lượt mã
     },
   });
 }
@@ -68,6 +74,7 @@ export function useDeleteOrder() {
         (old ?? []).filter((o) => o.id !== deletedId)
       );
       qc.invalidateQueries({ queryKey: ORDERS_QK });
+      qc.invalidateQueries({ queryKey: DISCOUNTS_QK });
     },
   });
 }
