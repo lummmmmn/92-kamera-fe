@@ -78,10 +78,179 @@ export default function BookingModal(props) {
 
   const stepLabel = ["Chọn thiết bị", "Thời gian & phụ kiện", "Thông tin đặt"];
 
+  const steps = (
+    <>
+    {/* STEP 1 */}
+    {!b.done && b.step === 1 && (
+      <BookingStep1
+        availCams={b.availCams}
+        selCams={b.selCams}
+        toggleCam={b.toggleCam}
+        camImgIdx={b.camImgIdx}
+        setCamImgIdx={b.setCamImgIdx}
+        expandedCam={b.expandedCam}
+        setExpandedCam={b.setExpandedCam}
+        totalCamSelected={b.totalCamSelected}
+        setStep={b.setStep}
+        preselectedUnavailable={b.preselectedUnavailable}
+        setCamQty={b.setCamQty}
+      />
+    )}
+
+    {/* STEP 2 */}
+    {!b.done && b.step === 2 && (
+      <BookingStep2
+        accessories={props.accessories}
+        selAcc={b.selAcc}
+        toggleAcc={b.toggleAcc}
+        setAccQty={b.setAccQty}
+        liveOrdersForCheck={b.liveOrdersForCheck}
+        pickDate={b.pickDate}
+        setPickDate={b.setPickDate}
+        pickHour={b.pickHour}
+        setPickHour={b.setPickHour}
+        numDays={b.numDays}
+        setNumDays={b.setNumDays}
+        returnHour={b.returnHour}
+        setReturnHour={b.setReturnHour}
+        caResult={b.caResult}
+        totalCa={b.totalCa}
+        selectedCamList={b.selectedCamList}
+        selCams={b.selCams}
+        totalCamSelected={b.totalCamSelected}
+        accCost={b.accCost}
+        camCost={b.camCost}
+        subtotal={b.subtotal}
+        total={b.total}
+        appliedRental={b.appliedRental}
+        appliedDelivery={b.appliedDelivery}
+        appliedTotal={b.appliedTotal}
+        rentalDiscountAmt={b.rentalDiscountAmt}
+        deliveryDiscountAmt={b.deliveryDiscountAmt}
+        totalDiscountAmt={b.totalDiscountAmt}
+        setStep={b.setStep}
+        qtyBtn={qtyBtnHelper}
+      />
+    )}
+
+    {/* STEP 3 */}
+    {!b.done && b.step === 3 && (
+      <BookingStep3
+        selectedCamList={b.selectedCamList}
+        selCams={b.selCams}
+        selAcc={b.selAcc}
+        accessories={props.accessories}
+        days={b.days}
+        selSession={b.selSession}
+        pickDate={b.pickDate}
+        pickHour={b.pickHour}
+        returnHour={b.returnHour}
+        caResult={b.caResult}
+        hasQuickSelect={b.hasQuickSelect}
+        appliedDiscounts={b.appliedDiscounts}
+        appliedRental={b.appliedRental}
+        appliedDelivery={b.appliedDelivery}
+        appliedTotal={b.appliedTotal}
+        discountExpanded={b.discountExpanded}
+        setDiscountExpanded={b.setDiscountExpanded}
+        discountCode={b.discountCode}
+        setDiscountCode={b.setDiscountCode}
+        discountLoading={b.discountLoading}
+        discountMsg={b.discountMsg}
+        setDiscountMsg={b.setDiscountMsg}
+        applyDiscount={b.applyDiscount}
+        removeDiscount={b.removeDiscount}
+        subtotal={b.subtotal}
+        rentalDiscountAmt={b.rentalDiscountAmt}
+        deliveryDiscountAmt={b.deliveryDiscountAmt}
+        totalDiscountAmt={b.totalDiscountAmt}
+        deliveryFeeCalc={b.deliveryFeeCalc}
+        deliveryFee2Way={b.deliveryFee2Way}
+        total={b.total}
+        info={b.info}
+        setInfo={b.setInfo}
+        deliveryStreet={b.deliveryStreet}
+        setDeliveryStreet={b.setDeliveryStreet}
+        deliveryWard={b.deliveryWard}
+        setDeliveryWard={b.setDeliveryWard}
+        deliveryDistrict={b.deliveryDistrict}
+        setDeliveryDistrict={b.setDeliveryDistrict}
+        deliveryPickup={b.deliveryPickup}
+        setDeliveryPickup={b.setDeliveryPickup}
+        deliveryReturn={b.deliveryReturn}
+        setDeliveryReturn={b.setDeliveryReturn}
+        selfPickup={b.selfPickup}
+        setSelfPickup={b.setSelfPickup}
+        deliveryFees={props.deliveryFees}
+        submitting={b.submitting}
+        submitError={b.submitError}
+        handleFinish={b.handleFinish}
+        setStep={b.setStep}
+      />
+    )}
+
+    {/* DONE SCREEN */}
+    {b.done && (
+      <BookingDone
+        orderId={b.orderId}
+        selectedCamList={b.selectedCamList}
+        selCams={b.selCams}
+        selAcc={b.selAcc}
+        days={b.days}
+        selSession={b.selSession}
+        pickDate={b.pickDate}
+        pickHour={b.pickHour}
+        returnHour={b.returnHour}
+        caResult={b.caResult}
+        appliedDiscounts={b.appliedDiscounts}
+        appliedTotal={b.appliedTotal}
+        discountAmt={b.discountAmt}
+        rentalDiscountAmt={b.rentalDiscountAmt}
+        deliveryDiscountAmt={b.deliveryDiscountAmt}
+        totalDiscountAmt={b.totalDiscountAmt}
+        deliveryFeeCalc={b.deliveryFeeCalc}
+        total={b.total}
+        info={b.info}
+        siteContent={props.siteContent}
+        onClose={props.onClose}
+        selfPickup={b.selfPickup}
+        deliveryStreet={b.deliveryStreet}
+        deliveryWard={b.deliveryWard}
+        deliveryDistrict={b.deliveryDistrict}
+        deliveryPickup={b.deliveryPickup}
+        deliveryReturn={b.deliveryReturn}
+      />
+    )}
+    </>
+  );
+
+  if (props.pixel) {
+    return (
+      <div className="px-ov px92-book" style={{ zIndex: 300 }} onMouseDown={(e) => { if (e.target === e.currentTarget) props.onClose?.(); }}>
+        <div className="px-dg px92-bkdg" role="dialog" aria-modal="true" aria-label="Đặt máy">
+          <div className="px-tt">
+            <span>Đặt máy</span>
+            <button type="button" aria-label="Đóng" onClick={props.onClose}>X</button>
+          </div>
+          <div className="px-bd">
+            {!b.done && (
+              <div className="px92-tabs" role="list">
+                {["Máy và ca", "Phụ kiện", "Thông tin"].map((l, i) => (
+                  <div key={l} role="listitem" className={b.step === i + 1 ? "on" : b.step > i + 1 ? "ok" : ""}>{i + 1} {l}</div>
+                ))}
+              </div>
+            )}
+            {steps}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       style={overlayStyle}
-      className={props.isMobile ? "bk-modal-mobile" : ""}
+      className={props.isMobile ? "bk-modal-mobile" : undefined}
     >
       <div style={{ position: "fixed", inset: 0, background: "linear-gradient(to right, rgba(236,243,248,0.58) 0%, transparent 40%, rgba(220,235,244,0.27) 100%)", pointerEvents: "none" }} />
       <div style={{ position: "fixed", inset: 0, background: "linear-gradient(to top, rgba(186,206,220,0.30) 0%, transparent 50%)", pointerEvents: "none" }} />
@@ -167,147 +336,7 @@ export default function BookingModal(props) {
           )}
         </div>
 
-        {/* STEP 1 */}
-        {!b.done && b.step === 1 && (
-          <BookingStep1
-            availCams={b.availCams}
-            selCams={b.selCams}
-            toggleCam={b.toggleCam}
-            camImgIdx={b.camImgIdx}
-            setCamImgIdx={b.setCamImgIdx}
-            expandedCam={b.expandedCam}
-            setExpandedCam={b.setExpandedCam}
-            totalCamSelected={b.totalCamSelected}
-            setStep={b.setStep}
-            preselectedUnavailable={b.preselectedUnavailable}
-            setCamQty={b.setCamQty}
-          />
-        )}
-
-        {/* STEP 2 */}
-        {!b.done && b.step === 2 && (
-          <BookingStep2
-            accessories={props.accessories}
-            selAcc={b.selAcc}
-            toggleAcc={b.toggleAcc}
-            setAccQty={b.setAccQty}
-            liveOrdersForCheck={b.liveOrdersForCheck}
-            pickDate={b.pickDate}
-            setPickDate={b.setPickDate}
-            pickHour={b.pickHour}
-            setPickHour={b.setPickHour}
-            numDays={b.numDays}
-            setNumDays={b.setNumDays}
-            returnHour={b.returnHour}
-            setReturnHour={b.setReturnHour}
-            caResult={b.caResult}
-            totalCa={b.totalCa}
-            selectedCamList={b.selectedCamList}
-            selCams={b.selCams}
-            totalCamSelected={b.totalCamSelected}
-            accCost={b.accCost}
-            camCost={b.camCost}
-            subtotal={b.subtotal}
-            total={b.total}
-            appliedRental={b.appliedRental}
-            appliedDelivery={b.appliedDelivery}
-            appliedTotal={b.appliedTotal}
-            rentalDiscountAmt={b.rentalDiscountAmt}
-            deliveryDiscountAmt={b.deliveryDiscountAmt}
-            totalDiscountAmt={b.totalDiscountAmt}
-            setStep={b.setStep}
-            qtyBtn={qtyBtnHelper}
-          />
-        )}
-
-        {/* STEP 3 */}
-        {!b.done && b.step === 3 && (
-          <BookingStep3
-            selectedCamList={b.selectedCamList}
-            selCams={b.selCams}
-            selAcc={b.selAcc}
-            accessories={props.accessories}
-            days={b.days}
-            selSession={b.selSession}
-            pickDate={b.pickDate}
-            pickHour={b.pickHour}
-            returnHour={b.returnHour}
-            caResult={b.caResult}
-            hasQuickSelect={b.hasQuickSelect}
-            appliedDiscounts={b.appliedDiscounts}
-            appliedRental={b.appliedRental}
-            appliedDelivery={b.appliedDelivery}
-            appliedTotal={b.appliedTotal}
-            discountExpanded={b.discountExpanded}
-            setDiscountExpanded={b.setDiscountExpanded}
-            discountCode={b.discountCode}
-            setDiscountCode={b.setDiscountCode}
-            discountLoading={b.discountLoading}
-            discountMsg={b.discountMsg}
-            setDiscountMsg={b.setDiscountMsg}
-            applyDiscount={b.applyDiscount}
-            removeDiscount={b.removeDiscount}
-            subtotal={b.subtotal}
-            rentalDiscountAmt={b.rentalDiscountAmt}
-            deliveryDiscountAmt={b.deliveryDiscountAmt}
-            totalDiscountAmt={b.totalDiscountAmt}
-            deliveryFeeCalc={b.deliveryFeeCalc}
-            deliveryFee2Way={b.deliveryFee2Way}
-            total={b.total}
-            info={b.info}
-            setInfo={b.setInfo}
-            deliveryStreet={b.deliveryStreet}
-            setDeliveryStreet={b.setDeliveryStreet}
-            deliveryWard={b.deliveryWard}
-            setDeliveryWard={b.setDeliveryWard}
-            deliveryDistrict={b.deliveryDistrict}
-            setDeliveryDistrict={b.setDeliveryDistrict}
-            deliveryPickup={b.deliveryPickup}
-            setDeliveryPickup={b.setDeliveryPickup}
-            deliveryReturn={b.deliveryReturn}
-            setDeliveryReturn={b.setDeliveryReturn}
-            selfPickup={b.selfPickup}
-            setSelfPickup={b.setSelfPickup}
-            deliveryFees={props.deliveryFees}
-            submitting={b.submitting}
-            submitError={b.submitError}
-            handleFinish={b.handleFinish}
-            setStep={b.setStep}
-          />
-        )}
-
-        {/* DONE SCREEN */}
-        {b.done && (
-          <BookingDone
-            orderId={b.orderId}
-            selectedCamList={b.selectedCamList}
-            selCams={b.selCams}
-            selAcc={b.selAcc}
-            days={b.days}
-            selSession={b.selSession}
-            pickDate={b.pickDate}
-            pickHour={b.pickHour}
-            returnHour={b.returnHour}
-            caResult={b.caResult}
-            appliedDiscounts={b.appliedDiscounts}
-            appliedTotal={b.appliedTotal}
-            discountAmt={b.discountAmt}
-            rentalDiscountAmt={b.rentalDiscountAmt}
-            deliveryDiscountAmt={b.deliveryDiscountAmt}
-            totalDiscountAmt={b.totalDiscountAmt}
-            deliveryFeeCalc={b.deliveryFeeCalc}
-            total={b.total}
-            info={b.info}
-            siteContent={props.siteContent}
-            onClose={props.onClose}
-            selfPickup={b.selfPickup}
-            deliveryStreet={b.deliveryStreet}
-            deliveryWard={b.deliveryWard}
-            deliveryDistrict={b.deliveryDistrict}
-            deliveryPickup={b.deliveryPickup}
-            deliveryReturn={b.deliveryReturn}
-          />
-        )}
+        {steps}
       </div>
     </div>
   );
