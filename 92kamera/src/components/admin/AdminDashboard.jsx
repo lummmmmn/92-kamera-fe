@@ -17,6 +17,7 @@ import {
   useUpdateOrderStatus,
   useDeleteOrder,
 } from "../../hooks/useOrders.js";
+import { useWishes } from "../../hooks/useWishes.js";
 
 // Import all sub-panels
 import OverviewPanel from "./OverviewPanel.jsx";
@@ -28,6 +29,7 @@ import RentalCalendar from "./RentalCalendar.jsx";
 import DeliveryPanel from "./DeliveryPanel.jsx";
 import GalleryPanel from "./GalleryPanel.jsx";
 import FeedbackPanel from "./FeedbackPanel.jsx";
+import WishesPanel from "./WishesPanel.jsx";
 import UsersPanel from "./UsersPanel.jsx";
 import DiscountsPanel from "./DiscountsPanel.jsx";
 import InventoryPanel from "./InventoryPanel.jsx";
@@ -52,6 +54,7 @@ export default function AdminDashboard({ onBack, isMobile }) {
   const { data: cameras = [], isLoading: isLoadingCameras } = useCameras();
   const { data: feedbacks = [], isLoading: isLoadingFeedbacks } = useFeedbacks();
   const { data: discounts = [], refetch: refetchDiscounts, isLoading: isLoadingDiscounts } = useDiscounts();
+  const { data: wishes = [] } = useWishes();
 
   const isInitialLoading = isLoadingOrders || isLoadingCameras || isLoadingFeedbacks || isLoadingDiscounts;
 
@@ -67,6 +70,7 @@ export default function AdminDashboard({ onBack, isMobile }) {
 
   const unseenCount = orders.filter((o) => !o.seen).length;
   const unseenFeedbackCount = feedbacks.filter((f) => f.status === "pending").length;
+  const unreadWishCount = wishes.filter((w) => !w.read).length;
 
   // Kêu "ting ting ting" lặp lại khi còn đơn mới chưa xem — để mở dashboard
   // treo máy vẫn nghe được, tự tắt ngay khi xem hết đơn.
@@ -80,6 +84,7 @@ export default function AdminDashboard({ onBack, isMobile }) {
     { k: "calendar", l: "📅 Lịch thuê" },
     { k: "delivery", l: "🚗 Phí giao nhận" },
     { k: "media", l: "🖼️ Media & Feedback", badge: unseenFeedbackCount },
+    { k: "wishes", l: "🧦 Điều ước", badge: unreadWishCount },
     { k: "users", l: "👥 Khách hàng" },
     { k: "discounts", l: "🏷️ Mã giảm giá" },
     { k: "inventory", l: "📦 Tồn kho" },
@@ -233,8 +238,8 @@ export default function AdminDashboard({ onBack, isMobile }) {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {unseenCount + unseenFeedbackCount > 0 && (
-            <span style={{ background: "#ef4444", color: "#fff", borderRadius: 99, padding: "2px 9px", fontSize: 11, fontWeight: 800 }}>{unseenCount + unseenFeedbackCount}</span>
+          {unseenCount + unseenFeedbackCount + unreadWishCount > 0 && (
+            <span style={{ background: "#ef4444", color: "#fff", borderRadius: 99, padding: "2px 9px", fontSize: 11, fontWeight: 800 }}>{unseenCount + unseenFeedbackCount + unreadWishCount}</span>
           )}
           <button onClick={onBack} style={{ background: "none", border: `1px solid rgba(255,255,255,0.15)`, color: "rgba(255,255,255,0.45)", padding: "6px 12px", borderRadius: 9, cursor: "pointer", fontSize: 11, fontFamily: "system-ui,sans-serif" }}>← Web</button>
         </div>
@@ -287,6 +292,7 @@ export default function AdminDashboard({ onBack, isMobile }) {
                 <FeedbackPanel isMobile={isMobile} />
               </div>
             )}
+            {tab === "wishes" && <WishesPanel isMobile={isMobile} />}
             {tab === "users" && <UsersPanel />}
             {tab === "discounts" && <DiscountsPanel isMobile={isMobile} orders={orders} />}
             {tab === "inventory" && <InventoryPanel isMobile={isMobile} />}
