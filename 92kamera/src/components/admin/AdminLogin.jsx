@@ -4,7 +4,7 @@ import CustomerLoginView from "./CustomerLoginView.jsx";
 import AdminLoginView from "./AdminLoginView.jsx";
 import { useAdminAuth } from "../../hooks/useAdminAuth.js";
 import { G, MUT, TXT, BG, CARD, BR } from "../../lib/constants.js";
-import { getOrders, googleLogin } from "../../api/index.js";
+import { googleLogin } from "../../api/index.js";
 import { todayStr } from "../../utils/format.js";
 import "./loginPixel.css";
 
@@ -49,28 +49,6 @@ export default function AdminLogin({
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  // Sync orders when component mounts
-  useEffect(() => {
-    if (!setOrders) return;
-    let cancelled = false;
-    const fetchFresh = async () => {
-      try {
-        const fresh = await getOrders();
-        if (cancelled || !fresh || !Array.isArray(fresh)) return;
-        setOrders((prev) => {
-          const freshIds = new Set(fresh.map((o) => o.id));
-          const localOnly = prev.filter((o) => !freshIds.has(o.id));
-          return [...localOnly, ...fresh];
-        }, { skipStorage: true });
-      } catch {}
-    };
-    fetchFresh();
-    const poll = setInterval(fetchFresh, 30000);
-    return () => {
-      cancelled = true;
-      clearInterval(poll);
-    };
-  }, [setOrders]);
 
   const [err, setErr] = useState(false);
   const [shake, setShake] = useState(false);
