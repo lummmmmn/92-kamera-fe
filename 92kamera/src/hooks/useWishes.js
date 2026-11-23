@@ -26,9 +26,9 @@ export function useWishes(options = {}) {
   return useQuery({
     queryKey: ["wishes"],
     queryFn: getWishes,
-    staleTime: 0,
-    refetchOnWindowFocus: true,
-    refetchInterval: 30 * 1000,
+    staleTime: 0,            // mở tab Điều ước là tải mới
+    refetchOnWindowFocus: false,
+    refetchInterval: false,   // không tự poll, chỉ tải khi bấm
     ...options,
   });
 }
