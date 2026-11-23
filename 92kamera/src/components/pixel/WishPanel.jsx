@@ -60,7 +60,7 @@ export default function WishPanel({ sock, onClose }) {
         />
       </label>
       <div className="hp" aria-hidden="true">
-        <input type="text" name="website" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
+        <input type="text" name="company_url_hp" tabIndex={-1} autoComplete="off" readOnly onFocus={(e) => e.target.removeAttribute("readonly")} value={website} onChange={(e) => setWebsite(e.target.value)} />
       </div>
       {error ? <div className="err" role="alert">{error}</div> : null}
       <button type="submit" className="px-pb p lg" disabled={busy}>{busy ? "ĐANG GỬI..." : "BỎ VÀO TẤT"}</button>
