@@ -47,14 +47,14 @@ export default function AdminDashboard({ onBack, isMobile }) {
 
   // Queries
   const { data: orders = [], refetch: refetchOrders, isLoading: isLoadingOrders } = useOrders({
-    refetchInterval: 10000,
+    refetchInterval: () => (typeof document !== "undefined" && document.hidden ? 60000 : 15000),
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
   });
   const { data: cameras = [], isLoading: isLoadingCameras } = useCameras();
   const { data: feedbacks = [], isLoading: isLoadingFeedbacks } = useFeedbacks();
   const { data: discounts = [], refetch: refetchDiscounts, isLoading: isLoadingDiscounts } = useDiscounts();
-  const { data: wishes = [] } = useWishes();
+  const { data: wishes = [] } = useWishes({ staleTime: 5 * 60 * 1000 }); // 1 lần khi vào dashboard để có số đỏ, không poll
 
   const isInitialLoading = isLoadingOrders || isLoadingCameras || isLoadingFeedbacks || isLoadingDiscounts;
 
